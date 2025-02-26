@@ -1,0 +1,11 @@
+---
+description: Best practices for implementing bottom sheets with @gorhom/bottom-sheet
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+- Use bottom sheets for modal-like interactions
+- Implement snap points for customizable sheet heights
+- Use backdrop for dismissing the sheet
+- Handle gestures and animations smoothly with Reanimated integration
+- Ensure accessibility by providing keyboard-aware behavior

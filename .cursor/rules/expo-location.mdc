@@ -1,0 +1,11 @@
+---
+description: Best practices for handling localization with Expo
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+- Use expo-localization for detecting device language
+- Implement i18n-js for managing translations
+- Create separate translation files for each language
+- Use context or hooks for easy language switching
+- Ensure all UI elements are properly localized

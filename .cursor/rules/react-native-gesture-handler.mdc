@@ -1,0 +1,11 @@
+---
+description: Best practices for handling gestures in React Native
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+- Use Gesture Handler for native gesture recognition
+- Implement simultaneous and exclusive gestures for complex interactions
+- Use native driver for smoother gesture animations
+- Combine with Reanimated for advanced gesture-based animations
+- Ensure proper hitSlop and activation criteria for responsive gestures

@@ -1,0 +1,13 @@
+---
+description: Best practices for state management with Context API
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+
+- Use Context API for global state management
+- Create separate contexts for different state slices
+- Use custom hooks to simplify context consumption
+- Avoid overusing Context; use it for truly global state
+- Implement memoization to prevent unnecessary re-renders
+

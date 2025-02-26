@@ -1,0 +1,11 @@
+---
+description: Best practices for handling safe areas in React Native
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+- Use SafeAreaView to handle notches and home indicators
+- Implement SafeAreaProvider at the root of your app
+- Use useSafeAreaInsets hook for dynamic safe area handling
+- Ensure consistent UI across different devices and OS versions
+- Consider safe areas in your layout design from the start

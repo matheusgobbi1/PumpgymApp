@@ -1,0 +1,421 @@
+import React, { createContext, useState, useContext, useEffect } from "react";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  User,
+  fetchSignInMethodsForEmail,
+  getIdToken,
+} from "firebase/auth";
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import { auth, db } from "../firebase/config";
+import { useRouter } from "expo-router";
+import {
+  saveUserData,
+  getUserData,
+  removeUserData,
+  saveAuthToken,
+  getAuthToken,
+  removeAuthToken,
+} from "../firebase/storage";
+
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  isNewUser: boolean;
+  checkEmailStatus: (
+    email: string
+  ) => Promise<{ exists: boolean; onboardingCompleted: boolean }>;
+  restoreSession: () => Promise<boolean>;
+  setUser: (user: User | null) => void;
+  setLoading: (loading: boolean) => void;
+  sessionRestoreAttempted: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isNewUser, setIsNewUser] = useState(false);
+  const [sessionRestored, setSessionRestored] = useState(false);
+  const [sessionRestoreAttempted, setSessionRestoreAttempted] = useState(false);
+  const router = useRouter();
+
+  // Função para tentar restaurar a sessão do usuário
+  const restoreSession = async (): Promise<boolean> => {
+    try {
+      // Marcar que tentamos restaurar a sessão
+      setSessionRestoreAttempted(true);
+
+      // Se já temos um usuário autenticado, não precisamos restaurar a sessão
+      if (auth.currentUser) {
+        console.log(
+          "Usuário já está autenticado, não precisa restaurar sessão"
+        );
+        setUser(auth.currentUser);
+        setSessionRestored(true);
+        setLoading(false);
+        return true;
+      }
+
+      // Verificar se há dados do usuário e token armazenados
+      const userData = await getUserData();
+      const authToken = await getAuthToken();
+
+      console.log(
+        "Verificando dados armazenados para restauração:",
+        userData ? "Dados de usuário encontrados" : "Sem dados de usuário",
+        authToken ? "Token encontrado" : "Sem token"
+      );
+
+      if (userData && userData.email && userData.password) {
+        console.log("Tentando restaurar sessão com credenciais armazenadas");
+
+        try {
+          // Adicionar um pequeno atraso para garantir que o Firebase Auth esteja pronto
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          console.log("Restaurando sessão com credenciais armazenadas");
+
+          // Fazer login diretamente
+          const userCredential = await signInWithEmailAndPassword(
+            auth,
+            userData.email,
+            userData.password
+          );
+
+          console.log("Login com credenciais armazenadas bem-sucedido");
+
+          // Atualizar o token após o login bem-sucedido
+          const newToken = await getIdToken(userCredential.user);
+          await saveAuthToken(newToken);
+
+          // Obter dados do usuário do Firestore para verificar o status do onboarding
+          const userDoc = await getDoc(
+            doc(db, "users", userCredential.user.uid)
+          );
+          const userDocData = userDoc.data();
+          const onboardingCompleted = userDocData
+            ? userDocData.onboardingCompleted
+            : false;
+
+          // Atualizar os dados do usuário armazenados
+          await saveUserData({
+            ...userData,
+            uid: userCredential.user.uid,
+            email: userCredential.user.email,
+            displayName: userCredential.user.displayName,
+            onboardingCompleted: onboardingCompleted,
+            password: userData.password,
+          });
+
+          // Definir o usuário manualmente
+          setUser(userCredential.user);
+          setIsNewUser(!onboardingCompleted);
+
+          console.log(
+            "Sessão restaurada com sucesso usando credenciais armazenadas"
+          );
+          setSessionRestored(true);
+          setLoading(false);
+          return true;
+        } catch (error) {
+          console.error("Erro ao restaurar sessão com credenciais:", error);
+          // Se falhar, limpar os dados armazenados para evitar tentativas futuras com credenciais inválidas
+          await removeUserData();
+          await removeAuthToken();
+        }
+      } else {
+        console.log(
+          "Sem dados de usuário ou credenciais armazenados para restaurar sessão"
+        );
+      }
+
+      setLoading(false);
+      return false;
+    } catch (error) {
+      console.error("Erro ao restaurar sessão:", error);
+      // Em caso de erro, limpar os dados armazenados para evitar problemas futuros
+      try {
+        await removeUserData();
+        await removeAuthToken();
+      } catch (cleanupError) {
+        console.error(
+          "Erro ao limpar dados após falha na restauração:",
+          cleanupError
+        );
+      }
+      setLoading(false);
+      return false;
+    }
+  };
+
+  // Verificar se há um usuário armazenado no SecureStore ao iniciar
+  useEffect(() => {
+    const checkStoredUser = async () => {
+      try {
+        await restoreSession();
+      } catch (error) {
+        console.error("Erro ao verificar usuário armazenado:", error);
+        setLoading(false);
+      }
+    };
+
+    checkStoredUser();
+  }, []);
+
+  // Monitorar mudanças no estado de autenticação
+  useEffect(() => {
+    // Só configurar o listener se não estivermos restaurando a sessão
+    if (sessionRestoreAttempted) {
+      const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+        console.log(
+          "Estado de autenticação alterado:",
+          currentUser ? "Autenticado" : "Não autenticado"
+        );
+
+        if (currentUser) {
+          try {
+            // Obter o token de ID do usuário
+            const idToken = await getIdToken(currentUser);
+
+            // Salvar o token no SecureStore
+            await saveAuthToken(idToken);
+
+            // Obter dados do usuário do Firestore
+            const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+            const userDocData = userDoc.data();
+
+            // Verificar se o onboarding foi concluído
+            const onboardingCompleted = userDocData
+              ? userDocData.onboardingCompleted
+              : false;
+
+            // Salvar dados do usuário no SecureStore
+            const storedUserData = (await getUserData()) || {};
+            await saveUserData({
+              ...storedUserData,
+              uid: currentUser.uid,
+              email: currentUser.email,
+              displayName: currentUser.displayName,
+              onboardingCompleted: onboardingCompleted,
+              // Manter a senha se existir
+              password: storedUserData.password,
+            });
+
+            // Definir o estado de novo usuário
+            setIsNewUser(!onboardingCompleted);
+            setSessionRestored(true);
+          } catch (error) {
+            console.error("Erro ao processar usuário autenticado:", error);
+          }
+        }
+
+        setUser(currentUser);
+        setLoading(false);
+      });
+
+      return () => unsubscribe();
+    }
+  }, [sessionRestoreAttempted]);
+
+  // Nova função para verificar o status do email
+  const checkEmailStatus = async (email: string) => {
+    try {
+      const methods = await fetchSignInMethodsForEmail(auth, email);
+      const exists = methods.length > 0;
+
+      if (exists) {
+        // Se o email existe, verificar se o onboarding foi concluído
+        // Para isso, precisamos fazer login primeiro
+        try {
+          // Não podemos verificar diretamente sem o login,
+          // então retornamos apenas a informação de que a conta existe
+          return { exists: true, onboardingCompleted: false };
+        } catch (error) {
+          console.error("Erro ao verificar status do onboarding:", error);
+          return { exists: true, onboardingCompleted: false };
+        }
+      }
+
+      return { exists: false, onboardingCompleted: false };
+    } catch (error) {
+      console.error("Erro ao verificar email:", error);
+      throw error;
+    }
+  };
+
+  const login = async (email: string, password: string) => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      // Obter o token de ID do usuário
+      const idToken = await getIdToken(userCredential.user);
+
+      // Salvar o token no SecureStore
+      await saveAuthToken(idToken);
+
+      // Obter dados do usuário do Firestore
+      const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+      const userDocData = userDoc.data();
+
+      // Verificar se o onboarding foi concluído
+      const onboardingCompleted = userDocData
+        ? userDocData.onboardingCompleted
+        : false;
+
+      // Salvar dados do usuário no SecureStore, incluindo a senha para restauração de sessão
+      await saveUserData({
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        displayName: userCredential.user.displayName,
+        password: password, // Armazenar a senha para restauração de sessão
+        onboardingCompleted: onboardingCompleted,
+      });
+
+      // Definir o estado de novo usuário
+      setIsNewUser(!onboardingCompleted);
+
+      // Redirecionar com base no status do onboarding
+      if (!onboardingCompleted) {
+        router.replace("/onboarding/gender");
+      } else {
+        router.replace("/(tabs)");
+      }
+    } catch (error) {
+      console.error("Erro ao fazer login:", error);
+      throw error;
+    }
+  };
+
+  const register = async (name: string, email: string, password: string) => {
+    try {
+      // Verificar se o email já existe
+      const { exists } = await checkEmailStatus(email);
+
+      if (exists) {
+        throw new Error(
+          "Este email já está cadastrado. Por favor, faça login."
+        );
+      }
+
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      ).catch((error) => {
+        if (error.code === "auth/email-already-in-use") {
+          throw new Error(
+            "Este email já está cadastrado. Por favor, faça login."
+          );
+        }
+        throw error;
+      });
+
+      // Obter o token de ID do usuário
+      const idToken = await getIdToken(userCredential.user);
+
+      // Salvar o token no SecureStore
+      await saveAuthToken(idToken);
+
+      // Salvar dados do usuário no SecureStore, incluindo a senha para restauração de sessão
+      await saveUserData({
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        displayName: name,
+        password: password, // Armazenar a senha para restauração de sessão
+        onboardingCompleted: false,
+      });
+
+      // Criar um documento de usuário no Firestore
+      await setDoc(doc(db, "users", userCredential.user.uid), {
+        name,
+        email,
+        createdAt: new Date().toISOString(),
+        onboardingCompleted: false,
+      });
+
+      // Definir o usuário e o estado de novo usuário
+      setUser(userCredential.user);
+      setIsNewUser(true);
+
+      // Redirecionar explicitamente para o onboarding
+      console.log("Redirecionando para onboarding após registro...");
+      router.replace("/onboarding/gender");
+    } catch (error) {
+      console.error("Erro ao registrar:", error);
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      console.log("Iniciando processo de logout...");
+
+      // Primeiro limpar os dados locais
+      try {
+        await removeUserData();
+        console.log("Dados do usuário removidos com sucesso");
+      } catch (e) {
+        console.error("Erro ao remover dados do usuário:", e);
+      }
+
+      try {
+        await removeAuthToken();
+        console.log("Token de autenticação removido com sucesso");
+      } catch (e) {
+        console.error("Erro ao remover token de autenticação:", e);
+      }
+
+      // Depois fazer logout no Firebase
+      await signOut(auth);
+      console.log("Logout do Firebase realizado com sucesso");
+
+      // Limpar estados locais
+      setUser(null);
+      setSessionRestored(false);
+      setSessionRestoreAttempted(false);
+
+      // Redirecionar para login
+      router.replace("/auth/login");
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+      throw error;
+    }
+  };
+
+  const value = {
+    user,
+    loading,
+    register,
+    login,
+    logout,
+    isNewUser,
+    checkEmailStatus,
+    restoreSession,
+    setUser,
+    setLoading,
+    sessionRestoreAttempted,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};

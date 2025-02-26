@@ -1,0 +1,13 @@
+---
+description: 
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+ Use functional components and hooks instead of class components
+- Ensure components are modular, reusable, and maintainable
+- Optimize performance by minimizing useEffect and useState in render methods
+- Use React.memo() for components with static props to prevent unnecessary re-renders
+- Optimize lists (e.g., FlatList) with props 
+- Use getItemLayout for FlatList when items have consistent sizes for better performance
+- Avoid anonymous functions in renderItem or event handlers to prevent re-renders

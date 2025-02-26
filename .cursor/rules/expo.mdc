@@ -1,0 +1,10 @@
+---
+description: Best practices for using Expo in React Native projects
+globs: 
+alwaysApply: false
+---
+
+- Leverage Expo Router for file-based navigation
+- Use Expo's managed workflow for easier app development and deployment
+- Implement Expo's secure storage for sensitive data
+- Use Expo's built-in modules for common functionalities like camera, location, etc.

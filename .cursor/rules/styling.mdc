@@ -1,0 +1,10 @@
+---
+description: 
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+- Implement a theme provider for global theming
+- Garanta design responsivo considerando diferentes tamanhos de tela e orientações.
+- Utilize `StyleSheet.create()`
+- Design clean, moderno e minimalista, mas muito funcional e criativo
