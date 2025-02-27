@@ -3,6 +3,9 @@ import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import { getUserData } from "../firebase/storage";
 import SplashScreen from "../components/SplashScreen";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase/config";
+import { OfflineStorage } from "../services/OfflineStorage";
 
 export default function AppEntry() {
   const router = useRouter();
@@ -16,15 +19,36 @@ export default function AppEntry() {
         try {
           console.log("Decidindo para onde redirecionar o usuário...");
 
-          // Verificar se há dados do usuário armazenados
-          const userData = await getUserData();
-
-          // Se o usuário estiver autenticado, redirecionar para a tela principal
+          // Se o usuário estiver autenticado, redirecionar para a tela principal ou onboarding
           if (user) {
             console.log("Usuário autenticado, redirecionando...");
 
             // Verificar se o onboarding foi concluído
-            if (userData && userData.onboardingCompleted === false) {
+            let onboardingCompleted = false;
+
+            // Primeiro, verificar no Firestore
+            try {
+              const isOnline = await OfflineStorage.isOnline();
+
+              if (isOnline) {
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists()) {
+                  onboardingCompleted =
+                    userDoc.data().onboardingCompleted === true;
+                }
+              }
+
+              // Se não estiver online ou não encontrar no Firestore, verificar no armazenamento local
+              if (!onboardingCompleted) {
+                onboardingCompleted = await OfflineStorage.loadOnboardingStatus(
+                  user.uid
+                );
+              }
+            } catch (error) {
+              console.error("Erro ao verificar status do onboarding:", error);
+            }
+
+            if (!onboardingCompleted) {
               console.log("Redirecionando para onboarding...");
               router.replace("/onboarding/gender");
             } else {

@@ -72,6 +72,10 @@ export default function OnboardingLayout({
           title={nextButtonTitle}
           onPress={onNext}
           disabled={nextButtonDisabled}
+          hapticFeedback={
+            currentStep === totalSteps ? "notification" : "impact"
+          }
+          hapticIntensity={currentStep === totalSteps ? "heavy" : "medium"}
         />
       </View>
     </SafeAreaView>
@@ -95,14 +99,15 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 8,
+    marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
     marginBottom: 30,
     opacity: 0.7,
+    lineHeight: 22,
   },
   errorContainer: {
     backgroundColor: "#FFEBEE",

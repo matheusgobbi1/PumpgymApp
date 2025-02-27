@@ -6,12 +6,12 @@ import { useAuth } from "../../context/AuthContext";
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
-  const { logout } = useAuth();
+  const { signOut } = useAuth();
 
   const handleLogout = async () => {
     try {
-      await logout();
-      // O redirecionamento para a tela de login é feito dentro da função logout
+      await signOut();
+      // O redirecionamento para a tela de login é feito dentro da função signOut
     } catch (error) {
       Alert.alert("Erro", "Não foi possível fazer logout. Tente novamente.");
       console.error("Erro ao fazer logout:", error);

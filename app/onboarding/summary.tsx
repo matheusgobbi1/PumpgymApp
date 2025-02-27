@@ -15,7 +15,9 @@ import Colors from "../../constants/Colors";
 import { useColorScheme } from "react-native";
 import Button from "../../components/Button";
 import { useNutrition } from "../../context/NutritionContext";
+import { useAuth } from "../../context/AuthContext";
 import CircularProgress from "react-native-circular-progress-indicator";
+import { OfflineStorage } from "../../services/OfflineStorage";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -23,7 +25,13 @@ export default function SummaryScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
-  const { nutritionInfo, completeOnboarding, calculateMacros } = useNutrition();
+  const {
+    nutritionInfo,
+    completeOnboarding,
+    calculateMacros,
+    resetNutritionInfo,
+  } = useNutrition();
+  const { isAnonymous } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -36,7 +44,22 @@ export default function SummaryScreen() {
       setLoading(true);
       setError("");
       await completeOnboarding();
-      router.push("/(tabs)" as any);
+
+      // Se o usuário estiver em modo anônimo, limpar dados e redirecionar para registro
+      if (isAnonymous) {
+        // Salvar temporariamente os dados atuais
+        const currentData = { ...nutritionInfo };
+
+        // Limpar os dados
+        await resetNutritionInfo();
+
+        // Armazenar temporariamente os dados para uso posterior
+        await OfflineStorage.saveTemporaryNutritionData(currentData);
+
+        router.replace("/onboarding/complete-registration");
+      } else {
+        router.replace("/(tabs)");
+      }
     } catch (err) {
       console.error("Erro ao salvar informações:", err);
       setError("Ocorreu um erro ao salvar suas informações. Tente novamente.");

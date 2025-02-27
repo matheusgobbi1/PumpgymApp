@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
@@ -7,12 +7,16 @@ import { useColorScheme } from "react-native";
 import { useNutrition, Gender } from "../../context/NutritionContext";
 import OnboardingLayout from "../../components/OnboardingLayout";
 import SelectionOption from "../../components/SelectionOption";
+import { useAuth } from "../../context/AuthContext";
+import { auth } from "../../firebase/config";
+import { signOut as firebaseSignOut } from "firebase/auth";
 
 export default function GenderScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
   const { nutritionInfo, updateNutritionInfo } = useNutrition();
+  const { signOut } = useAuth();
   const [selectedGender, setSelectedGender] = useState<Gender | undefined>(
     nutritionInfo.gender
   );
@@ -25,7 +29,27 @@ export default function GenderScreen() {
   };
 
   const handleBack = () => {
-    router.back();
+    Alert.alert(
+      "Sair do onboarding",
+      "Tem certeza que deseja voltar para a tela de login? Seu progresso não será salvo.",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Voltar para login",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await signOut();
+            } catch (error) {
+              console.error("Erro ao voltar para login:", error);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const genderOptions = [
@@ -37,7 +61,7 @@ export default function GenderScreen() {
         <Ionicons
           name="male-outline"
           size={24}
-          color={selectedGender === "male" ? "white" : colors.text}
+          color={selectedGender === "male" ? colors.primary : colors.text}
         />
       ),
     },
@@ -49,7 +73,7 @@ export default function GenderScreen() {
         <Ionicons
           name="female-outline"
           size={24}
-          color={selectedGender === "female" ? "white" : colors.text}
+          color={selectedGender === "female" ? colors.primary : colors.text}
         />
       ),
     },
@@ -61,7 +85,7 @@ export default function GenderScreen() {
         <Ionicons
           name="person-outline"
           size={24}
-          color={selectedGender === "other" ? "white" : colors.text}
+          color={selectedGender === "other" ? colors.primary : colors.text}
         />
       ),
     },
@@ -86,7 +110,6 @@ export default function GenderScreen() {
             icon={option.icon}
             isSelected={selectedGender === option.gender}
             onSelect={() => setSelectedGender(option.gender)}
-            variant="outlined"
           />
         ))}
       </View>

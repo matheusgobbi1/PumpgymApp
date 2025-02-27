@@ -2,13 +2,19 @@ import React, { createContext, useState, useContext, useEffect } from "react";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signOut,
+  signOut as firebaseSignOut,
   onAuthStateChanged,
-  User,
   fetchSignInMethodsForEmail,
   getIdToken,
+  signInAnonymously as signInAnonymouslyFirebase,
+  linkWithCredential,
+  EmailAuthProvider,
+  updateProfile,
+  type User as FirebaseUser,
+  type Auth as FirebaseAuth,
+  type AuthError as FirebaseAuthError,
 } from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../firebase/config";
 import { useRouter } from "expo-router";
 import {
@@ -19,21 +25,33 @@ import {
   getAuthToken,
   removeAuthToken,
 } from "../firebase/storage";
+import { OfflineStorage } from "../services/OfflineStorage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// Garantir que auth é do tipo FirebaseAuth
+const firebaseAuth: FirebaseAuth = auth;
 
 interface AuthContextType {
-  user: User | null;
+  user: FirebaseUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+  signOut: () => Promise<void>;
   isNewUser: boolean;
+  isAnonymous: boolean;
   checkEmailStatus: (
     email: string
   ) => Promise<{ exists: boolean; onboardingCompleted: boolean }>;
   restoreSession: () => Promise<boolean>;
-  setUser: (user: User | null) => void;
+  setUser: (user: FirebaseUser | null) => void;
   setLoading: (loading: boolean) => void;
   sessionRestoreAttempted: boolean;
+  signInAnonymously: () => Promise<FirebaseUser>;
+  completeAnonymousRegistration: (
+    name: string,
+    email: string,
+    password: string
+  ) => Promise<FirebaseUser>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,9 +67,10 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isNewUser, setIsNewUser] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [sessionRestored, setSessionRestored] = useState(false);
   const [sessionRestoreAttempted, setSessionRestoreAttempted] = useState(false);
   const router = useRouter();
@@ -68,6 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           "Usuário já está autenticado, não precisa restaurar sessão"
         );
         setUser(auth.currentUser);
+        setIsAnonymous(auth.currentUser.isAnonymous);
         setSessionRestored(true);
         setLoading(false);
         return true;
@@ -94,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
           // Fazer login diretamente
           const userCredential = await signInWithEmailAndPassword(
-            auth,
+            firebaseAuth,
             userData.email,
             userData.password
           );
@@ -122,10 +142,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             displayName: userCredential.user.displayName,
             onboardingCompleted: onboardingCompleted,
             password: userData.password,
+            isAnonymous: userCredential.user.isAnonymous,
           });
 
           // Definir o usuário manualmente
           setUser(userCredential.user);
+          setIsAnonymous(userCredential.user.isAnonymous);
           setIsNewUser(!onboardingCompleted);
 
           console.log(
@@ -181,54 +203,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Monitorar mudanças no estado de autenticação
   useEffect(() => {
-    // Só configurar o listener se não estivermos restaurando a sessão
     if (sessionRestoreAttempted) {
-      const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-        console.log(
-          "Estado de autenticação alterado:",
-          currentUser ? "Autenticado" : "Não autenticado"
-        );
+      const unsubscribe = onAuthStateChanged(
+        firebaseAuth,
+        async (currentUser: FirebaseUser | null) => {
+          console.log(
+            "Estado de autenticação alterado:",
+            currentUser ? "Autenticado" : "Não autenticado"
+          );
 
-        if (currentUser) {
-          try {
-            // Obter o token de ID do usuário
-            const idToken = await getIdToken(currentUser);
+          if (currentUser) {
+            try {
+              // Se for usuário anônimo, não persistir dados
+              if (currentUser.isAnonymous) {
+                console.log("Usuário anônimo: dados não serão persistidos");
+                setUser(currentUser);
+                setIsAnonymous(true);
+                setIsNewUser(true);
+                setLoading(false);
+                return;
+              }
 
-            // Salvar o token no SecureStore
-            await saveAuthToken(idToken);
+              // Para usuários não anônimos, continuar com o fluxo normal
+              const idToken = await getIdToken(currentUser);
+              await saveAuthToken(idToken);
+              setIsAnonymous(false);
 
-            // Obter dados do usuário do Firestore
-            const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-            const userDocData = userDoc.data();
+              const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+              const userDocData = userDoc.data();
+              const onboardingCompleted = userDocData
+                ? userDocData.onboardingCompleted
+                : false;
 
-            // Verificar se o onboarding foi concluído
-            const onboardingCompleted = userDocData
-              ? userDocData.onboardingCompleted
-              : false;
+              const storedUserData = (await getUserData()) || {};
+              await saveUserData({
+                ...storedUserData,
+                uid: currentUser.uid,
+                email: currentUser.email,
+                displayName: currentUser.displayName,
+                onboardingCompleted: onboardingCompleted,
+                isAnonymous: false,
+                password: storedUserData.password,
+              });
 
-            // Salvar dados do usuário no SecureStore
-            const storedUserData = (await getUserData()) || {};
-            await saveUserData({
-              ...storedUserData,
-              uid: currentUser.uid,
-              email: currentUser.email,
-              displayName: currentUser.displayName,
-              onboardingCompleted: onboardingCompleted,
-              // Manter a senha se existir
-              password: storedUserData.password,
-            });
-
-            // Definir o estado de novo usuário
-            setIsNewUser(!onboardingCompleted);
-            setSessionRestored(true);
-          } catch (error) {
-            console.error("Erro ao processar usuário autenticado:", error);
+              setIsNewUser(!onboardingCompleted);
+              setSessionRestored(true);
+            } catch (error) {
+              console.error("Erro ao processar usuário autenticado:", error);
+            }
           }
-        }
 
-        setUser(currentUser);
-        setLoading(false);
-      });
+          setUser(currentUser);
+          setLoading(false);
+        }
+      );
 
       return () => unsubscribe();
     }
@@ -237,7 +265,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Nova função para verificar o status do email
   const checkEmailStatus = async (email: string) => {
     try {
-      const methods = await fetchSignInMethodsForEmail(auth, email);
+      const methods = await fetchSignInMethodsForEmail(firebaseAuth, email);
       const exists = methods.length > 0;
 
       if (exists) {
@@ -263,7 +291,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const login = async (email: string, password: string) => {
     try {
       const userCredential = await signInWithEmailAndPassword(
-        auth,
+        firebaseAuth,
         email,
         password
       );
@@ -290,10 +318,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         displayName: userCredential.user.displayName,
         password: password, // Armazenar a senha para restauração de sessão
         onboardingCompleted: onboardingCompleted,
+        isAnonymous: userCredential.user.isAnonymous,
       });
 
       // Definir o estado de novo usuário
       setIsNewUser(!onboardingCompleted);
+      setIsAnonymous(userCredential.user.isAnonymous);
 
       // Redirecionar com base no status do onboarding
       if (!onboardingCompleted) {
@@ -319,16 +349,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       const userCredential = await createUserWithEmailAndPassword(
-        auth,
+        firebaseAuth,
         email,
         password
-      ).catch((error) => {
+      ).catch((error: FirebaseAuthError) => {
         if (error.code === "auth/email-already-in-use") {
           throw new Error(
             "Este email já está cadastrado. Por favor, faça login."
           );
         }
         throw error;
+      });
+
+      // Atualizar o perfil do usuário com o nome
+      await updateProfile(userCredential.user, {
+        displayName: name,
       });
 
       // Obter o token de ID do usuário
@@ -344,6 +379,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         displayName: name,
         password: password, // Armazenar a senha para restauração de sessão
         onboardingCompleted: false,
+        isAnonymous: false,
       });
 
       // Criar um documento de usuário no Firestore
@@ -357,6 +393,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Definir o usuário e o estado de novo usuário
       setUser(userCredential.user);
       setIsNewUser(true);
+      setIsAnonymous(false);
 
       // Redirecionar explicitamente para o onboarding
       console.log("Redirecionando para onboarding após registro...");
@@ -367,7 +404,96 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const logout = async () => {
+  const signInAnonymously = async () => {
+    try {
+      console.log("Iniciando login anônimo...");
+      const userCredential = await signInAnonymouslyFirebase(firebaseAuth);
+
+      console.log("Login anônimo bem-sucedido");
+
+      // Definir o usuário e o estado
+      setUser(userCredential.user);
+      setIsAnonymous(true);
+      setIsNewUser(true);
+
+      // Não salvar dados do usuário anônimo
+      console.log("Usuário anônimo: dados não serão persistidos");
+
+      return userCredential.user;
+    } catch (error) {
+      console.error("Erro ao fazer login anônimo:", error);
+      throw error;
+    }
+  };
+
+  const completeAnonymousRegistration = async (
+    name: string,
+    email: string,
+    password: string
+  ): Promise<FirebaseUser> => {
+    try {
+      console.log("Iniciando registro permanente...");
+
+      // Recuperar dados temporários de nutrição antes de criar o usuário
+      const tempNutritionData =
+        await OfflineStorage.getTemporaryNutritionData();
+      console.log("Dados temporários recuperados:", tempNutritionData);
+
+      // Criar novo usuário
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const newUser = userCredential.user;
+
+      // Atualizar perfil
+      await updateProfile(newUser, { displayName: name });
+
+      // Salvar dados do usuário no Firestore
+      await setDoc(doc(db, "users", newUser.uid), {
+        name,
+        email,
+        createdAt: serverTimestamp(),
+        onboardingCompleted: true,
+      });
+
+      // Se tiver dados de nutrição temporários, salvá-los no Firestore
+      if (tempNutritionData) {
+        console.log("Salvando dados de nutrição no Firestore...");
+        await setDoc(doc(db, "nutrition", newUser.uid), {
+          ...tempNutritionData,
+          updatedAt: serverTimestamp(),
+        });
+      }
+
+      // Salvar dados do usuário localmente
+      await saveUserData({
+        uid: newUser.uid,
+        email: newUser.email,
+        displayName: name,
+        password: password,
+        onboardingCompleted: true,
+        isAnonymous: false,
+      });
+
+      // Atualizar estado
+      setUser(newUser);
+      setIsAnonymous(false);
+      setIsNewUser(false);
+
+      // Limpar dados temporários após salvar
+      await OfflineStorage.clearTemporaryNutritionData();
+
+      router.replace("/(tabs)");
+      return newUser;
+    } catch (error) {
+      console.error("Erro ao completar registro:", error);
+      throw error;
+    }
+  };
+
+  const signOut = async () => {
     try {
       console.log("Iniciando processo de logout...");
 
@@ -387,11 +513,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       // Depois fazer logout no Firebase
-      await signOut(auth);
+      await firebaseSignOut(firebaseAuth);
       console.log("Logout do Firebase realizado com sucesso");
 
       // Limpar estados locais
       setUser(null);
+      setIsAnonymous(false);
       setSessionRestored(false);
       setSessionRestoreAttempted(false);
 
@@ -408,13 +535,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     loading,
     register,
     login,
-    logout,
+    signOut,
     isNewUser,
+    isAnonymous,
     checkEmailStatus,
     restoreSession,
     setUser,
     setLoading,
     sessionRestoreAttempted,
+    signInAnonymously,
+    completeAnonymousRegistration,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

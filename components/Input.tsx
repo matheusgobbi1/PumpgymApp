@@ -10,12 +10,17 @@ import {
   KeyboardTypeOptions,
   NativeSyntheticEvent,
   TextInputFocusEventData,
+  Animated,
+  Platform,
+  TextInputProps,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../constants/Colors";
 import { useColorScheme } from "react-native";
+import * as Haptics from "expo-haptics";
+import { MotiView } from "moti";
 
-interface InputProps {
+interface InputProps extends TextInputProps {
   label?: string;
   placeholder?: string;
   value: string;
@@ -33,6 +38,18 @@ interface InputProps {
   editable?: boolean;
   multiline?: boolean;
   numberOfLines?: number;
+  icon?: React.ReactNode;
+  iconPosition?: "left" | "right";
+  leftIcon?: string | React.ReactNode;
+  rightIcon?: string | React.ReactNode;
+  iconColor?: string;
+  iconSize?: number;
+  onIconPress?: () => void;
+  onRightIconPress?: () => void;
+  onLeftIconPress?: () => void;
+  floatingLabel?: boolean;
+  inputContainerStyle?: ViewStyle;
+  isActive?: boolean;
 }
 
 export default function Input({
@@ -53,6 +70,18 @@ export default function Input({
   editable = true,
   multiline = false,
   numberOfLines = 1,
+  icon,
+  iconPosition = "left",
+  leftIcon,
+  rightIcon,
+  iconColor,
+  iconSize = 24,
+  onIconPress,
+  onRightIconPress,
+  onLeftIconPress,
+  floatingLabel = false,
+  inputContainerStyle,
+  isActive,
 }: InputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(!secureTextEntry);
@@ -61,6 +90,7 @@ export default function Input({
 
   const handleFocus = (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
     setIsFocused(true);
+    Haptics.selectionAsync();
     if (onFocus) onFocus(e);
   };
 
@@ -70,41 +100,144 @@ export default function Input({
   };
 
   const togglePasswordVisibility = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsPasswordVisible(!isPasswordVisible);
   };
+
+  const handleChangeText = (text: string) => {
+    onChangeText(text);
+  };
+
+  // Renderizar ícone esquerdo
+  const renderLeftIcon = () => {
+    if (!leftIcon && !(icon && iconPosition === "left")) return null;
+
+    return (
+      <MotiView
+        animate={{ scale: isFocused ? 1.1 : 1, opacity: isFocused ? 1 : 0.7 }}
+        transition={{ type: "timing", duration: 200 }}
+        style={styles.iconLeft}
+      >
+        <TouchableOpacity
+          onPress={onLeftIconPress || onIconPress}
+          disabled={!onLeftIconPress && !onIconPress}
+        >
+          {icon && iconPosition === "left" ? (
+            icon
+          ) : typeof leftIcon === "string" ? (
+            <Ionicons
+              name={leftIcon as any}
+              size={iconSize}
+              color={isFocused ? colors.primary : iconColor || colors.text}
+            />
+          ) : (
+            leftIcon
+          )}
+        </TouchableOpacity>
+      </MotiView>
+    );
+  };
+
+  // Renderizar ícone direito
+  const renderRightIcon = () => {
+    if (secureTextEntry) {
+      return (
+        <TouchableOpacity
+          onPress={togglePasswordVisibility}
+          style={styles.iconRight}
+        >
+          <Ionicons
+            name={isPasswordVisible ? "eye-off" : "eye"}
+            size={24}
+            color={isFocused ? colors.primary : colors.text}
+          />
+        </TouchableOpacity>
+      );
+    }
+
+    if (!rightIcon && !(icon && iconPosition === "right")) return null;
+
+    return (
+      <MotiView
+        animate={{ scale: isFocused ? 1.1 : 1, opacity: isFocused ? 1 : 0.7 }}
+        transition={{ type: "timing", duration: 200 }}
+        style={styles.iconRight}
+      >
+        <TouchableOpacity
+          onPress={onRightIconPress || onIconPress}
+          disabled={!onRightIconPress && !onIconPress}
+        >
+          {icon && iconPosition === "right" ? (
+            icon
+          ) : typeof rightIcon === "string" ? (
+            <Ionicons
+              name={rightIcon as any}
+              size={iconSize}
+              color={isFocused ? colors.primary : iconColor || colors.text}
+            />
+          ) : (
+            rightIcon
+          )}
+        </TouchableOpacity>
+      </MotiView>
+    );
+  };
+
+  // Verificar se há ícones
+  const hasLeftIcon = leftIcon || (icon && iconPosition === "left");
+  const hasRightIcon =
+    rightIcon || secureTextEntry || (icon && iconPosition === "right");
 
   return (
     <View style={[styles.container, containerStyle]}>
       {label && (
-        <Text style={[styles.label, { color: colors.text }, labelStyle]}>
-          {label}
-        </Text>
+        <MotiView
+          animate={{ translateX: isFocused ? 5 : 0 }}
+          transition={{ type: "timing", duration: 200 }}
+        >
+          <Text
+            style={[
+              styles.label,
+              {
+                color: isFocused ? colors.primary : colors.text,
+                fontWeight: isFocused ? "600" : "500",
+              },
+              labelStyle,
+            ]}
+          >
+            {label}
+          </Text>
+        </MotiView>
       )}
-      <View
-        style={[
-          styles.inputContainer,
-          {
-            backgroundColor: colors.light,
-            borderColor: error
-              ? colors.danger
-              : isFocused
-              ? colors.primary
-              : colors.border,
-          },
-        ]}
+      <MotiView
+        animate={{
+          borderColor: error
+            ? colors.danger
+            : isFocused || isActive
+            ? colors.primary
+            : colors.border,
+          borderWidth: isFocused ? 2 : 1,
+          backgroundColor: colorScheme === "dark" ? "#2A2A2A" : "#F8F9FA",
+        }}
+        transition={{ type: "timing", duration: 200 }}
+        style={[styles.inputContainer, inputContainerStyle]}
       >
+        {renderLeftIcon()}
+
         <TextInput
           style={[
             styles.input,
             {
               color: colors.text,
+              paddingLeft: hasLeftIcon ? 8 : 16,
+              paddingRight: hasRightIcon ? 8 : 16,
             },
             inputStyle,
           ]}
           placeholder={placeholder}
-          placeholderTextColor={colors.text + "80"}
+          placeholderTextColor={colorScheme === "dark" ? "#666666" : "#A0A0A0"}
           value={value}
-          onChangeText={onChangeText}
+          onChangeText={handleChangeText}
           secureTextEntry={secureTextEntry && !isPasswordVisible}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
@@ -115,23 +248,19 @@ export default function Input({
           multiline={multiline}
           numberOfLines={numberOfLines}
         />
-        {secureTextEntry && (
-          <TouchableOpacity
-            onPress={togglePasswordVisibility}
-            style={styles.iconContainer}
-          >
-            <Ionicons
-              name={isPasswordVisible ? "eye-off" : "eye"}
-              size={24}
-              color={colors.text}
-            />
-          </TouchableOpacity>
-        )}
-      </View>
+
+        {renderRightIcon()}
+      </MotiView>
       {error && (
-        <Text style={[styles.errorText, { color: colors.danger }]}>
-          {error}
-        </Text>
+        <MotiView
+          from={{ opacity: 0, translateY: -5 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: "spring" }}
+        >
+          <Text style={[styles.errorText, { color: colors.danger }]}>
+            {error}
+          </Text>
+        </MotiView>
       )}
     </View>
   );
@@ -143,7 +272,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   label: {
-    fontSize: 18,
+    fontSize: 16,
     marginBottom: 12,
     fontWeight: "500",
   },
@@ -152,17 +281,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderRadius: 12,
-    paddingHorizontal: 16,
     height: 60,
-    justifyContent: "center",
+    position: "relative",
+    overflow: "hidden",
   },
   input: {
     flex: 1,
-    fontSize: 18,
+    fontSize: 16,
     height: "100%",
   },
-  iconContainer: {
-    padding: 10,
+  iconLeft: {
+    paddingLeft: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  iconRight: {
+    paddingRight: 16,
+    justifyContent: "center",
+    alignItems: "center",
   },
   errorText: {
     fontSize: 14,

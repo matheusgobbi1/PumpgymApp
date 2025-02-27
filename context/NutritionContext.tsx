@@ -8,6 +8,9 @@ import React, {
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "./AuthContext";
+import { OfflineStorage, PendingOperation } from "../services/OfflineStorage";
+import NetInfo from "@react-native-community/netinfo";
+import { v4 as uuidv4 } from "uuid";
 
 // Definindo os tipos para as informações de nutrição
 export type Gender = "male" | "female" | "other";
@@ -61,6 +64,10 @@ interface NutritionContextType {
   saveNutritionInfo: () => Promise<void>;
   completeOnboarding: () => Promise<void>;
   resetNutritionInfo: () => void;
+  isOnline: boolean;
+  syncPendingData: () => Promise<void>;
+  saveOnboardingStep: (step: string) => Promise<void>;
+  getOnboardingStep: () => Promise<string | null>;
 }
 
 const NutritionContext = createContext<NutritionContextType | undefined>(
@@ -100,22 +107,128 @@ const initialNutritionInfo: NutritionInfo = {
 export const NutritionProvider = ({ children }: NutritionProviderProps) => {
   const [nutritionInfo, setNutritionInfo] =
     useState<NutritionInfo>(initialNutritionInfo);
+  const [isOnline, setIsOnline] = useState<boolean>(true);
   const { user, isNewUser } = useAuth();
 
-  // Resetar informações de nutrição quando o usuário mudar ou quando for um novo usuário
+  // Monitorar o estado da conexão
   useEffect(() => {
-    if (user === null || isNewUser) {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      const newOnlineState = state.isConnected === true;
+      setIsOnline(newOnlineState);
+
+      // Se a conexão foi restaurada, tentar sincronizar dados pendentes
+      if (newOnlineState && user) {
+        syncPendingData();
+      }
+    });
+
+    // Verificar o estado inicial da conexão
+    NetInfo.fetch().then((state) => {
+      setIsOnline(state.isConnected === true);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [user]);
+
+  // Carregar dados quando o usuário mudar
+  useEffect(() => {
+    if (user) {
+      loadUserData();
+    } else {
       resetNutritionInfo();
     }
-  }, [user, isNewUser]);
+  }, [user]);
 
-  const updateNutritionInfo = (info: Partial<NutritionInfo>) => {
+  // Função para carregar dados do usuário (do Firestore ou local)
+  const loadUserData = async () => {
+    if (!user) return;
+
+    // Se o usuário for anônimo, resetar as informações
+    if (user.isAnonymous) {
+      console.log("Usuário anônimo: resetando informações de nutrição");
+      setNutritionInfo(initialNutritionInfo);
+      return;
+    }
+
+    try {
+      // Verificar se está online
+      const online = await OfflineStorage.isOnline();
+
+      if (online) {
+        // Tentar carregar do Firestore
+        const docRef = doc(db, "nutrition", user.uid);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+
+          // Converter timestamps para Date
+          const processedData = Object.entries(data).reduce<
+            Record<string, any>
+          >((acc, [key, value]) => {
+            if (
+              typeof value === "string" &&
+              (key === "birthDate" || key === "targetDate") &&
+              /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value as string)
+            ) {
+              acc[key] = new Date(value as string);
+            } else {
+              acc[key] = value;
+            }
+            return acc;
+          }, {});
+
+          setNutritionInfo((prev) => ({ ...prev, ...processedData }));
+
+          // Salvar localmente para acesso offline
+          await OfflineStorage.saveNutritionData(user.uid, processedData);
+        }
+      } else {
+        // Carregar dados locais
+        const localData = await OfflineStorage.loadNutritionData(user.uid);
+        if (localData) {
+          setNutritionInfo((prev) => ({ ...prev, ...localData }));
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao carregar dados do usuário:", error);
+
+      // Em caso de erro, tentar carregar dados locais
+      const localData = await OfflineStorage.loadNutritionData(user.uid);
+      if (localData) {
+        setNutritionInfo((prev) => ({ ...prev, ...localData }));
+      }
+    }
+  };
+
+  const updateNutritionInfo = async (info: Partial<NutritionInfo>) => {
     setNutritionInfo((prev) => ({ ...prev, ...info }));
+
+    if (user) {
+      if (user.isAnonymous) {
+        // Para usuários anônimos, salvar temporariamente
+        console.log("Salvando dados temporários para usuário anônimo");
+        const currentInfo = { ...nutritionInfo, ...info };
+        await OfflineStorage.saveTemporaryNutritionData(currentInfo);
+      } else {
+        // Para usuários autenticados, salvar localmente
+        await OfflineStorage.saveNutritionData(user.uid, {
+          ...nutritionInfo,
+          ...info,
+        });
+      }
+    }
   };
 
   // Função para resetar as informações de nutrição
-  const resetNutritionInfo = () => {
+  const resetNutritionInfo = async () => {
     setNutritionInfo(initialNutritionInfo);
+
+    if (user) {
+      await OfflineStorage.clearUserData(user.uid);
+    }
   };
 
   // Função para calcular idade precisa em anos (incluindo meses)
@@ -394,6 +507,9 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
     }
 
     try {
+      // Verificar se está online
+      const online = await OfflineStorage.isOnline();
+
       // Converter as datas para timestamps do Firestore e remover campos undefined
       const nutritionData = Object.entries({
         ...nutritionInfo,
@@ -412,11 +528,35 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         return acc;
       }, {});
 
-      // Salvar no Firestore
-      await setDoc(doc(db, "nutrition", user.uid), nutritionData);
-      console.log("Informações de nutrição salvas com sucesso!");
+      if (online) {
+        // Salvar no Firestore se estiver online
+        await setDoc(doc(db, "nutrition", user.uid), nutritionData);
+        console.log("Informações de nutrição salvas com sucesso!");
+      } else {
+        // Se estiver offline, salvar localmente e adicionar à fila de operações pendentes
+        await OfflineStorage.saveNutritionData(user.uid, nutritionData);
+
+        // Adicionar operação pendente
+        const pendingOp: PendingOperation = {
+          id: uuidv4(),
+          type: "update",
+          collection: "nutrition",
+          data: { ...nutritionData, id: user.uid },
+          timestamp: Date.now(),
+        };
+
+        await OfflineStorage.addPendingOperation(pendingOp);
+        console.log("Informações de nutrição salvas localmente (offline)");
+      }
     } catch (error) {
       console.error("Erro ao salvar informações de nutrição:", error);
+
+      // Em caso de erro, salvar localmente
+      if (user) {
+        await OfflineStorage.saveNutritionData(user.uid, nutritionInfo);
+      }
+      console.log("Informações salvas localmente devido a erro");
+
       throw error;
     }
   };
@@ -429,24 +569,104 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
     }
 
     try {
+      // Verificar se está online
+      const online = await OfflineStorage.isOnline();
+
       // Salvar as informações de nutrição
       await saveNutritionInfo();
 
-      // Atualizar o documento do usuário para marcar o onboarding como concluído
-      await setDoc(
-        doc(db, "users", user.uid),
-        {
-          onboardingCompleted: true,
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      );
+      if (online) {
+        // Atualizar o documento do usuário para marcar o onboarding como concluído
+        await setDoc(
+          doc(db, "users", user.uid),
+          {
+            onboardingCompleted: true,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
 
-      console.log("Onboarding concluído com sucesso!");
+        // Salvar status localmente também
+        await OfflineStorage.saveOnboardingStatus(user.uid, true);
+
+        console.log("Onboarding concluído com sucesso!");
+      } else {
+        // Se estiver offline, marcar localmente que o onboarding foi concluído
+        await OfflineStorage.saveOnboardingStatus(user.uid, true);
+
+        // Adicionar operação pendente
+        const pendingOp: PendingOperation = {
+          id: uuidv4(),
+          type: "update",
+          collection: "users",
+          data: {
+            id: user.uid,
+            onboardingCompleted: true,
+            updatedAt: new Date().toISOString(),
+          },
+          timestamp: Date.now(),
+        };
+
+        await OfflineStorage.addPendingOperation(pendingOp);
+        console.log("Onboarding concluído localmente (offline)");
+      }
     } catch (error) {
       console.error("Erro ao concluir onboarding:", error);
       throw error;
     }
+  };
+
+  // Função para sincronizar dados pendentes quando o dispositivo estiver online
+  const syncPendingData = async () => {
+    if (!user) return;
+
+    try {
+      const isDeviceOnline = await OfflineStorage.isOnline();
+
+      if (!isDeviceOnline) return;
+
+      console.log("Verificando operações pendentes para sincronização...");
+
+      // Obter todas as operações pendentes
+      const pendingOps = await OfflineStorage.getPendingOperations();
+
+      if (pendingOps.length === 0) {
+        console.log("Não há operações pendentes para sincronizar");
+        return;
+      }
+
+      console.log(`Sincronizando ${pendingOps.length} operações pendentes...`);
+
+      // Processar cada operação pendente
+      for (const op of pendingOps) {
+        try {
+          if (op.collection === "nutrition" && op.type === "update") {
+            await setDoc(doc(db, "nutrition", user.uid), op.data);
+          } else if (op.collection === "users" && op.type === "update") {
+            await setDoc(doc(db, "users", user.uid), op.data, { merge: true });
+          }
+
+          // Remover operação processada
+          await OfflineStorage.removePendingOperation(op.id);
+          console.log(`Operação ${op.id} sincronizada com sucesso`);
+        } catch (opError) {
+          console.error(`Erro ao sincronizar operação ${op.id}:`, opError);
+        }
+      }
+
+      console.log("Sincronização concluída");
+    } catch (error) {
+      console.error("Erro ao sincronizar dados:", error);
+    }
+  };
+
+  // Funções para gerenciar o passo atual do onboarding
+  const saveOnboardingStep = async (step: string) => {
+    await OfflineStorage.saveOnboardingStep(step);
+  };
+
+  const getOnboardingStep = async () => {
+    return await OfflineStorage.getOnboardingStep();
   };
 
   return (
@@ -458,6 +678,10 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         saveNutritionInfo,
         completeOnboarding,
         resetNutritionInfo,
+        isOnline,
+        syncPendingData,
+        saveOnboardingStep,
+        getOnboardingStep,
       }}
     >
       {children}

@@ -2,6 +2,7 @@ import React, { ReactNode } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import Colors from "../constants/Colors";
 import { useColorScheme } from "react-native";
+import * as Haptics from "expo-haptics";
 
 interface SelectionOptionProps {
   title: string;
@@ -24,45 +25,35 @@ export default function SelectionOption({
   const colors = Colors[colorScheme];
 
   const getContainerStyle = () => {
-    switch (variant) {
-      case "filled":
-        return {
-          backgroundColor: isSelected ? colors.primary : colors.light,
-          borderColor: isSelected ? colors.primary : colors.border,
-        };
-      case "outlined":
-        return {
-          backgroundColor: colors.light,
-          borderColor: isSelected ? colors.primary : "transparent",
-          borderWidth: isSelected ? 2 : 0,
-        };
-      case "bordered":
-        return {
-          backgroundColor: "transparent",
-          borderColor: isSelected ? colors.primary : colors.border,
-          borderWidth: 1,
-        };
-      default:
-        return {
-          backgroundColor: isSelected ? colors.primary : colors.light,
-          borderColor: isSelected ? colors.primary : colors.border,
-        };
-    }
+    // Estilo padronizado com apenas a borda colorida quando selecionado
+    return {
+      backgroundColor: colors.light,
+      borderColor: isSelected ? colors.primary : colors.border,
+      borderWidth: isSelected ? 2 : 1,
+    };
   };
 
   const getTextColor = () => {
-    if (variant === "filled" && isSelected) {
-      return "white";
+    return isSelected ? colors.primary : colors.text;
+  };
+
+  const handleSelect = () => {
+    // Aplicar feedback tátil quando o usuário seleciona uma opção
+    if (!isSelected) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } else {
+      Haptics.selectionAsync();
     }
-    return colors.text;
+    onSelect();
   };
 
   return (
     <TouchableOpacity
       style={[styles.optionContainer, getContainerStyle()]}
-      onPress={onSelect}
+      onPress={handleSelect}
+      activeOpacity={0.7}
     >
-      <View style={styles.iconContainer}>{icon}</View>
+      {icon && <View style={styles.iconContainer}>{icon}</View>}
       <View style={styles.textContainer}>
         <Text
           style={[
@@ -75,20 +66,19 @@ export default function SelectionOption({
         >
           {title}
         </Text>
-        <Text
-          style={[
-            styles.optionDescription,
-            {
-              color:
-                variant === "filled" && isSelected
-                  ? "rgba(255, 255, 255, 0.8)"
-                  : colors.text,
-              opacity: variant === "filled" && isSelected ? 1 : 0.7,
-            },
-          ]}
-        >
-          {description}
-        </Text>
+        {description ? (
+          <Text
+            style={[
+              styles.optionDescription,
+              {
+                color: colors.text,
+                opacity: 0.7,
+              },
+            ]}
+          >
+            {description}
+          </Text>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
@@ -98,26 +88,27 @@ const styles = StyleSheet.create({
   optionContainer: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 20,
+    padding: 16,
     borderRadius: 12,
-    borderWidth: 1,
     marginBottom: 12,
+    minHeight: 56,
   },
   iconContainer: {
     width: 40,
     height: 40,
     justifyContent: "center",
     alignItems: "center",
+    marginRight: 12,
   },
   textContainer: {
     flex: 1,
-    marginLeft: 16,
   },
   optionTitle: {
-    fontSize: 18,
-    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: "500",
   },
   optionDescription: {
     fontSize: 14,
+    marginTop: 4,
   },
 });

@@ -139,3 +139,73 @@ export const validateMeasurements = (
 
   return { isValid: true, message: "" };
 };
+
+// Validações para registro
+export const validateRegistration = (
+  name: string,
+  email: string,
+  password: string,
+  confirmPassword: string
+): ValidationResult => {
+  if (!name || !email || !password || !confirmPassword) {
+    return {
+      isValid: false,
+      message: "Por favor, preencha todos os campos",
+    };
+  }
+
+  if (password !== confirmPassword) {
+    return {
+      isValid: false,
+      message: "As senhas não coincidem",
+    };
+  }
+
+  if (password.length < 6) {
+    return {
+      isValid: false,
+      message: "A senha deve ter pelo menos 6 caracteres",
+    };
+  }
+
+  return { isValid: true, message: "" };
+};
+
+// Validações para login
+export const validateLogin = (
+  email: string,
+  password: string
+): ValidationResult => {
+  if (!email || !password) {
+    return {
+      isValid: false,
+      message: "Por favor, preencha todos os campos",
+    };
+  }
+
+  return { isValid: true, message: "" };
+};
+
+// Validação de força da senha
+export const calculatePasswordStrength = (password: string): number => {
+  let strength = 0;
+  if (password.length >= 8) strength += 0.25;
+  if (/[A-Z]/.test(password)) strength += 0.25;
+  if (/[0-9]/.test(password)) strength += 0.25;
+  if (/[^A-Za-z0-9]/.test(password)) strength += 0.25;
+  return strength;
+};
+
+export const getPasswordStrengthColor = (strength: number): string => {
+  if (strength <= 0.25) return "#FF5252";
+  if (strength <= 0.5) return "#FFC107";
+  if (strength <= 0.75) return "#2196F3";
+  return "#4CAF50";
+};
+
+export const getPasswordStrengthText = (strength: number): string => {
+  if (strength <= 0.25) return "Fraca";
+  if (strength <= 0.5) return "Média";
+  if (strength <= 0.75) return "Boa";
+  return "Forte";
+};

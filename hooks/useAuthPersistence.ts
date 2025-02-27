@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 /**
  * Hook para gerenciar a persistência de autenticação
  * Este hook deve ser usado dentro do AuthProvider
+ * Nota: Usuários anônimos não têm seus dados persistidos
  */
 export function useAuthPersistence() {
   const { restoreSession } = useAuth();
@@ -12,11 +13,13 @@ export function useAuthPersistence() {
     try {
       console.log("AuthPersistenceManager: Tentando restaurar sessão");
       const result = await restoreSession();
-      console.log(
-        `AuthPersistenceManager: Restauração de sessão ${
-          result ? "bem-sucedida" : "falhou"
-        }`
-      );
+      if (result) {
+        console.log("AuthPersistenceManager: Sessão restaurada com sucesso");
+      } else {
+        console.log(
+          "AuthPersistenceManager: Nenhuma sessão válida para restaurar"
+        );
+      }
     } catch (error) {
       console.error("AuthPersistenceManager: Erro ao restaurar sessão:", error);
     }
