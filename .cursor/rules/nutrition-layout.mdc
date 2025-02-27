@@ -1,0 +1,134 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Descrição Completa da Tela "Nutrition" do PumpGym
+
+A tela "Nutrition" é a interface dedicada ao gerenciamento do plano alimentar e ao acompanhamento nutricional diário do usuário. Ela foi projetada para ser intuitiva, visualmente atraente, minimaslista, moderna e responsiva, integrando informações de metas nutricionais com a facilidade de registro de refeições. Abaixo, uma descrição detalhada de cada seção e fluxo dessa tela:
+
+---
+
+## 1. Layout Geral
+
+- **Topo – Calendário Interativo:**
+  - **Função:** Permite que o usuário navegue por diferentes dias para visualizar o histórico nutricional ou planejar o dia atual.
+  - **Design:** Minimalista, destacando o dia atual e sinalizando visualmente (por exemplo, com ícones ou marcadores) os dias em que refeições foram registradas.
+  - **Interatividade:** Ao selecionar um dia, os dados exibidos (metas e registros) são atualizados para refletir o conteúdo daquele dia.
+
+- **Resumo Nutricional:**
+  - **Objetivo:** Exibir as metas diárias definidas a partir dos dados do onboarding (calorias totais e distribuição de macronutrientes – proteínas, carboidratos e gorduras).
+  - **Visual:** Conjunto de cards com progress bar circular.
+  - **Feedback:** Utilização de cores (por exemplo, verde para dentro da meta e vermelho para excedido) para sinalizar rapidamente o progresso do usuário.
+
+- **Meal Cards – Seção de Refeições:**
+  - **Estrutura:** Lista de cards, cada um representando uma refeição do dia (Café da Manhã, Lanche, Almoço, Lanche da Tarde, Jantar, etc.).
+  - **Conteúdo dos Cards:**
+    - **Título da Refeição:** Nome e ícone representativo.
+    - **Metas Nutricionais Específicas:** Calorias e macronutrientes recomendados para aquela refeição.
+    - **Registro de Consumo:** Se o usuário já registrou alimentos, o card exibe o nome do alimento e as calorias dele, alterando os progress bar do usuario) 
+    - **Ação:** Ao tocar em um card, o usuário é direcionado para a tela de _Add Food_ para registrar ou editar os alimentos daquela refeição.
+
+---
+
+## 2. Fluxos de Interação
+
+### 2.1. Estado Inicial (Sem Registros)
+- **Condição:** Ao acessar a tela "Nutrition" pela primeira vez ou em um dia sem registros, os Meal Cards estarão vazios ou exibirão mensagens como “Nenhum alimento registrado”.
+- **Ação do Usuário:**  
+  - O usuário pode tocar em qualquer card para iniciar o registro manual de alimentos.
+  - Alternativamente, pode usar o FAB da tab para que o app gere automaticamente uma dieta com base no TDEE e nos macros calculados.
+
+### 2.2. Registro Manual de Refeições
+- **Ao Tocar no Meal Card:**
+  - O usuário é direcionado para a tela _Add Food_, que contém:
+    - **Search Bar:** Para buscar alimentos por nome.
+    - **Opções Adicionais:** Botões para “Scan Barcode” e “Quick Add” para facilitar a entrada.
+    - **Histórico:** Lista de alimentos recentemente pesquisados, facilitando o acesso rápido.
+- **Food Details:**
+  - Ao selecionar um alimento, o usuário é levado à tela _Food Details_, onde pode:
+    - Visualizar detalhes nutricionais do alimento.
+    - Ajustar a porção (através de inputs ou seletores).
+    - Confirmar a adição do alimento à refeição.
+- **Atualização:**
+  - Após confirmação, o estado global do plano alimentar (gerenciado via Context API) é atualizado, e o Meal Card correspondente mostra os novos totais consumidos.
+
+### 2.3. Geração Automática de Dieta
+- **Uso do FAB:**
+  - Quando o usuário opta por “Criar Dieta”, o app executa uma função (por exemplo, `createDietPlan()`) que utiliza os dados do onboarding para montar um plano alimentar personalizado.
+- **Processo:**
+  - O plano gerado define alimentos e quantidades para cada refeição do dia.
+  - O estado global é atualizado com esses dados, fazendo com que todos os Meal Cards se re-renderizem para refletir a nova dieta.
+- **Feedback Visual:**
+  - Transições suaves e animações indicam a atualização dos cards, oferecendo ao usuário uma experiência clara e interativa.
+
+---
+
+## 3. Gerenciamento de Estado
+
+- **Contexto Global (DietContext):**
+  - Armazena o estado nutricional diário, estruturado por refeição.
+  - **Exemplo de Estrutura:**
+    ```typescript
+    interface FoodItem {
+      id: string;
+      name: string;
+      calories: number;
+      macros: {
+        protein: number;
+        carbs: number;
+        fats: number;
+      };
+      portion: number;
+    }
+
+    interface MealData {
+      items: FoodItem[];
+      totalCalories: number;
+      totalMacros: {
+        protein: number;
+        carbs: number;
+        fats: number;
+      };
+    }
+
+    interface DietState {
+      breakfast: MealData;
+      lunch: MealData;
+      dinner: MealData;
+      snacks: MealData;
+    }
+    ```
+  - Funções como `addFoodToMeal` e `createDietPlan` atualizam esse estado, garantindo que a interface reflete imediatamente as mudanças.
+
+- **Re-renderização Automática:**
+  - Os Meal Cards consomem esse estado e, ao ser atualizado, re-renderizam para mostrar os totais de calorias e macronutrientes, permitindo ao usuário acompanhar seu progresso.
+
+---
+
+## 4. Estilo e Identidade Visual
+
+- **Design Minimalista, Clean e Moderno :**
+  - Layout limpo e organizado com uma paleta de cores neutras para elementos principais.
+- **Responsividade:**
+  - Uso de `SafeAreaView` para garantir compatibilidade em diferentes dispositivos e orientações.
+- **Animações:**
+  - Transições suaves utilizando bibliotecas como Moti e Reanimated, que fornecem feedback visual e melhoram a experiência do usuário ao atualizar os Meal Cards ou ao transitar entre telas.
+
+---
+
+## 5. Resumo do Fluxo de Usuário
+
+1. **Acesso Inicial:**
+   - O usuário abre a tela "Nutrition" e vê um calendário interativo no topo e Meal Cards abaixo, possivelmente vazios se ainda não houver registros.
+2. **Registro Manual:**
+   - Toca em um card para acessar a tela _Add Food_ e, a partir daí, registra alimentos por meio da _Food Details_.
+   - Os Meal Cards se atualizam para mostrar o consumo acumulado e os totais nutricionais.
+3. **Geração Automática:**
+   - Ao usar o FAB, o app gera um plano alimentar personalizado, atualizando o estado global e re-renderizando os Meal Cards com as sugestões e totais.
+4. **Feedback Contínuo:**
+   - Atualizações em tempo real, com animações e transições suaves, garantem que o usuário sempre veja seu progresso nutricional de forma clara e motivadora.
+
+---
+
+Esta é a descrição completa da tela "Nutrition" do PumpGym, detalhando seu layout, fluxos de interação, gerenciamento de estado e considerações de design. Essa estrutura foi pensada para oferecer uma experiência intuitiva, responsiva e personalizada, ajudando o usuário a acompanhar e gerenciar suas metas nutricionais de forma eficaz.

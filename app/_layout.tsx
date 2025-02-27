@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useColorScheme } from "react-native";
 import { AuthProvider } from "../context/AuthContext";
 import { NutritionProvider } from "../context/NutritionContext";
+import { MealProvider } from "../context/MealContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthPersistenceManager } from "../components/AuthPersistenceManager";
@@ -57,22 +58,31 @@ function RootLayoutNav() {
       <SafeAreaProvider>
         <AuthProvider>
           <NutritionProvider>
-            <AuthPersistenceManager />
-            <OfflineNotice />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: {
-                  backgroundColor: Colors[theme].background,
-                },
-              }}
-            >
-              <Stack.Screen name="index" />
-              <Stack.Screen name="auth/login" />
-              <Stack.Screen name="auth/register" />
-              <Stack.Screen name="onboarding" />
-              <Stack.Screen name="(tabs)" />
-            </Stack>
+            <MealProvider>
+              <AuthPersistenceManager />
+              <OfflineNotice />
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: {
+                    backgroundColor: Colors[theme].background,
+                  },
+                }}
+              >
+                <Stack.Screen name="index" />
+                <Stack.Screen name="auth/login" />
+                <Stack.Screen name="auth/register" />
+                <Stack.Screen name="onboarding" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen
+                  name="(add-food)"
+                  options={{
+                    presentation: "modal",
+                    animation: "slide_from_bottom",
+                  }}
+                />
+              </Stack>
+            </MealProvider>
           </NutritionProvider>
         </AuthProvider>
       </SafeAreaProvider>

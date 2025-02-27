@@ -12,6 +12,7 @@ const KEYS = {
   ONBOARDING_STEP: "pumpgym_onboarding_step",
   PENDING_SYNC: "pumpgym_pending_sync",
   TEMP_NUTRITION_DATA: "@temp_nutrition_data",
+  MEALS_KEY: "@meals:",
 };
 
 // Tipos para operações pendentes
@@ -366,6 +367,33 @@ export const OfflineStorage = {
     } catch (error) {
       console.error("Erro ao limpar dados temporários:", error);
       throw error;
+    }
+  },
+
+  // Salvar dados de refeições
+  saveMealsData: async (
+    userId: string,
+    date: string,
+    data: any
+  ): Promise<void> => {
+    try {
+      const key = `${KEYS.MEALS_KEY}${userId}:${date}`;
+      await AsyncStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+      console.error("Erro ao salvar dados de refeições:", error);
+      throw error;
+    }
+  },
+
+  // Carregar dados de refeições
+  loadMealsData: async (userId: string, date: string): Promise<any | null> => {
+    try {
+      const key = `${KEYS.MEALS_KEY}${userId}:${date}`;
+      const data = await AsyncStorage.getItem(key);
+      return data ? JSON.parse(data) : null;
+    } catch (error) {
+      console.error("Erro ao carregar dados de refeições:", error);
+      return null;
     }
   },
 };

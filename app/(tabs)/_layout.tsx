@@ -195,10 +195,7 @@ export default function TabLayout() {
           tabBarActiveTintColor: Colors[colorScheme].tint,
           tabBarInactiveTintColor:
             Colors[colorScheme === "dark" ? "light" : "dark"].tabIconDefault,
-          headerStyle: {
-            backgroundColor: Colors[colorScheme].background,
-          },
-          headerTintColor: Colors[colorScheme].text,
+          headerShown: false,
           tabBarStyle: {
             position: "absolute",
             bottom: insets.bottom + 10,
