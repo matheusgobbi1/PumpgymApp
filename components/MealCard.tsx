@@ -10,6 +10,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { MotiView } from "moti";
 import { useRouter } from "expo-router";
 import { Food } from "../context/MealContext";
+import * as Haptics from "expo-haptics";
+import { Swipeable } from "react-native-gesture-handler";
 
 interface MealCardProps {
   meal: {
@@ -27,6 +29,7 @@ interface MealCardProps {
   index: number;
   colors: any;
   onPress: () => void;
+  onDeleteFood: (foodId: string) => Promise<void>;
 }
 
 const { width } = Dimensions.get("window");
@@ -38,8 +41,38 @@ export default function MealCard({
   index,
   colors,
   onPress,
+  onDeleteFood,
 }: MealCardProps) {
   const router = useRouter();
+
+  const handleHapticFeedback = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const renderFoodItem = (food: Food) => (
+    <Swipeable
+      key={food.id}
+      renderRightActions={() => (
+        <TouchableOpacity
+          style={[styles.swipeAction, { backgroundColor: colors.danger }]}
+          onPress={async () => {
+            handleHapticFeedback();
+            await onDeleteFood(food.id);
+          }}
+        >
+          <Ionicons name="trash" size={24} color="white" />
+        </TouchableOpacity>
+      )}
+    >
+      <View
+        style={[styles.foodItemContainer, { backgroundColor: colors.light }]}
+      >
+        <Text style={[styles.foodItem, { color: colors.text }]}>
+          {food.name} - {food.portion}g
+        </Text>
+      </View>
+    </Swipeable>
+  );
 
   return (
     <MotiView
@@ -48,60 +81,57 @@ export default function MealCard({
       animate={{ opacity: 1, translateY: 0 }}
       transition={{ type: "spring", delay: index * 100 }}
     >
-      <TouchableOpacity
-        style={styles.mealContent}
-        onPress={onPress}
-        activeOpacity={0.7}
-      >
-        <View style={styles.mealHeader}>
-          <View style={styles.mealTitleContainer}>
-            <Ionicons
-              name={meal.icon as any}
-              size={24}
-              color={colors.primary}
-            />
-            <Text style={[styles.mealTitle, { color: colors.text }]}>
-              {meal.name}
+      <View style={styles.mealContent}>
+        <TouchableOpacity
+          style={styles.headerTouchable}
+          onPress={onPress}
+          activeOpacity={0.7}
+        >
+          <View style={styles.mealHeader}>
+            <View style={styles.mealTitleContainer}>
+              <Ionicons
+                name={meal.icon as any}
+                size={24}
+                color={colors.primary}
+              />
+              <Text style={[styles.mealTitle, { color: colors.text }]}>
+                {meal.name}
+              </Text>
+            </View>
+            <Text style={[styles.mealCalories, { color: colors.text }]}>
+              {mealTotals.calories} kcal
             </Text>
           </View>
-          <Text style={[styles.mealCalories, { color: colors.text }]}>
-            {mealTotals.calories} kcal
-          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.foodsContainer}>
+          {foods.length > 0 ? (
+            <View style={styles.foodsList}>{foods.map(renderFoodItem)}</View>
+          ) : (
+            <Text style={[styles.emptyText, { color: colors.text }]}>
+              Nenhum alimento adicionado
+            </Text>
+          )}
         </View>
 
-        {foods.length > 0 ? (
-          <View style={styles.foodsList}>
-            {foods.map((food) => (
-              <Text
-                key={food.id}
-                style={[styles.foodItem, { color: colors.text }]}
-              >
-                {food.name} - {food.portion}g
-              </Text>
-            ))}
-          </View>
-        ) : (
-          <Text style={[styles.emptyText, { color: colors.text }]}>
-            Nenhum alimento adicionado
-          </Text>
-        )}
-
-        <TouchableOpacity
-          style={[styles.addButton, { backgroundColor: colors.primary }]}
-          onPress={(e) => {
-            e.stopPropagation();
-            router.push({
-              pathname: "/(add-food)",
-              params: {
-                mealId: meal.id,
-                mealName: meal.name,
-              },
-            });
-          }}
-        >
-          <Ionicons name="add" size={24} color="#FFF" />
-        </TouchableOpacity>
-      </TouchableOpacity>
+        <View style={styles.addButtonContainer}>
+          <TouchableOpacity
+            style={[styles.addButton, { backgroundColor: colors.primary }]}
+            onPress={(e) => {
+              e.stopPropagation();
+              router.push({
+                pathname: "/(add-food)",
+                params: {
+                  mealId: meal.id,
+                  mealName: meal.name,
+                },
+              });
+            }}
+          >
+            <Ionicons name="add" size={24} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+      </View>
     </MotiView>
   );
 }
@@ -121,13 +151,15 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   mealContent: {
-    padding: 20,
+    padding: 16,
+  },
+  headerTouchable: {
+    marginBottom: 12,
   },
   mealHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
   },
   mealTitleContainer: {
     flexDirection: "row",
@@ -142,13 +174,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  foodsContainer: {
+    minHeight: 50,
+    marginBottom: 50, // Espaço para o botão
+  },
   foodsList: {
     marginVertical: 8,
   },
   foodItem: {
     fontSize: 14,
-    marginBottom: 4,
     opacity: 0.8,
+    paddingVertical: 12,
   },
   emptyText: {
     fontSize: 14,
@@ -156,10 +192,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginVertical: 12,
   },
-  addButton: {
+  addButtonContainer: {
     position: "absolute",
     bottom: 16,
     right: 16,
+    zIndex: 1,
+  },
+  addButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -170,5 +209,16 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
+  },
+  swipeAction: {
+    justifyContent: "center",
+    alignItems: "center",
+    width: 80,
+    height: "100%",
+  },
+  foodItemContainer: {
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.1)",
   },
 });
