@@ -396,4 +396,23 @@ export const OfflineStorage = {
       return null;
     }
   },
+
+  // Obter todas as datas que possuem refeições salvas
+  getDatesWithMeals: async (userId: string): Promise<string[]> => {
+    try {
+      const allKeys = await AsyncStorage.getAllKeys();
+      const mealKeys = allKeys.filter((key) =>
+        key.startsWith(`${KEYS.MEALS_KEY}${userId}`)
+      );
+
+      return mealKeys.map((key) => {
+        // Extrair a data da chave: @meals:userId:YYYY-MM-DD
+        const parts = key.split(":");
+        return parts[parts.length - 1];
+      });
+    } catch (error) {
+      console.error("Erro ao buscar datas com refeições:", error);
+      return [];
+    }
+  },
 };

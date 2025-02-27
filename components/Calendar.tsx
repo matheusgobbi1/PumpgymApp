@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -7,17 +7,25 @@ import {
   Dimensions,
   ScrollView,
 } from "react-native";
-import { format, addDays, startOfWeek, isSameDay } from "date-fns";
+import {
+  format,
+  addDays,
+  startOfWeek,
+  isSameDay,
+  setHours,
+  setMinutes,
+  setSeconds,
+  setMilliseconds,
+} from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { MotiView, AnimatePresence } from "moti";
+import { MotiView } from "moti";
 import Colors from "../constants/Colors";
 import { useColorScheme } from "react-native";
 import * as Haptics from "expo-haptics";
 import { BlurView } from "expo-blur";
-import { useMeals } from "../context/MealContext";
 
 const { width } = Dimensions.get("window");
-const DAYS_TO_SHOW = 30; // Mostra 30 dias
+const DAYS_TO_SHOW = 30;
 
 interface CalendarProps {
   onSelectDate: (date: Date) => void;
@@ -30,32 +38,39 @@ export default function Calendar({
 }: CalendarProps) {
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
-  const today = new Date();
-  const startDate = startOfWeek(today, { locale: ptBR });
-  const { loadMeals, meals } = useMeals();
-  const [markedDates, setMarkedDates] = useState<Date[]>([]);
 
-  const dates = Array.from({ length: DAYS_TO_SHOW }, (_, i) =>
-    addDays(startDate, i)
+  // Inicializa as datas zerando o horário
+  const today = setMilliseconds(
+    setSeconds(setMinutes(setHours(new Date(), 0), 0), 0),
+    0
+  );
+  const startDate = startOfWeek(today, { locale: ptBR });
+
+  // Gera as datas do calendário
+  const dates = useMemo(() => {
+    return Array.from({ length: DAYS_TO_SHOW }, (_, i) => {
+      const date = addDays(startDate, i);
+      // Zera o horário para evitar problemas de timezone
+      return setMilliseconds(
+        setSeconds(setMinutes(setHours(date, 0), 0), 0),
+        0
+      );
+    });
+  }, [startDate]);
+
+  const handleDatePress = useCallback(
+    (date: Date) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onSelectDate(date);
+    },
+    [onSelectDate]
   );
 
-  useEffect(() => {
-    // Aqui você pode implementar a lógica para carregar as datas marcadas
-    // Por enquanto, vamos apenas marcar os dias que têm refeições com alimentos
-    const datesWithMeals = meals.some((meal) => meal.foods.length > 0)
-      ? [selectedDate]
-      : [];
-    setMarkedDates(datesWithMeals);
-  }, [meals, selectedDate]);
-
-  const isDateMarked = (date: Date) =>
-    markedDates.some((markedDate) => isSameDay(markedDate, date));
-
-  const handleDatePress = (date: Date) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onSelectDate(date);
-    loadMeals(date);
-  };
+  // Zera o horário da data selecionada para comparação
+  const normalizedSelectedDate = setMilliseconds(
+    setSeconds(setMinutes(setHours(selectedDate, 0), 0), 0),
+    0
+  );
 
   return (
     <View style={styles.container}>
@@ -69,9 +84,8 @@ export default function Calendar({
           contentContainerStyle={styles.scrollContent}
         >
           {dates.map((date, index) => {
-            const isSelected = isSameDay(date, selectedDate);
+            const isSelected = isSameDay(date, normalizedSelectedDate);
             const isToday = isSameDay(date, today);
-            const isMarked = isDateMarked(date);
 
             return (
               <View key={date.toISOString()} style={styles.dayColumn}>
@@ -83,81 +97,32 @@ export default function Calendar({
                   style={styles.dayButton}
                 >
                   <MotiView
-                    animate={{
-                      scale: isSelected ? 1 : 0.95,
-                      translateY: isSelected ? -8 : 0,
-                    }}
-                    transition={{
-                      type: "spring",
-                      damping: 15,
-                      mass: 0.8,
-                      stiffness: 120,
-                    }}
+                    style={[
+                      styles.dayContainer,
+                      isSelected && {
+                        backgroundColor: colors.primary,
+                        shadowColor: colors.primary,
+                        shadowOffset: { width: 0, height: 6 },
+                        shadowOpacity: 0.35,
+                        shadowRadius: 10,
+                        elevation: 8,
+                      },
+                      !isSelected && {
+                        backgroundColor: isToday ? colors.light : "transparent",
+                      },
+                    ]}
                   >
-                    <AnimatePresence>
-                      <MotiView
-                        style={[
-                          styles.dayContainer,
-                          isSelected && {
-                            backgroundColor: colors.primary,
-                            shadowColor: colors.primary,
-                            shadowOffset: { width: 0, height: 6 },
-                            shadowOpacity: 0.35,
-                            shadowRadius: 10,
-                            elevation: 8,
-                          },
-                          !isSelected && {
-                            backgroundColor: isToday
-                              ? colors.light
-                              : "transparent",
-                          },
-                        ]}
-                        from={{
-                          opacity: 0,
-                          scale: 0.8,
-                        }}
-                        animate={{
-                          opacity: 1,
-                          scale: 1,
-                        }}
-                        transition={{
-                          type: "timing",
-                          duration: 250,
-                          delay: index * 50,
-                        }}
-                      >
-                        <Text
-                          style={[
-                            styles.dayText,
-                            {
-                              color: isSelected ? "#FFF" : colors.text,
-                              opacity: isSelected ? 1 : isToday ? 1 : 0.7,
-                            },
-                          ]}
-                        >
-                          {format(date, "d")}
-                        </Text>
-                        {isMarked && (
-                          <MotiView
-                            from={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{
-                              type: "spring",
-                              damping: 20,
-                              delay: index * 50 + 100,
-                            }}
-                            style={[
-                              styles.dot,
-                              {
-                                backgroundColor: isSelected
-                                  ? "#FFF"
-                                  : colors.success,
-                              },
-                            ]}
-                          />
-                        )}
-                      </MotiView>
-                    </AnimatePresence>
+                    <Text
+                      style={[
+                        styles.dayText,
+                        {
+                          color: isSelected ? "#FFF" : colors.text,
+                          opacity: isSelected ? 1 : isToday ? 1 : 0.7,
+                        },
+                      ]}
+                    >
+                      {format(date, "d")}
+                    </Text>
                   </MotiView>
                 </TouchableOpacity>
               </View>
@@ -220,11 +185,5 @@ const styles = StyleSheet.create({
   dayText: {
     fontSize: 17,
     fontWeight: "600",
-  },
-  dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    marginTop: 2,
   },
 });

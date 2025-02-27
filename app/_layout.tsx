@@ -12,6 +12,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthPersistenceManager } from "../components/AuthPersistenceManager";
 import Colors from "../constants/Colors";
 import OfflineNotice from "../components/OfflineNotice";
+import "react-native-reanimated";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -55,37 +57,39 @@ function RootLayoutNav() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <AuthProvider>
-          <NutritionProvider>
-            <MealProvider>
-              <AuthPersistenceManager />
-              <OfflineNotice />
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  contentStyle: {
-                    backgroundColor: Colors[theme].background,
-                  },
-                }}
-              >
-                <Stack.Screen name="index" />
-                <Stack.Screen name="auth/login" />
-                <Stack.Screen name="auth/register" />
-                <Stack.Screen name="onboarding" />
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen
-                  name="(add-food)"
-                  options={{
-                    presentation: "modal",
-                    animation: "slide_from_bottom",
+      <BottomSheetModalProvider>
+        <SafeAreaProvider>
+          <AuthProvider>
+            <NutritionProvider>
+              <MealProvider>
+                <AuthPersistenceManager />
+                <OfflineNotice />
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: {
+                      backgroundColor: Colors[theme].background,
+                    },
                   }}
-                />
-              </Stack>
-            </MealProvider>
-          </NutritionProvider>
-        </AuthProvider>
-      </SafeAreaProvider>
+                >
+                  <Stack.Screen name="index" />
+                  <Stack.Screen name="auth/login" />
+                  <Stack.Screen name="auth/register" />
+                  <Stack.Screen name="onboarding" />
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen
+                    name="(add-food)"
+                    options={{
+                      presentation: "modal",
+                      animation: "slide_from_bottom",
+                    }}
+                  />
+                </Stack>
+              </MealProvider>
+            </NutritionProvider>
+          </AuthProvider>
+        </SafeAreaProvider>
+      </BottomSheetModalProvider>
     </GestureHandlerRootView>
   );
 }

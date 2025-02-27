@@ -16,6 +16,7 @@ import { MotiView } from "moti";
 import CircularProgress from "react-native-circular-progress-indicator";
 import { useMeals } from "../../context/MealContext";
 import * as Haptics from "expo-haptics";
+import { v4 as uuidv4 } from "uuid";
 
 export default function FoodDetailsScreen() {
   const router = useRouter();
@@ -68,14 +69,13 @@ export default function FoodDetailsScreen() {
 
     // Adicionar o alimento à refeição
     addFoodToMeal(mealId, {
-      id: food.id,
+      id: uuidv4(), // Gerar um ID único para o alimento
       name: food.name,
       calories: calculatedNutrients.calories,
       protein: calculatedNutrients.protein,
       carbs: calculatedNutrients.carbs,
       fat: calculatedNutrients.fat,
       portion: Number(portion),
-      unit: "g",
     });
 
     // Salvar as alterações
