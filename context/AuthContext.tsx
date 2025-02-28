@@ -137,20 +137,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           return;
         }
 
-        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-        const userData = userDoc.data();
-        const onboardingCompleted = userData?.onboardingCompleted ?? false;
+        try {
+          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+          const userData = userDoc.data();
+          const onboardingCompleted = userData?.onboardingCompleted ?? false;
 
-        if (!onboardingCompleted) {
+          if (!onboardingCompleted) {
+            console.log(
+              "Onboarding não completo, redirecionando para onboarding..."
+            );
+            await router.replace("/onboarding/gender");
+          } else {
+            console.log(
+              "Usuário autenticado e onboarding completo, indo para tabs..."
+            );
+            await router.replace("/(tabs)");
+          }
+        } catch (error) {
           console.log(
-            "Onboarding não completo, redirecionando para onboarding..."
+            "Erro ao acessar Firestore, redirecionando para login..."
           );
-          await router.replace("/onboarding/gender");
-        } else {
-          console.log(
-            "Usuário autenticado e onboarding completo, indo para tabs..."
-          );
-          await router.replace("/(tabs)");
+          await router.replace("/auth/login");
         }
       } catch (error) {
         console.error("Erro ao decidir navegação:", error);

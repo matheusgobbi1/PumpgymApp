@@ -1,9 +1,17 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Função auxiliar para verificar campos específicos
+    function isOnboardingStatusOnly() {
+      return request.resource.data.keys().hasOnly(['onboardingCompleted']);
+    }
+
     // Regra para permitir que usuários autenticados acessem apenas seus próprios dados
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Permitir leitura do status de onboarding mesmo durante o logout
+      allow read: if request.auth != null;
+      // Manter as regras de escrita restritas
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
     
     // Regra para permitir que usuários autenticados acessem dados de nutrição
