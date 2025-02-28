@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MotiView } from "moti";
-import { Food } from "../context/MealContext";
+import { Food } from "../../context/MealContext";
 
 interface MealDetailsSheetProps {
   meal: {

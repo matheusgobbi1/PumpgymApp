@@ -9,7 +9,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { MotiView } from "moti";
 import { useRouter } from "expo-router";
-import { Food } from "../context/MealContext";
+import { Food } from "../../context/MealContext";
 import * as Haptics from "expo-haptics";
 import { Swipeable } from "react-native-gesture-handler";
 

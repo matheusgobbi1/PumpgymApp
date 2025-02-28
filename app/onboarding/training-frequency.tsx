@@ -8,8 +8,8 @@ import {
   useNutrition,
   TrainingFrequency,
 } from "../../context/NutritionContext";
-import OnboardingLayout from "../../components/OnboardingLayout";
-import SelectionOption from "../../components/SelectionOption";
+import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
+import SelectionOption from "../../components/onboarding/SelectionOption";
 
 export default function TrainingFrequencyScreen() {
   const router = useRouter();

@@ -13,10 +13,10 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import Colors from "../../constants/Colors";
 import { useColorScheme } from "react-native";
-import Input from "../../components/Input";
-import Button from "../../components/Button";
+import Input from "../../components/common/Input";
+import Button from "../../components/common/Button";
 import { useAuth } from "../../context/AuthContext";
-import CustomModal from "../../components/CustomModal";
+import CustomModal from "../../components/common/CustomModal";
 
 export default function RegisterScreen() {
   const router = useRouter();

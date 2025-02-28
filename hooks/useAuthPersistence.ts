@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 
 /**
@@ -7,28 +7,16 @@ import { useAuth } from "../context/AuthContext";
  * Nota: Usuários anônimos não têm seus dados persistidos
  */
 export function useAuthPersistence() {
-  const { restoreSession } = useAuth();
-
-  const attemptSessionRestore = useCallback(async () => {
-    try {
-      console.log("AuthPersistenceManager: Tentando restaurar sessão");
-      const result = await restoreSession();
-      if (result) {
-        console.log("AuthPersistenceManager: Sessão restaurada com sucesso");
-      } else {
-        console.log(
-          "AuthPersistenceManager: Nenhuma sessão válida para restaurar"
-        );
-      }
-    } catch (error) {
-      console.error("AuthPersistenceManager: Erro ao restaurar sessão:", error);
-    }
-  }, [restoreSession]);
+  const { restoreSession, authStateStable, isRestoringSession } = useAuth();
 
   useEffect(() => {
-    console.log(
-      "AuthPersistenceManager: Inicializando gerenciamento de persistência"
-    );
-    attemptSessionRestore();
-  }, [attemptSessionRestore]);
+    const initializeAuth = async () => {
+      if (!authStateStable && !isRestoringSession) {
+        console.log("AuthPersistence: Iniciando restauração de sessão");
+        await restoreSession();
+      }
+    };
+
+    initializeAuth();
+  }, [restoreSession, authStateStable, isRestoringSession]);
 }

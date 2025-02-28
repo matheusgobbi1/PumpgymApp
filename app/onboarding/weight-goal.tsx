@@ -11,8 +11,8 @@ import Colors from "../../constants/Colors";
 import { useColorScheme } from "react-native";
 import { useNutrition } from "../../context/NutritionContext";
 import { validateWeightGoal } from "../../utils/validations";
-import OnboardingLayout from "../../components/OnboardingLayout";
-import Input from "../../components/Input";
+import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
+import Input from "../../components/common/Input";
 
 export default function WeightGoalScreen() {
   const router = useRouter();

@@ -13,7 +13,7 @@ import Colors from "../../constants/Colors";
 import { useColorScheme } from "react-native";
 import { useNutrition } from "../../context/NutritionContext";
 import { validateBirthDate } from "../../utils/validations";
-import OnboardingLayout from "../../components/OnboardingLayout";
+import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
 
 const { height } = Dimensions.get("window");
 const ITEM_HEIGHT = 52;

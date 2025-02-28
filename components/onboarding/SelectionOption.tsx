@@ -1,6 +1,6 @@
 import React, { ReactNode } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import Colors from "../constants/Colors";
+import Colors from "../../constants/Colors";
 import { useColorScheme } from "react-native";
 import * as Haptics from "expo-haptics";
 

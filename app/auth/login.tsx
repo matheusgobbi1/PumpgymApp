@@ -24,8 +24,8 @@ import {
 import { useRouter } from "expo-router";
 import Colors from "../../constants/Colors";
 import { useColorScheme } from "react-native";
-import Input from "../../components/Input";
-import Button from "../../components/Button";
+import Input from "../../components/common/Input";
+import Button from "../../components/common/Button";
 import { useAuth } from "../../context/AuthContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, FontAwesome } from "@expo/vector-icons";

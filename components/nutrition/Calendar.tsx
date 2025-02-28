@@ -19,11 +19,11 @@ import {
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MotiView } from "moti";
-import Colors from "../constants/Colors";
+import Colors from "../../constants/Colors";
 import { useColorScheme } from "react-native";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { useMeals } from "../context/MealContext";
+import { useMeals } from "../../context/MealContext";
 
 const { width } = Dimensions.get("window");
 const DAYS_TO_SHOW = 30;

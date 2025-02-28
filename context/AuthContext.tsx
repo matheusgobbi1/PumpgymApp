@@ -1,4 +1,10 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
+import React, {
+  createContext,
+  useState,
+  useContext,
+  useEffect,
+  useCallback,
+} from "react";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -54,6 +60,10 @@ interface AuthContextType {
   ) => Promise<FirebaseUser>;
   registrationCompleted: boolean;
   notifyRegistrationCompleted: () => void;
+  appInitialized: boolean;
+  authStateStable: boolean;
+  isRestoringSession: boolean;
+  navigationAttempted: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -73,203 +83,252 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
   const [isNewUser, setIsNewUser] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [sessionRestored, setSessionRestored] = useState(false);
   const [sessionRestoreAttempted, setSessionRestoreAttempted] = useState(false);
   const [registrationCompleted, setRegistrationCompleted] = useState(false);
+  const [appInitialized, setAppInitialized] = useState(false);
+  const [authStateStable, setAuthStateStable] = useState(false);
+  const [navigationLocked, setNavigationLocked] = useState(false);
+  const [isRestoringSession, setIsRestoringSession] = useState(true);
+  const [navigationAttempted, setNavigationAttempted] = useState(false);
   const router = useRouter();
 
   const notifyRegistrationCompleted = () => {
     setRegistrationCompleted(true);
-    // Reset após um curto delay para permitir que outros componentes reajam
     setTimeout(() => setRegistrationCompleted(false), 1000);
   };
 
-  // Função para tentar restaurar a sessão do usuário
-  const restoreSession = async (): Promise<boolean> => {
-    try {
-      // Marcar que tentamos restaurar a sessão
-      setSessionRestoreAttempted(true);
-
-      // Se já temos um usuário autenticado, não precisamos restaurar a sessão
-      if (auth.currentUser) {
+  const handleNavigation = useCallback(
+    async (currentUser: FirebaseUser | null) => {
+      if (
+        navigationLocked ||
+        !authStateStable ||
+        isRestoringSession ||
+        navigationAttempted
+      ) {
         console.log(
-          "Usuário já está autenticado, não precisa restaurar sessão"
+          "Navegação bloqueada:",
+          navigationLocked
+            ? "Navegação em andamento"
+            : !authStateStable
+            ? "Estado não estável"
+            : isRestoringSession
+            ? "Restaurando sessão"
+            : "Navegação já realizada"
         );
+        return;
+      }
+
+      try {
+        setNavigationLocked(true);
+        setNavigationAttempted(true);
+        console.log("Iniciando navegação com estado estável...");
+
+        if (!currentUser) {
+          console.log(
+            "Nenhum usuário autenticado, redirecionando para login..."
+          );
+          await router.replace("/auth/login");
+          return;
+        }
+
+        if (currentUser.isAnonymous) {
+          console.log("Usuário anônimo, redirecionando para onboarding...");
+          await router.replace("/onboarding/gender");
+          return;
+        }
+
+        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+        const userData = userDoc.data();
+        const onboardingCompleted = userData?.onboardingCompleted ?? false;
+
+        if (!onboardingCompleted) {
+          console.log(
+            "Onboarding não completo, redirecionando para onboarding..."
+          );
+          await router.replace("/onboarding/gender");
+        } else {
+          console.log(
+            "Usuário autenticado e onboarding completo, indo para tabs..."
+          );
+          await router.replace("/(tabs)");
+        }
+      } catch (error) {
+        console.error("Erro ao decidir navegação:", error);
+        setNavigationAttempted(false); // Permite nova tentativa em caso de erro
+        await router.replace("/auth/login");
+      } finally {
+        setNavigationLocked(false);
+      }
+    },
+    [router, authStateStable, isRestoringSession, navigationAttempted]
+  );
+
+  const restoreSession = useCallback(async (): Promise<boolean> => {
+    try {
+      setIsRestoringSession(true);
+      setNavigationAttempted(false);
+      setSessionRestoreAttempted(true);
+      setAuthStateStable(false);
+      console.log("Iniciando restauração de sessão...");
+
+      if (auth.currentUser) {
+        console.log("Usuário já autenticado no Firebase");
         setUser(auth.currentUser);
         setIsAnonymous(auth.currentUser.isAnonymous);
-        setSessionRestored(true);
-        setLoading(false);
+        setAuthStateStable(true);
         return true;
       }
 
-      // Verificar se há dados do usuário e token armazenados
       const userData = await getUserData();
       const authToken = await getAuthToken();
 
-      console.log(
-        "Verificando dados armazenados para restauração:",
-        userData ? "Dados de usuário encontrados" : "Sem dados de usuário",
-        authToken ? "Token encontrado" : "Sem token"
-      );
-
-      if (userData && userData.email && userData.password) {
-        console.log("Tentando restaurar sessão com credenciais armazenadas");
-
+      if (userData?.email && userData?.password) {
         try {
-          // Adicionar um pequeno atraso para garantir que o Firebase Auth esteja pronto
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
-          console.log("Restaurando sessão com credenciais armazenadas");
-
-          // Fazer login diretamente
+          console.log("Tentando restaurar sessão com credenciais armazenadas");
           const userCredential = await signInWithEmailAndPassword(
             firebaseAuth,
             userData.email,
             userData.password
           );
 
-          console.log("Login com credenciais armazenadas bem-sucedido");
-
-          // Atualizar o token após o login bem-sucedido
           const newToken = await getIdToken(userCredential.user);
           await saveAuthToken(newToken);
 
-          // Obter dados do usuário do Firestore para verificar o status do onboarding
           const userDoc = await getDoc(
             doc(db, "users", userCredential.user.uid)
           );
-          const userDocData = userDoc.data();
-          const onboardingCompleted = userDocData
-            ? userDocData.onboardingCompleted
-            : false;
+          const onboardingCompleted =
+            userDoc.data()?.onboardingCompleted ?? false;
 
-          // Atualizar os dados do usuário armazenados
           await saveUserData({
             ...userData,
             uid: userCredential.user.uid,
             email: userCredential.user.email,
             displayName: userCredential.user.displayName,
-            onboardingCompleted: onboardingCompleted,
+            onboardingCompleted,
             password: userData.password,
             isAnonymous: userCredential.user.isAnonymous,
           });
 
-          // Definir o usuário manualmente
           setUser(userCredential.user);
           setIsAnonymous(userCredential.user.isAnonymous);
           setIsNewUser(!onboardingCompleted);
-
-          console.log(
-            "Sessão restaurada com sucesso usando credenciais armazenadas"
-          );
-          setSessionRestored(true);
-          setLoading(false);
+          setAuthStateStable(true);
           return true;
         } catch (error) {
-          console.error("Erro ao restaurar sessão com credenciais:", error);
-          // Se falhar, limpar os dados armazenados para evitar tentativas futuras com credenciais inválidas
+          console.error("Erro ao restaurar sessão:", error);
           await removeUserData();
           await removeAuthToken();
         }
-      } else {
-        console.log(
-          "Sem dados de usuário ou credenciais armazenados para restaurar sessão"
-        );
       }
 
-      setLoading(false);
+      setAuthStateStable(true);
       return false;
     } catch (error) {
       console.error("Erro ao restaurar sessão:", error);
-      // Em caso de erro, limpar os dados armazenados para evitar problemas futuros
-      try {
-        await removeUserData();
-        await removeAuthToken();
-      } catch (cleanupError) {
-        console.error(
-          "Erro ao limpar dados após falha na restauração:",
-          cleanupError
-        );
-      }
-      setLoading(false);
+      setAuthStateStable(true);
       return false;
+    } finally {
+      setLoading(false);
+      setIsRestoringSession(false);
     }
-  };
-
-  // Verificar se há um usuário armazenado no SecureStore ao iniciar
-  useEffect(() => {
-    const checkStoredUser = async () => {
-      try {
-        await restoreSession();
-      } catch (error) {
-        console.error("Erro ao verificar usuário armazenado:", error);
-        setLoading(false);
-      }
-    };
-
-    checkStoredUser();
   }, []);
 
-  // Monitorar mudanças no estado de autenticação
   useEffect(() => {
-    if (sessionRestoreAttempted) {
-      const unsubscribe = onAuthStateChanged(
-        firebaseAuth,
-        async (currentUser: FirebaseUser | null) => {
-          console.log(
-            "Estado de autenticação alterado:",
-            currentUser ? "Autenticado" : "Não autenticado"
-          );
+    let authUnsubscribe: (() => void) | null = null;
 
-          if (currentUser) {
-            try {
-              // Se for usuário anônimo, não persistir dados
+    const initializeApp = async () => {
+      try {
+        setAuthStateStable(false);
+        setNavigationAttempted(false);
+        await restoreSession();
+
+        authUnsubscribe = onAuthStateChanged(
+          firebaseAuth,
+          async (currentUser) => {
+            console.log(
+              "Estado de autenticação alterado:",
+              currentUser ? "Autenticado" : "Não autenticado"
+            );
+
+            setAuthStateStable(false);
+            setIsRestoringSession(true);
+            setNavigationAttempted(false);
+
+            if (currentUser) {
               if (currentUser.isAnonymous) {
-                console.log("Usuário anônimo: dados não serão persistidos");
+                console.log("Usuário anônimo detectado");
                 setUser(currentUser);
                 setIsAnonymous(true);
                 setIsNewUser(true);
-                setLoading(false);
-                return;
+              } else {
+                console.log("Usuário autenticado detectado");
+                const idToken = await getIdToken(currentUser);
+                await saveAuthToken(idToken);
+
+                const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+                const onboardingCompleted =
+                  userDoc.data()?.onboardingCompleted ?? false;
+
+                setUser(currentUser);
+                setIsAnonymous(false);
+                setIsNewUser(!onboardingCompleted);
               }
-
-              // Para usuários não anônimos, continuar com o fluxo normal
-              const idToken = await getIdToken(currentUser);
-              await saveAuthToken(idToken);
+            } else {
+              console.log("Nenhum usuário detectado");
+              setUser(null);
               setIsAnonymous(false);
-
-              const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-              const userDocData = userDoc.data();
-              const onboardingCompleted = userDocData
-                ? userDocData.onboardingCompleted
-                : false;
-
-              const storedUserData = (await getUserData()) || {};
-              await saveUserData({
-                ...storedUserData,
-                uid: currentUser.uid,
-                email: currentUser.email,
-                displayName: currentUser.displayName,
-                onboardingCompleted: onboardingCompleted,
-                isAnonymous: false,
-                password: storedUserData.password,
-              });
-
-              setIsNewUser(!onboardingCompleted);
-              setSessionRestored(true);
-            } catch (error) {
-              console.error("Erro ao processar usuário autenticado:", error);
             }
+
+            setAuthStateStable(true);
+            setLoading(false);
+            setAppInitialized(true);
+            setIsRestoringSession(false);
           }
+        );
+      } catch (error) {
+        console.error("Erro na inicialização do app:", error);
+        setAuthStateStable(true);
+        setLoading(false);
+        setAppInitialized(true);
+        setIsRestoringSession(false);
+      }
+    };
 
-          setUser(currentUser);
-          setLoading(false);
-        }
-      );
+    initializeApp();
 
-      return () => unsubscribe();
-    }
-  }, [sessionRestoreAttempted]);
+    return () => {
+      if (authUnsubscribe) {
+        authUnsubscribe();
+      }
+    };
+  }, [restoreSession]);
+
+  // Efeito para gerenciar navegação quando o estado de autenticação estabiliza
+  useEffect(() => {
+    const attemptNavigation = async () => {
+      if (
+        authStateStable &&
+        appInitialized &&
+        !loading &&
+        !isRestoringSession &&
+        !navigationAttempted
+      ) {
+        console.log("Estado estável detectado, tentando navegação...");
+        await handleNavigation(user);
+      }
+    };
+
+    attemptNavigation();
+  }, [
+    authStateStable,
+    appInitialized,
+    loading,
+    isRestoringSession,
+    navigationAttempted,
+    user,
+    handleNavigation,
+  ]);
 
   // Nova função para verificar o status do email
   const checkEmailStatus = async (email: string) => {
@@ -507,6 +566,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const signOut = async () => {
     try {
+      setNavigationAttempted(false);
       console.log("Iniciando processo de logout...");
 
       // Primeiro limpar os dados locais
@@ -531,7 +591,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Limpar estados locais
       setUser(null);
       setIsAnonymous(false);
-      setSessionRestored(false);
       setSessionRestoreAttempted(false);
 
       // Redirecionar para login
@@ -559,6 +618,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     completeAnonymousRegistration,
     registrationCompleted,
     notifyRegistrationCompleted,
+    appInitialized,
+    authStateStable,
+    isRestoringSession,
+    navigationAttempted,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

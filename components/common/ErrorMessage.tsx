@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef } from "react";
-import Colors from "../constants/Colors";
+import Colors from "../../constants/Colors";
 import { useColorScheme } from "react-native";
 
 interface ErrorMessageProps {

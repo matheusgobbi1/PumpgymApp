@@ -7,7 +7,7 @@ import { useColorScheme } from "react-native";
 import { useNutrition } from "../../context/NutritionContext";
 import Slider from "@react-native-community/slider";
 import { LineChart } from "react-native-chart-kit";
-import OnboardingLayout from "../../components/OnboardingLayout";
+import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
 
 const screenWidth = Dimensions.get("window").width;
 

@@ -9,9 +9,8 @@ import { NutritionProvider } from "../context/NutritionContext";
 import { MealProvider } from "../context/MealContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { AuthPersistenceManager } from "../components/AuthPersistenceManager";
 import Colors from "../constants/Colors";
-import OfflineNotice from "../components/OfflineNotice";
+import OfflineNotice from "../components/notifications/OfflineNotice";
 import "react-native-reanimated";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
@@ -22,7 +21,7 @@ export {
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: "(tabs)",
+  initialRouteName: "index",
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -62,7 +61,6 @@ function RootLayoutNav() {
           <AuthProvider>
             <NutritionProvider>
               <MealProvider>
-                <AuthPersistenceManager />
                 <OfflineNotice />
                 <Stack
                   screenOptions={{
@@ -77,8 +75,7 @@ function RootLayoutNav() {
                   <Stack.Screen name="auth/register" />
                   <Stack.Screen name="onboarding" />
                   <Stack.Screen name="(tabs)" />
-                  <Stack.Screen
-                    name="(add-food)"/>
+                  <Stack.Screen name="(add-food)" />
                 </Stack>
               </MealProvider>
             </NutritionProvider>

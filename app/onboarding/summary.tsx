@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
 import { useColorScheme } from "react-native";
-import Button from "../../components/Button";
+import Button from "../../components/common/Button";
 import { useNutrition } from "../../context/NutritionContext";
 import { useAuth } from "../../context/AuthContext";
 import CircularProgress from "react-native-circular-progress-indicator";

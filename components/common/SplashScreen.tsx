@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, View, Image, Text, ActivityIndicator } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import Colors from "../constants/Colors";
+import Colors from "../../constants/Colors";
 import { useColorScheme } from "react-native";
 
 export default function SplashScreen() {
@@ -13,7 +13,7 @@ export default function SplashScreen() {
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
       <View style={styles.logoContainer}>
         <Image
-          source={require("../assets/images/icon.png")}
+          source={require("../../assets/images/icon.png")}
           style={styles.logo}
           resizeMode="contain"
         />

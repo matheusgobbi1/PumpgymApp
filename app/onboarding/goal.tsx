@@ -5,8 +5,8 @@ import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
 import { useColorScheme } from "react-native";
 import { useNutrition, Goal } from "../../context/NutritionContext";
-import OnboardingLayout from "../../components/OnboardingLayout";
-import SelectionOption from "../../components/SelectionOption";
+import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
+import SelectionOption from "../../components/onboarding/SelectionOption";
 
 export default function GoalScreen() {
   const router = useRouter();

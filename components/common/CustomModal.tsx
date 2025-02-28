@@ -8,7 +8,7 @@ import {
   Dimensions,
   useColorScheme,
 } from "react-native";
-import Colors from "../constants/Colors";
+import Colors from "../../constants/Colors";
 
 interface CustomModalProps {
   visible: boolean;

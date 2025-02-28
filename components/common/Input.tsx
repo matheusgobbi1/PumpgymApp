@@ -15,7 +15,7 @@ import {
   TextInputProps,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Colors from "../constants/Colors";
+import Colors from "../../constants/Colors";
 import { useColorScheme } from "react-native";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";

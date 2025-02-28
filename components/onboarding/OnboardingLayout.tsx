@@ -1,9 +1,9 @@
 import React, { ReactNode } from "react";
 import { View, Text, StyleSheet, ScrollView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Colors from "../constants/Colors";
+import Colors from "../../constants/Colors";
 import { useColorScheme } from "react-native";
-import Button from "./Button";
+import Button from "../common/Button";
 import OnboardingHeader from "./OnboardingHeader";
 
 interface OnboardingLayoutProps {

@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
 import { useColorScheme } from "react-native";
 import { useNutrition } from "../../context/NutritionContext";
-import OnboardingLayout from "../../components/OnboardingLayout";
+import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
 
 export default function ReferralScreen() {
   const router = useRouter();
