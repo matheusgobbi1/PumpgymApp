@@ -78,12 +78,7 @@ function RootLayoutNav() {
                   <Stack.Screen name="onboarding" />
                   <Stack.Screen name="(tabs)" />
                   <Stack.Screen
-                    name="(add-food)"
-                    options={{
-                      presentation: "modal",
-                      animation: "slide_from_bottom",
-                    }}
-                  />
+                    name="(add-food)"/>
                 </Stack>
               </MealProvider>
             </NutritionProvider>

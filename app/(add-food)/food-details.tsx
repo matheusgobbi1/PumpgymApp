@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
+  ActivityIndicator,
+  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -17,6 +19,92 @@ import CircularProgress from "react-native-circular-progress-indicator";
 import { useMeals } from "../../context/MealContext";
 import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
+import { getFoodDetails, type EdamamFood } from "../../config/api";
+
+const { width } = Dimensions.get("window");
+
+const LoadingSkeleton = () => {
+  const colorScheme = useColorScheme() ?? "light";
+  const colors = Colors[colorScheme];
+
+  return (
+    <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <View style={styles.foodInfo}>
+        {/* Nome do Alimento Skeleton */}
+        <MotiView
+          from={{ opacity: 0.5 }}
+          animate={{ opacity: 1 }}
+          transition={{
+            type: "timing",
+            duration: 1000,
+            loop: true,
+          }}
+          style={[styles.skeletonTitle, { backgroundColor: colors.light }]}
+        />
+
+        {/* Input Porção Skeleton */}
+        <MotiView
+          from={{ opacity: 0.5 }}
+          animate={{ opacity: 1 }}
+          transition={{
+            type: "timing",
+            duration: 1000,
+            loop: true,
+          }}
+          style={[styles.skeletonPortion, { backgroundColor: colors.light }]}
+        />
+
+        {/* Macros Circles Skeleton */}
+        <View style={styles.macrosContainer}>
+          {[...Array(4)].map((_, index) => (
+            <View key={index} style={styles.macroCircle}>
+              <MotiView
+                from={{ opacity: 0.5 }}
+                animate={{ opacity: 1 }}
+                transition={{
+                  type: "timing",
+                  duration: 1000,
+                  loop: true,
+                  delay: index * 100,
+                }}
+                style={[
+                  styles.skeletonCircle,
+                  { backgroundColor: colors.light },
+                ]}
+              />
+              <MotiView
+                from={{ opacity: 0.5 }}
+                animate={{ opacity: 1 }}
+                transition={{
+                  type: "timing",
+                  duration: 1000,
+                  loop: true,
+                  delay: index * 100,
+                }}
+                style={[
+                  styles.skeletonLabel,
+                  { backgroundColor: colors.light },
+                ]}
+              />
+            </View>
+          ))}
+        </View>
+
+        {/* Informações Adicionais Skeleton */}
+        <MotiView
+          from={{ opacity: 0.5 }}
+          animate={{ opacity: 1 }}
+          transition={{
+            type: "timing",
+            duration: 1000,
+            loop: true,
+          }}
+          style={[styles.skeletonInfo, { backgroundColor: colors.light }]}
+        />
+      </View>
+    </ScrollView>
+  );
+};
 
 export default function FoodDetailsScreen() {
   const router = useRouter();
@@ -25,43 +113,89 @@ export default function FoodDetailsScreen() {
   const colors = Colors[colorScheme];
   const [portion, setPortion] = useState("100");
   const { addFoodToMeal, saveMeals } = useMeals();
+  const [food, setFood] = useState<EdamamFood | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Extrair parâmetros da refeição
+  const foodId = params.foodId as string;
   const mealId = params.mealId as string;
   const mealName = params.mealName as string;
-  const targetCalories = Number(params.targetCalories);
-  const targetProtein = Number(params.targetProtein);
-  const targetCarbs = Number(params.targetCarbs);
-  const targetFat = Number(params.targetFat);
 
-  // Dados mockados do alimento (em produção viria da API/banco)
-  const food = {
-    id: "1",
-    name: "Frango Grelhado",
-    calories: 165,
-    protein: 31,
-    carbs: 0,
-    fat: 3.6,
-    portion: "100g",
-    details: {
-      saturatedFat: 1.1,
-      fiber: 0,
-      sodium: 74,
-      potassium: 256,
-      vitaminA: 0,
-      vitaminC: 0,
-      calcium: 0,
-      iron: 0.9,
-    },
+  useEffect(() => {
+    loadFoodDetails();
+  }, [foodId]);
+
+  const loadFoodDetails = async () => {
+    try {
+      const details = await getFoodDetails(foodId);
+      setFood(details);
+    } catch (err) {
+      setError("Erro ao carregar detalhes do alimento");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={["top", "bottom"]}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
+              Detalhes do Alimento
+            </Text>
+            <Text
+              style={[styles.headerSubtitle, { color: colors.text + "80" }]}
+            >
+              {mealName}
+            </Text>
+          </View>
+          <View style={{ width: 24 }} />
+        </View>
+        <LoadingSkeleton />
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !food) {
+    return (
+      <View
+        style={[styles.errorContainer, { backgroundColor: colors.background }]}
+      >
+        <Text style={[styles.errorText, { color: colors.danger }]}>
+          {error || "Erro ao carregar alimento"}
+        </Text>
+        <TouchableOpacity
+          style={[styles.retryButton, { backgroundColor: colors.primary }]}
+          onPress={loadFoodDetails}
+        >
+          <Text style={styles.retryButtonText}>Tentar Novamente</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   // Calcula os valores nutricionais baseado na porção
   const multiplier = Number(portion) / 100;
   const calculatedNutrients = {
-    calories: Math.round(food.calories * multiplier),
-    protein: Math.round(food.protein * multiplier * 10) / 10,
-    carbs: Math.round(food.carbs * multiplier * 10) / 10,
-    fat: Math.round(food.fat * multiplier * 10) / 10,
+    calories: Math.round(food.food.nutrients.ENERC_KCAL * multiplier),
+    protein: Math.round(food.food.nutrients.PROCNT * multiplier * 10) / 10,
+    carbs: Math.round(food.food.nutrients.CHOCDF * multiplier * 10) / 10,
+    fat: Math.round(food.food.nutrients.FAT * multiplier * 10) / 10,
+    fiber: food.food.nutrients.FIBTG
+      ? Math.round(food.food.nutrients.FIBTG * multiplier * 10) / 10
+      : 0,
   };
 
   const handleAddFood = async () => {
@@ -69,8 +203,8 @@ export default function FoodDetailsScreen() {
 
     // Adicionar o alimento à refeição
     addFoodToMeal(mealId, {
-      id: uuidv4(), // Gerar um ID único para o alimento
-      name: food.name,
+      id: uuidv4(),
+      name: food.food.label,
       calories: calculatedNutrients.calories,
       protein: calculatedNutrients.protein,
       carbs: calculatedNutrients.carbs,
@@ -109,7 +243,6 @@ export default function FoodDetailsScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Food Info */}
         <MotiView
           from={{ opacity: 0, translateY: 20 }}
           animate={{ opacity: 1, translateY: 0 }}
@@ -117,7 +250,7 @@ export default function FoodDetailsScreen() {
           style={styles.foodInfo}
         >
           <Text style={[styles.foodName, { color: colors.text }]}>
-            {food.name}
+            {food.food.label}
           </Text>
 
           {/* Portion Input */}
@@ -146,9 +279,8 @@ export default function FoodDetailsScreen() {
                 activeStrokeColor={colors.primary}
                 inActiveStrokeColor={colors.light}
                 inActiveStrokeOpacity={0.2}
-                title="kcal"
-                titleColor={colors.text + "80"}
-                titleStyle={{ fontSize: 12 }}
+                valueSuffix=" kcal"
+                titleStyle={{ fontSize: 16 }}
               />
               <Text style={[styles.macroLabel, { color: colors.text }]}>
                 Calorias
@@ -165,9 +297,9 @@ export default function FoodDetailsScreen() {
                 activeStrokeColor={"#FF6B6B"}
                 inActiveStrokeColor={colors.light}
                 inActiveStrokeOpacity={0.2}
-                title="g"
                 titleColor={colors.text + "80"}
                 titleStyle={{ fontSize: 12 }}
+                valueSuffix="g"
               />
               <Text style={[styles.macroLabel, { color: colors.text }]}>
                 Proteína
@@ -184,9 +316,9 @@ export default function FoodDetailsScreen() {
                 activeStrokeColor={"#4ECDC4"}
                 inActiveStrokeColor={colors.light}
                 inActiveStrokeOpacity={0.2}
-                title="g"
                 titleColor={colors.text + "80"}
                 titleStyle={{ fontSize: 12 }}
+                valueSuffix="g"
               />
               <Text style={[styles.macroLabel, { color: colors.text }]}>
                 Carboidratos
@@ -203,9 +335,9 @@ export default function FoodDetailsScreen() {
                 activeStrokeColor={"#FFD93D"}
                 inActiveStrokeColor={colors.light}
                 inActiveStrokeOpacity={0.2}
-                title="g"
                 titleColor={colors.text + "80"}
                 titleStyle={{ fontSize: 12 }}
+                valueSuffix="g"
               />
               <Text style={[styles.macroLabel, { color: colors.text }]}>
                 Gorduras
@@ -213,52 +345,33 @@ export default function FoodDetailsScreen() {
             </View>
           </View>
 
-          {/* Detailed Nutrients */}
+          {/* Additional Info */}
           <View
-            style={[
-              styles.detailedNutrients,
-              { backgroundColor: colors.light },
-            ]}
+            style={[styles.additionalInfo, { backgroundColor: colors.light }]}
           >
-            <Text style={[styles.detailsTitle, { color: colors.text }]}>
-              Informação Nutricional
+            <Text style={[styles.infoTitle, { color: colors.text }]}>
+              Informações Adicionais
             </Text>
 
-            <View style={styles.nutrientRow}>
-              <Text style={[styles.nutrientLabel, { color: colors.text }]}>
-                Gorduras Saturadas
+            <View style={styles.infoRow}>
+              <Text style={[styles.infoLabel, { color: colors.text }]}>
+                Categoria
               </Text>
-              <Text style={[styles.nutrientValue, { color: colors.text }]}>
-                {(food.details.saturatedFat * multiplier).toFixed(1)}g
-              </Text>
-            </View>
-
-            <View style={styles.nutrientRow}>
-              <Text style={[styles.nutrientLabel, { color: colors.text }]}>
-                Fibras
-              </Text>
-              <Text style={[styles.nutrientValue, { color: colors.text }]}>
-                {(food.details.fiber * multiplier).toFixed(1)}g
+              <Text style={[styles.infoValue, { color: colors.text }]}>
+                {food.food.categoryLabel}
               </Text>
             </View>
 
-            <View style={styles.nutrientRow}>
-              <Text style={[styles.nutrientLabel, { color: colors.text }]}>
-                Sódio
-              </Text>
-              <Text style={[styles.nutrientValue, { color: colors.text }]}>
-                {Math.round(food.details.sodium * multiplier)}mg
-              </Text>
-            </View>
-
-            <View style={styles.nutrientRow}>
-              <Text style={[styles.nutrientLabel, { color: colors.text }]}>
-                Potássio
-              </Text>
-              <Text style={[styles.nutrientValue, { color: colors.text }]}>
-                {Math.round(food.details.potassium * multiplier)}mg
-              </Text>
-            </View>
+            {food.food.nutrients.FIBTG && (
+              <View style={styles.infoRow}>
+                <Text style={[styles.infoLabel, { color: colors.text }]}>
+                  Fibras
+                </Text>
+                <Text style={[styles.infoValue, { color: colors.text }]}>
+                  {calculatedNutrients.fiber}g
+                </Text>
+              </View>
+            )}
           </View>
         </MotiView>
       </ScrollView>
@@ -279,6 +392,34 @@ export default function FoodDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  retryButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#FFF",
+    fontSize: 16,
   },
   header: {
     flexDirection: "row",
@@ -343,24 +484,24 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: "center",
   },
-  detailedNutrients: {
+  additionalInfo: {
     padding: 20,
     borderRadius: 16,
   },
-  detailsTitle: {
+  infoTitle: {
     fontSize: 18,
     fontWeight: "600",
     marginBottom: 16,
   },
-  nutrientRow: {
+  infoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 12,
   },
-  nutrientLabel: {
+  infoLabel: {
     fontSize: 14,
   },
-  nutrientValue: {
+  infoValue: {
     fontSize: 14,
     fontWeight: "500",
   },
@@ -370,6 +511,7 @@ const styles = StyleSheet.create({
   },
   addButton: {
     height: 56,
+    marginBottom: 40,
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
@@ -378,5 +520,35 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 16,
     fontWeight: "600",
+  },
+  skeletonTitle: {
+    height: 32,
+    borderRadius: 16,
+    marginBottom: 20,
+    width: width * 0.6,
+    alignSelf: "center",
+  },
+  skeletonPortion: {
+    height: 56,
+    borderRadius: 12,
+    marginBottom: 20,
+    width: width * 0.4,
+    alignSelf: "center",
+  },
+  skeletonCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 8,
+  },
+  skeletonLabel: {
+    height: 12,
+    width: 60,
+    borderRadius: 6,
+  },
+  skeletonInfo: {
+    height: 120,
+    borderRadius: 16,
+    marginTop: 20,
   },
 });

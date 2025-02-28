@@ -109,7 +109,15 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
   const [nutritionInfo, setNutritionInfo] =
     useState<NutritionInfo>(initialNutritionInfo);
   const [isOnline, setIsOnline] = useState<boolean>(true);
-  const { user, isNewUser } = useAuth();
+  const { user, isNewUser, registrationCompleted } = useAuth();
+
+  // Efeito para recarregar dados quando o registro é concluído
+  useEffect(() => {
+    if (registrationCompleted && user) {
+      console.log("Registro concluído, recarregando dados de nutrição...");
+      loadUserData();
+    }
+  }, [registrationCompleted, user]);
 
   // Monitorar o estado da conexão
   useEffect(() => {
@@ -146,61 +154,41 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
   const loadUserData = async () => {
     if (!user) return;
 
-    // Se o usuário for anônimo, resetar as informações
-    if (user.isAnonymous) {
-      console.log("Usuário anônimo: resetando informações de nutrição");
-      setNutritionInfo(initialNutritionInfo);
-      return;
-    }
-
     try {
-      // Verificar se está online
-      const online = await OfflineStorage.isOnline();
+      console.log("Carregando dados do usuário...");
+      const isDeviceOnline = await OfflineStorage.isOnline();
+      setIsOnline(isDeviceOnline);
 
-      if (online) {
-        // Tentar carregar do Firestore
-        const docRef = doc(db, "nutrition", user.uid);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-          const data = docSnap.data();
+      if (isDeviceOnline) {
+        // Carregar dados do Firestore
+        const nutritionDoc = await getDoc(doc(db, "nutrition", user.uid));
+        if (nutritionDoc.exists()) {
+          const data = nutritionDoc.data() as NutritionInfo;
+          console.log("Dados carregados do Firestore:", data);
 
           // Converter timestamps para Date
-          const processedData = Object.entries(data).reduce<
-            Record<string, any>
-          >((acc, [key, value]) => {
-            if (
-              typeof value === "string" &&
-              (key === "birthDate" || key === "targetDate") &&
-              /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value as string)
-            ) {
-              acc[key] = new Date(value as string);
-            } else {
-              acc[key] = value;
-            }
-            return acc;
-          }, {});
+          if (data.birthDate) {
+            data.birthDate = new Date(data.birthDate);
+          }
+          if (data.targetDate) {
+            data.targetDate = new Date(data.targetDate);
+          }
 
-          setNutritionInfo((prev) => ({ ...prev, ...processedData }));
+          setNutritionInfo(data);
 
-          // Salvar localmente para acesso offline
-          await OfflineStorage.saveNutritionData(user.uid, processedData);
+          // Salvar dados localmente para acesso offline
+          await OfflineStorage.saveNutritionData(user.uid, data);
         }
       } else {
-        // Carregar dados locais
-        const localData = await OfflineStorage.loadNutritionData(user.uid);
-        if (localData) {
-          setNutritionInfo((prev) => ({ ...prev, ...localData }));
+        // Carregar dados do armazenamento local
+        const offlineData = await OfflineStorage.loadNutritionData(user.uid);
+        if (offlineData) {
+          console.log("Dados carregados do armazenamento local:", offlineData);
+          setNutritionInfo(offlineData);
         }
       }
     } catch (error) {
       console.error("Erro ao carregar dados do usuário:", error);
-
-      // Em caso de erro, tentar carregar dados locais
-      const localData = await OfflineStorage.loadNutritionData(user.uid);
-      if (localData) {
-        setNutritionInfo((prev) => ({ ...prev, ...localData }));
-      }
     }
   };
 

@@ -52,6 +52,8 @@ interface AuthContextType {
     email: string,
     password: string
   ) => Promise<FirebaseUser>;
+  registrationCompleted: boolean;
+  notifyRegistrationCompleted: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -73,7 +75,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [sessionRestored, setSessionRestored] = useState(false);
   const [sessionRestoreAttempted, setSessionRestoreAttempted] = useState(false);
+  const [registrationCompleted, setRegistrationCompleted] = useState(false);
   const router = useRouter();
+
+  const notifyRegistrationCompleted = () => {
+    setRegistrationCompleted(true);
+    // Reset após um curto delay para permitir que outros componentes reajam
+    setTimeout(() => setRegistrationCompleted(false), 1000);
+  };
 
   // Função para tentar restaurar a sessão do usuário
   const restoreSession = async (): Promise<boolean> => {
@@ -482,6 +491,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsAnonymous(false);
       setIsNewUser(false);
 
+      // Notificar que o registro foi concluído
+      notifyRegistrationCompleted();
+
       // Limpar dados temporários após salvar
       await OfflineStorage.clearTemporaryNutritionData();
 
@@ -545,6 +557,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     sessionRestoreAttempted,
     signInAnonymously,
     completeAnonymousRegistration,
+    registrationCompleted,
+    notifyRegistrationCompleted,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

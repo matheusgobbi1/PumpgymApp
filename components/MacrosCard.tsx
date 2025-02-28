@@ -1,7 +1,8 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MotiView } from "moti";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 interface MacrosCardProps {
   dayTotals: {
@@ -24,6 +25,22 @@ export default function MacrosCard({
   nutritionInfo,
   colors,
 }: MacrosCardProps) {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Verificar se os dados de nutrição estão disponíveis
+    if (
+      nutritionInfo &&
+      (nutritionInfo.calories ||
+        nutritionInfo.protein ||
+        nutritionInfo.carbs ||
+        nutritionInfo.fat)
+    ) {
+      setIsLoading(false);
+    }
+  }, [nutritionInfo]);
+
   const calculateProgress = (consumed: number, target: number) => {
     if (!target) return 0;
     return Math.min(Math.max((consumed / target) * 100, 0), 100);
@@ -66,11 +83,17 @@ export default function MacrosCard({
             </Text>
           </View>
           <Text style={[styles.remaining, { color: colors.text }]}>
-            Restam{" "}
-            <Text style={[styles.remainingValue, { color: progressColor }]}>
-              {Math.round(remaining)}
-              {unit}
-            </Text>
+            {isLoading ? (
+              "Carregando..."
+            ) : (
+              <>
+                Restam{" "}
+                <Text style={[styles.remainingValue, { color: progressColor }]}>
+                  {Math.round(remaining)}
+                  {unit}
+                </Text>
+              </>
+            )}
           </Text>
         </View>
 
@@ -83,21 +106,24 @@ export default function MacrosCard({
               },
             ]}
           >
-            <MotiView
-              from={{ width: "0%" }}
-              animate={{ width: `${progress}%` }}
-              transition={{ type: "timing", duration: 1000 }}
-              style={[
-                styles.progressFill,
-                {
-                  backgroundColor: progressColor,
-                },
-              ]}
-            />
+            {!isLoading && (
+              <MotiView
+                from={{ width: "0%" }}
+                animate={{ width: `${progress}%` }}
+                transition={{ type: "timing", duration: 1000 }}
+                style={[
+                  styles.progressFill,
+                  {
+                    backgroundColor: progressColor,
+                  },
+                ]}
+              />
+            )}
           </MotiView>
           <Text style={[styles.progressText, { color: colors.text }]}>
-            {Math.round(consumed)}/{Math.round(target)}
-            {unit}
+            {isLoading
+              ? "..."
+              : `${Math.round(consumed)}/${Math.round(target)}${unit}`}
           </Text>
         </View>
       </MotiView>
@@ -105,54 +131,59 @@ export default function MacrosCard({
   };
 
   return (
-    <MotiView
-      style={[styles.container, { backgroundColor: colors.card }]}
-      from={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: "spring" }}
+    <TouchableOpacity
+      onPress={() => router.push("/macros-details")}
+      activeOpacity={0.7}
     >
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>
-        Progresso Diário
-      </Text>
+      <MotiView
+        style={[styles.container, { backgroundColor: colors.card }]}
+        from={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: "spring" }}
+      >
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          Progresso Diário
+        </Text>
 
-      <View style={styles.macrosContainer}>
-        {renderMacroProgress(
-          "Calorias",
-          "flame-outline",
-          dayTotals.calories,
-          nutritionInfo.calories || 0,
-          "kcal"
-        )}
-        {renderMacroProgress(
-          "Proteína",
-          "fitness-outline",
-          dayTotals.protein,
-          nutritionInfo.protein || 0,
-          "g"
-        )}
-        {renderMacroProgress(
-          "Carboidratos",
-          "leaf-outline",
-          dayTotals.carbs,
-          nutritionInfo.carbs || 0,
-          "g"
-        )}
-        {renderMacroProgress(
-          "Gorduras",
-          "water-outline",
-          dayTotals.fat,
-          nutritionInfo.fat || 0,
-          "g"
-        )}
-      </View>
-    </MotiView>
+        <View style={styles.macrosContainer}>
+          {renderMacroProgress(
+            "Calorias",
+            "flame-outline",
+            dayTotals.calories,
+            nutritionInfo.calories || 0,
+            "kcal"
+          )}
+          {renderMacroProgress(
+            "Proteína",
+            "fitness-outline",
+            dayTotals.protein,
+            nutritionInfo.protein || 0,
+            "g"
+          )}
+          {renderMacroProgress(
+            "Carboidratos",
+            "leaf-outline",
+            dayTotals.carbs,
+            nutritionInfo.carbs || 0,
+            "g"
+          )}
+          {renderMacroProgress(
+            "Gorduras",
+            "water-outline",
+            dayTotals.fat,
+            nutritionInfo.fat || 0,
+            "g"
+          )}
+        </View>
+      </MotiView>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     borderRadius: 16,
-    padding: 16,
+    padding: 5,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,

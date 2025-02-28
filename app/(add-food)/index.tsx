@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -14,7 +15,13 @@ import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
 import { useColorScheme } from "react-native";
 import { MotiView } from "moti";
-import { BlurView } from "expo-blur";
+import { searchFoods } from "../../services/food";
+import { EdamamResponse, FoodHint } from "../../types/food";
+import {
+  translateFoodSearch,
+  translateMeasure,
+} from "../../utils/translateUtils";
+import { debounce } from "lodash";
 
 const { width } = Dimensions.get("window");
 
@@ -64,6 +71,9 @@ export default function AddFoodScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<FoodHint[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Extrair parâmetros da refeição
   const mealId = params.mealId as string;
@@ -73,12 +83,42 @@ export default function AddFoodScreen() {
   const targetCarbs = Number(params.targetCarbs);
   const targetFat = Number(params.targetFat);
 
-  const handleFoodSelect = (food: FoodItem) => {
-    // Navegar para a tela de detalhes do alimento com os parâmetros da refeição
+  // Função de busca com debounce
+  const debouncedSearch = debounce(async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Traduz a query antes de fazer a busca
+      const translatedQuery = await translateFoodSearch(query);
+      console.log("Query original:", query);
+      console.log("Query traduzida:", translatedQuery);
+
+      const response = await searchFoods(translatedQuery);
+      setSearchResults(response.hints || []);
+    } catch (err) {
+      setError("Erro ao buscar alimentos. Tente novamente.");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, 500);
+
+  useEffect(() => {
+    debouncedSearch(searchQuery);
+    return () => debouncedSearch.cancel();
+  }, [searchQuery]);
+
+  const handleFoodSelect = (food: FoodHint) => {
     router.push({
       pathname: "/(add-food)/food-details",
       params: {
-        foodId: food.id,
+        foodId: food.food.foodId,
         mealId,
         mealName,
         targetCalories,
@@ -86,6 +126,93 @@ export default function AddFoodScreen() {
         targetCarbs,
         targetFat,
       },
+    });
+  };
+
+  const renderSearchResults = () => {
+    if (isLoading) {
+      return (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <View style={styles.centerContainer}>
+          <Text style={[styles.errorText, { color: colors.danger }]}>
+            {error}
+          </Text>
+        </View>
+      );
+    }
+
+    if (searchResults.length === 0 && searchQuery.trim()) {
+      return (
+        <View style={styles.centerContainer}>
+          <Text style={[styles.emptyText, { color: colors.text }]}>
+            Nenhum alimento encontrado
+          </Text>
+        </View>
+      );
+    }
+
+    return searchResults.map((result, index) => {
+      // Encontra a medida mais comum (geralmente a primeira após gramas)
+      const commonMeasure =
+        result.measures.find((m) => !m.label.toLowerCase().includes("gram")) ||
+        result.measures[0];
+
+      return (
+        <MotiView
+          key={`${result.food.foodId}_${index}`}
+          from={{ opacity: 0, translateY: 20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ delay: index * 100 }}
+        >
+          <TouchableOpacity
+            style={[styles.foodItem, { backgroundColor: colors.light }]}
+            onPress={() => handleFoodSelect(result)}
+          >
+            <View style={styles.foodInfo}>
+              <Text style={[styles.foodName, { color: colors.text }]}>
+                {result.food.label}
+              </Text>
+              <Text
+                style={[styles.foodCategory, { color: colors.text + "80" }]}
+              >
+                {result.food.categoryLabel}
+                {commonMeasure &&
+                  ` • ${Math.round(
+                    commonMeasure.weight
+                  )}g por ${translateMeasure(commonMeasure.label)}`}
+              </Text>
+            </View>
+            <View style={styles.foodMacros}>
+              <Text style={[styles.calories, { color: colors.text }]}>
+                {Math.round(result.food.nutrients.ENERC_KCAL)} kcal
+              </Text>
+              <View style={styles.macroRow}>
+                <Text style={[styles.macro, { color: colors.text + "80" }]}>
+                  P: {Math.round(result.food.nutrients.PROCNT)}g
+                </Text>
+                <Text style={[styles.macro, { color: colors.text + "80" }]}>
+                  C: {Math.round(result.food.nutrients.CHOCDF)}g
+                </Text>
+                <Text style={[styles.macro, { color: colors.text + "80" }]}>
+                  G: {Math.round(result.food.nutrients.FAT)}g
+                </Text>
+              </View>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.text + "40"}
+            />
+          </TouchableOpacity>
+        </MotiView>
+      );
     });
   };
 
@@ -161,59 +288,13 @@ export default function AddFoodScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Recent Foods Section */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          Alimentos Recentes
-        </Text>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {recentFoods.map((food, index) => (
-            <MotiView
-              key={food.id}
-              from={{ opacity: 0, translateY: 20 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ delay: index * 100 }}
-            >
-              <TouchableOpacity
-                style={[styles.foodItem, { backgroundColor: colors.light }]}
-                onPress={() => handleFoodSelect(food)}
-              >
-                <View style={styles.foodInfo}>
-                  <Text style={[styles.foodName, { color: colors.text }]}>
-                    {food.name}
-                  </Text>
-                  <Text
-                    style={[styles.foodPortion, { color: colors.text + "80" }]}
-                  >
-                    {food.portion}
-                  </Text>
-                </View>
-                <View style={styles.foodMacros}>
-                  <Text style={[styles.calories, { color: colors.text }]}>
-                    {food.calories} kcal
-                  </Text>
-                  <View style={styles.macroRow}>
-                    <Text style={[styles.macro, { color: colors.text + "80" }]}>
-                      P: {food.protein}g
-                    </Text>
-                    <Text style={[styles.macro, { color: colors.text + "80" }]}>
-                      C: {food.carbs}g
-                    </Text>
-                    <Text style={[styles.macro, { color: colors.text + "80" }]}>
-                      G: {food.fat}g
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={colors.text + "40"}
-                />
-              </TouchableOpacity>
-            </MotiView>
-          ))}
-        </ScrollView>
-      </View>
+      {/* Search Results */}
+      <ScrollView
+        style={styles.resultsContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {renderSearchResults()}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -277,14 +358,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-  section: {
+  resultsContainer: {
     flex: 1,
     paddingHorizontal: 20,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 16,
+  centerContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 40,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: "center",
+  },
+  emptyText: {
+    fontSize: 16,
+    textAlign: "center",
   },
   foodItem: {
     flexDirection: "row",
@@ -301,7 +391,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginBottom: 4,
   },
-  foodPortion: {
+  foodCategory: {
     fontSize: 14,
   },
   foodMacros: {

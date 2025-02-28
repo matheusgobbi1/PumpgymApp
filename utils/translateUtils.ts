@@ -54,6 +54,16 @@ const ptToEnDictionary: { [key: string]: string } = {
   granola: "granola",
   mel: "honey",
   geleia: "jelly",
+  snickers: "snickers",
+  barra: "bar",
+  pacote: "package",
+  unidade: "unit",
+  fatia: "slice",
+  pedaço: "piece",
+  copo: "cup",
+  colher: "spoon",
+  prato: "plate",
+  porção: "serving",
 };
 
 // Dicionário inglês -> português (invertido)
@@ -94,6 +104,10 @@ const measureTranslations: { [key: string]: string } = {
   bag: "pacote",
   scoop: "colher",
   portion: "porção",
+  medium: "médio",
+  large: "grande",
+  small: "pequeno",
+  "extra large": "extra grande",
 };
 
 // Função para remover acentos
@@ -126,20 +140,48 @@ export async function translateFoodResult(text: string): Promise<string> {
 }
 
 export function translateMeasure(measure: string): string {
-  const lowerMeasure = measure.toLowerCase();
+  try {
+    const lowerMeasure = measure.toLowerCase();
 
-  // Primeiro tenta encontrar a tradução exata
-  if (measureTranslations[lowerMeasure]) {
-    return measureTranslations[lowerMeasure];
-  }
-
-  // Se não encontrar, procura por palavras parciais
-  for (const [en, pt] of Object.entries(measureTranslations)) {
-    if (lowerMeasure.includes(en.toLowerCase())) {
-      return pt;
+    // Primeiro tenta encontrar a tradução exata
+    if (measureTranslations[lowerMeasure]) {
+      return measureTranslations[lowerMeasure];
     }
+
+    // Se não encontrar, procura por palavras parciais
+    for (const [en, pt] of Object.entries(measureTranslations)) {
+      if (lowerMeasure.includes(en.toLowerCase())) {
+        return pt;
+      }
+    }
+
+    // Se não encontrar nenhuma tradução, retorna a medida original
+    return measure;
+  } catch (error) {
+    console.error("Erro na tradução da medida:", error);
+    return measure;
+  }
+}
+
+// Função para formatar a medida em português
+export function formatMeasure(quantity: number, measure: string): string {
+  const translatedMeasure = translateMeasure(measure);
+
+  // Formata o número com no máximo 1 casa decimal
+  const formattedQuantity = Math.round(quantity * 10) / 10;
+
+  // Casos especiais de pluralização
+  if (translatedMeasure === "grama") {
+    return `${formattedQuantity}g`;
   }
 
-  // Se não encontrar nenhuma tradução, retorna a medida original
-  return measure;
+  if (translatedMeasure === "unidade" && formattedQuantity > 1) {
+    return `${formattedQuantity} unidades`;
+  }
+
+  if (translatedMeasure === "porção" && formattedQuantity > 1) {
+    return `${formattedQuantity} porções`;
+  }
+
+  return `${formattedQuantity} ${translatedMeasure}`;
 }

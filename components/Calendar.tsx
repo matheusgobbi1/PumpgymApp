@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -22,7 +22,8 @@ import { MotiView } from "moti";
 import Colors from "../constants/Colors";
 import { useColorScheme } from "react-native";
 import * as Haptics from "expo-haptics";
-import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
+import { useMeals } from "../context/MealContext";
 
 const { width } = Dimensions.get("window");
 const DAYS_TO_SHOW = 30;
@@ -38,6 +39,7 @@ export default function Calendar({
 }: CalendarProps) {
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
+  const { meals } = useMeals();
 
   // Inicializa as datas zerando o horário
   const today = setMilliseconds(
@@ -58,6 +60,18 @@ export default function Calendar({
     });
   }, [startDate]);
 
+  // Verifica se uma data tem refeições registradas
+  const hasRegisteredMeals = useCallback(
+    (date: Date) => {
+      const dateString = format(date, "yyyy-MM-dd");
+      return (
+        meals[dateString] &&
+        Object.values(meals[dateString]).some((foods) => foods.length > 0)
+      );
+    },
+    [meals]
+  );
+
   const handleDatePress = useCallback(
     (date: Date) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -75,17 +89,28 @@ export default function Calendar({
   return (
     <View style={styles.container}>
       <View style={styles.calendarContainer}>
-        <BlurView intensity={10} style={styles.leftBlur} tint={colorScheme} />
-        <BlurView intensity={10} style={styles.rightBlur} tint={colorScheme} />
+        <LinearGradient
+          colors={[colors.background, "transparent"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.leftGradient}
+        />
+        <LinearGradient
+          colors={["transparent", colors.background]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.rightGradient}
+        />
 
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {dates.map((date, index) => {
+          {dates.map((date) => {
             const isSelected = isSameDay(date, normalizedSelectedDate);
             const isToday = isSameDay(date, today);
+            const hasMeals = hasRegisteredMeals(date);
 
             return (
               <View key={date.toISOString()} style={styles.dayColumn}>
@@ -124,6 +149,14 @@ export default function Calendar({
                       {format(date, "d")}
                     </Text>
                   </MotiView>
+                  {hasMeals && !isSelected && (
+                    <View
+                      style={[
+                        styles.mealIndicator,
+                        { backgroundColor: colors.primary },
+                      ]}
+                    />
+                  )}
                 </TouchableOpacity>
               </View>
             );
@@ -137,7 +170,6 @@ export default function Calendar({
 const styles = StyleSheet.create({
   container: {
     paddingTop: 10,
-    paddingBottom: 20,
   },
   calendarContainer: {
     position: "relative",
@@ -153,27 +185,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     opacity: 0.5,
-    marginBottom: 8,
     textTransform: "lowercase",
   },
-  leftBlur: {
+  leftGradient: {
     position: "absolute",
     left: 0,
     top: 0,
     bottom: 0,
-    width: 20,
+    width: 50,
     zIndex: 1,
   },
-  rightBlur: {
+  rightGradient: {
     position: "absolute",
     right: 0,
     top: 0,
     bottom: 0,
-    width: 20,
+    width: 50,
     zIndex: 1,
   },
   dayButton: {
     alignItems: "center",
+    paddingBottom: 8,
   },
   dayContainer: {
     width: 40,
@@ -185,5 +217,12 @@ const styles = StyleSheet.create({
   dayText: {
     fontSize: 17,
     fontWeight: "600",
+  },
+  mealIndicator: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    position: "absolute",
+    bottom: 10,
   },
 });
