@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useColorScheme } from "react-native";
@@ -9,11 +9,8 @@ import { useNutrition } from "../../context/NutritionContext";
 import { useMeals } from "../../context/MealContext";
 import { MotiView } from "moti";
 import { format } from "date-fns";
-import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import MealCard from "../../components/nutrition/MealCard";
 import MacrosCard from "../../components/nutrition/MacrosCard";
-import MealDetailsSheet from "../../components/nutrition/MealDetailsSheet";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { getLocalDate } from "../../utils/dateUtils";
 import * as Haptics from "expo-haptics";
 
@@ -66,43 +63,10 @@ export default function NutritionScreen() {
     getFoodsForMeal,
     removeFoodFromMeal,
   } = useMeals();
-  const bottomSheetRef = useRef<BottomSheet>(null);
-  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-  const [selectedMeal, setSelectedMeal] = useState<MealType | null>(null);
-
-  // Snappoints para o BottomSheet
-  const snapPoints = useMemo(() => ["70%"], []);
-
-  // Callback quando o BottomSheet é fechado
-  const handleSheetChanges = useCallback((index: number) => {
-    if (index === -1) setSelectedMeal(null);
-  }, []);
-
-  // Renderiza o backdrop do BottomSheet
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.7}
-      />
-    ),
-    []
-  );
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(format(date, "yyyy-MM-dd"));
   };
-
-  const handlePresentModalPress = useCallback((meal: MealType) => {
-    setSelectedMeal(meal);
-    bottomSheetModalRef.current?.present();
-  }, []);
-
-  const handleDismissModal = useCallback(() => {
-    bottomSheetModalRef.current?.dismiss();
-  }, []);
 
   const handleDeleteFood = useCallback(
     async (mealId: string, foodId: string) => {
@@ -155,32 +119,15 @@ export default function NutritionScreen() {
               mealTotals={getMealTotals(meal.id)}
               index={index}
               colors={colors}
-              onPress={() => handlePresentModalPress(meal)}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                console.log(`Meal ${meal.name} pressed`);
+              }}
               onDeleteFood={(foodId) => handleDeleteFood(meal.id, foodId)}
             />
           ))}
         </View>
       </ScrollView>
-
-      <BottomSheetModal
-        ref={bottomSheetModalRef}
-        index={0}
-        snapPoints={snapPoints}
-        backgroundStyle={{ backgroundColor: colors.background }}
-        handleIndicatorStyle={{ backgroundColor: colors.border }}
-        backdropComponent={renderBackdrop}
-        onChange={handleSheetChanges}
-      >
-        {selectedMeal && (
-          <MealDetailsSheet
-            meal={selectedMeal}
-            mealTotals={getMealTotals(selectedMeal.id)}
-            foods={getFoodsForMeal(selectedMeal.id)}
-            colors={colors}
-            onDismiss={handleDismissModal}
-          />
-        )}
-      </BottomSheetModal>
     </SafeAreaView>
   );
 }

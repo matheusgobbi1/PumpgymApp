@@ -43,18 +43,18 @@ export default function MacrosCard({
 
   const calculateProgress = (consumed: number, target: number) => {
     if (!target) return 0;
-    return Math.min(Math.max((consumed / target) * 100, 0), 100);
+    return (consumed / target) * 100;
   };
 
   const calculateRemaining = (consumed: number, target: number) => {
     if (!target) return 0;
-    return Math.max(target - consumed, 0);
+    return target - consumed;
   };
 
   const getProgressColor = (percentage: number) => {
     if (percentage >= 90 && percentage <= 110) return "#4CAF50";
     if (percentage < 90) return "#2196F3";
-    return "#FF5722";
+    return "#FF3B30";
   };
 
   const renderMacroProgress = (
@@ -67,6 +67,9 @@ export default function MacrosCard({
     const progress = calculateProgress(consumed, target);
     const remaining = calculateRemaining(consumed, target);
     const progressColor = getProgressColor(progress);
+    const isExceeded = remaining < 0;
+
+    const displayProgress = Math.min(progress, 100);
 
     return (
       <MotiView
@@ -85,6 +88,14 @@ export default function MacrosCard({
           <Text style={[styles.remaining, { color: colors.text }]}>
             {isLoading ? (
               "Carregando..."
+            ) : isExceeded ? (
+              <>
+                Excesso{" "}
+                <Text style={[styles.remainingValue, { color: progressColor }]}>
+                  {Math.abs(Math.round(remaining))}
+                  {unit}
+                </Text>
+              </>
             ) : (
               <>
                 Restam{" "}
@@ -109,7 +120,7 @@ export default function MacrosCard({
             {!isLoading && (
               <MotiView
                 from={{ width: "0%" }}
-                animate={{ width: `${progress}%` }}
+                animate={{ width: `${displayProgress}%` }}
                 transition={{ type: "timing", duration: 1000 }}
                 style={[
                   styles.progressFill,

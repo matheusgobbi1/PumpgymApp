@@ -236,7 +236,7 @@ export default function SummaryScreen() {
               duration={1000}
               progressValueColor={colors.text}
               maxValue={10}
-              title="score"
+              title=""
               titleColor={colors.text}
               titleStyle={{ fontSize: 8 }}
               activeStrokeColor="#6C63FF"
@@ -245,7 +245,7 @@ export default function SummaryScreen() {
               activeStrokeWidth={6}
               inActiveStrokeWidth={6}
               progressValueStyle={{ fontSize: 14, fontWeight: "bold" }}
-              valueSuffix=""
+              valueSuffix="/10"
               delay={0}
             />
             <View style={styles.healthScoreInfo}>
@@ -276,12 +276,12 @@ export default function SummaryScreen() {
           >
             <View style={styles.caloriesContent}>
               <CircularProgress
-                value={nutritionInfo.calories || 0}
+                value={100}
                 radius={32}
                 duration={1000}
                 progressValueColor={colors.text}
-                maxValue={nutritionInfo.calories || 100}
-                title="kcal"
+                maxValue={100}
+                title=""
                 titleColor={colors.text}
                 titleStyle={{ fontSize: 8 }}
                 activeStrokeColor={colors.primary}
@@ -296,6 +296,9 @@ export default function SummaryScreen() {
               <View style={styles.caloriesInfo}>
                 <Text style={[styles.caloriesTitle, { color: colors.text }]}>
                   Calorias Diárias
+                </Text>
+                <Text style={[styles.caloriesValue, { color: colors.primary }]}>
+                  {nutritionInfo.calories || 0} kcal
                 </Text>
                 <Text style={[styles.caloriesDesc, { color: colors.text }]}>
                   {nutritionInfo.goal === "lose"
@@ -320,7 +323,7 @@ export default function SummaryScreen() {
                   duration={1000}
                   progressValueColor={colors.text}
                   maxValue={100}
-                  title="%"
+                  title=""
                   titleColor={colors.text}
                   titleStyle={{ fontSize: 8 }}
                   activeStrokeColor="#FF6B6B"
@@ -329,7 +332,7 @@ export default function SummaryScreen() {
                   activeStrokeWidth={6}
                   inActiveStrokeWidth={6}
                   progressValueStyle={{ fontSize: 14, fontWeight: "bold" }}
-                  valueSuffix=""
+                  valueSuffix="%"
                   delay={0}
                 />
                 <View style={styles.macroInfo}>
@@ -337,13 +340,16 @@ export default function SummaryScreen() {
                   <Text style={[styles.macroTitle, { color: colors.text }]}>
                     Proteína
                   </Text>
+                  <Text style={[styles.macroValue, { color: "#FF6B6B" }]}>
+                    {nutritionInfo.protein || 0}g
+                  </Text>
                   <Text style={[styles.macroDesc, { color: colors.text }]}>
                     {nutritionInfo.protein && nutritionInfo.weight
                       ? (nutritionInfo.protein / nutritionInfo.weight).toFixed(
                           1
                         )
                       : "0"}
-                    g/kg
+                    g/kg • {Math.round(getMacroCalories.protein)} kcal
                   </Text>
                 </View>
               </View>
@@ -358,7 +364,7 @@ export default function SummaryScreen() {
                   duration={1000}
                   progressValueColor={colors.text}
                   maxValue={100}
-                  title="%"
+                  title=""
                   titleColor={colors.text}
                   titleStyle={{ fontSize: 8 }}
                   activeStrokeColor="#4ECDC4"
@@ -367,7 +373,7 @@ export default function SummaryScreen() {
                   activeStrokeWidth={6}
                   inActiveStrokeWidth={6}
                   progressValueStyle={{ fontSize: 14, fontWeight: "bold" }}
-                  valueSuffix=""
+                  valueSuffix="%"
                   delay={0}
                 />
                 <View style={styles.macroInfo}>
@@ -379,8 +385,11 @@ export default function SummaryScreen() {
                   <Text style={[styles.macroTitle, { color: colors.text }]}>
                     Carboidratos
                   </Text>
+                  <Text style={[styles.macroValue, { color: "#4ECDC4" }]}>
+                    {nutritionInfo.carbs || 0}g
+                  </Text>
                   <Text style={[styles.macroDesc, { color: colors.text }]}>
-                    {Math.round((nutritionInfo.carbs || 0) * 4)} kcal
+                    {Math.round(getMacroCalories.carbs)} kcal
                   </Text>
                 </View>
               </View>
@@ -395,7 +404,7 @@ export default function SummaryScreen() {
                   duration={1000}
                   progressValueColor={colors.text}
                   maxValue={100}
-                  title="%"
+                  title=""
                   titleColor={colors.text}
                   titleStyle={{ fontSize: 8 }}
                   activeStrokeColor="#FFE66D"
@@ -404,7 +413,7 @@ export default function SummaryScreen() {
                   activeStrokeWidth={6}
                   inActiveStrokeWidth={6}
                   progressValueStyle={{ fontSize: 14, fontWeight: "bold" }}
-                  valueSuffix=""
+                  valueSuffix="%"
                   delay={0}
                 />
                 <View style={styles.macroInfo}>
@@ -412,8 +421,11 @@ export default function SummaryScreen() {
                   <Text style={[styles.macroTitle, { color: colors.text }]}>
                     Gorduras
                   </Text>
+                  <Text style={[styles.macroValue, { color: "#FFE66D" }]}>
+                    {nutritionInfo.fat || 0}g
+                  </Text>
                   <Text style={[styles.macroDesc, { color: colors.text }]}>
-                    {Math.round((nutritionInfo.fat || 0) * 9)} kcal
+                    {Math.round(getMacroCalories.fat)} kcal
                   </Text>
                 </View>
               </View>
@@ -578,6 +590,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 4,
   },
+  caloriesValue: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
   caloriesDesc: {
     fontSize: 12,
     opacity: 0.7,
@@ -605,8 +622,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     textAlign: "center",
   },
+  macroValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
   macroDesc: {
-    fontSize: 12,
+    fontSize: 10,
     opacity: 0.7,
     textAlign: "center",
   },

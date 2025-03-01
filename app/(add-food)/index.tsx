@@ -8,6 +8,7 @@ import {
   ScrollView,
   Dimensions,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -22,6 +23,9 @@ import {
   translateMeasure,
 } from "../../utils/translateUtils";
 import { debounce } from "lodash";
+import { useMeals, Food } from "../../context/MealContext";
+import * as Haptics from "expo-haptics";
+import { v4 as uuidv4 } from "uuid";
 
 const { width } = Dimensions.get("window");
 
@@ -65,6 +69,79 @@ const recentFoods: FoodItem[] = [
   },
 ];
 
+// Componente de Skeleton para os itens da lista
+const FoodItemSkeleton = ({ index }: { index: number }) => {
+  const colorScheme = useColorScheme() ?? "light";
+  const colors = Colors[colorScheme];
+
+  return (
+    <MotiView
+      from={{ opacity: 0.5 }}
+      animate={{ opacity: 1 }}
+      transition={{
+        type: "timing",
+        duration: 1000,
+        loop: true,
+        delay: index * 100,
+      }}
+      style={[styles.foodItem, { backgroundColor: colors.light }]}
+    >
+      <View style={styles.foodInfo}>
+        <MotiView
+          from={{ opacity: 0.5 }}
+          animate={{ opacity: 1 }}
+          transition={{
+            type: "timing",
+            duration: 1000,
+            loop: true,
+          }}
+          style={[
+            styles.skeletonFoodName,
+            { backgroundColor: colors.text + "20" },
+          ]}
+        />
+        <MotiView
+          from={{ opacity: 0.5 }}
+          animate={{ opacity: 1 }}
+          transition={{
+            type: "timing",
+            duration: 1000,
+            loop: true,
+          }}
+          style={[
+            styles.skeletonFoodCategory,
+            { backgroundColor: colors.text + "20" },
+          ]}
+        />
+      </View>
+      <MotiView
+        from={{ opacity: 0.5 }}
+        animate={{ opacity: 1 }}
+        transition={{
+          type: "timing",
+          duration: 1000,
+          loop: true,
+        }}
+        style={[
+          styles.skeletonAddButton,
+          { backgroundColor: colors.text + "20" },
+        ]}
+      />
+    </MotiView>
+  );
+};
+
+// Componente de Skeleton para a lista de resultados
+const SearchResultsSkeleton = () => {
+  return (
+    <>
+      {[...Array(5)].map((_, index) => (
+        <FoodItemSkeleton key={`skeleton_${index}`} index={index} />
+      ))}
+    </>
+  );
+};
+
 export default function AddFoodScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -74,6 +151,19 @@ export default function AddFoodScreen() {
   const [searchResults, setSearchResults] = useState<FoodHint[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { meals, selectedDate, addFoodToMeal, saveMeals } = useMeals();
+  const [recentlyAddedFoods, setRecentlyAddedFoods] = useState<
+    {
+      id: string;
+      name: string;
+      portion: number;
+      mealName: string;
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+    }[]
+  >([]);
 
   // Extrair parâmetros da refeição
   const mealId = params.mealId as string;
@@ -82,6 +172,71 @@ export default function AddFoodScreen() {
   const targetProtein = Number(params.targetProtein);
   const targetCarbs = Number(params.targetCarbs);
   const targetFat = Number(params.targetFat);
+
+  // Obter alimentos adicionados recentemente
+  useEffect(() => {
+    if (meals) {
+      const recentFoods: {
+        id: string;
+        name: string;
+        portion: number;
+        mealName: string;
+        calories: number;
+        protein: number;
+        carbs: number;
+        fat: number;
+      }[] = [];
+
+      // Percorre todas as datas
+      Object.keys(meals).forEach((date) => {
+        // Percorre todas as refeições da data
+        const mealsForDate = meals[date];
+        if (mealsForDate) {
+          Object.keys(mealsForDate).forEach((mealId) => {
+            // Obtém o nome da refeição com base no ID
+            let mealName = "";
+            switch (mealId) {
+              case "breakfast":
+                mealName = "Café da Manhã";
+                break;
+              case "lunch":
+                mealName = "Almoço";
+                break;
+              case "snack":
+                mealName = "Lanche";
+                break;
+              case "dinner":
+                mealName = "Jantar";
+                break;
+              default:
+                mealName = "Refeição";
+            }
+
+            // Percorre todos os alimentos da refeição
+            const foods = mealsForDate[mealId];
+            if (Array.isArray(foods)) {
+              foods.forEach((food) => {
+                recentFoods.push({
+                  id: food.id,
+                  name: food.name,
+                  portion: food.portion,
+                  mealName: mealName,
+                  calories: food.calories,
+                  protein: food.protein,
+                  carbs: food.carbs,
+                  fat: food.fat,
+                });
+              });
+            }
+          });
+        }
+      });
+
+      // Ordena por ordem de adição (assumindo que os mais recentes estão no final do array)
+      // e limita a 5 itens
+      setRecentlyAddedFoods(recentFoods.slice(-5).reverse());
+    }
+  }, [meals]);
 
   // Função de busca com debounce
   const debouncedSearch = debounce(async (query: string) => {
@@ -114,6 +269,73 @@ export default function AddFoodScreen() {
     return () => debouncedSearch.cancel();
   }, [searchQuery]);
 
+  // Função para adicionar alimento diretamente
+  const handleQuickAdd = async (food: {
+    name: string;
+    portion: number;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  }) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    // Adicionar o alimento à refeição
+    addFoodToMeal(mealId, {
+      id: uuidv4(),
+      name: food.name,
+      calories: food.calories,
+      protein: food.protein,
+      carbs: food.carbs,
+      fat: food.fat,
+      portion: food.portion,
+    });
+
+    // Salvar as alterações
+    await saveMeals();
+
+    // Mostrar confirmação
+    Alert.alert(
+      "Alimento Adicionado",
+      `${food.name} foi adicionado à refeição ${mealName}`,
+      [{ text: "OK" }]
+    );
+  };
+
+  // Função para adicionar alimento da pesquisa diretamente
+  const handleQuickAddFromSearch = async (food: FoodHint) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    // Calcula os valores nutricionais baseado na porção padrão (100g)
+    const calculatedNutrients = {
+      calories: Math.round(food.food.nutrients.ENERC_KCAL),
+      protein: Math.round(food.food.nutrients.PROCNT * 10) / 10,
+      carbs: Math.round(food.food.nutrients.CHOCDF * 10) / 10,
+      fat: Math.round(food.food.nutrients.FAT * 10) / 10,
+    };
+
+    // Adicionar o alimento à refeição
+    addFoodToMeal(mealId, {
+      id: uuidv4(),
+      name: food.food.label,
+      calories: calculatedNutrients.calories,
+      protein: calculatedNutrients.protein,
+      carbs: calculatedNutrients.carbs,
+      fat: calculatedNutrients.fat,
+      portion: 100, // Porção padrão de 100g
+    });
+
+    // Salvar as alterações
+    await saveMeals();
+
+    // Mostrar confirmação
+    Alert.alert(
+      "Alimento Adicionado",
+      `${food.food.label} (100g) foi adicionado à refeição ${mealName}`,
+      [{ text: "OK" }]
+    );
+  };
+
   const handleFoodSelect = (food: FoodHint) => {
     router.push({
       pathname: "/(add-food)/food-details",
@@ -129,13 +351,47 @@ export default function AddFoodScreen() {
     });
   };
 
+  // Função para gerar um ID temporário para o alimento baseado no nome
+  const generateTempFoodId = (foodName: string) => {
+    // Remover espaços e caracteres especiais e converter para minúsculas
+    return foodName.toLowerCase().replace(/[^a-z0-9]/g, "") + "_temp";
+  };
+
+  // Função para navegar para a tela de detalhes do alimento
+  const navigateToFoodDetails = (food: {
+    name: string;
+    portion: number;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  }) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    // Gerar um ID temporário baseado no nome do alimento
+    const tempFoodId = generateTempFoodId(food.name);
+
+    router.push({
+      pathname: "/(add-food)/food-details",
+      params: {
+        foodId: tempFoodId,
+        mealId,
+        mealName,
+        // Passar dados adicionais para que a tela de detalhes possa exibir mesmo sem buscar na API
+        foodName: food.name,
+        calories: food.calories,
+        protein: food.protein,
+        carbs: food.carbs,
+        fat: food.fat,
+        portion: food.portion,
+        isFromHistory: "true",
+      },
+    });
+  };
+
   const renderSearchResults = () => {
     if (isLoading) {
-      return (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      );
+      return <SearchResultsSkeleton />;
     }
 
     if (error) {
@@ -189,27 +445,12 @@ export default function AddFoodScreen() {
                   )}g por ${translateMeasure(commonMeasure.label)}`}
               </Text>
             </View>
-            <View style={styles.foodMacros}>
-              <Text style={[styles.calories, { color: colors.text }]}>
-                {Math.round(result.food.nutrients.ENERC_KCAL)} kcal
-              </Text>
-              <View style={styles.macroRow}>
-                <Text style={[styles.macro, { color: colors.text + "80" }]}>
-                  P: {Math.round(result.food.nutrients.PROCNT)}g
-                </Text>
-                <Text style={[styles.macro, { color: colors.text + "80" }]}>
-                  C: {Math.round(result.food.nutrients.CHOCDF)}g
-                </Text>
-                <Text style={[styles.macro, { color: colors.text + "80" }]}>
-                  G: {Math.round(result.food.nutrients.FAT)}g
-                </Text>
-              </View>
-            </View>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={colors.text + "40"}
-            />
+            <TouchableOpacity
+              style={[styles.addButton, { backgroundColor: colors.primary }]}
+              onPress={() => handleQuickAddFromSearch(result)}
+            >
+              <Ionicons name="add" size={20} color="#FFF" />
+            </TouchableOpacity>
           </TouchableOpacity>
         </MotiView>
       );
@@ -288,12 +529,72 @@ export default function AddFoodScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Search Results */}
       <ScrollView
         style={styles.resultsContainer}
         showsVerticalScrollIndicator={false}
       >
-        {renderSearchResults()}
+        {/* Histórico de Adições Recentes */}
+        {recentlyAddedFoods.length > 0 && !searchQuery && (
+          <View style={styles.recentHistorySection}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Adicionados Recentemente
+            </Text>
+
+            {recentlyAddedFoods.map((food, index) => (
+              <MotiView
+                key={`recent_${food.id}_${index}`}
+                from={{ opacity: 0, translateY: 10 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ delay: index * 50 }}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.recentFoodItem,
+                    { backgroundColor: colors.light },
+                  ]}
+                  onPress={() => navigateToFoodDetails(food)}
+                >
+                  <View style={styles.recentFoodInfo}>
+                    <Text
+                      style={[styles.recentFoodName, { color: colors.text }]}
+                    >
+                      {food.name}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.recentFoodMeta,
+                        { color: colors.text + "80" },
+                      ]}
+                    >
+                      {food.portion}g • {food.mealName}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.addButton,
+                      { backgroundColor: colors.primary },
+                    ]}
+                    onPress={() =>
+                      handleQuickAdd({
+                        name: food.name,
+                        portion: food.portion,
+                        calories: food.calories,
+                        protein: food.protein,
+                        carbs: food.carbs,
+                        fat: food.fat,
+                      })
+                    }
+                  >
+                    <Ionicons name="add" size={20} color="#FFF" />
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              </MotiView>
+            ))}
+          </View>
+        )}
+
+        {/* Resultados da Busca */}
+        {searchQuery.trim() && renderSearchResults()}
       </ScrollView>
     </SafeAreaView>
   );
@@ -409,5 +710,68 @@ const styles = StyleSheet.create({
   },
   macro: {
     fontSize: 14,
+  },
+  skeletonFoodName: {
+    height: 16,
+    width: width * 0.4,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  skeletonFoodCategory: {
+    height: 14,
+    width: width * 0.6,
+    borderRadius: 7,
+  },
+  skeletonCalories: {
+    height: 16,
+    width: 60,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  skeletonMacro: {
+    height: 14,
+    width: 30,
+    borderRadius: 7,
+    marginHorizontal: 4,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  recentHistorySection: {
+    marginBottom: 20,
+  },
+  recentFoodItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 8,
+  },
+  recentFoodInfo: {
+    flex: 1,
+  },
+  recentFoodName: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  recentFoodMeta: {
+    fontSize: 14,
+  },
+  addButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
+  },
+  skeletonAddButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
 });

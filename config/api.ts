@@ -55,10 +55,10 @@ export async function searchFoods(query: string): Promise<EdamamFood[]> {
   }
 }
 
+import { FoodHint } from "../types/food";
+
 // Função para obter detalhes de um alimento específico
-export async function getFoodDetails(
-  foodId: string
-): Promise<EdamamFood | null> {
+export async function getFoodDetails(foodId: string): Promise<FoodHint | null> {
   try {
     const response = await fetch(
       `${EDAMAM_CONFIG.BASE_URL}/parser?app_id=${EDAMAM_CONFIG.APP_ID}&app_key=${EDAMAM_CONFIG.APP_KEY}&ingr=${foodId}&lang=pt-BR`
