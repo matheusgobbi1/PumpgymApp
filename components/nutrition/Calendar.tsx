@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useEffect, useState } from "react";
+import React, { useCallback, useMemo, useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -27,6 +27,7 @@ import { useMeals } from "../../context/MealContext";
 
 const { width } = Dimensions.get("window");
 const DAYS_TO_SHOW = 30;
+const DAY_ITEM_WIDTH = 48; // Largura do item de dia (40px) + marginHorizontal (4px * 2)
 
 interface CalendarProps {
   onSelectDate: (date: Date) => void;
@@ -40,6 +41,8 @@ export default function Calendar({
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
   const { meals } = useMeals();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const initialScrollDone = useRef(false);
 
   // Inicializa as datas zerando o horário
   const today = setMilliseconds(
@@ -60,6 +63,15 @@ export default function Calendar({
     });
   }, [startDate]);
 
+  // Função para centralizar uma data específica no ScrollView
+  const scrollToDate = useCallback((date: Date) => {
+    const dateIndex = dates.findIndex((d) => isSameDay(d, date));
+    if (dateIndex !== -1 && scrollViewRef.current) {
+      const xOffset = dateIndex * DAY_ITEM_WIDTH - (width / 2) + (DAY_ITEM_WIDTH / 2);
+      scrollViewRef.current.scrollTo({ x: Math.max(0, xOffset), y: 0, animated: true });
+    }
+  }, [dates]);
+
   // Verifica se uma data tem refeições registradas
   const hasRegisteredMeals = useCallback(
     (date: Date) => {
@@ -76,8 +88,10 @@ export default function Calendar({
     (date: Date) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onSelectDate(date);
+      // Centraliza o dia selecionado
+      scrollToDate(date);
     },
-    [onSelectDate]
+    [onSelectDate, scrollToDate]
   );
 
   // Zera o horário da data selecionada para comparação
@@ -85,6 +99,22 @@ export default function Calendar({
     setSeconds(setMinutes(setHours(selectedDate, 0), 0), 0),
     0
   );
+
+  // Centraliza o dia atual ou o dia selecionado na montagem inicial
+  const initializeScroll = useCallback(() => {
+    if (!initialScrollDone.current) {
+      // Centraliza o dia atual ou o dia selecionado, dependendo do caso
+      setTimeout(() => {
+        scrollToDate(normalizedSelectedDate);
+        initialScrollDone.current = true;
+      }, 100);
+    }
+  }, [normalizedSelectedDate, scrollToDate]);
+
+  // Efeito para inicializar a rolagem
+  useEffect(() => {
+    initializeScroll();
+  }, [initializeScroll]);
 
   return (
     <View style={styles.container}>
@@ -103,9 +133,11 @@ export default function Calendar({
         />
 
         <ScrollView
+          ref={scrollViewRef}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          onLayout={initializeScroll}
         >
           {dates.map((date) => {
             const isSelected = isSameDay(date, normalizedSelectedDate);

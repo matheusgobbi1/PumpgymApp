@@ -156,36 +156,50 @@ export default function MacrosCard({
           Progresso Diário
         </Text>
 
-        <View style={styles.macrosContainer}>
-          {renderMacroProgress(
-            "Calorias",
-            "flame-outline",
-            dayTotals.calories,
-            nutritionInfo.calories || 0,
-            "kcal"
-          )}
-          {renderMacroProgress(
-            "Proteína",
-            "fitness-outline",
-            dayTotals.protein,
-            nutritionInfo.protein || 0,
-            "g"
-          )}
-          {renderMacroProgress(
-            "Carboidratos",
-            "leaf-outline",
-            dayTotals.carbs,
-            nutritionInfo.carbs || 0,
-            "g"
-          )}
-          {renderMacroProgress(
-            "Gorduras",
-            "water-outline",
-            dayTotals.fat,
-            nutritionInfo.fat || 0,
-            "g"
-          )}
-        </View>
+        {!nutritionInfo || (!nutritionInfo.calories && !nutritionInfo.protein && !nutritionInfo.carbs && !nutritionInfo.fat) ? (
+          <View style={styles.noTargetsContainer}>
+            <Text style={[styles.noTargetsText, { color: colors.text + "80" }]}>
+              Configure suas metas de macronutrientes para acompanhar seu progresso diário
+            </Text>
+            <TouchableOpacity
+              style={[styles.configButton, { backgroundColor: colors.primary }]}
+              onPress={() => router.push("/macros-details")}
+            >
+              <Text style={styles.configButtonText}>Configurar Metas</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.macrosContainer}>
+            {renderMacroProgress(
+              "Calorias",
+              "flame-outline",
+              dayTotals.calories,
+              nutritionInfo.calories || 0,
+              "kcal"
+            )}
+            {renderMacroProgress(
+              "Proteína",
+              "fitness-outline",
+              dayTotals.protein,
+              nutritionInfo.protein || 0,
+              "g"
+            )}
+            {renderMacroProgress(
+              "Carboidratos",
+              "leaf-outline",
+              dayTotals.carbs,
+              nutritionInfo.carbs || 0,
+              "g"
+            )}
+            {renderMacroProgress(
+              "Gorduras",
+              "water-outline",
+              dayTotals.fat,
+              nutritionInfo.fat || 0,
+              "g"
+            )}
+          </View>
+        )}
       </MotiView>
     </TouchableOpacity>
   );
@@ -255,5 +269,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "right",
     opacity: 0.8,
+  },
+  noTargetsContainer: {
+    alignItems: "center",
+    padding: 20,
+  },
+  noTargetsText: {
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  configButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  configButtonText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

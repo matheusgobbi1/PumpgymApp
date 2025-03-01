@@ -76,39 +76,45 @@ export default function MealCard({
     mealTotals.calories
   );
 
+  // Cores dos macronutrientes como no MacrosCard
+  const proteinColor = "#4CAF50"; // Verde
+  const carbsColor = "#2196F3";   // Azul
+  const fatColor = "#FF3B30";     // Vermelho
+  
+  // Cor principal do MacrosCard para outros elementos
+  const primaryBlue = "#2196F3";
+
   const renderFoodItem = (food: Food, foodIndex: number) => (
     <Swipeable
       key={food.id}
       renderRightActions={() => (
         <TouchableOpacity
-          style={[styles.swipeAction, { backgroundColor: colors.danger }]}
+          style={[styles.swipeAction, { backgroundColor: primaryBlue + "CC" }]}
           onPress={async () => {
             handleHapticFeedback();
             await onDeleteFood(food.id);
           }}
         >
-          <Ionicons name="trash" size={24} color="white" />
+          <Ionicons name="trash-outline" size={20} color="white" />
         </TouchableOpacity>
       )}
     >
       <Animated.View
         entering={FadeInRight.delay(foodIndex * 100).duration(300)}
-        style={[styles.foodItemContainer, { backgroundColor: colors.light }]}
+        style={[
+          styles.foodItemContainer, 
+          { backgroundColor: colors.light },
+          foodIndex === 0 && styles.firstFoodItem,
+          foodIndex === foods.length - 1 && styles.lastFoodItem
+        ]}
       >
         <View style={styles.foodItemContent}>
           <View style={styles.foodItemLeft}>
-            <View style={[styles.foodIconContainer, { backgroundColor: colors.primary + "15" }]}>
-              <Ionicons
-                name="restaurant-outline"
-                size={16}
-                color={colors.primary}
-              />
-            </View>
             <View style={styles.foodTextContainer}>
               <Text style={[styles.foodName, { color: colors.text }]}>
                 {food.name}
               </Text>
-              <Text style={[styles.foodPortion, { color: colors.text + "99" }]}>
+              <Text style={[styles.foodPortion, { color: colors.text + "80" }]}>
                 {food.portion}g • {food.calories} kcal
               </Text>
             </View>
@@ -117,35 +123,35 @@ export default function MealCard({
           <View style={styles.macroIndicators}>
             {/* Proteína */}
             <View style={styles.macroIndicator}>
-              <View style={[styles.macroIcon, { backgroundColor: colors.danger + "CC" }]}>
-                <Text style={styles.macroIconText}>P</Text>
-              </View>
-              <Text style={[styles.macroValue, { color: colors.text + "99" }]}>
-                {food.protein}g
+              <View style={[styles.macroBar, { backgroundColor: proteinColor }]} />
+              <Text style={[styles.macroValue, { color: colors.text }]}>
+                <Text style={[styles.macroLabel, { color: colors.text + "99" }]}>P </Text>
+                {food.protein}
               </Text>
             </View>
 
             {/* Carboidratos */}
             <View style={styles.macroIndicator}>
-              <View style={[styles.macroIcon, { backgroundColor: colors.success + "CC" }]}>
-                <Text style={styles.macroIconText}>C</Text>
-              </View>
-              <Text style={[styles.macroValue, { color: colors.text + "99" }]}>
-                {food.carbs}g
+              <View style={[styles.macroBar, { backgroundColor: carbsColor }]} />
+              <Text style={[styles.macroValue, { color: colors.text }]}>
+                <Text style={[styles.macroLabel, { color: colors.text + "99" }]}>C </Text>
+                {food.carbs}
               </Text>
             </View>
 
             {/* Gorduras */}
             <View style={styles.macroIndicator}>
-              <View style={[styles.macroIcon, { backgroundColor: colors.warning + "CC" }]}>
-                <Text style={styles.macroIconText}>G</Text>
-              </View>
-              <Text style={[styles.macroValue, { color: colors.text + "99" }]}>
-                {food.fat}g
+              <View style={[styles.macroBar, { backgroundColor: fatColor }]} />
+              <Text style={[styles.macroValue, { color: colors.text }]}>
+                <Text style={[styles.macroLabel, { color: colors.text + "99" }]}>G </Text>
+                {food.fat}
               </Text>
             </View>
           </View>
         </View>
+        {foodIndex < foods.length - 1 && (
+          <View style={[styles.separator, { backgroundColor: colors.border }]} />
+        )}
       </Animated.View>
     </Swipeable>
   );
@@ -165,25 +171,19 @@ export default function MealCard({
         >
           <View style={styles.mealHeader}>
             <View style={styles.mealTitleContainer}>
-              <View
-                style={[
-                  styles.iconContainer,
-                  { backgroundColor: colors.primary + "20" },
-                ]}
-              >
-                <Ionicons
-                  name={meal.icon as any}
-                  size={20}
-                  color={colors.primary}
-                />
-              </View>
+              <Ionicons
+                name={meal.icon as any}
+                size={18}
+                color={primaryBlue}
+                style={styles.mealIcon}
+              />
               <View>
                 <Text style={[styles.mealTitle, { color: colors.text }]}>
                   {meal.name}
                 </Text>
                 {foods.length > 0 && (
                   <Text
-                    style={[styles.foodCount, { color: colors.text + "80" }]}
+                    style={[styles.foodCount, { color: colors.text + "70" }]}
                   >
                     {foods.length}{" "}
                     {foods.length === 1 ? "alimento" : "alimentos"}
@@ -192,11 +192,11 @@ export default function MealCard({
               </View>
             </View>
             <View style={styles.mealCaloriesContainer}>
-              <Text style={[styles.mealCalories, { color: colors.primary }]}>
+              <Text style={[styles.mealCalories, { color: primaryBlue }]}>
                 {mealTotals.calories}
               </Text>
               <Text
-                style={[styles.caloriesUnit, { color: colors.text + "80" }]}
+                style={[styles.caloriesUnit, { color: colors.text + "70" }]}
               >
                 kcal
               </Text>
@@ -209,21 +209,21 @@ export default function MealCard({
             <View
               style={[
                 styles.macroProgressBar,
-                { backgroundColor: colors.danger + "CC" },
+                { backgroundColor: proteinColor },
                 { width: `${proteinPercentage}%` },
               ]}
             />
             <View
               style={[
                 styles.macroProgressBar,
-                { backgroundColor: colors.success + "CC" },
+                { backgroundColor: carbsColor },
                 { width: `${carbsPercentage}%` },
               ]}
             />
             <View
               style={[
                 styles.macroProgressBar,
-                { backgroundColor: colors.warning + "CC" },
+                { backgroundColor: fatColor },
                 { width: `${fatPercentage}%` },
               ]}
             />
@@ -246,12 +246,7 @@ export default function MealCard({
                 colors={[colors.light, colors.background]}
                 style={styles.emptyGradient}
               >
-                <Ionicons
-                  name="restaurant-outline"
-                  size={24}
-                  color={colors.primary + "40"}
-                />
-                <Text style={[styles.emptyText, { color: colors.text + "60" }]}>
+                <Text style={[styles.emptyText, { color: colors.text + "50" }]}>
                   Adicione seu primeiro alimento
                 </Text>
               </LinearGradient>
@@ -261,7 +256,7 @@ export default function MealCard({
 
         <View style={styles.addButtonContainer}>
           <TouchableOpacity
-            style={[styles.addButton, { backgroundColor: colors.primary }]}
+            style={[styles.addButton, { borderColor: primaryBlue }]}
             onPress={(e) => {
               e.stopPropagation();
               handleHapticFeedback();
@@ -274,7 +269,7 @@ export default function MealCard({
               });
             }}
           >
-            <Ionicons name="add" size={24} color="#FFF" />
+            <Ionicons name="add" size={20} color={primaryBlue} />
           </TouchableOpacity>
         </View>
       </View>
@@ -284,23 +279,24 @@ export default function MealCard({
 
 const styles = StyleSheet.create({
   mealCard: {
-    borderRadius: 20,
+    borderRadius: 16,
     marginBottom: 16,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 3,
   },
   mealContent: {
-    padding: 16,
+    padding: 20,
+    paddingBottom: 20,
   },
   headerTouchable: {
-    marginBottom: 12,
+    marginBottom: 14,
   },
   mealHeader: {
     flexDirection: "row",
@@ -311,16 +307,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+  mealIcon: {
     marginRight: 12,
   },
   mealTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "600",
   },
   foodCount: {
@@ -331,19 +322,19 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   mealCalories: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "600",
   },
   caloriesUnit: {
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 2,
   },
   macroProgressContainer: {
-    height: 4,
+    height: 3,
     flexDirection: "row",
-    borderRadius: 2,
+    borderRadius: 1.5,
     overflow: "hidden",
-    marginBottom: 16,
+    marginBottom: 18,
   },
   macroProgressBar: {
     height: "100%",
@@ -353,15 +344,22 @@ const styles = StyleSheet.create({
     marginBottom: 50, // Espaço para o botão
   },
   foodsList: {
-    marginVertical: 8,
-    gap: 8,
+    marginVertical: 0,
+    marginHorizontal: -20, // Estender além do padding do card
   },
   foodItemContainer: {
-    borderRadius: 12,
     overflow: "hidden",
   },
+  firstFoodItem: {
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+  },
+  lastFoodItem: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
   foodItemContent: {
-    padding: 12,
+    padding: 16,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -371,61 +369,52 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
   },
-  foodIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
   foodTextContainer: {
     flex: 1,
   },
   foodName: {
     fontSize: 14,
     fontWeight: "500",
-    marginBottom: 2,
+    marginBottom: 4,
   },
   foodPortion: {
-    fontSize: 12,
+    fontSize: 11,
   },
   macroIndicators: {
     flexDirection: "row",
-    gap: 8,
+    gap: 20,
   },
   macroIndicator: {
     alignItems: "center",
+    width: 32,
   },
-  macroIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 2,
+  macroBar: {
+    width: 16,
+    height: 3,
+    borderRadius: 1.5,
+    marginBottom: 4,
   },
-  macroIconText: {
-    color: "#FFF",
+  macroLabel: {
     fontSize: 10,
-    fontWeight: "bold",
+    fontWeight: "500",
   },
   macroValue: {
-    fontSize: 10,
+    fontSize: 12,
+    fontWeight: "500",
+    textAlign: "center",
   },
   emptyContainer: {
     marginVertical: 12,
-    borderRadius: 12,
+    borderRadius: 10,
     overflow: "hidden",
   },
   emptyGradient: {
-    padding: 20,
+    padding: 24,
     alignItems: "center",
     justifyContent: "center",
   },
   emptyText: {
-    fontSize: 14,
-    marginTop: 8,
+    fontSize: 13,
     textAlign: "center",
   },
   addButtonContainer: {
@@ -435,23 +424,25 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    borderWidth: 1,
+    backgroundColor: "transparent",
   },
   swipeAction: {
     justifyContent: "center",
     alignItems: "center",
-    width: 80,
+    width: 70,
     height: "100%",
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  separator: {
+    height: 1,
+    opacity: 0.3,
+    marginHorizontal: 16,
   },
 });
