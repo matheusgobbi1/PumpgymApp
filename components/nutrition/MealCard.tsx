@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import * as Haptics from "expo-haptics";
 import { Swipeable } from "react-native-gesture-handler";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInRight } from "react-native-reanimated";
+import { useTheme } from "../../context/ThemeContext";
+import Colors from "../../constants/Colors";
 
 interface MealCardProps {
   meal: {
@@ -29,7 +31,6 @@ interface MealCardProps {
     fat: number;
   };
   index: number;
-  colors: any;
   onPress: () => void;
   onDeleteFood: (foodId: string) => Promise<void>;
 }
@@ -41,11 +42,21 @@ export default function MealCard({
   foods,
   mealTotals,
   index,
-  colors,
   onPress,
   onDeleteFood,
 }: MealCardProps) {
   const router = useRouter();
+  const { theme } = useTheme();
+  const colors = Colors[theme];
+  
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    // Forçar re-renderização quando o tema mudar
+    setForceUpdate({});
+  }, [theme]);
 
   const handleHapticFeedback = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -78,16 +89,17 @@ export default function MealCard({
 
   // Cores dos macronutrientes usando as cores do tema
   const proteinColor = colors.success || "#4CAF50"; // Verde
+  
   const carbsColor = colors.primary || "#2196F3";   // Azul
   const fatColor = colors.danger || "#FF3B30";     // Vermelho
   
 
   const renderFoodItem = (food: Food, foodIndex: number) => (
     <Swipeable
-      key={food.id}
+      key={`food-${food.id}-${theme}`}
       renderRightActions={() => (
         <TouchableOpacity
-          style={[styles.swipeAction, { backgroundColor: colors.error + "CC" }]}
+          style={[styles.swipeAction, { backgroundColor: colors.danger + "CC" }]}
           onPress={async () => {
             handleHapticFeedback();
             await onDeleteFood(food.id);
@@ -98,6 +110,7 @@ export default function MealCard({
       )}
     >
       <Animated.View
+        key={`food-item-${food.id}-${theme}`}
         entering={FadeInRight.delay(foodIndex * 100).duration(300)}
         style={[
           styles.foodItemContainer, 
@@ -156,6 +169,7 @@ export default function MealCard({
 
   return (
     <MotiView
+      key={`meal-card-${meal.id}-${theme}`}
       style={[styles.mealCard, { backgroundColor: colors.light }]}
       from={{ opacity: 0, translateY: 20 }}
       animate={{ opacity: 1, translateY: 0 }}
@@ -230,17 +244,19 @@ export default function MealCard({
 
         <View style={styles.foodsContainer}>
           {foods.length > 0 ? (
-            <View style={styles.foodsList}>
+            <View key={`foods-list-${theme}`} style={styles.foodsList}>
               {foods.map((food, foodIndex) => renderFoodItem(food, foodIndex))}
             </View>
           ) : (
             <MotiView
+              key={`empty-container-${theme}`}
               from={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ type: "timing", duration: 500 }}
               style={styles.emptyContainer}
             >
               <LinearGradient
+                key={`empty-gradient-${theme}`}
                 colors={[colors.light, colors.background]}
                 style={styles.emptyGradient}
               >

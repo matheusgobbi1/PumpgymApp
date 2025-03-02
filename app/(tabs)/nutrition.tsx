@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState, useRef, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useColorScheme } from "react-native";
 import Colors from "../../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import Calendar from "../../components/nutrition/Calendar";
@@ -16,6 +15,7 @@ import * as Haptics from "expo-haptics";
 import EmptyNutritionState from "../../components/nutrition/EmptyNutritionState";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import MealConfigSheet from "../../components/nutrition/MealConfigSheet";
+import { useTheme } from "../../context/ThemeContext";
 
 const { width } = Dimensions.get("window");
 
@@ -52,8 +52,8 @@ const MEAL_TYPES: MealType[] = [
 ];
 
 export default function NutritionScreen() {
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
   const { nutritionInfo } = useNutrition();
   const {
     selectedDate,
@@ -69,6 +69,15 @@ export default function NutritionScreen() {
     resetMealTypes,
     updateMealTypes,
   } = useMeals();
+
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    // Forçar re-renderização quando o tema mudar
+    setForceUpdate({});
+  }, [theme]);
 
   // Estado para forçar a recriação do MealConfigSheet
   const [mealConfigKey, setMealConfigKey] = useState(Date.now());
@@ -178,7 +187,7 @@ export default function NutritionScreen() {
         <MealConfigSheet
           ref={mealConfigSheetRef}
           onMealConfigured={handleMealConfigured}
-          key={`meal-config-empty-${mealConfigKey}`}
+          key={`meal-config-empty-${mealConfigKey}-${theme}`}
         />
       </SafeAreaView>
     );
@@ -227,7 +236,6 @@ export default function NutritionScreen() {
           <MacrosCard
             dayTotals={dailyTotals}
             nutritionInfo={nutritionInfo}
-            colors={colors}
           />
         </View>
 
@@ -239,7 +247,6 @@ export default function NutritionScreen() {
               foods={getFoodsForMeal(meal.id)}
               mealTotals={getMealTotals(meal.id)}
               index={index}
-              colors={colors}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 console.log(`Meal ${meal.name} pressed`);
@@ -250,6 +257,7 @@ export default function NutritionScreen() {
           
           {/* Botão para redefinir refeições */}
           <TouchableOpacity
+            key={`reset-button-${theme}`}
             style={[styles.resetButton, { borderColor: colors.border }]}
             onPress={handleResetMealTypes}
           >
@@ -261,6 +269,7 @@ export default function NutritionScreen() {
           
           {/* Botão para editar refeições */}
           <TouchableOpacity
+            key={`edit-button-${theme}`}
             style={[styles.editButton, { backgroundColor: colors.primary }]}
             onPress={openMealConfigSheet}
           >
@@ -276,7 +285,7 @@ export default function NutritionScreen() {
       <MealConfigSheet
         ref={mealConfigSheetRef}
         onMealConfigured={handleMealConfigured}
-        key={`meal-config-configured-${mealConfigKey}`}
+        key={`meal-config-configured-${mealConfigKey}-${theme}`}
       />
     </SafeAreaView>
   );

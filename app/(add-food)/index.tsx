@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import { MotiView } from "moti";
 import { searchFoods } from "../../services/food";
 import { EdamamResponse, FoodHint } from "../../types/food";
@@ -71,11 +71,12 @@ const recentFoods: FoodItem[] = [
 
 // Componente de Skeleton para os itens da lista
 const FoodItemSkeleton = ({ index }: { index: number }) => {
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
 
   return (
     <MotiView
+      key={`skeleton-item-${index}-${theme}`}
       from={{ opacity: 0.5 }}
       animate={{ opacity: 1 }}
       transition={{
@@ -88,6 +89,7 @@ const FoodItemSkeleton = ({ index }: { index: number }) => {
     >
       <View style={styles.foodInfo}>
         <MotiView
+          key={`skeleton-name-${index}-${theme}`}
           from={{ opacity: 0.5 }}
           animate={{ opacity: 1 }}
           transition={{
@@ -101,6 +103,7 @@ const FoodItemSkeleton = ({ index }: { index: number }) => {
           ]}
         />
         <MotiView
+          key={`skeleton-category-${index}-${theme}`}
           from={{ opacity: 0.5 }}
           animate={{ opacity: 1 }}
           transition={{
@@ -115,6 +118,7 @@ const FoodItemSkeleton = ({ index }: { index: number }) => {
         />
       </View>
       <MotiView
+        key={`skeleton-button-${index}-${theme}`}
         from={{ opacity: 0.5 }}
         animate={{ opacity: 1 }}
         transition={{
@@ -133,10 +137,12 @@ const FoodItemSkeleton = ({ index }: { index: number }) => {
 
 // Componente de Skeleton para a lista de resultados
 const SearchResultsSkeleton = () => {
+  const { theme } = useTheme();
+  
   return (
     <>
       {[...Array(5)].map((_, index) => (
-        <FoodItemSkeleton key={`skeleton_${index}`} index={index} />
+        <FoodItemSkeleton key={`skeleton_${index}_${theme}`} index={index} />
       ))}
     </>
   );
@@ -145,8 +151,8 @@ const SearchResultsSkeleton = () => {
 export default function AddFoodScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<FoodHint[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -164,6 +170,14 @@ export default function AddFoodScreen() {
       fat: number;
     }[]
   >([]);
+
+  // Adicionar estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
+  
+  // Adicionar efeito para forçar re-renderização quando o tema mudar
+  useEffect(() => {
+    setForceUpdate({});
+  }, [theme]);
 
   // Extrair parâmetros da refeição
   const mealId = params.mealId as string;
@@ -422,12 +436,13 @@ export default function AddFoodScreen() {
 
       return (
         <MotiView
-          key={`${result.food.foodId}_${index}`}
+          key={`${result.food.foodId}_${index}_${theme}`}
           from={{ opacity: 0, translateY: 20 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ delay: index * 100 }}
         >
           <TouchableOpacity
+            key={`food-item-${result.food.foodId}-${theme}`}
             style={[styles.foodItem, { backgroundColor: colors.light }]}
             onPress={() => handleFoodSelect(result)}
           >
@@ -446,6 +461,7 @@ export default function AddFoodScreen() {
               </Text>
             </View>
             <TouchableOpacity
+              key={`add-button-${result.food.foodId}-${theme}`}
               style={[styles.addButton, { backgroundColor: colors.primary }]}
               onPress={() => handleQuickAddFromSearch(result)}
             >
@@ -464,6 +480,7 @@ export default function AddFoodScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
+          key={`back-button-${theme}`}
           onPress={() => router.back()}
           style={styles.backButton}
         >
@@ -481,7 +498,7 @@ export default function AddFoodScreen() {
       </View>
 
       {/* Search Bar */}
-      <View style={[styles.searchContainer, { backgroundColor: colors.light }]}>
+      <View key={`search-container-${theme}`} style={[styles.searchContainer, { backgroundColor: colors.light }]}>
         <Ionicons
           name="search"
           size={20}
@@ -496,7 +513,10 @@ export default function AddFoodScreen() {
           onChangeText={setSearchQuery}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery("")}>
+          <TouchableOpacity 
+            key={`clear-search-${theme}`}
+            onPress={() => setSearchQuery("")}
+          >
             <Ionicons name="close-circle" size={20} color={colors.text} />
           </TouchableOpacity>
         )}
@@ -505,6 +525,7 @@ export default function AddFoodScreen() {
       {/* Quick Actions */}
       <View style={styles.quickActions}>
         <TouchableOpacity
+          key={`scan-button-${theme}`}
           style={[styles.quickActionButton, { backgroundColor: colors.light }]}
           onPress={() => router.push("/(add-food)/barcode-scanner")}
         >
@@ -515,6 +536,7 @@ export default function AddFoodScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
+          key={`quick-add-button-${theme}`}
           style={[styles.quickActionButton, { backgroundColor: colors.light }]}
           onPress={() => router.push("/(add-food)/quick-add")}
         >
@@ -535,19 +557,20 @@ export default function AddFoodScreen() {
       >
         {/* Histórico de Adições Recentes */}
         {recentlyAddedFoods.length > 0 && !searchQuery && (
-          <View style={styles.recentHistorySection}>
+          <View key={`recent-history-${theme}`} style={styles.recentHistorySection}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Adicionados Recentemente
             </Text>
 
             {recentlyAddedFoods.map((food, index) => (
               <MotiView
-                key={`recent_${food.id}_${index}`}
+                key={`recent_${food.id}_${index}_${theme}`}
                 from={{ opacity: 0, translateY: 10 }}
                 animate={{ opacity: 1, translateY: 0 }}
                 transition={{ delay: index * 50 }}
               >
                 <TouchableOpacity
+                  key={`recent-food-${food.id}-${theme}`}
                   style={[
                     styles.recentFoodItem,
                     { backgroundColor: colors.light },
@@ -570,6 +593,7 @@ export default function AddFoodScreen() {
                     </Text>
                   </View>
                   <TouchableOpacity
+                    key={`recent-add-button-${food.id}-${theme}`}
                     style={[
                       styles.addButton,
                       { backgroundColor: colors.primary },

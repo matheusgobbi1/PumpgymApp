@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 
 interface OnboardingHeaderProps {
   currentStep: number;
@@ -17,18 +17,26 @@ export default function OnboardingHeader({
   onBack,
   onSettings,
 }: OnboardingHeaderProps) {
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
+  
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    setForceUpdate({});
+  }, [theme]);
 
   return (
-    <View style={styles.header}>
-      <TouchableOpacity onPress={onBack} style={styles.backButton}>
+    <View key={`header-container-${theme}`} style={styles.header}>
+      <TouchableOpacity key={`back-button-${theme}`} onPress={onBack} style={styles.backButton}>
         <Ionicons name="arrow-back" size={24} color={colors.text} />
       </TouchableOpacity>
-      <View style={styles.progressContainer}>
+      <View key={`progress-container-${theme}`} style={styles.progressContainer}>
         {[...Array(totalSteps)].map((_, index) => (
           <View
-            key={index}
+            key={`progress-bar-${index}-${theme}`}
             style={[
               styles.progressBar,
               {
@@ -40,6 +48,7 @@ export default function OnboardingHeader({
         ))}
       </View>
       <TouchableOpacity
+        key={`settings-button-${theme}`}
         style={styles.settingsButton}
         onPress={onSettings || (() => {})}
       >

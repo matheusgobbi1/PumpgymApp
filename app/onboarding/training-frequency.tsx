@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import {
   useNutrition,
   TrainingFrequency,
@@ -13,12 +13,20 @@ import SelectionOption from "../../components/onboarding/SelectionOption";
 
 export default function TrainingFrequencyScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
   const { nutritionInfo, updateNutritionInfo } = useNutrition();
   const [selectedFrequency, setSelectedFrequency] = useState<
     TrainingFrequency | undefined
   >(nutritionInfo.trainingFrequency);
+  
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    setForceUpdate({});
+  }, [theme]);
 
   const handleNext = () => {
     if (selectedFrequency) {
@@ -38,9 +46,10 @@ export default function TrainingFrequencyScreen() {
       description: "Trabalho em escritório, pouca atividade física",
       icon: (
         <Ionicons
+          key={`sedentary-icon-${theme}`}
           name="briefcase-outline"
           size={28}
-          color={selectedFrequency === "sedentary" ? "white" : colors.text}
+          color={selectedFrequency === "sedentary" ? colors.primary : colors.text}
         />
       ),
     },
@@ -50,9 +59,10 @@ export default function TrainingFrequencyScreen() {
       description: "1-2 dias por semana",
       icon: (
         <Ionicons
+          key={`light-icon-${theme}`}
           name="walk-outline"
           size={28}
-          color={selectedFrequency === "light" ? "white" : colors.text}
+          color={selectedFrequency === "light" ? colors.primary : colors.text}
         />
       ),
     },
@@ -62,9 +72,10 @@ export default function TrainingFrequencyScreen() {
       description: "3-5 dias por semana",
       icon: (
         <Ionicons
+          key={`moderate-icon-${theme}`}
           name="walk-outline"
           size={28}
-          color={selectedFrequency === "moderate" ? "white" : colors.text}
+          color={selectedFrequency === "moderate" ? colors.primary : colors.text}
         />
       ),
     },
@@ -74,9 +85,10 @@ export default function TrainingFrequencyScreen() {
       description: "6-7 dias por semana",
       icon: (
         <Ionicons
+          key={`intense-icon-${theme}`}
           name="barbell-outline"
           size={28}
-          color={selectedFrequency === "intense" ? "white" : colors.text}
+          color={selectedFrequency === "intense" ? colors.primary : colors.text}
         />
       ),
     },
@@ -92,10 +104,10 @@ export default function TrainingFrequencyScreen() {
       onNext={handleNext}
       nextButtonDisabled={!selectedFrequency}
     >
-      <View style={styles.optionsContainer}>
+      <View key={`options-container-${theme}`} style={styles.optionsContainer}>
         {frequencyOptions.map((option) => (
           <SelectionOption
-            key={option.frequency}
+            key={`frequency-option-${option.frequency}-${theme}`}
             title={option.title}
             description={option.description}
             icon={option.icon}

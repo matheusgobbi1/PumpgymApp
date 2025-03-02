@@ -1,21 +1,30 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import { useNutrition } from "../../context/NutritionContext";
 import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
+import { MotiView } from "moti";
 
 export default function ReferralScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
   const { nutritionInfo, updateNutritionInfo } = useNutrition();
 
   const [referral, setReferral] = useState<string>(
     nutritionInfo.referral || ""
   );
+  
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    setForceUpdate({});
+  }, [theme]);
 
   const handleNext = () => {
     updateNutritionInfo({ referral });
@@ -45,38 +54,50 @@ export default function ReferralScreen() {
       onNext={handleNext}
       nextButtonDisabled={!referral}
     >
-      <View style={styles.optionsContainer}>
+      <MotiView
+        key={`options-container-${theme}`}
+        from={{ opacity: 0, translateY: 20 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 500 }}
+        style={styles.optionsContainer}
+      >
         {referralOptions.map((option) => (
-          <TouchableOpacity
-            key={option.id}
-            style={[
-              styles.optionContainer,
-              {
-                backgroundColor:
-                  referral === option.id ? colors.primary : colors.light,
-                borderColor:
-                  referral === option.id ? colors.primary : colors.border,
-              },
-            ]}
-            onPress={() => setReferral(option.id)}
+          <MotiView
+            key={`referral-option-${option.id}-${theme}`}
+            from={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', delay: 100 + referralOptions.indexOf(option) * 50 }}
           >
-            <Ionicons
-              name={option.icon as any}
-              size={24}
-              color={referral === option.id ? "white" : colors.text}
-              style={styles.optionIcon}
-            />
-            <Text
+            <TouchableOpacity
               style={[
-                styles.optionText,
-                { color: referral === option.id ? "white" : colors.text },
+                styles.optionContainer,
+                {
+                  backgroundColor:
+                    referral === option.id ? colors.primary : theme === 'dark' ? colors.dark : colors.light,
+                  borderColor:
+                    referral === option.id ? colors.primary : colors.border,
+                },
               ]}
+              onPress={() => setReferral(option.id)}
             >
-              {option.name}
-            </Text>
-          </TouchableOpacity>
+              <Ionicons
+                name={option.icon as any}
+                size={24}
+                color={referral === option.id ? "white" : colors.text}
+                style={styles.optionIcon}
+              />
+              <Text
+                style={[
+                  styles.optionText,
+                  { color: referral === option.id ? "white" : colors.text },
+                ]}
+              >
+                {option.name}
+              </Text>
+            </TouchableOpacity>
+          </MotiView>
         ))}
-      </View>
+      </MotiView>
     </OnboardingLayout>
   );
 }

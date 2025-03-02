@@ -1,8 +1,8 @@
-import React, { ReactNode } from "react";
+import React, { ReactNode, useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import Button from "../common/Button";
 import OnboardingHeader from "./OnboardingHeader";
 
@@ -31,25 +31,37 @@ export default function OnboardingLayout({
   children,
   error,
 }: OnboardingLayoutProps) {
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
+  
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    // Forçar re-renderização quando o tema mudar
+    setForceUpdate({});
+  }, [theme]);
 
   return (
     <SafeAreaView
+      key={`onboarding-layout-${theme}`}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <OnboardingHeader
+        key={`onboarding-header-${theme}`}
         currentStep={currentStep}
         totalSteps={totalSteps}
         onBack={onBack}
       />
 
       <ScrollView
+        key={`onboarding-scroll-${theme}`}
         style={styles.mainScrollView}
         contentContainerStyle={styles.mainScrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.content}>
+        <View key={`onboarding-content-${theme}`} style={styles.content}>
           <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
           {subtitle && (
             <Text style={[styles.subtitle, { color: colors.text }]}>
@@ -58,7 +70,7 @@ export default function OnboardingLayout({
           )}
 
           {error && (
-            <View style={styles.errorContainer}>
+            <View key={`error-container-${theme}`} style={styles.errorContainer}>
               <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
@@ -67,8 +79,9 @@ export default function OnboardingLayout({
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View key={`footer-${theme}`} style={styles.footer}>
         <Button
+          key={`next-button-${theme}`}
           title={nextButtonTitle}
           onPress={onNext}
           disabled={nextButtonDisabled}

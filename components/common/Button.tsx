@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   TouchableOpacity,
   Text,
@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -47,11 +47,19 @@ export default function Button({
   gradientColors,
   rounded = true,
 }: ButtonProps) {
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
+  
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    setForceUpdate({});
+  }, [theme]);
 
   const getBackgroundColor = () => {
-    if (disabled) return colorScheme === "dark" ? "#333" : "#e0e0e0";
+    if (disabled) return theme === "dark" ? "#333" : "#e0e0e0";
 
     switch (variant) {
       case "primary":
@@ -67,7 +75,7 @@ export default function Button({
   };
 
   const getTextColor = () => {
-    if (disabled) return colorScheme === "dark" ? "#666" : "#999";
+    if (disabled) return theme === "dark" ? "#666" : "#999";
 
     switch (variant) {
       case "primary":
@@ -84,7 +92,7 @@ export default function Button({
   const getBorderColor = () => {
     if (variant === "outline") {
       return disabled
-        ? colorScheme === "dark"
+        ? theme === "dark"
           ? "#333"
           : "#e0e0e0"
         : colors.primary;
@@ -152,17 +160,17 @@ export default function Button({
   const buttonContent = (
     <>
       {loading ? (
-        <ActivityIndicator color={getTextColor()} size="small" />
+        <ActivityIndicator key={`button-loader-${theme}`} color={getTextColor()} size="small" />
       ) : (
-        <View style={styles.contentContainer}>
+        <View key={`content-container-${theme}`} style={styles.contentContainer}>
           {icon && iconPosition === "left" && (
-            <View style={styles.iconLeft}>{icon}</View>
+            <View key={`icon-left-${theme}`} style={styles.iconLeft}>{icon}</View>
           )}
-          <Text style={[styles.text, { color: getTextColor() }, textStyle]}>
+          <Text key={`button-text-${theme}`} style={[styles.text, { color: getTextColor() }, textStyle]}>
             {title}
           </Text>
           {icon && iconPosition === "right" && (
-            <View style={styles.iconRight}>{icon}</View>
+            <View key={`icon-right-${theme}`} style={styles.iconRight}>{icon}</View>
           )}
         </View>
       )}
@@ -170,9 +178,16 @@ export default function Button({
   );
 
   if (variant === "gradient") {
-    const defaultGradientColors = ["#4ecdc4", "#2ab7ca"];
+    // Definir cores padrão com tipagem correta para o LinearGradient
+    const defaultGradientColors: [string, string] = ["#4ecdc4", "#2ab7ca"];
+    // Garantir que gradientColors seja do tipo correto ou usar o padrão
+    const finalGradientColors = gradientColors && gradientColors.length >= 2 
+      ? [gradientColors[0], gradientColors[1]] as [string, string]
+      : defaultGradientColors;
+      
     return (
       <TouchableOpacity
+        key={`gradient-button-${title}-${theme}`}
         style={[
           styles.button,
           {
@@ -189,7 +204,8 @@ export default function Button({
         activeOpacity={0.8}
       >
         <LinearGradient
-          colors={gradientColors || defaultGradientColors}
+          key={`gradient-${theme}`}
+          colors={finalGradientColors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={[
@@ -205,6 +221,7 @@ export default function Button({
 
   return (
     <TouchableOpacity
+      key={`button-${title}-${theme}`}
       style={[
         styles.button,
         {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   TextInput,
@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
 
@@ -85,8 +85,16 @@ export default function Input({
 }: InputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(!secureTextEntry);
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
+  
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    setForceUpdate({});
+  }, [theme]);
 
   const handleFocus = (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
     setIsFocused(true);
@@ -114,11 +122,13 @@ export default function Input({
 
     return (
       <MotiView
+        key={`left-icon-${theme}`}
         animate={{ scale: isFocused ? 1.1 : 1, opacity: isFocused ? 1 : 0.7 }}
         transition={{ type: "timing", duration: 200 }}
         style={styles.iconLeft}
       >
         <TouchableOpacity
+          key={`left-icon-touch-${theme}`}
           onPress={onLeftIconPress || onIconPress}
           disabled={!onLeftIconPress && !onIconPress}
         >
@@ -143,6 +153,7 @@ export default function Input({
     if (secureTextEntry) {
       return (
         <TouchableOpacity
+          key={`password-toggle-${theme}`}
           onPress={togglePasswordVisibility}
           style={styles.iconRight}
         >
@@ -159,11 +170,13 @@ export default function Input({
 
     return (
       <MotiView
+        key={`right-icon-${theme}`}
         animate={{ scale: isFocused ? 1.1 : 1, opacity: isFocused ? 1 : 0.7 }}
         transition={{ type: "timing", duration: 200 }}
         style={styles.iconRight}
       >
         <TouchableOpacity
+          key={`right-icon-touch-${theme}`}
           onPress={onRightIconPress || onIconPress}
           disabled={!onRightIconPress && !onIconPress}
         >
@@ -189,13 +202,15 @@ export default function Input({
     rightIcon || secureTextEntry || (icon && iconPosition === "right");
 
   return (
-    <View style={[styles.container, containerStyle]}>
+    <View key={`input-container-${label || placeholder}-${theme}`} style={[styles.container, containerStyle]}>
       {label && (
         <MotiView
+          key={`label-container-${theme}`}
           animate={{ translateX: isFocused ? 5 : 0 }}
           transition={{ type: "timing", duration: 200 }}
         >
           <Text
+            key={`label-text-${theme}`}
             style={[
               styles.label,
               {
@@ -210,6 +225,7 @@ export default function Input({
         </MotiView>
       )}
       <MotiView
+        key={`input-field-container-${theme}`}
         animate={{
           borderColor: error
             ? colors.danger
@@ -217,7 +233,7 @@ export default function Input({
             ? colors.primary
             : colors.border,
           borderWidth: isFocused ? 2 : 1,
-          backgroundColor: colorScheme === "dark" ? "#2A2A2A" : "#F8F9FA",
+          backgroundColor: theme === "dark" ? "#2A2A2A" : "#F8F9FA",
         }}
         transition={{ type: "timing", duration: 200 }}
         style={[styles.inputContainer, inputContainerStyle]}
@@ -225,6 +241,7 @@ export default function Input({
         {renderLeftIcon()}
 
         <TextInput
+          key={`text-input-${theme}`}
           style={[
             styles.input,
             {
@@ -235,7 +252,7 @@ export default function Input({
             inputStyle,
           ]}
           placeholder={placeholder}
-          placeholderTextColor={colorScheme === "dark" ? "#666666" : "#A0A0A0"}
+          placeholderTextColor={theme === "dark" ? "#666666" : "#A0A0A0"}
           value={value}
           onChangeText={handleChangeText}
           secureTextEntry={secureTextEntry && !isPasswordVisible}
@@ -253,11 +270,12 @@ export default function Input({
       </MotiView>
       {error && (
         <MotiView
+          key={`error-container-${theme}`}
           from={{ opacity: 0, translateY: -5 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: "spring" }}
         >
-          <Text style={[styles.errorText, { color: colors.danger }]}>
+          <Text key={`error-text-${theme}`} style={[styles.errorText, { color: colors.danger }]}>
             {error}
           </Text>
         </MotiView>

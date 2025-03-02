@@ -1,16 +1,25 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import { Stack } from "expo-router";
-import { useColorScheme } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 
 export default function OnboardingLayout() {
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
+  
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    setForceUpdate({});
+  }, [theme]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View key={`onboarding-container-${theme}`} style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack
+        key={`onboarding-stack-${theme}`}
         screenOptions={{
           headerShown: false,
           animation: "slide_from_right",

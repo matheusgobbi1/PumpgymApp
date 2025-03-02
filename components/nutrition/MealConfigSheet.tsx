@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BottomSheetModal, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useColorScheme } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
 import Colors from '../../constants/Colors';
 import { MotiView } from 'moti';
 import { Easing } from 'react-native-reanimated';
@@ -97,10 +97,19 @@ interface MealConfigSheetProps {
 }
 
 const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(({ onMealConfigured }, ref) => {
-  const colorScheme = useColorScheme() ?? 'light';
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
   const insets = useSafeAreaInsets();
   const { mealTypes: existingMealTypes } = useMeals();
+  
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    // Forçar re-renderização quando o tema mudar
+    setForceUpdate({});
+  }, [theme]);
   
   // Ref para o bottom sheet
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
@@ -123,7 +132,9 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(({ on
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   
   // Pontos de ancoragem do bottom sheet
-  const snapPoints = useMemo(() => [ '90%'], []);
+  // Definimos dois snap points: 70% e 90% da altura da tela
+  // O índice 0 corresponde a 70% (padrão) e o índice 1 corresponde a 90% (expandido)
+  const snapPoints = useMemo(() => ['70%', '90%'], []);
   
   // Inicializar os tipos de refeições com os existentes ou os padrões
   useEffect(() => {
@@ -164,7 +175,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(({ on
       () => {
         setKeyboardVisible(true);
         // Expandir o bottom sheet para o tamanho máximo quando o teclado aparecer
-        bottomSheetModalRef.current?.snapToIndex(1);
+        bottomSheetModalRef.current?.snapToIndex(1); // Índice 1 corresponde a '90%'
       }
     );
     const keyboardDidHideListener = Keyboard.addListener(
@@ -233,7 +244,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(({ on
   // Função para iniciar a adição de uma refeição personalizada
   const startAddingCustomMeal = useCallback(() => {
     // Expandir o bottom sheet para o tamanho máximo
-    bottomSheetModalRef.current?.snapToIndex(1);
+    bottomSheetModalRef.current?.snapToIndex(1); // Índice 1 corresponde a '90%'
     // Ativar o modo de adição de refeição personalizada
     setIsAddingCustomMeal(true);
   }, []);
@@ -351,7 +362,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(({ on
               
               return (
                 <MotiView
-                  key={meal.id}
+                  key={`meal-${meal.id}-${theme}`}
                   style={styles.mealCardWrapper}
                   from={{ opacity: 0, translateY: 20 }}
                   animate={{ opacity: 1, translateY: 0 }}
@@ -363,6 +374,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(({ on
                   }}
                 >
                   <Swipeable
+                    key={`swipeable-${meal.id}-${theme}`}
                     renderRightActions={() => renderRightActions(meal.id, isDefaultMeal)}
                     enabled={!isDefaultMeal}
                   >
@@ -425,6 +437,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(({ on
           {/* Adicionar refeição personalizada */}
           {isAddingCustomMeal ? (
             <MotiView
+              key={`custom-meal-form-${theme}`}
               from={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ type: 'spring' }}
@@ -501,6 +514,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(({ on
                 
                 {showIconSelector && (
                   <MotiView
+                    key={`icon-grid-${theme}`}
                     from={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 120 }}
                     transition={{ type: 'timing', duration: 300 }}
@@ -510,7 +524,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(({ on
                       <View style={styles.iconGridContent}>
                         {AVAILABLE_ICONS.map((icon) => (
                           <TouchableOpacity
-                            key={icon}
+                            key={`icon-${icon}-${theme}`}
                             style={[
                               styles.iconItem,
                               { 
@@ -570,7 +584,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(({ on
         {!(keyboardVisible && isAddingCustomMeal) && (
           <View style={[
             styles.footer, 
-            { borderTopColor: colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' },
+            { borderTopColor: colors.text + '10' },
             { backgroundColor: colors.background }
           ]}>
             <TouchableOpacity

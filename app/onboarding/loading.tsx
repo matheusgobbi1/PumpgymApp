@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import { useNutrition } from "../../context/NutritionContext";
 import { Ionicons } from "@expo/vector-icons";
 import { MotiView } from "moti";
@@ -51,12 +51,20 @@ const LOADING_STEPS = [
 
 export default function LoadingScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
   const { calculateMacros } = useNutrition();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    setForceUpdate({});
+  }, [theme]);
 
   // Animação e progresso dos passos
   useEffect(() => {
@@ -87,17 +95,18 @@ export default function LoadingScreen() {
 
   return (
     <SafeAreaView
+      key={`loading-container-${theme}`}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <View style={styles.content}>
-        <Text style={[styles.title, { color: colors.text }]}>
+      <View key={`content-container-${theme}`} style={styles.content}>
+        <Text key={`title-${theme}`} style={[styles.title, { color: colors.text }]}>
           Preparando seu Plano
         </Text>
-        <Text style={[styles.subtitle, { color: colors.text }]}>
+        <Text key={`subtitle-${theme}`} style={[styles.subtitle, { color: colors.text }]}>
           Calculando as melhores recomendações para você
         </Text>
 
-        <View style={styles.stepsContainer}>
+        <View key={`steps-container-${theme}`} style={styles.stepsContainer}>
           {LOADING_STEPS.map((step, index) => {
             const isActive = index === currentStep;
             const isCompleted = completedSteps.includes(index);
@@ -105,7 +114,7 @@ export default function LoadingScreen() {
 
             return (
               <MotiView
-                key={step.title}
+                key={`step-${step.title}-${theme}`}
                 from={{
                   opacity: 0,
                   translateX: -20,
@@ -125,26 +134,29 @@ export default function LoadingScreen() {
                   {
                     backgroundColor: isActive
                       ? `${step.color}15`
-                      : colors.background,
+                      : theme === 'dark' ? colors.dark : colors.background,
                     borderColor: isActive ? step.color : "transparent",
                     borderWidth: 2,
                   },
                 ]}
               >
-                <View style={styles.stepHeader}>
-                  <View style={styles.stepIconContainer}>
+                <View key={`step-header-${index}-${theme}`} style={styles.stepHeader}>
+                  <View key={`step-icon-container-${index}-${theme}`} style={styles.stepIconContainer}>
                     <Ionicons
+                      key={`step-icon-${index}-${theme}`}
                       name={step.icon as any}
                       size={24}
                       color={isActive || isCompleted ? step.color : colors.text}
                     />
                     {isCompleted && (
                       <MotiView
+                        key={`checkmark-${index}-${theme}`}
                         from={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         style={styles.checkmark}
                       >
                         <Ionicons
+                          key={`checkmark-icon-${index}-${theme}`}
                           name="checkmark-circle"
                           size={16}
                           color={step.color}
@@ -153,8 +165,9 @@ export default function LoadingScreen() {
                     )}
                   </View>
 
-                  <View style={styles.stepContent}>
+                  <View key={`step-content-${index}-${theme}`} style={styles.stepContent}>
                     <Text
+                      key={`step-title-${index}-${theme}`}
                       style={[
                         styles.stepTitle,
                         { color: isActive ? step.color : colors.text },
@@ -163,6 +176,7 @@ export default function LoadingScreen() {
                       {step.title}
                     </Text>
                     <Text
+                      key={`step-description-${index}-${theme}`}
                       style={[
                         styles.stepDescription,
                         { color: colors.text, opacity: 0.7 },
@@ -174,17 +188,19 @@ export default function LoadingScreen() {
 
                   {isActive && (
                     <MotiView
+                      key={`badge-${index}-${theme}`}
                       from={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       style={[styles.badge, { backgroundColor: step.color }]}
                     >
-                      <Text style={styles.badgeText}>{step.detail}</Text>
+                      <Text key={`badge-text-${index}-${theme}`} style={styles.badgeText}>{step.detail}</Text>
                     </MotiView>
                   )}
                 </View>
 
                 {isActive && (
                   <MotiView
+                    key={`progress-bar-${index}-${theme}`}
                     from={{ width: "0%" }}
                     animate={{ width: "100%" }}
                     transition={{
@@ -203,6 +219,7 @@ export default function LoadingScreen() {
         </View>
 
         <MotiView
+          key={`total-progress-${theme}`}
           animate={{
             width: `${((currentStep + 1) / LOADING_STEPS.length) * 100}%`,
           }}

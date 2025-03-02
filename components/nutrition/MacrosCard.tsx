@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MotiView } from "moti";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useTheme } from "../../context/ThemeContext";
+import Colors from "../../constants/Colors";
 
 interface MacrosCardProps {
   dayTotals: {
@@ -17,16 +19,19 @@ interface MacrosCardProps {
     carbs?: number;
     fat?: number;
   };
-  colors: any;
 }
 
 export default function MacrosCard({
   dayTotals,
   nutritionInfo,
-  colors,
 }: MacrosCardProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const { theme } = useTheme();
+  const colors = Colors[theme];
+  
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
 
   useEffect(() => {
     // Verificar se os dados de nutrição estão disponíveis
@@ -40,6 +45,12 @@ export default function MacrosCard({
       setIsLoading(false);
     }
   }, [nutritionInfo]);
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    // Forçar re-renderização quando o tema mudar
+    setForceUpdate({});
+  }, [theme]);
 
   const calculateProgress = (consumed: number, target: number) => {
     if (!target) return 0;
@@ -73,6 +84,7 @@ export default function MacrosCard({
 
     return (
       <MotiView
+        key={`macro-${title}-${theme}`}
         style={styles.macroRow}
         from={{ opacity: 0, translateX: -20 }}
         animate={{ opacity: 1, translateX: 0 }}
@@ -110,6 +122,7 @@ export default function MacrosCard({
 
         <View style={styles.progressWrapper}>
           <MotiView
+            key={`progress-bar-${title}-${theme}`}
             style={[
               styles.progressBar,
               {
@@ -119,6 +132,7 @@ export default function MacrosCard({
           >
             {!isLoading && (
               <MotiView
+                key={`progress-fill-${title}-${theme}`}
                 from={{ width: "0%" }}
                 animate={{ width: `${displayProgress}%` }}
                 transition={{ type: "timing", duration: 1000 }}
@@ -147,6 +161,7 @@ export default function MacrosCard({
       activeOpacity={0.7}
     >
       <MotiView
+        key={`macros-card-${theme}`}
         style={[styles.container, { backgroundColor: colors.background }]}
         from={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -157,7 +172,7 @@ export default function MacrosCard({
         </Text>
 
         {!nutritionInfo || (!nutritionInfo.calories && !nutritionInfo.protein && !nutritionInfo.carbs && !nutritionInfo.fat) ? (
-          <View style={styles.noTargetsContainer}>
+          <View key={`no-targets-${theme}`} style={styles.noTargetsContainer}>
             <Text style={[styles.noTargetsText, { color: colors.text + "80" }]}>
               Configure suas metas de macronutrientes para acompanhar seu progresso diário
             </Text>
@@ -169,7 +184,7 @@ export default function MacrosCard({
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={styles.macrosContainer}>
+          <View key={`macros-container-${theme}`} style={styles.macrosContainer}>
             {renderMacroProgress(
               "Calorias",
               "flame-outline",
@@ -209,14 +224,7 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 16,
     padding: 5,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+   
   },
   sectionTitle: {
     fontSize: 18,

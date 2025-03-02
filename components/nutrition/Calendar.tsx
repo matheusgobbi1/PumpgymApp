@@ -20,10 +20,10 @@ import {
 import { ptBR } from "date-fns/locale";
 import { MotiView } from "moti";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useMeals } from "../../context/MealContext";
+import { useTheme } from "../../context/ThemeContext";
 
 const { width } = Dimensions.get("window");
 const DAYS_TO_SHOW = 30;
@@ -38,11 +38,14 @@ export default function Calendar({
   onSelectDate,
   selectedDate,
 }: CalendarProps) {
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
   const { meals } = useMeals();
   const scrollViewRef = useRef<ScrollView>(null);
   const initialScrollDone = useRef(false);
+  
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
 
   // Inicializa as datas zerando o horário
   const today = setMilliseconds(
@@ -115,10 +118,16 @@ export default function Calendar({
   useEffect(() => {
     initializeScroll();
   }, [initializeScroll]);
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    // Forçar re-renderização quando o tema mudar
+    setForceUpdate({});
+  }, [theme]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.calendarContainer}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.calendarContainer, { backgroundColor: colors.background }]}>
         <LinearGradient
           colors={[colors.background, "transparent"]}
           start={{ x: 0, y: 0 }}
@@ -138,22 +147,27 @@ export default function Calendar({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           onLayout={initializeScroll}
+          style={{ backgroundColor: colors.background }}
         >
           {dates.map((date) => {
             const isSelected = isSameDay(date, normalizedSelectedDate);
             const isToday = isSameDay(date, today);
             const hasMeals = hasRegisteredMeals(date);
 
+            // Determinar a cor de fundo do dia atual com base no tema
+            const todayBackgroundColor = theme === 'light' ? colors.light : '#333333';
+
             return (
-              <View key={date.toISOString()} style={styles.dayColumn}>
+              <View key={`${date.toISOString()}-${theme}`} style={[styles.dayColumn, { backgroundColor: colors.background }]}>
                 <Text style={[styles.weekDayText, { color: colors.text }]}>
                   {format(date, "EEE", { locale: ptBR }).slice(0, 3)}
                 </Text>
                 <TouchableOpacity
                   onPress={() => handleDatePress(date)}
-                  style={styles.dayButton}
+                  style={[styles.dayButton, { backgroundColor: colors.background }]}
                 >
                   <MotiView
+                    key={`day-${date.toISOString()}-${theme}`}
                     style={[
                       styles.dayContainer,
                       isSelected && {
@@ -164,8 +178,11 @@ export default function Calendar({
                         shadowRadius: 10,
                         elevation: 5,
                       },
-                      !isSelected && {
-                        backgroundColor: isToday ? colors.light : "transparent",
+                      !isSelected && isToday && {
+                        backgroundColor: todayBackgroundColor,
+                      },
+                      !isSelected && !isToday && {
+                        backgroundColor: "transparent",
                       },
                     ]}
                   >

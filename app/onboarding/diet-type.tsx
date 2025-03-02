@@ -1,21 +1,29 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import { useNutrition, DietType } from "../../context/NutritionContext";
 import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
 import SelectionOption from "../../components/onboarding/SelectionOption";
 
 export default function DietTypeScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
   const { nutritionInfo, updateNutritionInfo } = useNutrition();
   const [selectedDietType, setSelectedDietType] = useState<
     DietType | undefined
   >(nutritionInfo.dietType);
+  
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    setForceUpdate({});
+  }, [theme]);
 
   const handleNext = () => {
     if (selectedDietType) {
@@ -35,9 +43,10 @@ export default function DietTypeScreen() {
       description: "Inclui todos os grupos alimentares",
       icon: (
         <Ionicons
+          key={`classic-icon-${theme}`}
           name="restaurant-outline"
           size={28}
-          color={selectedDietType === "classic" ? "white" : colors.text}
+          color={selectedDietType === "classic" ? colors.primary : colors.text}
         />
       ),
     },
@@ -47,9 +56,10 @@ export default function DietTypeScreen() {
       description: "Vegetais, ovos, laticínios e peixes",
       icon: (
         <Ionicons
+          key={`pescatarian-icon-${theme}`}
           name="fish-outline"
           size={28}
-          color={selectedDietType === "pescatarian" ? "white" : colors.text}
+          color={selectedDietType === "pescatarian" ? colors.primary : colors.text}
         />
       ),
     },
@@ -59,9 +69,10 @@ export default function DietTypeScreen() {
       description: "Sem carnes, mas inclui ovos e laticínios",
       icon: (
         <Ionicons
+          key={`vegetarian-icon-${theme}`}
           name="leaf-outline"
           size={28}
-          color={selectedDietType === "vegetarian" ? "white" : colors.text}
+          color={selectedDietType === "vegetarian" ? colors.primary : colors.text}
         />
       ),
     },
@@ -71,9 +82,10 @@ export default function DietTypeScreen() {
       description: "Apenas alimentos de origem vegetal",
       icon: (
         <Ionicons
+          key={`vegan-icon-${theme}`}
           name="nutrition-outline"
           size={28}
-          color={selectedDietType === "vegan" ? "white" : colors.text}
+          color={selectedDietType === "vegan" ? colors.primary : colors.text}
         />
       ),
     },
@@ -89,10 +101,10 @@ export default function DietTypeScreen() {
       onNext={handleNext}
       nextButtonDisabled={!selectedDietType}
     >
-      <View style={styles.optionsContainer}>
+      <View key={`options-container-${theme}`} style={styles.optionsContainer}>
         {dietTypeOptions.map((option) => (
           <SelectionOption
-            key={option.dietType}
+            key={`diet-option-${option.dietType}-${theme}`}
             title={option.title}
             description={option.description}
             icon={option.icon}

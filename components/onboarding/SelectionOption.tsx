@@ -1,7 +1,7 @@
-import React, { ReactNode } from "react";
+import React, { ReactNode, useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import * as Haptics from "expo-haptics";
 
 interface SelectionOptionProps {
@@ -21,15 +21,31 @@ export default function SelectionOption({
   onSelect,
   variant = "filled",
 }: SelectionOptionProps) {
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
+  
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    setForceUpdate({});
+  }, [theme]);
 
   const getContainerStyle = () => {
-    // Estilo padronizado com apenas a borda colorida quando selecionado
+    // Novo estilo com fundo azul claro e bordas coloridas quando selecionado
     return {
-      backgroundColor: colors.light,
+      backgroundColor: isSelected 
+        ? (theme === 'dark' ? 'rgba(28, 154, 190, 0.1)' : 'rgba(28, 154, 190, 0.05)')
+        : colors.light,
       borderColor: isSelected ? colors.primary : colors.border,
       borderWidth: isSelected ? 2 : 1,
+      // Adicionar sombra sutil para dar profundidade
+      shadowColor: colors.text,
+      shadowOffset: { width: 0, height: isSelected ? 2 : 1 },
+      shadowOpacity: isSelected ? 0.15 : 0.05,
+      shadowRadius: isSelected ? 4 : 2,
+      elevation: isSelected ? 3 : 1,
     };
   };
 
@@ -49,13 +65,28 @@ export default function SelectionOption({
 
   return (
     <TouchableOpacity
+      key={`selection-option-${title}-${theme}`}
       style={[styles.optionContainer, getContainerStyle()]}
       onPress={handleSelect}
       activeOpacity={0.7}
     >
-      {icon && <View style={styles.iconContainer}>{icon}</View>}
-      <View style={styles.textContainer}>
+      {icon && (
+        <View 
+          key={`icon-container-${theme}`} 
+          style={[
+            styles.iconContainer,
+            isSelected && {
+              backgroundColor: theme === 'dark' ? 'rgba(28, 154, 190, 0.2)' : 'rgba(28, 154, 190, 0.1)',
+              borderRadius: 20,
+            }
+          ]}
+        >
+          {icon}
+        </View>
+      )}
+      <View key={`text-container-${theme}`} style={styles.textContainer}>
         <Text
+          key={`option-title-${theme}`}
           style={[
             styles.optionTitle,
             {
@@ -68,11 +99,12 @@ export default function SelectionOption({
         </Text>
         {description ? (
           <Text
+            key={`option-description-${theme}`}
             style={[
               styles.optionDescription,
               {
                 color: colors.text,
-                opacity: 0.7,
+                opacity: isSelected ? 0.8 : 0.7,
               },
             ]}
           >

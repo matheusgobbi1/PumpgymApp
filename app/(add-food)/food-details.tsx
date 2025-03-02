@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import { MotiView } from "moti";
 import CircularProgress from "react-native-circular-progress-indicator";
 import { useMeals } from "../../context/MealContext";
@@ -26,14 +26,15 @@ import Slider from "@react-native-community/slider";
 const { width } = Dimensions.get("window");
 
 const LoadingSkeleton = () => {
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
 
   return (
     <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
       <View style={styles.foodInfo}>
         {/* Nome do Alimento Skeleton */}
         <MotiView
+          key={`skeleton-title-${theme}`}
           from={{ opacity: 0.5 }}
           animate={{ opacity: 1 }}
           transition={{
@@ -46,6 +47,7 @@ const LoadingSkeleton = () => {
 
         {/* Input Porção Skeleton */}
         <MotiView
+          key={`skeleton-portion-${theme}`}
           from={{ opacity: 0.5 }}
           animate={{ opacity: 1 }}
           transition={{
@@ -59,8 +61,9 @@ const LoadingSkeleton = () => {
         {/* Macros Circles Skeleton */}
         <View style={styles.macrosContainer}>
           {[...Array(4)].map((_, index) => (
-            <View key={index} style={styles.macroCircle}>
+            <View key={`macro-circle-${index}-${theme}`} style={styles.macroCircle}>
               <MotiView
+                key={`skeleton-circle-${index}-${theme}`}
                 from={{ opacity: 0.5 }}
                 animate={{ opacity: 1 }}
                 transition={{
@@ -75,6 +78,7 @@ const LoadingSkeleton = () => {
                 ]}
               />
               <MotiView
+                key={`skeleton-label-${index}-${theme}`}
                 from={{ opacity: 0.5 }}
                 animate={{ opacity: 1 }}
                 transition={{
@@ -94,6 +98,7 @@ const LoadingSkeleton = () => {
 
         {/* Informações Adicionais Skeleton */}
         <MotiView
+          key={`skeleton-info-${theme}`}
           from={{ opacity: 0.5 }}
           animate={{ opacity: 1 }}
           transition={{
@@ -111,14 +116,20 @@ const LoadingSkeleton = () => {
 export default function FoodDetailsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
   const [portion, setPortion] = useState("100");
   const { addFoodToMeal, saveMeals } = useMeals();
   const [food, setFood] = useState<FoodHint | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFromHistory, setIsFromHistory] = useState(false);
+  
+  const [, setForceUpdate] = useState({});
+  
+  useEffect(() => {
+    setForceUpdate({});
+  }, [theme]);
 
   // Extrair parâmetros da refeição
   const foodId = params.foodId as string;
@@ -201,6 +212,7 @@ export default function FoodDetailsScreen() {
       >
         <View style={styles.header}>
           <TouchableOpacity
+            key={`back-button-${theme}`}
             onPress={() => router.back()}
             style={styles.backButton}
           >
@@ -361,6 +373,7 @@ export default function FoodDetailsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
+          key={`back-button-${theme}`}
           onPress={() => router.back()}
           style={styles.backButton}
         >
@@ -380,6 +393,7 @@ export default function FoodDetailsScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {food && (
           <MotiView
+            key={`food-details-${food.food.foodId}-${theme}`}
             from={{ opacity: 0, translateY: 20 }}
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: "timing", duration: 500 }}
@@ -391,6 +405,7 @@ export default function FoodDetailsScreen() {
 
             {/* Portion Input */}
             <View
+              key={`portion-container-${theme}`}
               style={[
                 styles.portionContainer,
                 { backgroundColor: colors.light },
@@ -409,7 +424,7 @@ export default function FoodDetailsScreen() {
             </View>
 
             {/* Slider para ajuste de porção */}
-            <View style={styles.sliderContainer}>
+            <View key={`slider-container-${theme}`} style={styles.sliderContainer}>
               <Text style={[styles.sliderLabel, { color: colors.text + "80" }]}>
                 10g
               </Text>
@@ -430,7 +445,7 @@ export default function FoodDetailsScreen() {
             </View>
 
             {/* Calorias Totais */}
-            <View style={styles.caloriesContainer}>
+            <View key={`calories-container-${theme}`} style={styles.caloriesContainer}>
               <Text style={[styles.caloriesTitle, { color: colors.text }]}>
                 Calorias Totais
               </Text>
@@ -440,8 +455,8 @@ export default function FoodDetailsScreen() {
             </View>
 
             {/* Macros Circles */}
-            <View style={styles.macrosContainer}>
-              <View style={styles.macroCircle}>
+            <View key={`macros-container-${theme}`} style={styles.macrosContainer}>
+              <View key={`protein-circle-${theme}`} style={styles.macroCircle}>
                 <CircularProgress
                   value={adjustedProteinPercentage}
                   maxValue={100}
@@ -466,7 +481,7 @@ export default function FoodDetailsScreen() {
                 </Text>
               </View>
 
-              <View style={styles.macroCircle}>
+              <View key={`carbs-circle-${theme}`} style={styles.macroCircle}>
                 <CircularProgress
                   value={adjustedCarbsPercentage}
                   maxValue={100}
@@ -491,7 +506,7 @@ export default function FoodDetailsScreen() {
                 </Text>
               </View>
 
-              <View style={styles.macroCircle}>
+              <View key={`fat-circle-${theme}`} style={styles.macroCircle}>
                 <CircularProgress
                   value={adjustedFatPercentage}
                   maxValue={100}
@@ -519,6 +534,7 @@ export default function FoodDetailsScreen() {
 
             {/* Additional Info */}
             <View
+              key={`additional-info-${theme}`}
               style={[styles.additionalInfo, { backgroundColor: colors.light }]}
             >
               <Text style={[styles.infoTitle, { color: colors.text }]}>
@@ -561,8 +577,9 @@ export default function FoodDetailsScreen() {
 
       {/* Add Button */}
       {food && (
-        <View style={styles.bottomContainer}>
+        <View key={`bottom-container-${theme}`} style={styles.bottomContainer}>
           <TouchableOpacity
+            key={`add-button-${theme}`}
             style={[styles.addButton, { backgroundColor: colors.primary }]}
             onPress={handleAddFood}
           >

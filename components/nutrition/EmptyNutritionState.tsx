@@ -1,10 +1,10 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { MotiView } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { useColorScheme } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
 import Colors from '../../constants/Colors';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { MealType } from '../../context/MealContext';
@@ -17,8 +17,17 @@ interface EmptyNutritionStateProps {
 }
 
 export default function EmptyNutritionState({ onMealConfigured, onOpenMealConfig }: EmptyNutritionStateProps) {
-  const colorScheme = useColorScheme() ?? 'light';
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
+  
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    // Forçar re-renderização quando o tema mudar
+    setForceUpdate({});
+  }, [theme]);
   
   // Função para abrir o bottom sheet
   const openMealConfig = () => {
@@ -29,6 +38,7 @@ export default function EmptyNutritionState({ onMealConfigured, onOpenMealConfig
   return (
     <>
       <MotiView
+        key={`empty-nutrition-${theme}`}
         style={styles.container}
         from={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -36,6 +46,7 @@ export default function EmptyNutritionState({ onMealConfigured, onOpenMealConfig
       >
         <View style={styles.illustrationContainer}>
           <MotiView
+            key={`illustration-${theme}`}
             from={{ opacity: 0, translateY: 20 }}
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: 'timing', duration: 500, delay: 400 }}
@@ -45,6 +56,7 @@ export default function EmptyNutritionState({ onMealConfigured, onOpenMealConfig
         </View>
         
         <MotiView
+          key={`title-${theme}`}
           from={{ opacity: 0, translateY: 20 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: 'timing', duration: 500, delay: 500 }}
@@ -55,6 +67,7 @@ export default function EmptyNutritionState({ onMealConfigured, onOpenMealConfig
         </MotiView>
         
         <MotiView
+          key={`description-${theme}`}
           from={{ opacity: 0, translateY: 20 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: 'timing', duration: 500, delay: 600 }}
@@ -65,6 +78,7 @@ export default function EmptyNutritionState({ onMealConfigured, onOpenMealConfig
         </MotiView>
         
         <MotiView
+          key={`button-${theme}`}
           from={{ opacity: 0, translateY: 20 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: 'timing', duration: 500, delay: 700 }}
@@ -76,6 +90,7 @@ export default function EmptyNutritionState({ onMealConfigured, onOpenMealConfig
             activeOpacity={0.8}
           >
             <LinearGradient
+              key={`button-gradient-${theme}`}
               colors={[colors.primary, colors.accent]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -88,6 +103,7 @@ export default function EmptyNutritionState({ onMealConfigured, onOpenMealConfig
         </MotiView>
         
         <MotiView
+          key={`tips-${theme}`}
           from={{ opacity: 0 }}
           animate={{ opacity: 0.7 }}
           transition={{ type: 'timing', duration: 500, delay: 800 }}

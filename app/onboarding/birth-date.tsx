@@ -10,7 +10,7 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import { useNutrition } from "../../context/NutritionContext";
 import { validateBirthDate } from "../../utils/validations";
 import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
@@ -20,8 +20,8 @@ const ITEM_HEIGHT = 52;
 
 export default function BirthDateScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
   const { nutritionInfo, updateNutritionInfo } = useNutrition();
 
   // Definir estados iniciais como null para indicar que nenhuma opção está selecionada
@@ -35,6 +35,14 @@ export default function BirthDateScreen() {
     nutritionInfo.birthDate ? nutritionInfo.birthDate.getFullYear() : null
   );
   const [error, setError] = useState("");
+  
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    setForceUpdate({});
+  }, [theme]);
 
   // Refs para os ScrollViews
   const monthScrollRef = useRef<ScrollView>(null);
@@ -128,42 +136,55 @@ export default function BirthDateScreen() {
       nextButtonDisabled={!isNextEnabled}
       error={error}
     >
-      <View style={styles.dateSelectionContainer}>
-        <View style={styles.dateColumn}>
-          <Text style={[styles.dateLabel, { color: colors.text }]}>Mês</Text>
+      <View key={`date-selection-container-${theme}`} style={styles.dateSelectionContainer}>
+        <View key={`month-column-${theme}`} style={styles.dateColumn}>
+          <Text key={`month-label-${theme}`} style={[styles.dateLabel, { color: colors.text }]}>Mês</Text>
           <View
+            key={`month-picker-container-${theme}`}
             style={[
               styles.datePickerContainer,
               {
-                backgroundColor: colorScheme === "dark" ? "#1c1c1e" : "#f5f5f5",
+                backgroundColor: theme === "dark" ? "#1c1c1e" : "#f5f5f5",
+                borderWidth: 1,
+                borderColor: colors.border,
+                shadowColor: colors.text,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 2,
               },
             ]}
           >
             <ScrollView
               ref={monthScrollRef}
+              key={`month-scroll-${theme}`}
               style={styles.dateScrollView}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollViewContent}
             >
               {months.map((month, index) => (
                 <TouchableOpacity
-                  key={`month-${index}`}
+                  key={`month-${index}-${theme}`}
                   style={[
                     styles.dateItem,
                     {
-                      backgroundColor:
-                        selectedMonth === index
-                          ? colors.primary
-                          : "transparent",
+                      backgroundColor: selectedMonth === index 
+                        ? (theme === 'dark' ? 'rgba(28, 154, 190, 0.1)' : 'rgba(28, 154, 190, 0.05)')
+                        : "transparent",
+                      borderWidth: selectedMonth === index ? 2 : 0,
+                      borderColor: selectedMonth === index ? colors.primary : "transparent",
                     },
                   ]}
                   onPress={() => setSelectedMonth(index)}
+                  activeOpacity={0.7}
                 >
                   <Text
+                    key={`month-text-${index}-${theme}`}
                     style={[
                       styles.dateItemText,
                       {
-                        color: selectedMonth === index ? "white" : colors.text,
+                        color: selectedMonth === index ? colors.primary : colors.text,
+                        fontWeight: selectedMonth === index ? "600" : "500",
                       },
                     ]}
                   >
@@ -175,39 +196,54 @@ export default function BirthDateScreen() {
           </View>
         </View>
 
-        <View style={styles.dateColumn}>
-          <Text style={[styles.dateLabel, { color: colors.text }]}>Dia</Text>
+        <View key={`day-column-${theme}`} style={styles.dateColumn}>
+          <Text key={`day-label-${theme}`} style={[styles.dateLabel, { color: colors.text }]}>Dia</Text>
           <View
+            key={`day-picker-container-${theme}`}
             style={[
               styles.datePickerContainer,
               {
-                backgroundColor: colorScheme === "dark" ? "#1c1c1e" : "#f5f5f5",
+                backgroundColor: theme === "dark" ? "#1c1c1e" : "#f5f5f5",
+                borderWidth: 1,
+                borderColor: colors.border,
+                shadowColor: colors.text,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 2,
               },
             ]}
           >
             <ScrollView
               ref={dayScrollRef}
+              key={`day-scroll-${theme}`}
               style={styles.dateScrollView}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollViewContent}
             >
               {days.map((day) => (
                 <TouchableOpacity
-                  key={`day-${day}`}
+                  key={`day-${day}-${theme}`}
                   style={[
                     styles.dateItem,
                     {
-                      backgroundColor:
-                        selectedDay === day ? colors.primary : "transparent",
+                      backgroundColor: selectedDay === day 
+                        ? (theme === 'dark' ? 'rgba(28, 154, 190, 0.1)' : 'rgba(28, 154, 190, 0.05)')
+                        : "transparent",
+                      borderWidth: selectedDay === day ? 2 : 0,
+                      borderColor: selectedDay === day ? colors.primary : "transparent",
                     },
                   ]}
                   onPress={() => setSelectedDay(day)}
+                  activeOpacity={0.7}
                 >
                   <Text
+                    key={`day-text-${day}-${theme}`}
                     style={[
                       styles.dateItemText,
                       {
-                        color: selectedDay === day ? "white" : colors.text,
+                        color: selectedDay === day ? colors.primary : colors.text,
+                        fontWeight: selectedDay === day ? "600" : "500",
                       },
                     ]}
                   >
@@ -219,39 +255,54 @@ export default function BirthDateScreen() {
           </View>
         </View>
 
-        <View style={styles.dateColumn}>
-          <Text style={[styles.dateLabel, { color: colors.text }]}>Ano</Text>
+        <View key={`year-column-${theme}`} style={styles.dateColumn}>
+          <Text key={`year-label-${theme}`} style={[styles.dateLabel, { color: colors.text }]}>Ano</Text>
           <View
+            key={`year-picker-container-${theme}`}
             style={[
               styles.datePickerContainer,
               {
-                backgroundColor: colorScheme === "dark" ? "#1c1c1e" : "#f5f5f5",
+                backgroundColor: theme === "dark" ? "#1c1c1e" : "#f5f5f5",
+                borderWidth: 1,
+                borderColor: colors.border,
+                shadowColor: colors.text,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 2,
               },
             ]}
           >
             <ScrollView
               ref={yearScrollRef}
+              key={`year-scroll-${theme}`}
               style={styles.dateScrollView}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollViewContent}
             >
               {years.map((year) => (
                 <TouchableOpacity
-                  key={`year-${year}`}
+                  key={`year-${year}-${theme}`}
                   style={[
                     styles.dateItem,
                     {
-                      backgroundColor:
-                        selectedYear === year ? colors.primary : "transparent",
+                      backgroundColor: selectedYear === year 
+                        ? (theme === 'dark' ? 'rgba(28, 154, 190, 0.1)' : 'rgba(28, 154, 190, 0.05)')
+                        : "transparent",
+                      borderWidth: selectedYear === year ? 2 : 0,
+                      borderColor: selectedYear === year ? colors.primary : "transparent",
                     },
                   ]}
                   onPress={() => setSelectedYear(year)}
+                  activeOpacity={0.7}
                 >
                   <Text
+                    key={`year-text-${year}-${theme}`}
                     style={[
                       styles.dateItemText,
                       {
-                        color: selectedYear === year ? "white" : colors.text,
+                        color: selectedYear === year ? colors.primary : colors.text,
+                        fontWeight: selectedYear === year ? "600" : "500",
                       },
                     ]}
                   >
@@ -297,10 +348,11 @@ const styles = StyleSheet.create({
   dateItem: {
     width: "100%",
     height: ITEM_HEIGHT,
-    borderRadius: 0,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 0,
+    marginVertical: 2,
+    paddingHorizontal: 8,
   },
   dateItemText: {
     fontSize: 18,
