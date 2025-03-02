@@ -1,6 +1,5 @@
 import { Tabs } from "expo-router";
 import {
-  useColorScheme,
   View,
   StyleSheet,
   TouchableOpacity,
@@ -16,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useEffect, useRef, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
+import { useTheme } from '../../context/ThemeContext';
 
 const { width, height } = Dimensions.get("window");
 
@@ -34,7 +34,8 @@ function TabBarIcon5(props: {
 }
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme() ?? "light";
+  const { theme } = useTheme();
+  const colors = Colors[theme];
   const insets = useSafeAreaInsets();
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -112,9 +113,9 @@ export default function TabLayout() {
 
   // Cores para o gradiente do botão
   const gradientColors = [
-    colorScheme === "dark" ? Colors.dark.primary : Colors.light.primary,
-    colorScheme === "dark" ? Colors.dark.accent : Colors.light.accent,
-    colorScheme === "dark" ? Colors.dark.info : Colors.light.info,
+    colors.primary,
+    colors.accent,
+    colors.info,
   ] as const;
 
   const openMenu = () => {
@@ -192,9 +193,8 @@ export default function TabLayout() {
     <>
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme].tint,
-          tabBarInactiveTintColor:
-            Colors[colorScheme === "dark" ? "light" : "dark"].tabIconDefault,
+          tabBarActiveTintColor: colors.tint,
+          tabBarInactiveTintColor: colors.tabIconDefault,
           headerShown: false,
           tabBarStyle: {
             position: "absolute",
@@ -202,9 +202,8 @@ export default function TabLayout() {
             marginHorizontal: width * 0.1,
             width: width * 0.8,
             alignSelf: "center",
-            left: width * 0.1,
             elevation: 8,
-            backgroundColor: Colors[colorScheme].background,
+            backgroundColor: colors.background,
             borderRadius: 40,
             height: 70,
             shadowColor: "#000",
@@ -219,6 +218,10 @@ export default function TabLayout() {
             borderTopWidth: 0,
           },
           tabBarShowLabel: false,
+          headerStyle: {
+            backgroundColor: colors.background,
+          },
+          headerTintColor: colors.text,
         }}
       >
         <Tabs.Screen
@@ -510,6 +513,9 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   iconContainer: {
     alignItems: "center",
     justifyContent: "center",
@@ -522,13 +528,13 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: "#1c9abe",
   },
   fabContainer: {
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
-    top: -25,
+    top: 5,
     width: 70,
     height: 70,
     zIndex: 10,

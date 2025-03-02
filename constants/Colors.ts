@@ -18,6 +18,7 @@ export default {
     light: "#F8F9FA", // Cinza muito claro para cards
     dark: "#212121", // Quase preto
     border: "#E9ECEF", // Borda sutil
+    card: "#FFFFFF", // Cor para cards
   },
   dark: {
     text: "#F8F9FA", // Texto claro
@@ -35,5 +36,6 @@ export default {
     light: "#1E1E1E", // Cinza escuro para cards
     dark: "#121212", // Quase preto
     border: "#333333", // Borda sutil para dark mode
+    card: "#1E1E1E", // Cor para cards em modo escuro
   },
 };

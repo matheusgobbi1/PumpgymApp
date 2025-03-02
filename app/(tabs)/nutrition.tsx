@@ -1,27 +1,28 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
+import React, { useCallback, useMemo, useState, useRef, useEffect } from "react";
+import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useColorScheme } from "react-native";
 import Colors from "../../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import Calendar from "../../components/nutrition/Calendar";
 import { useNutrition } from "../../context/NutritionContext";
-import { useMeals } from "../../context/MealContext";
+import { useMeals, MealType as MealTypeContext } from "../../context/MealContext";
 import { MotiView } from "moti";
 import { format } from "date-fns";
 import MealCard from "../../components/nutrition/MealCard";
 import MacrosCard from "../../components/nutrition/MacrosCard";
 import { getLocalDate } from "../../utils/dateUtils";
 import * as Haptics from "expo-haptics";
+import EmptyNutritionState from "../../components/nutrition/EmptyNutritionState";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import MealConfigSheet from "../../components/nutrition/MealConfigSheet";
 
 const { width } = Dimensions.get("window");
 
-type MealType = {
-  id: string;
-  name: string;
-  icon: string;
+// Interface local para os tipos de refeição com a propriedade foods
+interface MealType extends MealTypeContext {
   foods: any[];
-};
+}
 
 const MEAL_TYPES: MealType[] = [
   {
@@ -62,7 +63,25 @@ export default function NutritionScreen() {
     getMealTotals,
     getFoodsForMeal,
     removeFoodFromMeal,
+    addMealType,
+    mealTypes,
+    hasMealTypesConfigured,
+    resetMealTypes,
+    updateMealTypes,
   } = useMeals();
+
+  // Estado para forçar a recriação do MealConfigSheet
+  const [mealConfigKey, setMealConfigKey] = useState(Date.now());
+
+  // Ref para o bottom sheet de configuração de refeições
+  const mealConfigSheetRef = useRef<BottomSheetModal>(null);
+
+  // Verificar se a referência do bottom sheet está sendo inicializada
+  useEffect(() => {
+    console.log('MealConfigSheet ref inicializado:', !!mealConfigSheetRef.current);
+    
+    return () => {};
+  }, [hasMealTypesConfigured]);
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(format(date, "yyyy-MM-dd"));
@@ -84,6 +103,108 @@ export default function NutritionScreen() {
   const dailyTotals = useMemo(() => {
     return getDayTotals();
   }, [getDayTotals, selectedDate, meals]);
+
+  // Função para abrir o bottom sheet de configuração de refeições
+  const openMealConfigSheet = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    console.log('Tentando abrir o bottom sheet');
+    
+    // Verificar se a referência existe antes de chamar o método present
+    if (mealConfigSheetRef.current) {
+      mealConfigSheetRef.current.present();
+    } else {
+      console.error('Referência do bottom sheet é null em NutritionScreen');
+    }
+  }, []);
+
+  // Função para lidar com a configuração de refeições
+  const handleMealConfigured = useCallback((configuredMeals: MealTypeContext[]) => {
+    // Log para depuração
+    console.log('Refeições recebidas para configuração:', configuredMeals.map((m: MealTypeContext) => m.name).join(', '));
+    
+    // Converter as refeições configuradas para o formato esperado pelo contexto
+    const mealTypesToUpdate = configuredMeals.map((meal: MealTypeContext) => ({
+      id: meal.id,
+      name: meal.name,
+      icon: meal.icon
+    }));
+    
+    // Atualizar todos os tipos de refeições de uma vez
+    updateMealTypes(mealTypesToUpdate);
+  }, [updateMealTypes]);
+
+  // Função para redefinir as refeições
+  const handleResetMealTypes = useCallback(async () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    
+    // Primeiro, redefinir as refeições
+    await resetMealTypes();
+    
+    // Forçar a recriação do componente MealConfigSheet
+    setMealConfigKey(Date.now());
+    
+    console.log('Refeições redefinidas');
+  }, [resetMealTypes]);
+
+  // Obter os tipos de refeições configuradas
+  const configuredMealTypes = useMemo(() => {
+    return mealTypes.map(type => ({
+      id: type.id,
+      name: type.name,
+      icon: type.icon,
+    }));
+  }, [mealTypes]);
+
+  // Se não houver refeições configuradas, mostrar o estado vazio
+  if (!hasMealTypesConfigured) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={["top"]}
+      >
+        <View style={styles.calendarContainer}>
+          <Calendar
+            selectedDate={getLocalDate(selectedDate)}
+            onSelectDate={handleDateSelect}
+          />
+        </View>
+        
+        <EmptyNutritionState 
+          onMealConfigured={handleMealConfigured} 
+          onOpenMealConfig={openMealConfigSheet}
+        />
+        
+        {/* Bottom Sheet para configuração de refeições quando não há refeições configuradas */}
+        <MealConfigSheet
+          ref={mealConfigSheetRef}
+          onMealConfigured={handleMealConfigured}
+          key={`meal-config-empty-${mealConfigKey}`}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  // Verificar se há tipos de refeições configurados
+  if (configuredMealTypes.length === 0) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={["top"]}
+      >
+        <View style={styles.calendarContainer}>
+          <Calendar
+            selectedDate={getLocalDate(selectedDate)}
+            onSelectDate={handleDateSelect}
+          />
+        </View>
+        
+        <EmptyNutritionState 
+          onMealConfigured={handleMealConfigured} 
+          onOpenMealConfig={openMealConfigSheet}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -111,7 +232,7 @@ export default function NutritionScreen() {
         </View>
 
         <View style={styles.mealsContainer}>
-          {MEAL_TYPES.map((meal, index) => (
+          {configuredMealTypes.map((meal, index) => (
             <MealCard
               key={meal.id}
               meal={meal}
@@ -126,8 +247,37 @@ export default function NutritionScreen() {
               onDeleteFood={(foodId) => handleDeleteFood(meal.id, foodId)}
             />
           ))}
+          
+          {/* Botão para redefinir refeições */}
+          <TouchableOpacity
+            style={[styles.resetButton, { borderColor: colors.border }]}
+            onPress={handleResetMealTypes}
+          >
+            <Ionicons name="refresh-outline" size={20} color={colors.primary} />
+            <Text style={[styles.resetButtonText, { color: colors.text }]}>
+              Redefinir Refeições
+            </Text>
+          </TouchableOpacity>
+          
+          {/* Botão para editar refeições */}
+          <TouchableOpacity
+            style={[styles.editButton, { backgroundColor: colors.primary }]}
+            onPress={openMealConfigSheet}
+          >
+            <Ionicons name="settings-outline" size={20} color="white" />
+            <Text style={styles.editButtonText}>
+              Editar Refeições
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
+      
+      {/* Bottom Sheet para configuração de refeições quando há refeições configuradas */}
+      <MealConfigSheet
+        ref={mealConfigSheetRef}
+        onMealConfigured={handleMealConfigured}
+        key={`meal-config-configured-${mealConfigKey}`}
+      />
     </SafeAreaView>
   );
 }
@@ -160,5 +310,34 @@ const styles = StyleSheet.create({
   mealsContainer: {
     paddingHorizontal: 20,
     paddingBottom: 100,
+  },
+  resetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  resetButtonText: {
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+  },
+  editButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
+    marginLeft: 8,
   },
 });

@@ -2,10 +2,13 @@ import { StyleSheet, Text, View, TouchableOpacity, Alert } from "react-native";
 import { useColorScheme } from "react-native";
 import Colors from "../../constants/Colors";
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? "light"];
+  const { theme, toggleTheme } = useTheme();
+  const colors = Colors[theme];
   const { signOut } = useAuth();
 
   const handleLogout = async () => {
@@ -26,6 +29,22 @@ export default function HomeScreen() {
       <Text style={[styles.subtitle, { color: colors.text }]}>
         Seu aplicativo de treino e dieta personalizado
       </Text>
+
+      {/* Botão para alternar tema */}
+      <TouchableOpacity
+        style={[styles.themeButton, { backgroundColor: colors.primary }]}
+        onPress={toggleTheme}
+      >
+        <Ionicons 
+          name={theme === 'dark' ? 'sunny-outline' : 'moon-outline'} 
+          size={20} 
+          color="white" 
+          style={styles.themeIcon}
+        />
+        <Text style={styles.themeButtonText}>
+          {theme === 'dark' ? 'Mudar para Tema Claro' : 'Mudar para Tema Escuro'}
+        </Text>
+      </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.logoutButton, { backgroundColor: colors.tint }]}
@@ -54,6 +73,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textAlign: "center",
     marginBottom: 24,
+  },
+  themeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  themeIcon: {
+    marginRight: 8,
+  },
+  themeButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
   },
   logoutButton: {
     paddingVertical: 12,

@@ -42,6 +42,8 @@ import Animated, {
   useSharedValue,
   withTiming,
   Easing,
+  runOnJS,
+  useAnimatedReaction,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import {
@@ -105,37 +107,50 @@ export default function LoginScreen() {
     }, 700);
   }, []);
 
-  // Estilos animados
-  const logoStyle = useAnimatedStyle(() => ({
-    opacity: logoOpacity.value,
-    transform: [{ translateY: (1 - logoOpacity.value) * 20 }],
-  }));
+  // Estilos animados - usando useAnimatedStyle para evitar acesso direto ao .value durante renderização
+  const logoStyle = useAnimatedStyle(() => {
+    return {
+      opacity: logoOpacity.value,
+      transform: [{ translateY: (1 - logoOpacity.value) * 20 }],
+    };
+  });
 
-  const textStyle = useAnimatedStyle(() => ({
-    opacity: textOpacity.value,
-    transform: [{ translateY: (1 - textOpacity.value) * 15 }],
-  }));
+  const textStyle = useAnimatedStyle(() => {
+    return {
+      opacity: textOpacity.value,
+      transform: [{ translateY: (1 - textOpacity.value) * 15 }],
+    };
+  });
 
-  const buttonStyle = useAnimatedStyle(() => ({
-    opacity: buttonOpacity.value,
-    transform: [{ translateY: (1 - buttonOpacity.value) * 10 }],
-  }));
+  const buttonStyle = useAnimatedStyle(() => {
+    return {
+      opacity: buttonOpacity.value,
+      transform: [{ translateY: (1 - buttonOpacity.value) * 10 }],
+    };
+  });
 
-  const linkStyle = useAnimatedStyle(() => ({
-    opacity: linkOpacity.value,
-  }));
+  const linkStyle = useAnimatedStyle(() => {
+    return {
+      opacity: linkOpacity.value,
+    };
+  });
 
   // Bottom sheet reference
   const bottomSheetRef = useRef<BottomSheet>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const passwordInputRef = useRef<TextInput>(null);
 
   // Snap points for bottom sheet
-  const snapPoints = useMemo(() => ["75%"], []);
+  const snapPoints = useMemo(() => ["85%"], []);
+  
+  // Estado para controlar o índice do bottom sheet
+  const [bottomSheetIndex, setBottomSheetIndex] = useState(-1);
 
   // Monitorar o teclado
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
       "keyboardDidShow",
-      () => {
+      (event) => {
         setKeyboardVisible(true);
       }
     );
@@ -160,13 +175,19 @@ export default function LoginScreen() {
   // Callbacks for bottom sheet
   const handleOpenBottomSheet = useCallback(() => {
     Keyboard.dismiss();
-    bottomSheetRef.current?.expand();
+    setTimeout(() => {
+      setBottomSheetIndex(0);
+    }, 100);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
   const handleCloseBottomSheet = useCallback(() => {
     Keyboard.dismiss();
-    bottomSheetRef.current?.close();
+    setBottomSheetIndex(-1);
+  }, []);
+
+  const handleSheetChanges = useCallback((index: number) => {
+    setBottomSheetIndex(index);
   }, []);
 
   const renderBackdrop = useCallback(
@@ -235,6 +256,16 @@ export default function LoginScreen() {
     // Implementar login com Apple
   };
 
+  // Função para atualizar o email sem causar o aviso do Reanimated
+  const handleEmailChange = useCallback((text: string) => {
+    setEmail(text);
+  }, []);
+
+  // Função para atualizar a senha sem causar o aviso do Reanimated
+  const handlePasswordChange = useCallback((text: string) => {
+    setPassword(text);
+  }, []);
+
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
       <View style={styles.container}>
@@ -300,7 +331,7 @@ export default function LoginScreen() {
         {/* Login Bottom Sheet */}
         <BottomSheet
           ref={bottomSheetRef}
-          index={-1}
+          index={bottomSheetIndex}
           snapPoints={snapPoints}
           enablePanDownToClose
           backdropComponent={renderBackdrop}
@@ -309,242 +340,244 @@ export default function LoginScreen() {
             styles.bottomSheetBackground,
             { backgroundColor: colorScheme === "dark" ? "#1c1c1e" : "#ffffff" },
           ]}
-          keyboardBehavior="extend"
+          onChange={handleSheetChanges}
+          keyboardBehavior="interactive"
           android_keyboardInputMode="adjustResize"
-          animateOnMount={true}
+          animateOnMount={false}
+          enableContentPanningGesture={true}
+          enableHandlePanningGesture={true}
+          handleHeight={24}
         >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-            style={{ flex: 1 }}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 30 : 0}
-          >
-            <TouchableWithoutFeedback onPress={dismissKeyboard}>
-              <BottomSheetScrollView
-                style={styles.bottomSheetScrollView}
-                contentContainerStyle={styles.bottomSheetScrollViewContent}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-              >
-                <Animated.View
-                  entering={SlideInUp.duration(400).easing(
-                    Easing.bezier(0.25, 0.1, 0.25, 1)
-                  )}
-                  style={[
-                    styles.bottomSheetContent,
-                    { paddingBottom: insets.bottom + 20 },
-                  ]}
-                >
-                  <View style={styles.bottomSheetHeader}>
+          <TouchableWithoutFeedback onPress={dismissKeyboard}>
+            <KeyboardAvoidingView 
+              behavior={Platform.OS === "ios" ? "padding" : undefined}
+              style={{ flex: 1 }}
+              keyboardVerticalOffset={Platform.OS === "ios" ? 30 : 0}
+            >
+              <View style={{ flex: 1, padding: 24 }}>
+                <View style={styles.bottomSheetHeader}>
+                  <Text
+                    style={[
+                      styles.bottomSheetTitle,
+                      {
+                        color: colorScheme === "dark" ? "#ffffff" : "#000000",
+                      },
+                    ]}
+                  >
+                    Entrar
+                  </Text>
+                  <TouchableOpacity
+                    onPress={handleCloseBottomSheet}
+                    style={styles.closeButton}
+                  >
+                    <Ionicons
+                      name="close-circle"
+                      size={28}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {error ? (
+                  <Animated.View
+                    entering={FadeIn.duration(300)}
+                    style={styles.errorContainer}
+                  >
+                    <Text style={styles.errorText}>{error}</Text>
+                  </Animated.View>
+                ) : null}
+
+                {/* Email Login Form */}
+                <View style={styles.formContainer}>
+                  <View
+                    style={[
+                      styles.inputContainer,
+                      {
+                        backgroundColor:
+                          colorScheme === "dark" ? "#2c2c2e" : "#f5f5f5",
+                        borderColor: colors.primary + "30",
+                        borderWidth: 1,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="mail-outline"
+                      size={20}
+                      color={colors.primary}
+                      style={styles.inputIcon}
+                    />
+                    <TextInput
+                      style={[
+                        styles.input,
+                        {
+                          color:
+                            colorScheme === "dark" ? "#ffffff" : "#000000",
+                        },
+                      ]}
+                      placeholder="Email"
+                      placeholderTextColor={
+                        colorScheme === "dark" ? "#999999" : "#999999"
+                      }
+                      value={email}
+                      onChangeText={handleEmailChange}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      returnKeyType="next"
+                      onSubmitEditing={() => {
+                        // Focar no próximo input (senha)
+                        passwordInputRef.current?.focus();
+                      }}
+                      blurOnSubmit={false}
+                    />
+                  </View>
+
+                  <View
+                    style={[
+                      styles.inputContainer,
+                      {
+                        backgroundColor:
+                          colorScheme === "dark" ? "#2c2c2e" : "#f5f5f5",
+                        borderColor: colors.primary + "30",
+                        borderWidth: 1,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="lock-closed-outline"
+                      size={20}
+                      color={colors.primary}
+                      style={styles.inputIcon}
+                    />
+                    <TextInput
+                      ref={passwordInputRef}
+                      style={[
+                        styles.input,
+                        {
+                          color:
+                            colorScheme === "dark" ? "#ffffff" : "#000000",
+                        },
+                      ]}
+                      placeholder="Senha"
+                      placeholderTextColor={
+                        colorScheme === "dark" ? "#999999" : "#999999"
+                      }
+                      value={password}
+                      onChangeText={handlePasswordChange}
+                      secureTextEntry
+                      returnKeyType="done"
+                      onSubmitEditing={handleLogin}
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.forgotPasswordContainer}
+                    onPress={() => {
+                      /* Implementar recuperação de senha */
+                    }}
+                  >
                     <Text
                       style={[
-                        styles.bottomSheetTitle,
+                        styles.forgotPasswordText,
                         {
-                          color: colorScheme === "dark" ? "#ffffff" : "#000000",
+                          color: colors.primary,
                         },
                       ]}
                     >
-                      Entrar
+                      Esqueceu sua senha?
                     </Text>
-                    <TouchableOpacity
-                      onPress={handleCloseBottomSheet}
-                      style={styles.closeButton}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.loginButton}
+                    onPress={handleLogin}
+                    disabled={loading}
+                  >
+                    <LinearGradient
+                      colors={[colors.primary, "#2ab7ca"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.gradientButton}
                     >
-                      <Ionicons
-                        name="close-circle"
-                        size={28}
-                        color={colors.primary}
-                      />
-                    </TouchableOpacity>
-                  </View>
+                      {loading ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <Text style={styles.loginButtonText}>ENTRAR</Text>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
 
-                  {error ? (
-                    <Animated.View
-                      entering={FadeIn.duration(300)}
-                      style={styles.errorContainer}
-                    >
-                      <Text style={styles.errorText}>{error}</Text>
-                    </Animated.View>
-                  ) : null}
+                <View style={styles.dividerContainer}>
+                  <View
+                    style={[
+                      styles.divider,
+                      {
+                        backgroundColor: colors.primary + "30",
+                      },
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.dividerText,
+                      {
+                        color:
+                          colorScheme === "dark" ? "#ffffff" : "#000000",
+                      },
+                    ]}
+                  >
+                    ou
+                  </Text>
+                  <View
+                    style={[
+                      styles.divider,
+                      {
+                        backgroundColor: colors.primary + "30",
+                      },
+                    ]}
+                  />
+                </View>
 
-                  {/* Email Login Form */}
-                  <View style={styles.formContainer}>
-                    <Animated.View
-                      entering={FadeIn.duration(400).delay(100)}
-                      style={[
-                        styles.inputContainer,
-                        {
-                          backgroundColor:
-                            colorScheme === "dark" ? "#2c2c2e" : "#f5f5f5",
-                          borderColor: colors.primary + "30",
-                          borderWidth: 1,
-                        },
-                      ]}
-                    >
-                      <Ionicons
-                        name="mail-outline"
-                        size={20}
-                        color={colors.primary}
-                        style={styles.inputIcon}
-                      />
-                      <TextInput
-                        style={[
-                          styles.input,
-                          {
-                            color:
-                              colorScheme === "dark" ? "#ffffff" : "#000000",
-                          },
-                        ]}
-                        placeholder="Email"
-                        placeholderTextColor={
-                          colorScheme === "dark" ? "#999999" : "#999999"
-                        }
-                        value={email}
-                        onChangeText={setEmail}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                      />
-                    </Animated.View>
+                {/* Social Login Buttons */}
+                <View style={styles.socialButtonsContainer}>
+                  <TouchableOpacity
+                    style={[styles.socialButton, styles.appleButton]}
+                    onPress={handleAppleLogin}
+                  >
+                    <FontAwesome name="apple" size={24} color="#FFFFFF" />
+                    <Text style={styles.socialButtonText}>
+                      Continuar com Apple
+                    </Text>
+                  </TouchableOpacity>
 
-                    <Animated.View
-                      entering={FadeIn.duration(400).delay(200)}
-                      style={[
-                        styles.inputContainer,
-                        {
-                          backgroundColor:
-                            colorScheme === "dark" ? "#2c2c2e" : "#f5f5f5",
-                          borderColor: colors.primary + "30",
-                          borderWidth: 1,
-                        },
-                      ]}
-                    >
-                      <Ionicons
-                        name="lock-closed-outline"
-                        size={20}
-                        color={colors.primary}
-                        style={styles.inputIcon}
-                      />
-                      <TextInput
-                        style={[
-                          styles.input,
-                          {
-                            color:
-                              colorScheme === "dark" ? "#ffffff" : "#000000",
-                          },
-                        ]}
-                        placeholder="Senha"
-                        placeholderTextColor={
-                          colorScheme === "dark" ? "#999999" : "#999999"
-                        }
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry
-                      />
-                    </Animated.View>
-
-                    <Animated.View entering={FadeIn.duration(300).delay(300)}>
-                      <TouchableOpacity
-                        style={styles.forgotPasswordContainer}
-                        onPress={() => {
-                          /* Implementar recuperação de senha */
-                        }}
-                      >
-                        <Text
-                          style={[
-                            styles.forgotPasswordText,
-                            {
-                              color: colors.primary,
-                            },
-                          ]}
-                        >
-                          Esqueceu sua senha?
-                        </Text>
-                      </TouchableOpacity>
-                    </Animated.View>
-
-                    <Animated.View entering={FadeIn.duration(400).delay(400)}>
-                      <TouchableOpacity
-                        style={styles.loginButton}
-                        onPress={handleLogin}
-                        disabled={loading}
-                      >
-                        <LinearGradient
-                          colors={[colors.primary, "#2ab7ca"]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={styles.gradientButton}
-                        >
-                          {loading ? (
-                            <ActivityIndicator color="#FFFFFF" />
-                          ) : (
-                            <Text style={styles.loginButtonText}>ENTRAR</Text>
-                          )}
-                        </LinearGradient>
-                      </TouchableOpacity>
-                    </Animated.View>
-                  </View>
-
-                  <Animated.View entering={FadeIn.duration(300).delay(500)}>
-                    <View style={styles.dividerContainer}>
-                      <View
-                        style={[
-                          styles.divider,
-                          {
-                            backgroundColor: colors.primary + "30",
-                          },
-                        ]}
-                      />
-                      <Text
-                        style={[
-                          styles.dividerText,
-                          {
-                            color:
-                              colorScheme === "dark" ? "#ffffff" : "#000000",
-                          },
-                        ]}
-                      >
-                        ou
-                      </Text>
-                      <View
-                        style={[
-                          styles.divider,
-                          {
-                            backgroundColor: colors.primary + "30",
-                          },
-                        ]}
-                      />
-                    </View>
-                  </Animated.View>
-
-                  {/* Social Login Buttons */}
-                  <View style={styles.socialButtonsContainer}>
-                    <Animated.View entering={FadeIn.duration(300).delay(600)}>
-                      <TouchableOpacity
-                        style={[styles.socialButton, styles.appleButton]}
-                        onPress={handleAppleLogin}
-                      >
-                        <FontAwesome name="apple" size={24} color="#FFFFFF" />
-                        <Text style={styles.socialButtonText}>
-                          Continuar com Apple
-                        </Text>
-                      </TouchableOpacity>
-                    </Animated.View>
-
-                    <Animated.View entering={FadeIn.duration(300).delay(700)}>
-                      <TouchableOpacity
-                        style={[styles.socialButton, styles.googleButton]}
-                        onPress={handleGoogleLogin}
-                      >
-                        <FontAwesome name="google" size={24} color="#FFFFFF" />
-                        <Text style={styles.socialButtonText}>
-                          Continuar com Google
-                        </Text>
-                      </TouchableOpacity>
-                    </Animated.View>
-                  </View>
+                  <TouchableOpacity
+                    style={[styles.socialButton, styles.googleButton]}
+                    onPress={handleGoogleLogin}
+                  >
+                    <FontAwesome name="google" size={24} color="#FFFFFF" />
+                    <Text style={styles.socialButtonText}>
+                      Continuar com Google
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              
+              {/* Botão para fechar o teclado dentro do Bottom Sheet */}
+              {keyboardVisible && (
+                <Animated.View 
+                  entering={FadeIn.duration(200)}
+                  exiting={FadeOut.duration(200)}
+                  style={[styles.keyboardDismissButton, { bottom: 10 }]}
+                >
+                  <TouchableOpacity
+                    onPress={dismissKeyboard}
+                    style={styles.keyboardDismissButtonInner}
+                  >
+                    <Ionicons name="chevron-down" size={24} color="#FFFFFF" />
+                  </TouchableOpacity>
                 </Animated.View>
-              </BottomSheetScrollView>
-            </TouchableWithoutFeedback>
-          </KeyboardAvoidingView>
+              )}
+            </KeyboardAvoidingView>
+          </TouchableWithoutFeedback>
         </BottomSheet>
       </View>
     </TouchableWithoutFeedback>
@@ -658,9 +691,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#4ecdc4",
     width: 40,
   },
-  bottomSheetScrollView: {
-    flex: 1,
-  },
   bottomSheetScrollViewContent: {
     flexGrow: 1,
   },
@@ -767,5 +797,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     letterSpacing: 1,
+  },
+  keyboardDismissButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    zIndex: 1000,
+  },
+  keyboardDismissButtonInner: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#4ecdc4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
   },
 });

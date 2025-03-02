@@ -76,20 +76,18 @@ export default function MealCard({
     mealTotals.calories
   );
 
-  // Cores dos macronutrientes como no MacrosCard
-  const proteinColor = "#4CAF50"; // Verde
-  const carbsColor = "#2196F3";   // Azul
-  const fatColor = "#FF3B30";     // Vermelho
+  // Cores dos macronutrientes usando as cores do tema
+  const proteinColor = colors.success || "#4CAF50"; // Verde
+  const carbsColor = colors.primary || "#2196F3";   // Azul
+  const fatColor = colors.danger || "#FF3B30";     // Vermelho
   
-  // Cor principal do MacrosCard para outros elementos
-  const primaryBlue = "#2196F3";
 
   const renderFoodItem = (food: Food, foodIndex: number) => (
     <Swipeable
       key={food.id}
       renderRightActions={() => (
         <TouchableOpacity
-          style={[styles.swipeAction, { backgroundColor: primaryBlue + "CC" }]}
+          style={[styles.swipeAction, { backgroundColor: colors.error + "CC" }]}
           onPress={async () => {
             handleHapticFeedback();
             await onDeleteFood(food.id);
@@ -174,7 +172,7 @@ export default function MealCard({
               <Ionicons
                 name={meal.icon as any}
                 size={18}
-                color={primaryBlue}
+                color={colors.tint}
                 style={styles.mealIcon}
               />
               <View>
@@ -192,7 +190,7 @@ export default function MealCard({
               </View>
             </View>
             <View style={styles.mealCaloriesContainer}>
-              <Text style={[styles.mealCalories, { color: primaryBlue }]}>
+              <Text style={[styles.mealCalories, { color: colors.tint }]}>
                 {mealTotals.calories}
               </Text>
               <Text
@@ -256,7 +254,7 @@ export default function MealCard({
 
         <View style={styles.addButtonContainer}>
           <TouchableOpacity
-            style={[styles.addButton, { borderColor: primaryBlue }]}
+            style={[styles.addButton, { borderColor: colors.tint }]}
             onPress={(e) => {
               e.stopPropagation();
               handleHapticFeedback();
@@ -269,7 +267,7 @@ export default function MealCard({
               });
             }}
           >
-            <Ionicons name="add" size={20} color={primaryBlue} />
+            <Ionicons name="add" size={20} color={colors.tint} />
           </TouchableOpacity>
         </View>
       </View>

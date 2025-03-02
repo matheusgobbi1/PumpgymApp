@@ -52,9 +52,9 @@ export default function MacrosCard({
   };
 
   const getProgressColor = (percentage: number) => {
-    if (percentage >= 90 && percentage <= 110) return "#4CAF50";
-    if (percentage < 90) return "#2196F3";
-    return "#FF3B30";
+    if (percentage >= 90 && percentage <= 110) return colors.success || "#4CAF50";
+    if (percentage < 90) return colors.primary;
+    return colors.danger || "#FF3B30";
   };
 
   const renderMacroProgress = (
@@ -147,7 +147,7 @@ export default function MacrosCard({
       activeOpacity={0.7}
     >
       <MotiView
-        style={[styles.container, { backgroundColor: colors.card }]}
+        style={[styles.container, { backgroundColor: colors.background }]}
         from={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: "spring" }}
@@ -162,7 +162,7 @@ export default function MacrosCard({
               Configure suas metas de macronutrientes para acompanhar seu progresso diário
             </Text>
             <TouchableOpacity
-              style={[styles.configButton, { backgroundColor: colors.primary }]}
+              style={[styles.configButton, { backgroundColor: colors.tint }]}
               onPress={() => router.push("/macros-details")}
             >
               <Text style={styles.configButtonText}>Configurar Metas</Text>

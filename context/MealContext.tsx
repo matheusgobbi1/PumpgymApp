@@ -37,6 +37,12 @@ export interface Meal {
   foods: Food[];
 }
 
+export interface MealType {
+  id: string;
+  name: string;
+  icon: string;
+}
+
 interface MealTotals {
   calories: number;
   protein: number;
@@ -46,6 +52,7 @@ interface MealTotals {
 
 interface MealContextType {
   meals: { [date: string]: { [mealId: string]: Food[] } };
+  mealTypes: MealType[];
   selectedDate: string;
   setSelectedDate: (date: string) => void;
   getMealTotals: (mealId: string) => MealTotals;
@@ -54,6 +61,10 @@ interface MealContextType {
   addFoodToMeal: (mealId: string, food: Food) => void;
   removeFoodFromMeal: (mealId: string, foodId: string) => Promise<void>;
   saveMeals: () => Promise<void>;
+  addMealType: (id: string, name: string, icon: string) => void;
+  resetMealTypes: () => Promise<void>;
+  updateMealTypes: (mealTypes: MealType[]) => Promise<void>;
+  hasMealTypesConfigured: boolean;
 }
 
 const MealContext = createContext<MealContextType | undefined>(undefined);
@@ -66,11 +77,14 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   const [meals, setMeals] = useState<{
     [date: string]: { [mealId: string]: Food[] };
   }>({});
+  const [mealTypes, setMealTypes] = useState<MealType[]>([]);
+  const [hasMealTypesConfigured, setHasMealTypesConfigured] = useState<boolean>(false);
 
   // Carregar refeições do usuário
   useEffect(() => {
     if (user) {
       loadMeals();
+      loadMealTypes();
     }
   }, [user]);
 
@@ -91,6 +105,97 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       setMeals(mealsData);
     } catch (error) {
       console.error("Erro ao carregar refeições:", error);
+    }
+  };
+
+  const loadMealTypes = async () => {
+    try {
+      if (!user) return;
+
+      // Buscar os tipos de refeições do usuário
+      const mealTypesDoc = await getDoc(doc(db, "users", user.uid, "config", "mealTypes"));
+
+      if (mealTypesDoc.exists() && mealTypesDoc.data().types && mealTypesDoc.data().types.length > 0) {
+        const mealTypesData = mealTypesDoc.data().types as MealType[];
+        setMealTypes(mealTypesData);
+        setHasMealTypesConfigured(true);
+      } else {
+        setHasMealTypesConfigured(false);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar tipos de refeições:", error);
+      setHasMealTypesConfigured(false);
+    }
+  };
+
+  const addMealType = async (id: string, name: string, icon: string) => {
+    try {
+      // Verificar se o tipo de refeição já existe
+      const existingType = mealTypes.find(type => type.id === id);
+      
+      if (existingType) return;
+      
+      const newMealType: MealType = { id, name, icon };
+      
+      // Adicionar ao estado
+      const updatedTypes = [...mealTypes, newMealType];
+      setMealTypes(updatedTypes);
+      
+      // Salvar no Firestore se o usuário estiver autenticado
+      if (user) {
+        await setDoc(
+          doc(db, "users", user.uid, "config", "mealTypes"),
+          { types: updatedTypes },
+          { merge: true }
+        );
+        setHasMealTypesConfigured(true);
+      }
+    } catch (error) {
+      console.error("Erro ao adicionar tipo de refeição:", error);
+    }
+  };
+
+  // Função para redefinir os tipos de refeições
+  const resetMealTypes = async () => {
+    try {
+      setMealTypes([]);
+      setHasMealTypesConfigured(false);
+      
+      if (user) {
+        await setDoc(
+          doc(db, "users", user.uid, "config", "mealTypes"),
+          { types: [] },
+          { merge: true }
+        );
+      }
+    } catch (error) {
+      console.error("Erro ao redefinir tipos de refeições:", error);
+    }
+  };
+
+  // Função para atualizar todos os tipos de refeições de uma vez
+  const updateMealTypes = async (newMealTypes: MealType[]) => {
+    try {
+      // Log para depuração
+      console.log('Atualizando tipos de refeições:', newMealTypes.map(m => m.name).join(', '));
+      
+      setMealTypes(newMealTypes);
+      
+      if (newMealTypes.length > 0) {
+        setHasMealTypesConfigured(true);
+      } else {
+        setHasMealTypesConfigured(false);
+      }
+      
+      if (user) {
+        await setDoc(
+          doc(db, "users", user.uid, "config", "mealTypes"),
+          { types: newMealTypes },
+          { merge: true }
+        );
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar tipos de refeições:", error);
     }
   };
 
@@ -167,7 +272,12 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   };
 
   const getDayTotals = (): MealTotals => {
-    const mealIds = ["breakfast", "lunch", "snack", "dinner"];
+    // Usar os IDs de refeição do dia atual ou os tipos de refeição configurados
+    const currentDayMeals = meals[selectedDate] || {};
+    const mealIds = Object.keys(currentDayMeals).length > 0 
+      ? Object.keys(currentDayMeals) 
+      : mealTypes.map(type => type.id);
+    
     return mealIds.reduce(
       (acc, mealId) => {
         const mealTotals = getMealTotals(mealId);
@@ -186,6 +296,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     <MealContext.Provider
       value={{
         meals,
+        mealTypes,
         selectedDate,
         setSelectedDate,
         getMealTotals,
@@ -194,6 +305,10 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
         addFoodToMeal,
         removeFoodFromMeal,
         saveMeals,
+        addMealType,
+        resetMealTypes,
+        updateMealTypes,
+        hasMealTypesConfigured,
       }}
     >
       {children}

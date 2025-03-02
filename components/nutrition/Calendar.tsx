@@ -159,10 +159,10 @@ export default function Calendar({
                       isSelected && {
                         backgroundColor: colors.primary,
                         shadowColor: colors.primary,
-                        shadowOffset: { width: 0, height: 6 },
-                        shadowOpacity: 0.35,
+                        shadowOffset: { width: 0, height: 0 },
+                        shadowOpacity: 0.25,
                         shadowRadius: 10,
-                        elevation: 8,
+                        elevation: 5,
                       },
                       !isSelected && {
                         backgroundColor: isToday ? colors.light : "transparent",

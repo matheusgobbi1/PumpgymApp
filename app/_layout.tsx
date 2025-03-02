@@ -7,6 +7,7 @@ import { useColorScheme } from "react-native";
 import { AuthProvider } from "../context/AuthContext";
 import { NutritionProvider } from "../context/NutritionContext";
 import { MealProvider } from "../context/MealContext";
+import { ThemeProvider, useTheme } from "../context/ThemeContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Colors from "../constants/Colors";
@@ -51,37 +52,44 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === "dark" ? "dark" : "light";
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <BottomSheetModalProvider>
-        <SafeAreaProvider>
-          <AuthProvider>
-            <NutritionProvider>
-              <MealProvider>
-                <OfflineNotice />
-                <Stack
-                  screenOptions={{
-                    headerShown: false,
-                    contentStyle: {
-                      backgroundColor: Colors[theme].background,
-                    },
-                  }}
-                >
-                  <Stack.Screen name="index" />
-                  <Stack.Screen name="auth/login" />
-                  <Stack.Screen name="auth/register" />
-                  <Stack.Screen name="onboarding" />
-                  <Stack.Screen name="(tabs)" />
-                  <Stack.Screen name="(add-food)" />
-                </Stack>
-              </MealProvider>
-            </NutritionProvider>
-          </AuthProvider>
-        </SafeAreaProvider>
-      </BottomSheetModalProvider>
+      <SafeAreaProvider>
+        <BottomSheetModalProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <NutritionProvider>
+                <MealProvider>
+                  <OfflineNotice />
+                  <StackNavigator />
+                </MealProvider>
+              </NutritionProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </BottomSheetModalProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+function StackNavigator() {
+  const { theme } = useTheme();
+
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: {
+          backgroundColor: Colors[theme].background,
+        },
+      }}
+    >
+      <Stack.Screen name="index" />
+      <Stack.Screen name="auth/login" />
+      <Stack.Screen name="auth/register" />
+      <Stack.Screen name="onboarding" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="(add-food)" />
+    </Stack>
   );
 }
