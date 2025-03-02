@@ -12,19 +12,21 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import Button from "../../components/common/Button";
 import { useNutrition } from "../../context/NutritionContext";
 import { useAuth } from "../../context/AuthContext";
 import CircularProgress from "react-native-circular-progress-indicator";
 import { OfflineStorage } from "../../services/OfflineStorage";
+import { MotiView } from "moti";
+import * as Haptics from "expo-haptics";
 
 const screenWidth = Dimensions.get("window").width;
 
 export default function SummaryScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
   const {
     nutritionInfo,
     completeOnboarding,
@@ -34,6 +36,14 @@ export default function SummaryScreen() {
   const { isAnonymous } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    setForceUpdate({});
+  }, [theme]);
 
   useEffect(() => {
     calculateMacros();
@@ -41,6 +51,7 @@ export default function SummaryScreen() {
 
   const handleStart = async () => {
     try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setLoading(true);
       setError("");
       await completeOnboarding();
@@ -159,28 +170,57 @@ export default function SummaryScreen() {
 
   return (
     <SafeAreaView
+      key={`summary-container-${theme}`}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <ScrollView
+        key={`summary-scroll-${theme}`}
         style={styles.content}
         showsVerticalScrollIndicator={false}
         removeClippedSubviews={false}
       >
         {/* Header */}
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Seu Plano Personalizado
-        </Text>
+        <MotiView
+          key={`header-${theme}`}
+          from={{ opacity: 0, translateY: -20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 600 }}
+        >
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            Seu Plano Personalizado
+          </Text>
+        </MotiView>
 
         {/* Cards do Topo em Row */}
-        <View style={styles.topCardsRow}>
+        <MotiView
+          key={`top-cards-row-${theme}`}
+          style={styles.topCardsRow}
+          from={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', delay: 200 }}
+        >
           {/* Card de Perfil */}
-          <View style={[styles.profileCard, { backgroundColor: colors.light }]}>
+          <MotiView
+            key={`profile-card-${theme}`}
+            style={[
+              styles.profileCard, 
+              { 
+                backgroundColor: theme === 'dark' ? colors.dark : colors.light,
+                borderColor: colors.border,
+                borderWidth: 1,
+              }
+            ]}
+            from={{ opacity: 0, translateX: -20 }}
+            animate={{ opacity: 1, translateX: 0 }}
+            transition={{ type: 'spring', delay: 300 }}
+          >
             <Text style={[styles.cardLabel, { color: colors.text }]}>
               Perfil
             </Text>
-            <View style={styles.measurementRow}>
-              <View style={styles.measurementItem}>
+            <View key={`measurement-row-${theme}`} style={styles.measurementRow}>
+              <View key={`height-item-${theme}`} style={styles.measurementItem}>
                 <Ionicons
+                  key={`height-icon-${theme}`}
                   name="body-outline"
                   size={16}
                   color={colors.primary}
@@ -189,9 +229,10 @@ export default function SummaryScreen() {
                   {nutritionInfo.height}cm
                 </Text>
               </View>
-              <View style={styles.measurementDivider} />
-              <View style={styles.measurementItem}>
+              <View key={`divider-${theme}`} style={[styles.measurementDivider, { backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} />
+              <View key={`weight-item-${theme}`} style={styles.measurementItem}>
                 <Ionicons
+                  key={`weight-icon-${theme}`}
                   name="scale-outline"
                   size={16}
                   color={colors.primary}
@@ -204,15 +245,28 @@ export default function SummaryScreen() {
             <Text style={[styles.profileSubValue, { color: colors.text }]}>
               {getActivityLevelText()}
             </Text>
-          </View>
+          </MotiView>
 
           {/* Card de Objetivo */}
-          <View style={[styles.goalCard, { backgroundColor: colors.light }]}>
+          <MotiView
+            key={`goal-card-${theme}`}
+            style={[
+              styles.goalCard, 
+              { 
+                backgroundColor: theme === 'dark' ? colors.dark : colors.light,
+                borderColor: colors.border,
+                borderWidth: 1,
+              }
+            ]}
+            from={{ opacity: 0, translateX: 20 }}
+            animate={{ opacity: 1, translateX: 0 }}
+            transition={{ type: 'spring', delay: 400 }}
+          >
             <Text style={[styles.cardLabel, { color: colors.text }]}>
               Objetivo
             </Text>
-            <View style={styles.goalContent}>
-              <Ionicons name={getGoalIcon()} size={20} color={colors.primary} />
+            <View key={`goal-content-${theme}`} style={styles.goalContent}>
+              <Ionicons key={`goal-icon-${theme}`} name={getGoalIcon()} size={20} color={colors.primary} />
               <Text style={[styles.goalText, { color: colors.text }]}>
                 {getGoalText()}
               </Text>
@@ -222,15 +276,27 @@ export default function SummaryScreen() {
                 Meta: {nutritionInfo.targetWeight}kg
               </Text>
             )}
-          </View>
-        </View>
+          </MotiView>
+        </MotiView>
 
         {/* Health Score Card */}
-        <View
-          style={[styles.healthScoreCard, { backgroundColor: colors.light }]}
+        <MotiView
+          key={`health-score-card-${theme}`}
+          style={[
+            styles.healthScoreCard, 
+            { 
+              backgroundColor: theme === 'dark' ? colors.dark : colors.light,
+              borderColor: colors.border,
+              borderWidth: 1,
+            }
+          ]}
+          from={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', delay: 500 }}
         >
-          <View style={styles.healthScoreContent}>
+          <View key={`health-score-content-${theme}`} style={styles.healthScoreContent}>
             <CircularProgress
+              key={`health-score-progress-${theme}`}
               value={nutritionInfo.healthScore || 0}
               radius={32}
               duration={1000}
@@ -248,7 +314,7 @@ export default function SummaryScreen() {
               valueSuffix="/10"
               delay={0}
             />
-            <View style={styles.healthScoreInfo}>
+            <View key={`health-score-info-${theme}`} style={styles.healthScoreInfo}>
               <Text style={[styles.healthScoreTitle, { color: colors.text }]}>
                 Health Score
               </Text>
@@ -260,22 +326,47 @@ export default function SummaryScreen() {
                   : "Vamos melhorar seus hábitos!"}
               </Text>
             </View>
-            <Ionicons name="fitness-outline" size={24} color="#6C63FF" />
+            <Ionicons key={`health-score-icon-${theme}`} name="fitness-outline" size={24} color="#6C63FF" />
           </View>
-        </View>
+        </MotiView>
 
         {/* Seção de Macros */}
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          Necessidades Diárias
-        </Text>
+        <MotiView
+          key={`macros-section-${theme}`}
+          from={{ opacity: 0, translateY: 20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 600, delay: 600 }}
+        >
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Necessidades Diárias
+          </Text>
+        </MotiView>
 
-        <View style={styles.macrosContainer}>
+        <MotiView
+          key={`macros-container-${theme}`}
+          style={styles.macrosContainer}
+          from={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ type: 'timing', duration: 800, delay: 700 }}
+        >
           {/* Card de Calorias */}
-          <View
-            style={[styles.caloriesCard, { backgroundColor: colors.light }]}
+          <MotiView
+            key={`calories-card-${theme}`}
+            style={[
+              styles.caloriesCard, 
+              { 
+                backgroundColor: theme === 'dark' ? colors.dark : colors.light,
+                borderColor: colors.border,
+                borderWidth: 1,
+              }
+            ]}
+            from={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', delay: 800 }}
           >
-            <View style={styles.caloriesContent}>
+            <View key={`calories-content-${theme}`} style={styles.caloriesContent}>
               <CircularProgress
+                key={`calories-progress-${theme}`}
                 value={100}
                 radius={32}
                 duration={1000}
@@ -293,7 +384,7 @@ export default function SummaryScreen() {
                 valueSuffix=""
                 delay={0}
               />
-              <View style={styles.caloriesInfo}>
+              <View key={`calories-info-${theme}`} style={styles.caloriesInfo}>
                 <Text style={[styles.caloriesTitle, { color: colors.text }]}>
                   Calorias Diárias
                 </Text>
@@ -308,16 +399,36 @@ export default function SummaryScreen() {
                     : "Manutenção do peso atual"}
                 </Text>
               </View>
-              <Ionicons name="flame-outline" size={24} color={colors.primary} />
+              <Ionicons key={`calories-icon-${theme}`} name="flame-outline" size={24} color={colors.primary} />
             </View>
-          </View>
+          </MotiView>
 
           {/* Cards de Macronutrientes */}
-          <View style={styles.macroRow}>
+          <MotiView 
+            key={`macro-row-${theme}`} 
+            style={styles.macroRow}
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 600, delay: 900 }}
+          >
             {/* Card de Proteína */}
-            <View style={[styles.macroCard, { backgroundColor: colors.light }]}>
-              <View style={styles.macroContent}>
+            <MotiView 
+              key={`protein-card-${theme}`} 
+              style={[
+                styles.macroCard, 
+                { 
+                  backgroundColor: theme === 'dark' ? colors.dark : colors.light,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                }
+              ]}
+              from={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: 'spring', delay: 1000 }}
+            >
+              <View key={`protein-content-${theme}`} style={styles.macroContent}>
                 <CircularProgress
+                  key={`protein-progress-${theme}`}
                   value={macroPercentages.protein}
                   radius={32}
                   duration={1000}
@@ -335,8 +446,8 @@ export default function SummaryScreen() {
                   valueSuffix="%"
                   delay={0}
                 />
-                <View style={styles.macroInfo}>
-                  <Ionicons name="egg-outline" size={20} color="#FF6B6B" />
+                <View key={`protein-info-${theme}`} style={styles.macroInfo}>
+                  <Ionicons key={`protein-icon-${theme}`} name="egg-outline" size={20} color="#FF6B6B" />
                   <Text style={[styles.macroTitle, { color: colors.text }]}>
                     Proteína
                   </Text>
@@ -353,12 +464,26 @@ export default function SummaryScreen() {
                   </Text>
                 </View>
               </View>
-            </View>
+            </MotiView>
 
             {/* Card de Carboidratos */}
-            <View style={[styles.macroCard, { backgroundColor: colors.light }]}>
-              <View style={styles.macroContent}>
+            <MotiView 
+              key={`carbs-card-${theme}`} 
+              style={[
+                styles.macroCard, 
+                { 
+                  backgroundColor: theme === 'dark' ? colors.dark : colors.light,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                }
+              ]}
+              from={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: 'spring', delay: 1100 }}
+            >
+              <View key={`carbs-content-${theme}`} style={styles.macroContent}>
                 <CircularProgress
+                  key={`carbs-progress-${theme}`}
                   value={macroPercentages.carbs}
                   radius={32}
                   duration={1000}
@@ -376,8 +501,9 @@ export default function SummaryScreen() {
                   valueSuffix="%"
                   delay={0}
                 />
-                <View style={styles.macroInfo}>
+                <View key={`carbs-info-${theme}`} style={styles.macroInfo}>
                   <Ionicons
+                    key={`carbs-icon-${theme}`}
                     name="nutrition-outline"
                     size={20}
                     color="#4ECDC4"
@@ -393,12 +519,26 @@ export default function SummaryScreen() {
                   </Text>
                 </View>
               </View>
-            </View>
+            </MotiView>
 
             {/* Card de Gorduras */}
-            <View style={[styles.macroCard, { backgroundColor: colors.light }]}>
-              <View style={styles.macroContent}>
+            <MotiView 
+              key={`fat-card-${theme}`} 
+              style={[
+                styles.macroCard, 
+                { 
+                  backgroundColor: theme === 'dark' ? colors.dark : colors.light,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                }
+              ]}
+              from={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: 'spring', delay: 1200 }}
+            >
+              <View key={`fat-content-${theme}`} style={styles.macroContent}>
                 <CircularProgress
+                  key={`fat-progress-${theme}`}
                   value={macroPercentages.fat}
                   radius={32}
                   duration={1000}
@@ -416,8 +556,8 @@ export default function SummaryScreen() {
                   valueSuffix="%"
                   delay={0}
                 />
-                <View style={styles.macroInfo}>
-                  <Ionicons name="water-outline" size={20} color="#FFE66D" />
+                <View key={`fat-info-${theme}`} style={styles.macroInfo}>
+                  <Ionicons key={`fat-icon-${theme}`} name="water-outline" size={20} color="#FFE66D" />
                   <Text style={[styles.macroTitle, { color: colors.text }]}>
                     Gorduras
                   </Text>
@@ -429,14 +569,27 @@ export default function SummaryScreen() {
                   </Text>
                 </View>
               </View>
-            </View>
-          </View>
+            </MotiView>
+          </MotiView>
 
           {/* Card de Água */}
-          <View style={[styles.waterCard, { backgroundColor: colors.light }]}>
-            <View style={styles.waterContent}>
-              <Ionicons name="water" size={24} color="#4ECDC4" />
-              <View style={styles.waterInfo}>
+          <MotiView 
+            key={`water-card-${theme}`} 
+            style={[
+              styles.waterCard, 
+              { 
+                backgroundColor: theme === 'dark' ? colors.dark : colors.light,
+                borderColor: colors.border,
+                borderWidth: 1,
+              }
+            ]}
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'spring', delay: 1300 }}
+          >
+            <View key={`water-content-${theme}`} style={styles.waterContent}>
+              <Ionicons key={`water-icon-${theme}`} name="water" size={24} color="#4ECDC4" />
+              <View key={`water-info-${theme}`} style={styles.waterInfo}>
                 <Text style={[styles.waterTitle, { color: colors.text }]}>
                   Água Recomendada
                 </Text>
@@ -454,12 +607,26 @@ export default function SummaryScreen() {
                 </Text>
               </View>
             </View>
-          </View>
-        </View>
+          </MotiView>
+        </MotiView>
 
         {/* Informações Adicionais */}
-        <View style={[styles.infoCard, { backgroundColor: colors.light }]}>
+        <MotiView 
+          key={`info-card-${theme}`} 
+          style={[
+            styles.infoCard, 
+            { 
+              backgroundColor: theme === 'dark' ? colors.dark : colors.light,
+              borderColor: colors.border,
+              borderWidth: 1,
+            }
+          ]}
+          from={{ opacity: 0, translateY: 20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'spring', delay: 1400 }}
+        >
           <Ionicons
+            key={`info-icon-${theme}`}
             name="information-circle-outline"
             size={20}
             color={colors.primary}
@@ -468,23 +635,99 @@ export default function SummaryScreen() {
             Plano calculado com base no seu perfil. Ajuste a qualquer momento
             nas configurações.
           </Text>
-        </View>
+        </MotiView>
+
+        {/* Dica do dia */}
+        <MotiView 
+          key={`tip-card-${theme}`} 
+          style={[
+            styles.tipCard, 
+            { 
+              backgroundColor: theme === 'dark' ? 'rgba(28, 154, 190, 0.15)' : 'rgba(28, 154, 190, 0.1)',
+              borderColor: colors.primary,
+              borderWidth: 1,
+              marginTop: 16,
+              marginBottom: 16,
+              padding: 16,
+              borderRadius: 16,
+            }
+          ]}
+          from={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', delay: 1500 }}
+        >
+          <View key={`tip-header-${theme}`} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+            <Ionicons
+              key={`tip-icon-${theme}`}
+              name="bulb-outline"
+              size={20}
+              color={colors.primary}
+            />
+            <Text style={{ color: colors.primary, fontWeight: '600', marginLeft: 8, fontSize: 16 }}>
+              Dica do dia
+            </Text>
+          </View>
+          <Text style={{ color: colors.text, fontSize: 14, lineHeight: 20 }}>
+            {nutritionInfo.goal === "lose"
+              ? "Beba um copo de água antes das refeições para ajudar a controlar o apetite e melhorar a digestão."
+              : nutritionInfo.goal === "gain"
+              ? "Adicione uma fonte de proteína de qualidade em todas as suas refeições para otimizar o ganho de massa muscular."
+              : "Mantenha um diário alimentar para acompanhar seu progresso e identificar padrões que podem ser melhorados."}
+          </Text>
+        </MotiView>
 
         {error && (
-          <View style={styles.errorContainer}>
+          <MotiView 
+            key={`error-container-${theme}`} 
+            style={[
+              styles.errorContainer,
+              { borderColor: colors.danger, borderWidth: 1 }
+            ]}
+            from={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring' }}
+          >
             <Text style={styles.errorText}>{error}</Text>
-          </View>
+          </MotiView>
         )}
       </ScrollView>
 
-      <View style={styles.footer}>
-        <Button
-          title={loading ? "Salvando..." : "Iniciar Jornada"}
+      <MotiView 
+        key={`footer-${theme}`} 
+        style={styles.footer}
+        from={{ opacity: 0, translateY: 20 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 600, delay: 1600 }}
+      >
+        <TouchableOpacity
+          key={`start-button-${theme}`}
+          style={[
+            styles.button,
+            {
+              backgroundColor: colors.primary,
+              opacity: loading ? 0.7 : 1,
+            },
+          ]}
           onPress={handleStart}
           disabled={loading}
-          style={styles.button}
-        />
-      </View>
+          activeOpacity={0.8}
+        >
+          {loading ? (
+            <ActivityIndicator color="white" size="small" />
+          ) : (
+            <Text
+              style={{
+                color: "white",
+                fontSize: 16,
+                fontWeight: "600",
+                textAlign: "center",
+              }}
+            >
+              Iniciar Jornada
+            </Text>
+          )}
+        </TouchableOpacity>
+      </MotiView>
     </SafeAreaView>
   );
 }
@@ -513,11 +756,21 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 16,
     padding: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   goalCard: {
     flex: 1,
     borderRadius: 16,
     padding: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   cardLabel: {
     fontSize: 12,
@@ -538,7 +791,6 @@ const styles = StyleSheet.create({
   measurementDivider: {
     width: 1,
     height: 16,
-    backgroundColor: "rgba(0,0,0,0.1)",
     marginHorizontal: 8,
   },
   measurementText: {
@@ -576,6 +828,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   caloriesContent: {
     flexDirection: "row",
@@ -608,6 +865,11 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 16,
     padding: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   macroContent: {
     alignItems: "center",
@@ -637,8 +899,12 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 16,
     marginTop: 20,
-    marginBottom: 16,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   infoText: {
     flex: 1,
@@ -665,11 +931,18 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 56,
     borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
   },
   healthScoreCard: {
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   healthScoreContent: {
     flexDirection: "row",
@@ -692,6 +965,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginTop: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   waterContent: {
     flexDirection: "row",
@@ -715,5 +993,13 @@ const styles = StyleSheet.create({
   waterTip: {
     fontSize: 12,
     opacity: 0.7,
+  },
+  tipCard: {
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
 });
