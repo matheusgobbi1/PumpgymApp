@@ -16,6 +16,7 @@ import EmptyNutritionState from "../../components/nutrition/EmptyNutritionState"
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import MealConfigSheet from "../../components/nutrition/MealConfigSheet";
 import { useTheme } from "../../context/ThemeContext";
+import { useAuth } from "../../context/AuthContext";
 
 const { width } = Dimensions.get("window");
 
@@ -55,6 +56,7 @@ export default function NutritionScreen() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { nutritionInfo } = useNutrition();
+  const { user } = useAuth();
   const {
     selectedDate,
     setSelectedDate,
@@ -78,6 +80,15 @@ export default function NutritionScreen() {
     // Forçar re-renderização quando o tema mudar
     setForceUpdate({});
   }, [theme]);
+  
+  // Efeito para forçar a re-renderização quando o usuário mudar
+  useEffect(() => {
+    if (user) {
+      console.log("Usuário alterado na tela de nutrição:", user.uid);
+      // Forçar re-renderização quando o usuário mudar
+      setForceUpdate({});
+    }
+  }, [user?.uid]);
 
   // Estado para forçar a recriação do MealConfigSheet
   const [mealConfigKey, setMealConfigKey] = useState(Date.now());
@@ -242,7 +253,7 @@ export default function NutritionScreen() {
         <View style={styles.mealsContainer}>
           {configuredMealTypes.map((meal, index) => (
             <MealCard
-              key={meal.id}
+              key={`meal-${meal.id}-${user?.uid || 'no-user'}`}
               meal={meal}
               foods={getFoodsForMeal(meal.id)}
               mealTotals={getMealTotals(meal.id)}

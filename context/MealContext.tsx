@@ -92,6 +92,8 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     try {
       if (!user) return;
 
+      console.log("Carregando refeições para o usuário:", user.uid);
+
       // Buscar todas as refeições do usuário
       const mealsRef = collection(db, "users", user.uid, "meals");
       const mealsSnap = await getDocs(mealsRef);
@@ -102,7 +104,15 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
         mealsData[doc.id] = doc.data() as { [mealId: string]: Food[] };
       });
 
-      setMeals(mealsData);
+      console.log("Refeições carregadas:", Object.keys(mealsData).length, "dias");
+      
+      // Limpar o estado anterior antes de definir o novo
+      setMeals({});
+      
+      // Definir o novo estado após um pequeno atraso para garantir que o estado anterior foi limpo
+      setTimeout(() => {
+        setMeals(mealsData);
+      }, 50);
     } catch (error) {
       console.error("Erro ao carregar refeições:", error);
     }

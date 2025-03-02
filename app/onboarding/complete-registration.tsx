@@ -8,18 +8,20 @@ import {
   ScrollView,
   Dimensions,
   Keyboard,
+  TouchableOpacity,
+  Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import Input from "../../components/common/Input";
 import Button from "../../components/common/Button";
 import { useAuth } from "../../context/AuthContext";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { MotiView, MotiText } from "moti";
+import { MotiView, MotiText, AnimatePresence } from "moti";
+import * as Haptics from "expo-haptics";
 import {
   validateRegistration,
   calculatePasswordStrength,
@@ -31,9 +33,17 @@ const { width } = Dimensions.get("window");
 
 export default function CompleteRegistrationScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
   const { completeAnonymousRegistration, isAnonymous } = useAuth();
+  
+  // Estado para forçar re-renderização quando o tema mudar
+  const [, setForceUpdate] = useState({});
+  
+  // Efeito para forçar a re-renderização quando o tema mudar
+  useEffect(() => {
+    setForceUpdate({});
+  }, [theme]);
 
   useEffect(() => {
     if (!isAnonymous) {
@@ -50,6 +60,9 @@ export default function CompleteRegistrationScreen() {
   const [activeField, setActiveField] = useState("");
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [formStep, setFormStep] = useState(1);
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -71,35 +84,14 @@ export default function CompleteRegistrationScreen() {
     };
   }, []);
 
-  const calculatePasswordStrength = (pass: string): number => {
-    let strength = 0;
-    if (pass.length >= 8) strength += 0.25;
-    if (/[A-Z]/.test(pass)) strength += 0.25;
-    if (/[0-9]/.test(pass)) strength += 0.25;
-    if (/[^A-Za-z0-9]/.test(pass)) strength += 0.25;
-    return strength;
-  };
-
   const handlePasswordChange = (text: string) => {
     setPassword(text);
     setPasswordStrength(calculatePasswordStrength(text));
   };
 
-  const getPasswordStrengthColor = () => {
-    if (passwordStrength <= 0.25) return "#FF5252";
-    if (passwordStrength <= 0.5) return "#FFC107";
-    if (passwordStrength <= 0.75) return "#2196F3";
-    return "#4CAF50";
-  };
-
-  const getPasswordStrengthText = () => {
-    if (passwordStrength <= 0.25) return "Fraca";
-    if (passwordStrength <= 0.5) return "Média";
-    if (passwordStrength <= 0.75) return "Boa";
-    return "Forte";
-  };
-
   const handleCompleteRegistration = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
     const validationResult = validateRegistration(
       name,
       email,
@@ -131,164 +123,393 @@ export default function CompleteRegistrationScreen() {
     }
   };
 
+  const handleSocialLogin = (provider: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Implementação futura de login social
+    console.log(`Login com ${provider}`);
+  };
+
+  const nextStep = () => {
+    if (formStep === 1) {
+      if (!name.trim() || !email.trim()) {
+        setError("Por favor, preencha seu nome e email");
+        return;
+      }
+      
+      // Validação básica de email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        setError("Por favor, insira um email válido");
+        return;
+      }
+      
+      setError("");
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setFormStep(2);
+    }
+  };
+
+  const prevStep = () => {
+    if (formStep === 2) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setFormStep(1);
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
-      <LinearGradient
-        colors={[colors.primary, "#333"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradientBackground}
+    <SafeAreaView 
+      key={`registration-container-${theme}`}
+      style={styles.container}
+    >
+      <StatusBar style={theme === 'dark' ? "light" : "dark"} />
+      
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { backgroundColor: colors.background }
+          ]}
+          showsVerticalScrollIndicator={false}
         >
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
+          {/* Header */}
+          <MotiView
+            key={`header-${theme}`}
+            from={{ opacity: 0, translateY: -20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "spring", damping: 18 }}
+            style={styles.header}
           >
-            <View style={styles.header}>
-              <MotiText
-                from={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: "spring", delay: 300 }}
-                style={styles.title}
-              >
-                Complete seu cadastro
-              </MotiText>
-              <MotiText
-                from={{ opacity: 0 }}
-                animate={{ opacity: 0.9 }}
-                transition={{ type: "timing", delay: 500, duration: 800 }}
-                style={styles.subtitle}
-              >
-                Crie sua conta para salvar seu progresso e acessar recursos
-                exclusivos.
-              </MotiText>
-            </View>
-
-            <MotiView
-              from={{ opacity: 0, translateY: 50 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: "spring", delay: 600 }}
-              style={[
-                styles.formCard,
-                {
-                  backgroundColor: colorScheme === "dark" ? "#1A1A1A" : "white",
-                },
-              ]}
+            <MotiText
+              key={`title-${theme}`}
+              from={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", delay: 300 }}
+              style={[styles.title, { color: colors.text }]}
             >
-              {error ? (
-                <View style={styles.errorContainer}>
-                  <Ionicons name="alert-circle" size={20} color="#FF5252" />
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              ) : null}
+              {formStep === 1 ? "Quase lá!" : "Crie sua senha"}
+            </MotiText>
+            
+            <MotiText
+              key={`subtitle-${theme}`}
+              from={{ opacity: 0 }}
+              animate={{ opacity: 0.7 }}
+              transition={{ type: "timing", delay: 500, duration: 800 }}
+              style={[styles.subtitle, { color: colors.text }]}
+            >
+              {formStep === 1 
+                ? "Complete seu cadastro para salvar seu plano nutricional personalizado"
+                : "Escolha uma senha segura para proteger sua conta"}
+            </MotiText>
+          </MotiView>
 
-              <View style={styles.formContainer}>
-                <View style={styles.inputWrapper}>
-                  <Input
-                    label="Nome"
-                    placeholder="Seu nome completo"
-                    value={name}
-                    onChangeText={setName}
-                    autoCapitalize="words"
-                    onFocus={() => setActiveField("name")}
-                    onBlur={() => setActiveField("")}
-                    leftIcon="person-outline"
-                    isActive={activeField === "name"}
-                  />
-                </View>
+          {/* Indicador de progresso */}
+          <MotiView 
+            key={`progress-indicator-${theme}`}
+            style={styles.progressContainer}
+          >
+            <MotiView
+              key={`step-1-${theme}`}
+              style={[
+                styles.progressStep, 
+                { 
+                  backgroundColor: formStep >= 1 ? colors.primary : theme === 'dark' ? '#333' : '#e0e0e0',
+                  width: formStep === 1 ? 24 : 12,
+                }
+              ]}
+              animate={{ 
+                backgroundColor: formStep >= 1 ? colors.primary : theme === 'dark' ? '#333' : '#e0e0e0',
+                width: formStep === 1 ? 24 : 12,
+              }}
+              transition={{ type: "timing", duration: 300 }}
+            />
+            <MotiView
+              key={`step-2-${theme}`}
+              style={[
+                styles.progressStep, 
+                { 
+                  backgroundColor: formStep >= 2 ? colors.primary : theme === 'dark' ? '#333' : '#e0e0e0',
+                  width: formStep === 2 ? 24 : 12,
+                }
+              ]}
+              animate={{ 
+                backgroundColor: formStep >= 2 ? colors.primary : theme === 'dark' ? '#333' : '#e0e0e0',
+                width: formStep === 2 ? 24 : 12,
+              }}
+              transition={{ type: "timing", duration: 300 }}
+            />
+          </MotiView>
 
-                <View style={styles.inputWrapper}>
-                  <Input
-                    label="Email"
-                    placeholder="Seu email"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    onFocus={() => setActiveField("email")}
-                    onBlur={() => setActiveField("")}
-                    leftIcon="mail-outline"
-                    isActive={activeField === "email"}
-                  />
-                </View>
+          {/* Formulário */}
+          <View style={styles.formContainer}>
+            <AnimatePresence mode="sync">
+              {formStep === 1 && (
+                <MotiView
+                  key={`form-step-1-${theme}`}
+                  from={{ opacity: 0, transform: [{ translateX: -width }] }}
+                  animate={{ opacity: 1, transform: [{ translateX: 0 }] }}
+                  exit={{ opacity: 0, transform: [{ translateX: -width }] }}
+                  transition={{ 
+                    type: "timing", 
+                    duration: 350,
+                    delay: 0,
+                  }}
+                  style={[
+                    styles.formCard,
+                    {
+                      backgroundColor: theme === "dark" ? colors.dark : colors.light,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  {error ? (
+                    <MotiView 
+                      key={`error-container-${theme}`}
+                      from={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      style={styles.errorContainer}
+                    >
+                      <Ionicons name="alert-circle" size={20} color="#FF5252" />
+                      <Text style={styles.errorText}>{error}</Text>
+                    </MotiView>
+                  ) : null}
 
-                <View style={styles.inputWrapper}>
-                  <Input
-                    label="Senha"
-                    placeholder="Sua senha"
-                    value={password}
-                    onChangeText={handlePasswordChange}
-                    secureTextEntry
-                    onFocus={() => setActiveField("password")}
-                    onBlur={() => setActiveField("")}
-                    leftIcon="lock-closed-outline"
-                    isActive={activeField === "password"}
-                  />
-                </View>
-
-                {password.length > 0 && (
-                  <View style={styles.passwordStrengthContainer}>
-                    <View style={styles.strengthBarContainer}>
-                      <View
-                        style={[
-                          styles.strengthBar,
-                          {
-                            width: `${passwordStrength * 100}%`,
-                            backgroundColor: getPasswordStrengthColor(),
-                          },
-                        ]}
+                  <View style={styles.formInnerContainer}>
+                    <View style={styles.inputWrapper}>
+                      <Input
+                        label="Nome"
+                        placeholder="Seu nome completo"
+                        value={name}
+                        onChangeText={setName}
+                        autoCapitalize="words"
+                        onFocus={() => setActiveField("name")}
+                        onBlur={() => setActiveField("")}
+                        leftIcon="person-outline"
+                        isActive={activeField === "name"}
                       />
                     </View>
-                    <Text
+
+                    <View style={styles.inputWrapper}>
+                      <Input
+                        label="Email"
+                        placeholder="Seu email"
+                        value={email}
+                        onChangeText={setEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        onFocus={() => setActiveField("email")}
+                        onBlur={() => setActiveField("")}
+                        leftIcon="mail-outline"
+                        isActive={activeField === "email"}
+                      />
+                    </View>
+
+                    <TouchableOpacity
+                      key={`next-button-${theme}`}
                       style={[
-                        styles.strengthText,
-                        { color: getPasswordStrengthColor() },
+                        styles.nextButton,
+                        { backgroundColor: colors.primary }
                       ]}
+                      onPress={nextStep}
+                      activeOpacity={0.8}
                     >
-                      {getPasswordStrengthText()}
-                    </Text>
+                      <Text style={styles.nextButtonText}>Continuar</Text>
+                      <Ionicons name="arrow-forward" size={20} color="white" />
+                    </TouchableOpacity>
+
+                    <View style={styles.dividerContainer}>
+                      <View style={[styles.divider, { backgroundColor: theme === 'dark' ? '#444' : '#e0e0e0' }]} />
+                      <Text style={[styles.dividerText, { color: theme === 'dark' ? '#aaa' : '#888' }]}>ou continue com</Text>
+                      <View style={[styles.divider, { backgroundColor: theme === 'dark' ? '#444' : '#e0e0e0' }]} />
+                    </View>
+
+                    <View style={styles.socialButtonsContainer}>
+                      <TouchableOpacity
+                        key={`google-button-${theme}`}
+                        style={[
+                          styles.socialButton,
+                          { 
+                            backgroundColor: theme === 'dark' ? '#333' : '#f5f5f5',
+                            borderColor: theme === 'dark' ? '#444' : '#e0e0e0'
+                          }
+                        ]}
+                        onPress={() => handleSocialLogin('Google')}
+                      >
+                        <Ionicons name="logo-google" size={20} color="#DB4437" />
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity
+                        key={`apple-button-${theme}`}
+                        style={[
+                          styles.socialButton,
+                          { 
+                            backgroundColor: theme === 'dark' ? '#333' : '#f5f5f5',
+                            borderColor: theme === 'dark' ? '#444' : '#e0e0e0'
+                          }
+                        ]}
+                        onPress={() => handleSocialLogin('Apple')}
+                      >
+                        <Ionicons name="logo-apple" size={20} color={theme === 'dark' ? '#fff' : '#000'} />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                )}
+                </MotiView>
+              )}
 
-                <View style={styles.inputWrapper}>
-                  <Input
-                    label="Confirmar Senha"
-                    placeholder="Confirme sua senha"
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry
-                    onFocus={() => setActiveField("confirmPassword")}
-                    onBlur={() => setActiveField("")}
-                    leftIcon="shield-checkmark-outline"
-                    isActive={activeField === "confirmPassword"}
-                  />
-                </View>
+              {formStep === 2 && (
+                <MotiView
+                  key={`form-step-2-${theme}`}
+                  from={{ opacity: 0, transform: [{ translateX: width }] }}
+                  animate={{ opacity: 1, transform: [{ translateX: 0 }] }}
+                  exit={{ opacity: 0, transform: [{ translateX: width }] }}
+                  transition={{ 
+                    type: "timing", 
+                    duration: 350,
+                    delay: 0,
+                  }}
+                  style={[
+                    styles.formCard,
+                    {
+                      backgroundColor: theme === "dark" ? colors.dark : colors.light,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  {error ? (
+                    <MotiView 
+                      key={`error-container-step2-${theme}`}
+                      from={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      style={styles.errorContainer}
+                    >
+                      <Ionicons name="alert-circle" size={20} color="#FF5252" />
+                      <Text style={styles.errorText}>{error}</Text>
+                    </MotiView>
+                  ) : null}
 
-                <Button
-                  title="CRIAR MINHA CONTA"
-                  onPress={handleCompleteRegistration}
-                  loading={loading}
-                  style={styles.registerButton}
-                />
+                  <View style={styles.formInnerContainer}>
+                    <View style={styles.inputWrapper}>
+                      <Input
+                        label="Senha"
+                        placeholder="Sua senha"
+                        value={password}
+                        onChangeText={handlePasswordChange}
+                        secureTextEntry={!showPassword}
+                        onFocus={() => setActiveField("password")}
+                        onBlur={() => setActiveField("")}
+                        leftIcon="lock-closed-outline"
+                        rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
+                        onRightIconPress={() => setShowPassword(!showPassword)}
+                        isActive={activeField === "password"}
+                      />
+                    </View>
 
-                <View style={styles.termsContainer}>
-                  <Text style={styles.termsText}>
-                    Ao criar uma conta, você concorda com nossos{" "}
-                    <Text style={styles.termsLink}>Termos de Serviço</Text> e{" "}
-                    <Text style={styles.termsLink}>
-                      Política de Privacidade
-                    </Text>
-                  </Text>
-                </View>
-              </View>
-            </MotiView>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </LinearGradient>
+                    {password.length > 0 && (
+                      <MotiView 
+                        key={`password-strength-${theme}`}
+                        from={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        style={styles.passwordStrengthContainer}
+                      >
+                        <View style={styles.strengthBarContainer}>
+                          <View
+                            style={[
+                              styles.strengthBar,
+                              {
+                                width: `${passwordStrength * 100}%`,
+                                backgroundColor: getPasswordStrengthColor(),
+                              },
+                            ]}
+                          />
+                        </View>
+                        <Text
+                          style={[
+                            styles.strengthText,
+                            { color: getPasswordStrengthColor() },
+                          ]}
+                        >
+                          {getPasswordStrengthText()}
+                        </Text>
+                      </MotiView>
+                    )}
+
+                    <View style={styles.inputWrapper}>
+                      <Input
+                        label="Confirmar Senha"
+                        placeholder="Confirme sua senha"
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        secureTextEntry={!showConfirmPassword}
+                        onFocus={() => setActiveField("confirmPassword")}
+                        onBlur={() => setActiveField("")}
+                        leftIcon="shield-checkmark-outline"
+                        rightIcon={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                        onRightIconPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                        isActive={activeField === "confirmPassword"}
+                      />
+                    </View>
+
+                    <View style={styles.buttonRow}>
+                      <TouchableOpacity
+                        key={`back-button-${theme}`}
+                        style={[
+                          styles.backButton,
+                          { 
+                            backgroundColor: 'transparent',
+                            borderColor: colors.border,
+                          }
+                        ]}
+                        onPress={prevStep}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="arrow-back" size={20} color={colors.text} />
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity
+                        key={`create-account-button-${theme}`}
+                        style={[
+                          styles.createAccountButton,
+                          { backgroundColor: colors.primary }
+                        ]}
+                        onPress={handleCompleteRegistration}
+                        disabled={loading}
+                        activeOpacity={0.8}
+                      >
+                        {loading ? (
+                          <MotiView
+                            from={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ type: "timing", duration: 200 }}
+                          >
+                            <Ionicons name="sync" size={24} color="white" style={styles.loadingIcon} />
+                          </MotiView>
+                        ) : (
+                          <Text style={styles.createAccountButtonText}>Criar Conta</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </MotiView>
+              )}
+            </AnimatePresence>
+          </View>
+
+          <View style={styles.termsContainer}>
+            <Text style={[styles.termsText, { color: theme === 'dark' ? '#aaa' : '#888' }]}>
+              Ao criar uma conta, você concorda com nossos{" "}
+              <Text style={[styles.termsLink, { color: colors.primary }]}>
+                Termos de Serviço
+              </Text>{" "}
+              e{" "}
+              <Text style={[styles.termsLink, { color: colors.primary }]}>
+                Política de Privacidade
+              </Text>
+            </Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -297,43 +518,56 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  gradientBackground: {
-    flex: 1,
-  },
   scrollContent: {
     flexGrow: 1,
-    padding: 16,
+    padding: 24,
   },
   header: {
     alignItems: "center",
-    marginVertical: 24,
+    marginVertical: 32,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
-    color: "white",
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: 12,
   },
   subtitle: {
-    fontSize: 14,
-    color: "white",
+    fontSize: 16,
     textAlign: "center",
-    maxWidth: "80%",
-    lineHeight: 20,
+    maxWidth: "85%",
+    lineHeight: 22,
   },
-  formCard: {
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+  progressContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    gap: 8,
+  },
+  progressStep: {
+    height: 8,
+    borderRadius: 4,
   },
   formContainer: {
+    position: 'relative',
+    width: '100%',
+    overflow: 'hidden',
+  },
+  formCard: {
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 5,
+    marginBottom: 24,
+  },
+  formInnerContainer: {
     width: "100%",
-    gap: 16,
+    gap: 20,
   },
   inputWrapper: {
     width: "100%",
@@ -341,8 +575,7 @@ const styles = StyleSheet.create({
   passwordStrengthContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: -8,
-    marginBottom: 8,
+    marginTop: -12,
   },
   strengthBarContainer: {
     flex: 1,
@@ -373,23 +606,86 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
   },
-  registerButton: {
-    height: 48,
-    borderRadius: 24,
+  nextButton: {
+    height: 56,
+    borderRadius: 28,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+  nextButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    paddingHorizontal: 16,
+    fontSize: 14,
+  },
+  socialButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  socialButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
     marginTop: 8,
   },
+  backButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  createAccountButton: {
+    flex: 1,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  createAccountButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  loadingIcon: {
+    transform: [{ rotate: '0deg' }],
+  },
   termsContainer: {
-    marginTop: 16,
+    marginTop: 8,
+    marginBottom: 16,
     alignItems: "center",
   },
   termsText: {
     fontSize: 12,
-    color: "#666",
     textAlign: "center",
-    lineHeight: 16,
+    lineHeight: 18,
+    maxWidth: '90%',
   },
   termsLink: {
-    color: "#4ecdc4",
     fontWeight: "bold",
   },
 });

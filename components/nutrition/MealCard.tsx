@@ -16,6 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInRight } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
+import { useAuth } from "../../context/AuthContext";
 
 interface MealCardProps {
   meal: {
@@ -48,15 +49,17 @@ export default function MealCard({
   const router = useRouter();
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const { user } = useAuth();
+  const userId = user?.uid || 'no-user';
   
   // Estado para forçar re-renderização quando o tema mudar
   const [, setForceUpdate] = useState({});
   
-  // Efeito para forçar a re-renderização quando o tema mudar
+  // Efeito para forçar a re-renderização quando o tema mudar ou o usuário mudar
   useEffect(() => {
-    // Forçar re-renderização quando o tema mudar
+    // Forçar re-renderização quando o tema ou usuário mudar
     setForceUpdate({});
-  }, [theme]);
+  }, [theme, userId]);
 
   const handleHapticFeedback = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -96,7 +99,7 @@ export default function MealCard({
 
   const renderFoodItem = (food: Food, foodIndex: number) => (
     <Swipeable
-      key={`food-${food.id}-${theme}`}
+      key={`food-${food.id}-${theme}-${userId}`}
       renderRightActions={() => (
         <TouchableOpacity
           style={[styles.swipeAction, { backgroundColor: colors.danger + "CC" }]}
@@ -110,7 +113,7 @@ export default function MealCard({
       )}
     >
       <Animated.View
-        key={`food-item-${food.id}-${theme}`}
+        key={`food-item-${food.id}-${theme}-${userId}`}
         entering={FadeInRight.delay(foodIndex * 100).duration(300)}
         style={[
           styles.foodItemContainer, 
@@ -169,7 +172,7 @@ export default function MealCard({
 
   return (
     <MotiView
-      key={`meal-card-${meal.id}-${theme}`}
+      key={`meal-card-${meal.id}-${theme}-${userId}`}
       style={[styles.mealCard, { backgroundColor: colors.light }]}
       from={{ opacity: 0, translateY: 20 }}
       animate={{ opacity: 1, translateY: 0 }}
@@ -244,19 +247,19 @@ export default function MealCard({
 
         <View style={styles.foodsContainer}>
           {foods.length > 0 ? (
-            <View key={`foods-list-${theme}`} style={styles.foodsList}>
+            <View key={`foods-list-${theme}-${userId}`} style={styles.foodsList}>
               {foods.map((food, foodIndex) => renderFoodItem(food, foodIndex))}
             </View>
           ) : (
             <MotiView
-              key={`empty-container-${theme}`}
+              key={`empty-container-${theme}-${userId}`}
               from={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ type: "timing", duration: 500 }}
               style={styles.emptyContainer}
             >
               <LinearGradient
-                key={`empty-gradient-${theme}`}
+                key={`empty-gradient-${theme}-${userId}`}
                 colors={[colors.light, colors.background]}
                 style={styles.emptyGradient}
               >
