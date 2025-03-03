@@ -360,7 +360,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     opacity: 0.5,
     textTransform: "lowercase",
-    
   },
   leftGradient: {
     position: "absolute",

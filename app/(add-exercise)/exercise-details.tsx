@@ -249,9 +249,11 @@ export default function ExerciseDetailsScreen() {
   const customName = params.customName as string;
   const workoutId = params.workoutId as string;
   const workoutColor = params.workoutColor as string || colors.primary;
+  const mode = params.mode as string;
+  const exerciseDataParam = params.exerciseData as string;
   
   // Contexto de treinos
-  const { addExerciseToWorkout, getWorkoutTypeById } = useWorkouts();
+  const { addExerciseToWorkout, updateExerciseInWorkout, getWorkoutTypeById } = useWorkouts();
   const workoutType = getWorkoutTypeById(workoutId);
   
   // Estados
@@ -279,6 +281,48 @@ export default function ExerciseDetailsScreen() {
       setIsLoading(true);
       
       try {
+        // Verificar se estamos no modo de edição com dados passados
+        if (mode === 'edit' && exerciseDataParam) {
+          try {
+            const exerciseData = JSON.parse(exerciseDataParam);
+            
+            // Configurar os estados com os dados do exercício
+            if (exerciseData.name) {
+              setCustomExerciseName(exerciseData.name);
+            }
+            
+            if (exerciseData.notes) {
+              setNotes(exerciseData.notes);
+            }
+            
+            if (exerciseData.sets && exerciseData.sets.length > 0) {
+              setSets(exerciseData.sets);
+            } else if (exerciseData.category !== 'cardio') {
+              // Adicionar uma série inicial se não for cardio
+              addNewSet();
+            }
+            
+            if (exerciseData.category === 'cardio') {
+              setCardioDuration(exerciseData.cardioDuration || 30);
+              setCardioIntensity(exerciseData.cardioIntensity || 5);
+            }
+            
+            // Buscar dados adicionais do exercício se tivermos um ID
+            if (exerciseId) {
+              const dbExercise = getExerciseById(exerciseId);
+              if (dbExercise) {
+                setExercise(dbExercise);
+              }
+            }
+            
+            setIsLoading(false);
+            return;
+          } catch (error) {
+            console.error('Erro ao processar dados do exercício:', error);
+          }
+        }
+        
+        // Fluxo normal se não estivermos editando
         if (exerciseId) {
           // Buscar exercício pelo ID
           const exerciseData = getExerciseById(exerciseId);
@@ -302,7 +346,7 @@ export default function ExerciseDetailsScreen() {
     };
     
     loadExerciseDetails();
-  }, [exerciseId]);
+  }, [exerciseId, exerciseDataParam, mode]);
   
   // Função para adicionar uma nova série
   const addNewSet = () => {
@@ -354,16 +398,22 @@ export default function ExerciseDetailsScreen() {
   // Função para adicionar o exercício ao treino
   const handleAddExercise = () => {
     const newExercise: Exercise = {
-      id: `exercise-${Date.now()}`,
+      id: mode === 'edit' && exerciseId ? exerciseId : `exercise-${Date.now()}`,
       name: exercise ? exercise.name : customExerciseName.trim(),
       sets: exercise?.category === 'cardio' ? [] : sets,
       notes: notes.trim(),
-      completed: false,
+      category: exercise?.category || 'força',
       cardioDuration: exercise?.category === 'cardio' ? cardioDuration : undefined,
       cardioIntensity: exercise?.category === 'cardio' ? cardioIntensity : undefined,
     };
     
-    addExerciseToWorkout(workoutId, newExercise);
+    // Se estamos editando, atualizar o exercício existente
+    if (mode === 'edit' && exerciseId) {
+      updateExerciseInWorkout(workoutId, newExercise);
+    } else {
+      // Caso contrário, adicionar um novo exercício
+      addExerciseToWorkout(workoutId, newExercise);
+    }
     
     // Feedback tátil
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -578,7 +628,7 @@ export default function ExerciseDetailsScreen() {
               disabled={
                 isLoading || 
                 (isCustomExercise && !customExerciseName.trim()) ||
-                sets.length === 0
+                (exercise?.category !== 'cardio' && sets.length === 0)
               }
             >
               <Ionicons name="add" size={24} color="white" />

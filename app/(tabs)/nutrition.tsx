@@ -72,24 +72,6 @@ export default function NutritionScreen() {
     updateMealTypes,
   } = useMeals();
 
-  // Estado para forçar re-renderização quando o tema mudar
-  const [, setForceUpdate] = useState({});
-  
-  // Efeito para forçar a re-renderização quando o tema mudar
-  useEffect(() => {
-    // Forçar re-renderização quando o tema mudar
-    setForceUpdate({});
-  }, [theme]);
-  
-  // Efeito para forçar a re-renderização quando o usuário mudar
-  useEffect(() => {
-    if (user) {
-      console.log("Usuário alterado na tela de nutrição:", user.uid);
-      // Forçar re-renderização quando o usuário mudar
-      setForceUpdate({});
-    }
-  }, [user?.uid]);
-
   // Estado para forçar a recriação do MealConfigSheet
   const [mealConfigKey, setMealConfigKey] = useState(Date.now());
 
@@ -179,27 +161,27 @@ export default function NutritionScreen() {
   if (!hasMealTypesConfigured) {
     return (
       <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
+        style={{ flex: 1, backgroundColor: colors.background }}
         edges={["top"]}
       >
-        <View style={styles.calendarContainer}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
           <Calendar
             selectedDate={getLocalDate(selectedDate)}
             onSelectDate={handleDateSelect}
           />
+          
+          <EmptyNutritionState 
+            onMealConfigured={handleMealConfigured} 
+            onOpenMealConfig={openMealConfigSheet}
+          />
+          
+          {/* Bottom Sheet para configuração de refeições quando não há refeições configuradas */}
+          <MealConfigSheet
+            ref={mealConfigSheetRef}
+            onMealConfigured={handleMealConfigured}
+            key={`meal-config-empty-${mealConfigKey}-${theme}`}
+          />
         </View>
-        
-        <EmptyNutritionState 
-          onMealConfigured={handleMealConfigured} 
-          onOpenMealConfig={openMealConfigSheet}
-        />
-        
-        {/* Bottom Sheet para configuração de refeições quando não há refeições configuradas */}
-        <MealConfigSheet
-          ref={mealConfigSheetRef}
-          onMealConfigured={handleMealConfigured}
-          key={`meal-config-empty-${mealConfigKey}-${theme}`}
-        />
       </SafeAreaView>
     );
   }
@@ -208,49 +190,45 @@ export default function NutritionScreen() {
   if (configuredMealTypes.length === 0) {
     return (
       <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
+        style={{ flex: 1, backgroundColor: colors.background }}
         edges={["top"]}
       >
-        <View style={styles.calendarContainer}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
           <Calendar
             selectedDate={getLocalDate(selectedDate)}
             onSelectDate={handleDateSelect}
           />
+          
+          <EmptyNutritionState 
+            onMealConfigured={handleMealConfigured} 
+            onOpenMealConfig={openMealConfigSheet}
+          />
         </View>
-        
-        <EmptyNutritionState 
-          onMealConfigured={handleMealConfigured} 
-          onOpenMealConfig={openMealConfigSheet}
-        />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={{ flex: 1, backgroundColor: colors.background }}
       edges={["top"]}
     >
-      <View style={styles.calendarContainer}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Calendar
           selectedDate={getLocalDate(selectedDate)}
           onSelectDate={handleDateSelect}
         />
-      </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <View style={styles.summaryContainer}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           <MacrosCard
             dayTotals={dailyTotals}
             nutritionInfo={nutritionInfo}
           />
-        </View>
 
-        <View style={styles.mealsContainer}>
           {configuredMealTypes.map((meal, index) => (
             <MealCard
               key={`meal-${meal.id}-${user?.uid || 'no-user'}`}
@@ -289,15 +267,15 @@ export default function NutritionScreen() {
               Editar Refeições
             </Text>
           </TouchableOpacity>
-        </View>
-      </ScrollView>
-      
-      {/* Bottom Sheet para configuração de refeições quando há refeições configuradas */}
-      <MealConfigSheet
-        ref={mealConfigSheetRef}
-        onMealConfigured={handleMealConfigured}
-        key={`meal-config-configured-${mealConfigKey}-${theme}`}
-      />
+        </ScrollView>
+        
+        {/* Bottom Sheet para configuração de refeições quando há refeições configuradas */}
+        <MealConfigSheet
+          ref={mealConfigSheetRef}
+          onMealConfigured={handleMealConfigured}
+          key={`meal-config-configured-${mealConfigKey}-${theme}`}
+        />
+      </View>
     </SafeAreaView>
   );
 }
@@ -306,29 +284,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  calendarContainer: {
-    zIndex: 10,
-    elevation: 10,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 20,
-  },
-  summaryContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
-  },
-  mealsContainer: {
-    paddingHorizontal: 20,
+    padding: 16,
     paddingBottom: 100,
   },
   resetButton: {

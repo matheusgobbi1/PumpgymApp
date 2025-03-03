@@ -34,6 +34,7 @@ interface MealCardProps {
   index: number;
   onPress: () => void;
   onDeleteFood: (foodId: string) => Promise<void>;
+  onDeleteMeal?: (mealId: string) => Promise<void>;
 }
 
 const { width } = Dimensions.get("window");
@@ -45,6 +46,7 @@ export default function MealCard({
   index,
   onPress,
   onDeleteFood,
+  onDeleteMeal,
 }: MealCardProps) {
   const router = useRouter();
   const { theme } = useTheme();
@@ -52,14 +54,10 @@ export default function MealCard({
   const { user } = useAuth();
   const userId = user?.uid || 'no-user';
   
-  // Estado para forçar re-renderização quando o tema mudar
-  const [, setForceUpdate] = useState({});
-  
   // Efeito para forçar a re-renderização quando o tema mudar ou o usuário mudar
   useEffect(() => {
-    // Forçar re-renderização quando o tema ou usuário mudar
-    setForceUpdate({});
-  }, [theme, userId]);
+    // Não é necessário fazer nada aqui, o React já vai re-renderizar quando as props mudarem
+  }, [theme, userId, foods]);
 
   const handleHapticFeedback = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -97,23 +95,88 @@ export default function MealCard({
   const fatColor = colors.danger || "#FF3B30";     // Vermelho
   
 
-  const renderFoodItem = (food: Food, foodIndex: number) => (
-    <Swipeable
-      key={`food-${food.id}-${theme}-${userId}`}
-      renderRightActions={() => (
+  // Função para navegar para a tela de detalhes do alimento para edição
+  const navigateToFoodDetails = (food: Food) => {
+    handleHapticFeedback();
+    
+    // Navegar para a tela de detalhes do alimento com os dados do alimento
+    router.push({
+      pathname: "/(add-food)/food-details",
+      params: {
+        mealId: meal.id,
+        mealName: meal.name,
+        isFromHistory: "true",
+        foodName: food.name,
+        calories: food.calories.toString(),
+        protein: food.protein.toString(),
+        carbs: food.carbs.toString(),
+        fat: food.fat.toString(),
+        portion: food.portion.toString(),
+        foodId: food.id,
+        mode: 'edit'
+      },
+    });
+  };
+
+  // Função para renderizar as ações de deslize à esquerda (editar)
+  const renderLeftActions = (food: Food) => (
+    <View style={styles.swipeActionContainer}>
+      <TouchableOpacity
+        style={[styles.swipeAction, { backgroundColor: colors.primary + "CC" }]}
+        onPress={() => navigateToFoodDetails(food)}
+      >
+        <Ionicons name="create-outline" size={20} color="white" />
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Função para renderizar as ações de deslize à direita para o card de refeição
+  const renderMealRightActions = () => {
+    if (!onDeleteMeal) return null;
+    
+    return (
+      <View style={styles.swipeActionContainer}>
         <TouchableOpacity
-          style={[styles.swipeAction, { backgroundColor: colors.danger + "CC" }]}
+          style={[styles.swipeActionMeal, { backgroundColor: colors.danger + "E6" }]}
           onPress={async () => {
             handleHapticFeedback();
-            await onDeleteFood(food.id);
+            if (onDeleteMeal) {
+              await onDeleteMeal(meal.id);
+            }
           }}
         >
-          <Ionicons name="trash-outline" size={20} color="white" />
+          <Ionicons name="trash-outline" size={22} color="white" />
+          <Text style={styles.swipeActionText}>Excluir</Text>
         </TouchableOpacity>
-      )}
+      </View>
+    );
+  };
+
+  // Função para renderizar as ações de deslize à direita (excluir)
+  const renderRightActions = (foodId: string) => (
+    <View style={styles.swipeActionContainer}>
+      <TouchableOpacity
+        style={[styles.swipeAction, { backgroundColor: colors.danger + "CC" }]}
+        onPress={async () => {
+          handleHapticFeedback();
+          await onDeleteFood(foodId);
+        }}
+      >
+        <Ionicons name="trash-outline" size={20} color="white" />
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderFoodItem = (food: Food, foodIndex: number) => (
+    <Swipeable
+      key={`food-${food.id}-${foodIndex}`}
+      renderRightActions={() => renderRightActions(food.id)}
+      renderLeftActions={() => renderLeftActions(food)}
+      friction={2}
+      overshootRight={false}
+      overshootLeft={false}
     >
       <Animated.View
-        key={`food-item-${food.id}-${theme}-${userId}`}
         entering={FadeInRight.delay(foodIndex * 100).duration(300)}
         style={[
           styles.foodItemContainer, 
@@ -171,126 +234,132 @@ export default function MealCard({
   );
 
   return (
-    <MotiView
-      key={`meal-card-${meal.id}-${theme}-${userId}`}
-      style={[styles.mealCard, { backgroundColor: colors.light }]}
-      from={{ opacity: 0, translateY: 20 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{ type: "spring", delay: index * 100 }}
+    <Swipeable
+      renderRightActions={renderMealRightActions}
+      friction={2}
+      overshootRight={false}
+      containerStyle={styles.swipeableContainer}
     >
-      <View style={styles.mealContent}>
-        <TouchableOpacity
-          style={styles.headerTouchable}
-          onPress={onPress}
-          activeOpacity={0.7}
-        >
-          <View style={styles.mealHeader}>
-            <View style={styles.mealTitleContainer}>
-              <Ionicons
-                name={meal.icon as any}
-                size={18}
-                color={colors.tint}
-                style={styles.mealIcon}
-              />
-              <View>
-                <Text style={[styles.mealTitle, { color: colors.text }]}>
-                  {meal.name}
-                </Text>
-                {foods.length > 0 && (
-                  <Text
-                    style={[styles.foodCount, { color: colors.text + "70" }]}
-                  >
-                    {foods.length}{" "}
-                    {foods.length === 1 ? "alimento" : "alimentos"}
+      <MotiView
+        key={`meal-card-${meal.id}-${index}`}
+        style={[styles.mealCard, { backgroundColor: colors.light }]}
+        from={{ opacity: 0, translateY: 20 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: "spring", delay: index * 100 }}
+      >
+        <View style={styles.mealContent}>
+          <TouchableOpacity
+            style={styles.headerTouchable}
+            onPress={onPress}
+            activeOpacity={0.7}
+          >
+            <View style={styles.mealHeader}>
+              <View style={styles.mealTitleContainer}>
+                <Ionicons
+                  name={meal.icon as any}
+                  size={18}
+                  color={colors.tint}
+                  style={styles.mealIcon}
+                />
+                <View>
+                  <Text style={[styles.mealTitle, { color: colors.text }]}>
+                    {meal.name}
                   </Text>
-                )}
+                  {foods.length > 0 && (
+                    <Text
+                      style={[styles.foodCount, { color: colors.text + "70" }]}
+                    >
+                      {foods.length}{" "}
+                      {foods.length === 1 ? "alimento" : "alimentos"}
+                    </Text>
+                  )}
+                </View>
+              </View>
+              <View style={styles.mealCaloriesContainer}>
+                <Text style={[styles.mealCalories, { color: colors.tint }]}>
+                  {mealTotals.calories}
+                </Text>
+                <Text
+                  style={[styles.caloriesUnit, { color: colors.text + "70" }]}
+                >
+                  kcal
+                </Text>
               </View>
             </View>
-            <View style={styles.mealCaloriesContainer}>
-              <Text style={[styles.mealCalories, { color: colors.tint }]}>
-                {mealTotals.calories}
-              </Text>
-              <Text
-                style={[styles.caloriesUnit, { color: colors.text + "70" }]}
-              >
-                kcal
-              </Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        {foods.length > 0 && (
-          <View style={[styles.macroProgressContainer, { backgroundColor: colors.border }]}>
-            <View
-              style={[
-                styles.macroProgressBar,
-                { backgroundColor: proteinColor },
-                { width: `${proteinPercentage}%` },
-              ]}
-            />
-            <View
-              style={[
-                styles.macroProgressBar,
-                { backgroundColor: carbsColor },
-                { width: `${carbsPercentage}%` },
-              ]}
-            />
-            <View
-              style={[
-                styles.macroProgressBar,
-                { backgroundColor: fatColor },
-                { width: `${fatPercentage}%` },
-              ]}
-            />
-          </View>
-        )}
-
-        <View style={styles.foodsContainer}>
-          {foods.length > 0 ? (
-            <View key={`foods-list-${theme}-${userId}`} style={styles.foodsList}>
-              {foods.map((food, foodIndex) => renderFoodItem(food, foodIndex))}
-            </View>
-          ) : (
-            <MotiView
-              key={`empty-container-${theme}-${userId}`}
-              from={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ type: "timing", duration: 500 }}
-              style={styles.emptyContainer}
-            >
-              <LinearGradient
-                key={`empty-gradient-${theme}-${userId}`}
-                colors={[colors.light, colors.background]}
-                style={styles.emptyGradient}
-              >
-                <Text style={[styles.emptyText, { color: colors.text + "50" }]}>
-                  Adicione seu primeiro alimento
-                </Text>
-              </LinearGradient>
-            </MotiView>
-          )}
-        </View>
-
-        <View style={styles.addButtonContainer}>
-          <TouchableOpacity
-            style={[styles.addButton, { borderColor: colors.tint }]}
-            onPress={(e) => {
-              e.stopPropagation();
-              handleHapticFeedback();
-              router.push({
-                pathname: "/(add-food)",
-                params: {
-                  mealId: meal.id,
-                  mealName: meal.name,
-                },
-              });
-            }}
-          >
-            <Ionicons name="add" size={20} color={colors.tint} />
           </TouchableOpacity>
+
+          {foods.length > 0 && (
+            <View style={[styles.macroProgressContainer, { backgroundColor: colors.border }]}>
+              <View
+                style={[
+                  styles.macroProgressBar,
+                  { backgroundColor: proteinColor },
+                  { width: `${proteinPercentage}%` },
+                ]}
+              />
+              <View
+                style={[
+                  styles.macroProgressBar,
+                  { backgroundColor: carbsColor },
+                  { width: `${carbsPercentage}%` },
+                ]}
+              />
+              <View
+                style={[
+                  styles.macroProgressBar,
+                  { backgroundColor: fatColor },
+                  { width: `${fatPercentage}%` },
+                ]}
+              />
+            </View>
+          )}
+
+          <View style={styles.foodsContainer}>
+            {foods.length > 0 ? (
+              <View key={`foods-list-${meal.id}`} style={styles.foodsList}>
+                {foods.map((food, foodIndex) => renderFoodItem(food, foodIndex))}
+              </View>
+            ) : (
+              <MotiView
+                key={`empty-container-${meal.id}`}
+                from={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ type: "timing", duration: 500 }}
+                style={styles.emptyContainer}
+              >
+                <LinearGradient
+                  colors={[colors.light, colors.background]}
+                  style={styles.emptyGradient}
+                >
+                  <Text style={[styles.emptyText, { color: colors.text + "50" }]}>
+                    Adicione seu primeiro alimento
+                  </Text>
+                </LinearGradient>
+              </MotiView>
+            )}
+          </View>
+
+          <View style={styles.addButtonContainer}>
+            <TouchableOpacity
+              style={[styles.addButton, { borderColor: colors.tint }]}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleHapticFeedback();
+                router.push({
+                  pathname: "/(add-food)",
+                  params: {
+                    mealId: meal.id,
+                    mealName: meal.name,
+                  },
+                });
+              }}
+            >
+              <Ionicons name="add" size={20} color={colors.tint} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </MotiView>
+      </MotiView>
+    </Swipeable>
   );
 }
 
@@ -307,6 +376,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 3,
+  },
+  swipeableContainer: {
+    borderRadius: 16,
+    overflow: "hidden",
+    marginBottom: 16,
   },
   mealContent: {
     padding: 20,
@@ -448,6 +522,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     backgroundColor: "transparent",
+    borderColor: "transparent",
+  },
+  swipeActionContainer: {
+    height: "100%",
+    justifyContent: "center",
+    overflow: "hidden",
   },
   swipeAction: {
     justifyContent: "center",
@@ -456,6 +536,19 @@ const styles = StyleSheet.create({
     height: "100%",
     borderTopRightRadius: 0,
     borderBottomRightRadius: 0,
+  },
+  swipeActionMeal: {
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    width: 100,
+    backgroundColor: "rgba(255, 59, 48, 0.9)",
+    paddingHorizontal: 10,
+  },
+  swipeActionText: {
+    color: "white",
+    fontSize: 10,
+    marginTop: 4,
   },
   separator: {
     height: 1,

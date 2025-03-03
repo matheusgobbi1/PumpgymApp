@@ -124,6 +124,7 @@ export default function FoodDetailsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFromHistory, setIsFromHistory] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   
   const [, setForceUpdate] = useState({});
   
@@ -135,6 +136,7 @@ export default function FoodDetailsScreen() {
   const foodId = params.foodId as string;
   const mealId = params.mealId as string;
   const mealName = params.mealName as string;
+  const mode = params.mode as string;
 
   // Extrair parâmetros adicionais para alimentos do histórico
   const foodName = params.foodName as string;
@@ -145,11 +147,20 @@ export default function FoodDetailsScreen() {
   const foodPortion = Number(params.portion || 100);
 
   useEffect(() => {
+    // Verificar se estamos no modo de edição
+    if (mode === 'edit') {
+      setIsEditMode(true);
+    }
+    
     // Verificar se o alimento vem do histórico
     if (params.isFromHistory === "true") {
       setIsFromHistory(true);
-      setPortion(foodPortion.toString());
-
+      
+      // Se estamos no modo de edição, usar os valores passados
+      if (isEditMode) {
+        setPortion(foodPortion.toString());
+      }
+      
       // Criar um objeto de alimento com os dados passados via parâmetros
       const historyFood: FoodHint = {
         food: {
@@ -175,7 +186,7 @@ export default function FoodDetailsScreen() {
       // Se não for do histórico, carregar dados da API normalmente
       loadFoodDetails();
     }
-  }, [foodId, params.isFromHistory]);
+  }, [foodId, params.isFromHistory, isEditMode]);
 
   const loadFoodDetails = async () => {
     try {
@@ -344,20 +355,22 @@ export default function FoodDetailsScreen() {
   }
 
   const handleAddFood = async () => {
-    if (!food) return; // Verificar se food existe antes de prosseguir
+    if (!food && !isFromHistory) return; // Verificar se food existe antes de prosseguir
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    // Adicionar o alimento à refeição
-    addFoodToMeal(mealId, {
-      id: uuidv4(),
-      name: food.food.label,
+    const newFood = {
+      id: isEditMode && foodId ? foodId : uuidv4(),
+      name: food ? food.food.label : foodName,
       calories: calculatedNutrients.calories,
       protein: calculatedNutrients.protein,
       carbs: calculatedNutrients.carbs,
       fat: calculatedNutrients.fat,
       portion: Number(portion),
-    });
+    };
+
+    // Adicionar o alimento à refeição
+    addFoodToMeal(mealId, newFood);
 
     // Salvar as alterações
     await saveMeals();

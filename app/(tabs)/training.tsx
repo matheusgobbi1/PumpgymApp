@@ -12,6 +12,7 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import WorkoutConfigSheet, { WorkoutType } from "../../components/training/WorkoutConfigSheet";
 import { useWorkouts, Exercise } from "../../context/WorkoutContext";
 import WorkoutCard from "../../components/training/WorkoutCard";
+import TrainingStatsCard from "../../components/training/TrainingStatsCard";
 import { useRouter } from "expo-router";
 
 export default function TrainingScreen() {
@@ -33,6 +34,10 @@ export default function TrainingScreen() {
     getWorkoutTypeById,
     saveWorkouts,
     setWorkouts,
+    getPreviousWorkoutTotals,
+    getDayTotals,
+    trainingGoals,
+    removeWorkout,
   } = useWorkouts();
   
   // Estado para a data selecionada (sincronizado com o contexto)
@@ -102,228 +107,144 @@ export default function TrainingScreen() {
   // Função para abrir o bottom sheet de configuração de treinos
   const openWorkoutConfigSheet = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
-    // Verificar se a referência existe antes de chamar o método present
-    if (workoutConfigSheetRef.current) {
-      workoutConfigSheetRef.current.present();
-    } else {
-      console.error('Referência do bottom sheet é null em TrainingScreen');
-    }
+    workoutConfigSheetRef.current?.present();
   }, []);
   
   // Função para lidar com a configuração de treinos
   const handleWorkoutConfigured = useCallback((configuredWorkouts: WorkoutType[]) => {
-    // Separar os treinos selecionados dos não selecionados
-    const selectedWorkouts = configuredWorkouts.filter(w => w.selected);
-    
-    // Atualizar os tipos de treinos no contexto
     updateWorkoutTypes(configuredWorkouts);
-    
-    // Forçar uma atualização imediata da UI
-    setTimeout(() => {
-      // Forçar uma atualização do estado para garantir que a UI seja atualizada
-      setSelectedDate(prevDate => {
-        // Primeiro, verificar se os treinos foram configurados corretamente
-        if (workouts && selectedDate in workouts) {
-          const workoutIdsForSelectedDate = Object.keys(workouts[selectedDate]);
-          console.log(`Treinos configurados: ${workoutIdsForSelectedDate.length}`);
-        } else {
-          // Se não houver treinos configurados, criar manualmente
-          setWorkouts((prev: { [date: string]: { [workoutId: string]: Exercise[] } }) => {
-            const updated = { ...prev };
-            if (!updated[selectedDate]) {
-              updated[selectedDate] = {};
-            }
-            
-            // Adicionar entradas vazias para os treinos selecionados
-            selectedWorkouts.forEach(workout => {
-              if (!updated[selectedDate][workout.id]) {
-                updated[selectedDate][workout.id] = [];
-              }
-            });
-            
-            return updated;
-          });
-        }
-        
-        return prevDate;
-      });
-    }, 300);
-  }, [updateWorkoutTypes, selectedDate, workouts, setSelectedDate, setWorkouts]);
+  }, [updateWorkoutTypes]);
   
-  // Função para navegar para a tela de adicionar exercício
-  const navigateToAddExercise = useCallback((workoutId: string) => {
+  // Função para navegar para a tela de detalhes do treino
+  const navigateToWorkoutDetails = useCallback((workoutId: string) => {
     const workoutType = getWorkoutTypeById(workoutId);
-    
-    if (!workoutType) {
-      console.error(`Tipo de treino não encontrado para o ID: ${workoutId}`);
-      return;
-    }
-    
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (!workoutType) return;
     
     router.push({
-      pathname: '/add-exercise',
+      pathname: "/(workout-details)/workout-details",
       params: {
-        workoutId: workoutId,
+        workoutId,
         workoutName: workoutType.name,
         workoutColor: workoutType.color,
-      }
+      },
     });
   }, [getWorkoutTypeById, router]);
   
-  // Função para remover um exercício
-  const handleDeleteExercise = useCallback(
-    async (workoutId: string, exerciseId: string) => {
+  // Função para excluir um exercício de um treino
+  const handleDeleteExercise = useCallback(async (workoutId: string, exerciseId: string) => {
+    try {
       await removeExerciseFromWorkout(workoutId, exerciseId);
-    },
-    [removeExerciseFromWorkout]
-  );
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error("Erro ao deletar exercício:", error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  }, [removeExerciseFromWorkout]);
+  
+  // Função para excluir um treino inteiro
+  const handleDeleteWorkout = useCallback(async (workoutId: string) => {
+    try {
+      console.log(`Tentando excluir o treino ${workoutId}`);
+      await removeWorkout(workoutId);
+      console.log(`Treino ${workoutId} excluído com sucesso`);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error("Erro ao deletar treino:", error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  }, [removeWorkout]);
+  
+  // Verificar se há treinos configurados para a data selecionada
+  const hasWorkoutsForSelectedDate = workouts[selectedDate] && Object.keys(workouts[selectedDate]).length > 0;
   
   // Renderizar os cards de treino
   const renderWorkoutCards = () => {
-    // Verificar se existem treinos para a data selecionada
-    const workoutsForSelectedDate = workouts[selectedDate] || {};
-    const workoutIdsForSelectedDate = Object.keys(workoutsForSelectedDate);
+    if (!workouts[selectedDate]) return null;
     
-    // Verificar se há tipos de treino selecionados para a data atual
-    const selectedWorkoutTypes = workoutTypes.filter(w => w.selected);
+    const workoutIds = Object.keys(workouts[selectedDate]);
     
-    // Se não houver treinos configurados para a data selecionada, mostrar o botão de configurar
-    if (workoutIdsForSelectedDate.length === 0) {
+    return workoutIds.map((workoutId, index) => {
+      const workoutType = getWorkoutTypeById(workoutId);
+      if (!workoutType) return null;
+      
+      const exercises = getExercisesForWorkout(workoutId);
+      const workoutTotals = getWorkoutTotals(workoutId);
+      
+      // Buscar dados do treino anterior
+      const previousWorkoutData = getPreviousWorkoutTotals(workoutId);
+      
+      // Buscar exercícios do treino anterior
+      let previousExercises: Exercise[] = [];
+      if (previousWorkoutData.date && previousWorkoutData.totals) {
+        previousExercises = workouts[previousWorkoutData.date]?.[workoutId] || [];
+      }
+      
       return (
-        <View style={styles.emptyContainer}>
-          <Text style={[styles.emptyText, { color: colors.text }]}>
-            Nenhum treino configurado para {format(getLocalDate(selectedDate), "dd 'de' MMMM")}.
-          </Text>
-          <TouchableOpacity
-            style={[styles.configButton, { backgroundColor: colors.primary }]}
-            onPress={openWorkoutConfigSheet}
-          >
-            <Text style={styles.configButtonText}>Configurar Treinos</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-    
-    // Determinar quais tipos de treino devem ser renderizados
-    let workoutTypesToRender: WorkoutType[] = [];
-    
-    // Usar apenas os treinos configurados para a data selecionada
-    workoutTypesToRender = workoutIdsForSelectedDate
-      .map(id => {
-        const workoutType = getWorkoutTypeById(id);
-        // Verificar se o tipo de treino ainda existe
-        if (!workoutType) {
-          console.warn(`Tipo de treino não encontrado para o ID: ${id}`);
-          return undefined;
-        }
-        return workoutType;
-      })
-      .filter((workoutType): workoutType is WorkoutType => workoutType !== undefined);
-    
-    // Se não houver tipos de treino para renderizar, mostrar o botão de configurar
-    if (workoutTypesToRender.length === 0) {
-      return (
-        <View style={styles.emptyContainer}>
-          <Text style={[styles.emptyText, { color: colors.text }]}>
-            Nenhum treino válido para {format(getLocalDate(selectedDate), "dd 'de' MMMM")}.
-          </Text>
-          <TouchableOpacity
-            style={[styles.configButton, { backgroundColor: colors.primary }]}
-            onPress={openWorkoutConfigSheet}
-          >
-            <Text style={styles.configButtonText}>Configurar Treinos</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-    
-    // Renderizar os cards de treino
-    return (
-      <>
-        {workoutTypesToRender.map((workoutType, index) => {
-          // Obter exercícios e totais especificamente para a data selecionada
-          const exercises = workoutsForSelectedDate[workoutType.id] || [];
-          const workoutTotals = getWorkoutTotals(workoutType.id);
+        <View key={`workout-group-${workoutId}-${index}`}>
+          {/* Card de estatísticas para este treino específico */}
+          <TrainingStatsCard
+            workoutTotals={workoutTotals}
+            previousWorkoutTotals={previousWorkoutData}
+            workoutName={workoutType.name}
+            workoutColor={workoutType.color}
+            currentExercises={exercises}
+            previousExercises={previousExercises}
+          />
           
-          return (
-            <WorkoutCard
-              key={`workout-${workoutType.id}-${selectedDate}`}
-              workout={workoutType}
-              exercises={exercises}
-              workoutTotals={workoutTotals}
-              index={index}
-              onPress={() => navigateToAddExercise(workoutType.id)}
-              onDeleteExercise={(exerciseId: string) =>
-                handleDeleteExercise(workoutType.id, exerciseId)
-              }
-            />
-          );
-        })}
-      </>
-    );
-  };
-  
-  // Se não houver treinos configurados, mostrar o estado vazio
-  if (!hasWorkoutTypesConfigured) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={["top"]}
-      >
-        <View style={styles.calendarContainer}>
-          <Calendar
-            selectedDate={getLocalDate(selectedDate)}
-            onSelectDate={handleDateSelect}
+          {/* Card do treino */}
+          <WorkoutCard
+            workout={{
+              id: workoutId,
+              name: workoutType.name,
+              icon: workoutType.icon,
+              color: workoutType.color,
+            }}
+            exercises={exercises}
+            workoutTotals={workoutTotals}
+            index={index}
+            onPress={() => navigateToWorkoutDetails(workoutId)}
+            onDeleteExercise={(exerciseId) => handleDeleteExercise(workoutId, exerciseId)}
+            onDeleteWorkout={handleDeleteWorkout}
           />
         </View>
-        
-        <EmptyWorkoutState 
-          onWorkoutConfigured={handleWorkoutConfigured} 
-          onOpenWorkoutConfig={openWorkoutConfigSheet}
-        />
-        
-        <WorkoutConfigSheet
-          ref={workoutConfigSheetRef}
-          onWorkoutConfigured={handleWorkoutConfigured}
-          selectedDate={getLocalDate(selectedDate)}
-        />
-      </SafeAreaView>
-    );
-  }
+      );
+    });
+  };
   
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["top"]}
-    >
-      <View style={styles.calendarContainer}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Calendar
           selectedDate={getLocalDate(selectedDate)}
           onSelectDate={handleDateSelect}
         />
-      </View>
-      
-      <ScrollView
-        style={styles.scrollContent}
-        contentContainerStyle={styles.scrollContentContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.headerContainer}>
-          <Text style={[styles.title, { color: colors.text }]}>Meus Treinos</Text>
-          <Text style={[styles.date, { color: colors.text + "80" }]}>
-            {format(getLocalDate(selectedDate), "dd 'de' MMMM, yyyy")}
-          </Text>
-        </View>
         
-        {renderWorkoutCards()}
-      </ScrollView>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {hasWorkoutTypesConfigured ? (
+            hasWorkoutsForSelectedDate ? (
+              renderWorkoutCards()
+            ) : (
+              <EmptyWorkoutState
+                onWorkoutConfigured={handleWorkoutConfigured}
+                onOpenWorkoutConfig={openWorkoutConfigSheet}
+              />
+            )
+          ) : (
+            <EmptyWorkoutState
+              onWorkoutConfigured={handleWorkoutConfigured}
+              onOpenWorkoutConfig={openWorkoutConfigSheet}
+            />
+          )}
+        </ScrollView>
+      </View>
       
       <WorkoutConfigSheet
         ref={workoutConfigSheetRef}
         onWorkoutConfigured={handleWorkoutConfigured}
-        selectedDate={getLocalDate(selectedDate)}
       />
     </SafeAreaView>
   );
@@ -333,65 +254,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  calendarContainer: {
-    zIndex: 10,
-    elevation: 10,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-  },
-  contentContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  scrollContent: {
+  scrollView: {
     flex: 1,
   },
-  scrollContentContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  headerContainer: {
-    marginTop: 20,
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  date: {
-    fontSize: 16,
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: "center",
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  configButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  configButtonText: {
-    color: 'white',
-    fontWeight: '600',
+  scrollViewContent: {
+    padding: 16,
+    paddingBottom: 100,
   },
 });
 

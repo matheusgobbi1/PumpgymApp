@@ -106,13 +106,8 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
 
       console.log("Refeições carregadas:", Object.keys(mealsData).length, "dias");
       
-      // Limpar o estado anterior antes de definir o novo
-      setMeals({});
-      
-      // Definir o novo estado após um pequeno atraso para garantir que o estado anterior foi limpo
-      setTimeout(() => {
-        setMeals(mealsData);
-      }, 50);
+      // Definir o estado diretamente, sem limpar antes
+      setMeals(mealsData);
     } catch (error) {
       console.error("Erro ao carregar refeições:", error);
     }
@@ -223,11 +218,29 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
         updatedMeals[selectedDate][mealId] = [];
       }
 
-      // Adiciona o alimento à refeição
-      updatedMeals[selectedDate][mealId].push(food);
+      // Verificar se o alimento já existe (para edição)
+      const existingFoodIndex = updatedMeals[selectedDate][mealId].findIndex(
+        (existingFood) => existingFood.id === food.id
+      );
+
+      if (existingFoodIndex !== -1) {
+        // Atualizar o alimento existente
+        const updatedFoods = [...updatedMeals[selectedDate][mealId]];
+        updatedFoods[existingFoodIndex] = food;
+        updatedMeals[selectedDate][mealId] = updatedFoods;
+      } else {
+        // Adicionar novo alimento
+        updatedMeals[selectedDate][mealId] = [
+          ...updatedMeals[selectedDate][mealId],
+          food
+        ];
+      }
 
       return updatedMeals;
     });
+    
+    // Salvar as alterações imediatamente
+    saveMeals();
   };
 
   const removeFoodFromMeal = async (mealId: string, foodId: string) => {

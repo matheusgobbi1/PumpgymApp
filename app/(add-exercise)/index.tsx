@@ -259,14 +259,14 @@ export default function AddExerciseScreen() {
   const workoutColor = params.workoutColor as string || colors.primary;
   
   // Contexto de treinos
-  const { addExerciseToWorkout, getWorkoutTypeById } = useWorkouts();
+  const { addExerciseToWorkout, getWorkoutTypeById, workouts } = useWorkouts();
   const workoutType = getWorkoutTypeById(workoutId);
   
   // Estados
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<ExerciseData[]>([]);
-  const [recentExercises, setRecentExercises] = useState<ExerciseData[]>([]);
+  const [recentExercises, setRecentExercises] = useState<Exercise[]>([]);
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
   
   // Estado para forçar re-renderização quando o tema mudar
@@ -279,38 +279,32 @@ export default function AddExerciseScreen() {
   
   // Efeito para carregar exercícios recentes
   useEffect(() => {
-    // Aqui você carregaria os exercícios recentes do usuário
-    // Por enquanto, vamos usar alguns exercícios de exemplo
-    setRecentExercises([
-      {
-        id: 'ex001',
-        name: 'Supino Reto',
-        muscle: 'Peito',
-        equipment: 'Barra',
-        description: 'Deite-se em um banco reto, segure a barra com as mãos um pouco mais afastadas que a largura dos ombros, abaixe a barra até o peito e empurre de volta para cima.',
-        difficulty: 'intermediário',
-        category: 'força',
-      },
-      {
-        id: 'ex008',
-        name: 'Agachamento',
-        muscle: 'Pernas',
-        equipment: 'Barra',
-        description: 'Posicione a barra nos ombros, pés afastados na largura dos ombros, flexione os joelhos e quadris como se fosse sentar em uma cadeira, desça até as coxas ficarem paralelas ao chão e retorne à posição inicial.',
-        difficulty: 'intermediário',
-        category: 'força',
-      },
-      {
-        id: 'ex005',
-        name: 'Puxada Frontal',
-        muscle: 'Costas',
-        equipment: 'Máquina',
-        description: 'Sente-se na máquina de puxada, segure a barra com as mãos afastadas, puxe a barra para baixo até a altura do queixo e retorne lentamente à posição inicial.',
-        difficulty: 'intermediário',
-        category: 'força',
-      },
-    ]);
-  }, []);
+    // Carregar exercícios recentes do usuário
+    if (workouts) {
+      const recentExercisesList: Exercise[] = [];
+      
+      // Percorrer todas as datas
+      Object.keys(workouts).forEach(date => {
+        // Percorrer todos os treinos da data
+        Object.keys(workouts[date] || {}).forEach(workoutId => {
+          const exercises = workouts[date][workoutId];
+          if (Array.isArray(exercises)) {
+            exercises.forEach(exercise => {
+              // Verificar se o exercício já está na lista
+              const existingExercise = recentExercisesList.find(e => e.name === exercise.name);
+              if (!existingExercise) {
+                recentExercisesList.push(exercise);
+              }
+            });
+          }
+        });
+      });
+      
+      // Ordenar por ordem de adição (assumindo que os mais recentes estão no final do array)
+      // e limitar a 5 itens
+      setRecentExercises(recentExercisesList.slice(-5).reverse());
+    }
+  }, [workouts]);
   
   // Função de busca com debounce
   const debouncedSearch = useCallback(
@@ -364,11 +358,29 @@ export default function AddExerciseScreen() {
     const newExercise: Exercise = {
       id: `exercise-${Date.now()}`,
       name: exercise.name,
-      sets: 3,
-      reps: 12,
-      weight: 10,
-      completed: false,
+      sets: [
+        {
+          id: `set-${Date.now()}-1`,
+          reps: 12,
+          weight: 10,
+          completed: false
+        },
+        {
+          id: `set-${Date.now()}-2`,
+          reps: 12,
+          weight: 10,
+          completed: false
+        },
+        {
+          id: `set-${Date.now()}-3`,
+          reps: 12,
+          weight: 10,
+          completed: false
+        }
+      ],
       notes: `${exercise.muscle} - ${exercise.equipment}`,
+      completed: false,
+      category: exercise.category,
     };
     
     addExerciseToWorkout(workoutId, newExercise);
@@ -580,7 +592,15 @@ export default function AddExerciseScreen() {
                     styles.exerciseItem,
                     { backgroundColor: colors.light },
                   ]}
-                  onPress={() => navigateToExerciseDetails(exercise)}
+                  onPress={() => navigateToExerciseDetails({
+                    id: exercise.id,
+                    name: exercise.name,
+                    muscle: exercise.notes?.split(' - ')[0] || '',
+                    equipment: exercise.notes?.split(' - ')[1] || '',
+                    description: '',
+                    difficulty: 'intermediário',
+                    category: exercise.category || 'força',
+                  })}
                 >
                   <View style={styles.exerciseInfo}>
                     <Text
@@ -594,7 +614,7 @@ export default function AddExerciseScreen() {
                         { color: colors.text + '80' },
                       ]}
                     >
-                      {exercise.muscle} • {exercise.equipment}
+                      {exercise.sets?.length || 0} séries • {exercise.sets?.[0]?.reps || 0} reps • {exercise.sets?.[0]?.weight || 0}kg
                     </Text>
                   </View>
                   <TouchableOpacity
@@ -603,7 +623,25 @@ export default function AddExerciseScreen() {
                       styles.addButton,
                       { backgroundColor: workoutColor },
                     ]}
-                    onPress={() => handleQuickAdd(exercise)}
+                    onPress={() => {
+                      const newExercise: Exercise = {
+                        ...exercise,
+                        id: `exercise-${Date.now()}`,
+                        completed: false,
+                        sets: exercise.sets?.map(set => ({
+                          ...set,
+                          id: `set-${Date.now()}-${Math.random()}`,
+                          completed: false
+                        }))
+                      };
+                      addExerciseToWorkout(workoutId, newExercise);
+                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                      Alert.alert(
+                        'Exercício Adicionado',
+                        `${exercise.name} foi adicionado ao treino ${workoutName || 'selecionado'}`,
+                        [{ text: 'OK' }]
+                      );
+                    }}
                   >
                     <Ionicons name="add" size={20} color="#FFF" />
                   </TouchableOpacity>

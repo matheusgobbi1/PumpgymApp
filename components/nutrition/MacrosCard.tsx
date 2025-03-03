@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 16,
     padding: 5,
-   
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,

@@ -309,33 +309,36 @@ const WorkoutConfigSheet = forwardRef<BottomSheetModal, WorkoutConfigSheetProps>
     useEffect(() => {
       // Apenas atualizar se o bottom sheet estiver aberto
       if (isSheetOpen) {
-        // Apenas atualizar se temos tipos de treino configurados
-        if (hasWorkoutTypesConfigured && contextWorkoutTypes.length > 0) {
-          // Obter os treinos configurados para o dia atual
-          const workoutsForSelectedDate = workouts && workouts[contextSelectedDate] ? workouts[contextSelectedDate] : {};
-          const workoutIdsForSelectedDate = Object.keys(workoutsForSelectedDate);
-          
-          // Atualizar os tipos de treino com base nos treinos do dia atual
-          setWorkoutTypes(prev => {
-            // Criar uma cópia profunda para evitar mutações indesejadas
-            const updatedWorkoutTypes = JSON.parse(JSON.stringify(contextWorkoutTypes));
-            
-            // Atualizar o estado 'selected' com base na presença no dia atual
-            updatedWorkoutTypes.forEach(workoutType => {
-              workoutType.selected = workoutIdsForSelectedDate.includes(workoutType.id);
-            });
-            
-            // Adicionar tipos padrão que não estão no contexto
-            DEFAULT_WORKOUT_TYPES.forEach(defaultType => {
-              const existingType = updatedWorkoutTypes.find(type => type.id === defaultType.id);
-              if (!existingType) {
-                updatedWorkoutTypes.push({...defaultType, selected: false});
-              }
-            });
-            
-            return updatedWorkoutTypes;
-          });
+        // Se não houver tipos de treino configurados, usar os tipos padrão
+        if (!hasWorkoutTypesConfigured || !contextWorkoutTypes || contextWorkoutTypes.length === 0) {
+          setWorkoutTypes(DEFAULT_WORKOUT_TYPES.map(type => ({...type, selected: false})));
+          return;
         }
+        
+        // Obter os treinos configurados para o dia atual
+        const workoutsForSelectedDate = workouts && workouts[contextSelectedDate] ? workouts[contextSelectedDate] : {};
+        const workoutIdsForSelectedDate = Object.keys(workoutsForSelectedDate);
+        
+        // Atualizar os tipos de treino com base nos treinos do dia atual
+        setWorkoutTypes(prev => {
+          // Criar uma cópia profunda para evitar mutações indesejadas
+          const updatedWorkoutTypes = JSON.parse(JSON.stringify(contextWorkoutTypes));
+          
+          // Atualizar o estado 'selected' com base na presença no dia atual
+          updatedWorkoutTypes.forEach(workoutType => {
+            workoutType.selected = workoutIdsForSelectedDate.includes(workoutType.id);
+          });
+          
+          // Adicionar tipos padrão que não estão no contexto
+          DEFAULT_WORKOUT_TYPES.forEach(defaultType => {
+            const existingType = updatedWorkoutTypes.find(type => type.id === defaultType.id);
+            if (!existingType) {
+              updatedWorkoutTypes.push({...defaultType, selected: false});
+            }
+          });
+          
+          return updatedWorkoutTypes;
+        });
       }
     }, [contextSelectedDate, workouts, hasWorkoutTypesConfigured, contextWorkoutTypes, isSheetOpen]);
     

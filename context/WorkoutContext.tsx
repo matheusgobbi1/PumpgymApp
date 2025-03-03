@@ -10,16 +10,17 @@ export interface ExerciseSet {
   id: string;
   reps: number;
   weight: number;
-  completed?: boolean;
 }
 
 // Interface para exercício
 export interface Exercise {
   id: string;
   name: string;
-  sets: ExerciseSet[]; // Agora é um array de séries individuais
+  sets?: ExerciseSet[]; // Opcional
   notes?: string;
-  completed?: boolean;
+  cardioDuration?: number; // Duração em minutos para exercícios de cardio
+  cardioIntensity?: number; // Intensidade de 1-10 para exercícios de cardio
+  category?: 'força' | 'cardio' | 'flexibilidade' | 'equilíbrio'; // Categoria do exercício
 }
 
 // Interface para treino (workout)
@@ -35,8 +36,20 @@ export interface Workout {
 interface WorkoutTotals {
   totalExercises: number;
   totalSets: number;
-  completedExercises: number;
-  completedSets: number;
+  totalVolume: number; // Volume total (peso * reps * sets)
+  totalDuration: number; // Duração total em minutos
+  avgWeight: number; // Carga média
+  maxWeight: number; // Carga máxima
+  avgReps: number; // Repetições médias
+  totalReps: number; // Total de repetições
+}
+
+// Interface para metas de treino
+interface TrainingGoals {
+  targetExercises?: number;
+  targetSets?: number;
+  targetVolume?: number;
+  targetDuration?: number;
 }
 
 // Interface para o contexto de treinos
@@ -51,8 +64,6 @@ interface WorkoutContextType {
   addExerciseToWorkout: (workoutId: string, exercise: Exercise) => void;
   removeExerciseFromWorkout: (workoutId: string, exerciseId: string) => Promise<void>;
   updateExerciseInWorkout: (workoutId: string, exercise: Exercise) => Promise<void>;
-  toggleExerciseCompletion: (workoutId: string, exerciseId: string) => Promise<void>;
-  toggleSetCompletion: (workoutId: string, exerciseId: string, setId: string) => Promise<void>;
   saveWorkouts: () => Promise<void>;
   addWorkoutType: (id: string, name: string, icon: string, color: string) => void;
   resetWorkoutTypes: () => Promise<void>;
@@ -60,6 +71,10 @@ interface WorkoutContextType {
   hasWorkoutTypesConfigured: boolean;
   getWorkoutTypeById: (id: string) => WorkoutType | undefined;
   setWorkouts: React.Dispatch<React.SetStateAction<{ [date: string]: { [workoutId: string]: Exercise[] } }>>;
+  trainingGoals: TrainingGoals | null;
+  updateTrainingGoals: (goals: TrainingGoals) => Promise<void>;
+  getPreviousWorkoutTotals: (workoutId: string) => { totals: WorkoutTotals | null, date: string | null };
+  removeWorkout: (workoutId: string) => Promise<void>;
 }
 
 // Criação do contexto
@@ -75,6 +90,7 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
   const [workoutTypes, setWorkoutTypes] = useState<WorkoutType[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [hasWorkoutTypesConfigured, setHasWorkoutTypesConfigured] = useState<boolean>(false);
+  const [trainingGoals, setTrainingGoals] = useState<TrainingGoals | null>(null);
   
   // Carregar treinos do AsyncStorage
   const loadWorkouts = async () => {
@@ -103,6 +119,19 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Erro ao carregar tipos de treinos:', error);
       setHasWorkoutTypesConfigured(false);
+    }
+  };
+  
+  // Carregar metas de treino do AsyncStorage
+  const loadTrainingGoals = async () => {
+    try {
+      const storedGoals = await AsyncStorage.getItem(`@pumpgym:trainingGoals:${userId}`);
+      if (storedGoals) {
+        const parsedGoals = JSON.parse(storedGoals);
+        setTrainingGoals(parsedGoals);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar metas de treino:', error);
     }
   };
   
@@ -238,8 +267,8 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     console.log('Exercício:', exercise);
     
     setWorkouts(prevWorkouts => {
-      // Criar cópia profunda do estado atual
-      const updatedWorkouts = JSON.parse(JSON.stringify(prevWorkouts));
+      // Criar uma cópia rasa do estado atual
+      const updatedWorkouts = { ...prevWorkouts };
       
       // Garantir que a data selecionada existe no objeto
       if (!updatedWorkouts[selectedDate]) {
@@ -256,14 +285,17 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
       // Garantir que cada série tenha um ID único
       const exerciseWithValidSets = {
         ...exercise,
-        sets: exercise.sets.map(set => ({
+        sets: exercise.sets?.map(set => ({
           ...set,
           id: set.id || `set-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-        }))
+        })) || []
       };
       
-      // Adicionar o exercício ao treino
-      updatedWorkouts[selectedDate][workoutId].push(exerciseWithValidSets);
+      // Criar uma nova matriz de exercícios para forçar a atualização da UI
+      updatedWorkouts[selectedDate][workoutId] = [
+        ...updatedWorkouts[selectedDate][workoutId],
+        exerciseWithValidSets
+      ];
       
       console.log(`Exercício adicionado com sucesso ao treino ${workoutId} na data ${selectedDate}`);
       console.log('Total de exercícios:', updatedWorkouts[selectedDate][workoutId].length);
@@ -272,11 +304,7 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     });
     
     // Salvar os treinos imediatamente após adicionar o exercício
-    setTimeout(async () => {
-      console.log('Salvando treinos após adicionar exercício...');
-      await saveWorkouts();
-      console.log('Treinos salvos com sucesso após adicionar exercício');
-    }, 100);
+    saveWorkouts();
     
     // Feedback tátil
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -307,12 +335,10 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
       return updatedWorkouts;
     });
     
-    // Salvar alterações
-    setTimeout(async () => {
-      console.log('Salvando treinos após remover exercício...');
-      await saveWorkouts();
-      console.log('Treinos salvos com sucesso após remover exercício');
-    }, 100);
+    // Salvar alterações imediatamente
+    console.log('Salvando treinos após remover exercício...');
+    await saveWorkouts();
+    console.log('Treinos salvos com sucesso após remover exercício');
     
     // Feedback tátil
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -341,120 +367,13 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
       return updatedWorkouts;
     });
     
-    // Salvar alterações
-    setTimeout(async () => {
-      console.log('Salvando treinos após atualizar exercício...');
-      await saveWorkouts();
-      console.log('Treinos salvos com sucesso após atualizar exercício');
-    }, 100);
+    // Salvar alterações imediatamente
+    console.log('Salvando treinos após atualizar exercício...');
+    await saveWorkouts();
+    console.log('Treinos salvos com sucesso após atualizar exercício');
     
     // Feedback tátil
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  };
-  
-  // Alternar conclusão de um exercício
-  const toggleExerciseCompletion = async (workoutId: string, exerciseId: string) => {
-    console.log(`Alternando conclusão do exercício ${exerciseId} no treino ${workoutId} na data ${selectedDate}`);
-    
-    setWorkouts(prevWorkouts => {
-      // Criar cópia profunda do estado atual
-      const updatedWorkouts = JSON.parse(JSON.stringify(prevWorkouts));
-      
-      // Verificar se a data e o treino existem
-      if (updatedWorkouts[selectedDate] && updatedWorkouts[selectedDate][workoutId]) {
-        // Encontrar e atualizar o status de conclusão do exercício
-        updatedWorkouts[selectedDate][workoutId] = updatedWorkouts[selectedDate][workoutId].map(
-          (exercise: Exercise) => {
-            if (exercise.id === exerciseId) {
-              const newCompletedState = !exercise.completed;
-              console.log(`Alterando status de conclusão do exercício para: ${newCompletedState}`);
-              
-              // Atualizar o estado de conclusão de todas as séries para corresponder ao exercício
-              const updatedSets = exercise.sets.map(set => ({
-                ...set,
-                completed: newCompletedState
-              }));
-              return { ...exercise, completed: newCompletedState, sets: updatedSets };
-            }
-            return exercise;
-          }
-        );
-        
-        console.log(`Status de conclusão do exercício alternado com sucesso`);
-      } else {
-        console.log(`Treino ${workoutId} não encontrado na data ${selectedDate}`);
-      }
-      
-      return updatedWorkouts;
-    });
-    
-    // Salvar alterações
-    setTimeout(async () => {
-      console.log('Salvando treinos após alternar conclusão do exercício...');
-      await saveWorkouts();
-      console.log('Treinos salvos com sucesso após alternar conclusão do exercício');
-    }, 100);
-    
-    // Feedback tátil
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
-  
-  // Alternar conclusão de uma série específica
-  const toggleSetCompletion = async (workoutId: string, exerciseId: string, setId: string) => {
-    console.log(`Alternando conclusão da série ${setId} do exercício ${exerciseId} no treino ${workoutId} na data ${selectedDate}`);
-    
-    setWorkouts(prevWorkouts => {
-      // Criar cópia profunda do estado atual
-      const updatedWorkouts = JSON.parse(JSON.stringify(prevWorkouts));
-      
-      // Verificar se a data e o treino existem
-      if (updatedWorkouts[selectedDate] && updatedWorkouts[selectedDate][workoutId]) {
-        // Encontrar o exercício
-        updatedWorkouts[selectedDate][workoutId] = updatedWorkouts[selectedDate][workoutId].map(
-          (exercise: Exercise) => {
-            if (exercise.id === exerciseId) {
-              // Atualizar a série específica
-              const updatedSets = exercise.sets.map(set => {
-                if (set.id === setId) {
-                  const newCompletedState = !set.completed;
-                  console.log(`Alterando status de conclusão da série para: ${newCompletedState}`);
-                  return { ...set, completed: newCompletedState };
-                }
-                return set;
-              });
-              
-              // Verificar se todas as séries estão concluídas
-              const allSetsCompleted = updatedSets.every(set => set.completed);
-              
-              console.log(`Todas as séries concluídas: ${allSetsCompleted}`);
-              
-              return { 
-                ...exercise, 
-                sets: updatedSets,
-                completed: allSetsCompleted
-              };
-            }
-            return exercise;
-          }
-        );
-        
-        console.log(`Status de conclusão da série alternado com sucesso`);
-      } else {
-        console.log(`Treino ${workoutId} não encontrado na data ${selectedDate}`);
-      }
-      
-      return updatedWorkouts;
-    });
-    
-    // Salvar alterações
-    setTimeout(async () => {
-      console.log('Salvando treinos após alternar conclusão da série...');
-      await saveWorkouts();
-      console.log('Treinos salvos com sucesso após alternar conclusão da série');
-    }, 100);
-    
-    // Feedback tátil
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
   
   // Salvar treinos no AsyncStorage
@@ -475,8 +394,12 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     const totals: WorkoutTotals = {
       totalExercises: 0,
       totalSets: 0,
-      completedExercises: 0,
-      completedSets: 0,
+      totalVolume: 0,
+      totalDuration: 0,
+      avgWeight: 0,
+      maxWeight: 0,
+      avgReps: 0,
+      totalReps: 0
     };
     
     // Verificar se existe algum treino para a data selecionada
@@ -489,12 +412,51 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     
     // Calcular os totais
     totals.totalExercises = exercises.length;
-    totals.completedExercises = exercises.filter(exercise => exercise.completed).length;
+    
+    // Variáveis para calcular médias
+    let totalWeightSum = 0;
+    let totalWeightCount = 0;
+    let totalRepsSum = 0;
+    let totalRepsCount = 0;
+    let maxWeightFound = 0;
     
     exercises.forEach(exercise => {
-      totals.totalSets += exercise.sets.length;
-      totals.completedSets += exercise.sets.filter(set => set.completed).length;
+      // Calcular duração para exercícios de cardio
+      if (exercise.category === 'cardio' && exercise.cardioDuration) {
+        totals.totalDuration += exercise.cardioDuration;
+      }
+      
+      // Calcular séries e volume para exercícios de força
+      if (exercise.sets && exercise.category !== 'cardio') {
+        totals.totalSets += exercise.sets.length;
+        
+        // Calcular o volume total (peso * reps * sets) e outras estatísticas
+        exercise.sets.forEach(set => {
+          const setVolume = set.weight * set.reps;
+          totals.totalVolume += setVolume;
+          totals.totalReps += set.reps;
+          
+          // Acumular para cálculo de médias
+          totalWeightSum += set.weight;
+          totalWeightCount++;
+          totalRepsSum += set.reps;
+          totalRepsCount++;
+          
+          // Atualizar carga máxima
+          if (set.weight > maxWeightFound) {
+            maxWeightFound = set.weight;
+          }
+        });
+        
+        // Estimar duração para exercícios de força (2 minutos por série em média)
+        totals.totalDuration += exercise.sets.length * 2;
+      }
     });
+    
+    // Calcular médias
+    totals.avgWeight = totalWeightCount > 0 ? Math.round(totalWeightSum / totalWeightCount) : 0;
+    totals.avgReps = totalRepsCount > 0 ? Math.round(totalRepsSum / totalRepsCount) : 0;
+    totals.maxWeight = maxWeightFound;
     
     console.log(`Totais calculados para o treino ${workoutId} na data ${selectedDate}:`, totals);
     return totals;
@@ -530,8 +492,12 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     const totals: WorkoutTotals = {
       totalExercises: 0,
       totalSets: 0,
-      completedExercises: 0,
-      completedSets: 0,
+      totalVolume: 0,
+      totalDuration: 0,
+      avgWeight: 0,
+      maxWeight: 0,
+      avgReps: 0,
+      totalReps: 0
     };
     
     // Verificar se existe algum treino para a data selecionada
@@ -545,17 +511,15 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     
     // Calcular os totais para cada treino na data selecionada
     workoutIds.forEach(workoutId => {
-      const exercises = workouts[selectedDate][workoutId];
-      
-      // Adicionar ao total de exercícios
-      totals.totalExercises += exercises.length;
-      totals.completedExercises += exercises.filter(ex => ex.completed).length;
-      
-      // Adicionar ao total de séries
-      exercises.forEach(exercise => {
-        totals.totalSets += exercise.sets.length;
-        totals.completedSets += exercise.sets.filter(set => set.completed).length;
-      });
+      const workoutTotals = getWorkoutTotals(workoutId);
+      totals.totalExercises += workoutTotals.totalExercises;
+      totals.totalSets += workoutTotals.totalSets;
+      totals.totalVolume += workoutTotals.totalVolume;
+      totals.totalDuration += workoutTotals.totalDuration;
+      totals.avgWeight += workoutTotals.avgWeight;
+      totals.maxWeight = Math.max(totals.maxWeight, workoutTotals.maxWeight);
+      totals.avgReps += workoutTotals.avgReps;
+      totals.totalReps += workoutTotals.totalReps;
     });
     
     console.log(`Totais calculados para o dia ${selectedDate}:`, totals);
@@ -582,11 +546,143 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     return workoutType;
   };
   
+  // Atualizar metas de treino
+  const updateTrainingGoals = async (goals: TrainingGoals) => {
+    try {
+      setTrainingGoals(goals);
+      await AsyncStorage.setItem(`@pumpgym:trainingGoals:${userId}`, JSON.stringify(goals));
+    } catch (error) {
+      console.error('Erro ao salvar metas de treino:', error);
+    }
+  };
+  
+  // Obter totais do treino anterior do mesmo tipo
+  const getPreviousWorkoutTotals = (workoutId: string): { totals: WorkoutTotals | null, date: string | null } => {
+    console.log(`Buscando treino anterior para ${workoutId} antes de ${selectedDate}`);
+    
+    // Ordenar todas as datas em ordem decrescente
+    const dates = Object.keys(workouts)
+      .filter(date => date < selectedDate) // Apenas datas anteriores à selecionada
+      .sort((a, b) => b.localeCompare(a)); // Ordenar em ordem decrescente (mais recente primeiro)
+    
+    // Procurar o treino mais recente do mesmo tipo
+    for (const date of dates) {
+      if (workouts[date] && workouts[date][workoutId]) {
+        console.log(`Treino anterior encontrado em ${date}`);
+        
+        // Calcular os totais para o treino anterior
+        const previousExercises = workouts[date][workoutId];
+        
+        // Inicializar com valores padrão
+        const totals: WorkoutTotals = {
+          totalExercises: previousExercises.length,
+          totalSets: 0,
+          totalVolume: 0,
+          totalDuration: 0,
+          avgWeight: 0,
+          maxWeight: 0,
+          avgReps: 0,
+          totalReps: 0
+        };
+        
+        // Variáveis para calcular médias
+        let totalWeightSum = 0;
+        let totalWeightCount = 0;
+        let totalRepsSum = 0;
+        let totalRepsCount = 0;
+        let maxWeightFound = 0;
+        
+        // Calcular os totais
+        previousExercises.forEach(exercise => {
+          // Calcular duração para exercícios de cardio
+          if (exercise.category === 'cardio' && exercise.cardioDuration) {
+            totals.totalDuration += exercise.cardioDuration;
+          }
+          
+          // Calcular séries e volume para exercícios de força
+          if (exercise.sets && exercise.category !== 'cardio') {
+            totals.totalSets += exercise.sets.length;
+            
+            // Calcular o volume total (peso * reps * sets) e outras estatísticas
+            exercise.sets.forEach(set => {
+              const setVolume = set.weight * set.reps;
+              totals.totalVolume += setVolume;
+              totals.totalReps += set.reps;
+              
+              // Acumular para cálculo de médias
+              totalWeightSum += set.weight;
+              totalWeightCount++;
+              totalRepsSum += set.reps;
+              totalRepsCount++;
+              
+              // Atualizar carga máxima
+              if (set.weight > maxWeightFound) {
+                maxWeightFound = set.weight;
+              }
+            });
+            
+            // Estimar duração para exercícios de força (2 minutos por série em média)
+            totals.totalDuration += exercise.sets.length * 2;
+          }
+        });
+        
+        // Calcular médias
+        totals.avgWeight = totalWeightCount > 0 ? Math.round(totalWeightSum / totalWeightCount) : 0;
+        totals.avgReps = totalRepsCount > 0 ? Math.round(totalRepsSum / totalRepsCount) : 0;
+        totals.maxWeight = maxWeightFound;
+        
+        return { totals, date };
+      }
+    }
+    
+    // Se não encontrar nenhum treino anterior
+    console.log(`Nenhum treino anterior encontrado para ${workoutId}`);
+    return { totals: null, date: null };
+  };
+  
+  // Remover um treino inteiro
+  const removeWorkout = async (workoutId: string) => {
+    try {
+      console.log(`Removendo treino ${workoutId} da data ${selectedDate}`);
+      
+      // Verificar se o treino existe
+      if (!workouts[selectedDate] || !workouts[selectedDate][workoutId]) {
+        console.log(`Treino ${workoutId} não encontrado na data ${selectedDate}`);
+        return;
+      }
+      
+      // Atualizar o estado removendo o treino
+      setWorkouts(prevWorkouts => {
+        const updatedWorkouts = { ...prevWorkouts };
+        
+        // Se existir a data e o treino, remover o treino
+        if (updatedWorkouts[selectedDate]) {
+          const { [workoutId]: removedWorkout, ...remainingWorkouts } = updatedWorkouts[selectedDate];
+          updatedWorkouts[selectedDate] = remainingWorkouts;
+        }
+        
+        return updatedWorkouts;
+      });
+      
+      // Feedback tátil
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
+      // Salvar alterações imediatamente
+      await saveWorkouts();
+      console.log(`Treino ${workoutId} removido com sucesso`);
+      
+    } catch (error) {
+      console.error('Erro ao remover treino:', error);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  };
+  
   // Efeito para carregar dados quando o usuário mudar
   useEffect(() => {
     if (user) {
       loadWorkouts();
       loadWorkoutTypes();
+      loadTrainingGoals();
     }
   }, [user]);
   
@@ -609,8 +705,6 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     addExerciseToWorkout,
     removeExerciseFromWorkout,
     updateExerciseInWorkout,
-    toggleExerciseCompletion,
-    toggleSetCompletion,
     saveWorkouts,
     addWorkoutType,
     resetWorkoutTypes,
@@ -618,6 +712,10 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     hasWorkoutTypesConfigured,
     getWorkoutTypeById,
     setWorkouts,
+    trainingGoals,
+    updateTrainingGoals,
+    getPreviousWorkoutTotals,
+    removeWorkout,
   };
   
   return (
