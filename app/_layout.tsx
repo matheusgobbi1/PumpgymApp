@@ -7,6 +7,7 @@ import { useColorScheme } from "react-native";
 import { AuthProvider } from "../context/AuthContext";
 import { NutritionProvider } from "../context/NutritionContext";
 import { MealProvider } from "../context/MealContext";
+import { WorkoutProvider } from "../context/WorkoutContext";
 import { ThemeProvider, useTheme } from "../context/ThemeContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -60,8 +61,10 @@ function RootLayoutNav() {
             <AuthProvider>
               <NutritionProvider>
                 <MealProvider>
-                  <OfflineNotice />
-                  <StackNavigator />
+                  <WorkoutProvider>
+                    <OfflineNotice />
+                    <StackNavigator />
+                  </WorkoutProvider>
                 </MealProvider>
               </NutritionProvider>
             </AuthProvider>
