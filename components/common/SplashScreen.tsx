@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { StyleSheet, View, Text, Dimensions, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useSharedValue,
@@ -14,6 +14,8 @@ import Animated, {
   Easing,
   interpolate,
   Extrapolate,
+  FadeIn,
+  FadeInDown,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { MotiView } from "moti";
@@ -21,108 +23,45 @@ import { MotiView } from "moti";
 const { width, height } = Dimensions.get("window");
 
 export default function SplashScreen() {
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
 
   // Valores animados
-  const logoScale = useSharedValue(0);
-  const logoOpacity = useSharedValue(0);
-  const titleOpacity = useSharedValue(0);
-  const subtitleOpacity = useSharedValue(0);
-  const pulseValue = useSharedValue(1);
-  const rotateValue = useSharedValue(0);
+  const logoScale = useSharedValue(0.8);
   const progressValue = useSharedValue(0);
+  const loadingDotOpacity = useSharedValue(0);
 
   useEffect(() => {
     // Animação de entrada do logo
     logoScale.value = withTiming(1, {
-      duration: 800,
-      easing: Easing.elastic(1.2),
+      duration: 1200,
+      easing: Easing.elastic(1.1),
     });
-    logoOpacity.value = withTiming(1, { duration: 600 });
-
-    // Animação de pulsação contínua
-    pulseValue.value = withRepeat(
-      withSequence(
-        withTiming(1.1, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
-        withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) })
-      ),
-      -1,
-      true
-    );
-
-    // Animação de rotação do ícone de engrenagem
-    rotateValue.value = withRepeat(
-      withTiming(360, {
-        duration: 3000,
-        easing: Easing.linear,
-      }),
-      -1,
-      false
-    );
-
-    // Animação de entrada do título com atraso
-    titleOpacity.value = withDelay(400, withTiming(1, { duration: 800 }));
-
-    // Animação de entrada do subtítulo com atraso maior
-    subtitleOpacity.value = withDelay(800, withTiming(1, { duration: 800 }));
 
     // Animação da barra de progresso
     progressValue.value = withDelay(
-      1200,
+      400,
       withTiming(1, {
-        duration: 2000,
+        duration: 1800,
         easing: Easing.bezier(0.25, 0.1, 0.25, 1),
       })
+    );
+
+    // Animação dos pontos de carregamento
+    loadingDotOpacity.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 600 }),
+        withTiming(0.3, { duration: 600 })
+      ),
+      -1,
+      true
     );
   }, []);
 
   // Estilos animados
   const logoAnimatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [
-        { scale: logoScale.value },
-        { rotate: `${interpolate(rotateValue.value, [0, 360], [0, 360])}deg` },
-      ],
-      opacity: logoOpacity.value,
-    };
-  });
-
-  const pulseAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: pulseValue.value }],
-    };
-  });
-
-  const titleAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: titleOpacity.value,
-      transform: [
-        {
-          translateY: interpolate(
-            titleOpacity.value,
-            [0, 1],
-            [20, 0],
-            Extrapolate.CLAMP
-          ),
-        },
-      ],
-    };
-  });
-
-  const subtitleAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: subtitleOpacity.value,
-      transform: [
-        {
-          translateY: interpolate(
-            subtitleOpacity.value,
-            [0, 1],
-            [20, 0],
-            Extrapolate.CLAMP
-          ),
-        },
-      ],
+      transform: [{ scale: logoScale.value }],
     };
   });
 
@@ -131,143 +70,116 @@ export default function SplashScreen() {
       width: `${interpolate(
         progressValue.value,
         [0, 1],
-        [5, 100],
+        [0, 100],
         Extrapolate.CLAMP
       )}%`,
     };
   });
 
-  const progressTextAnimatedStyle = useAnimatedStyle(() => {
+  const loadingDotsStyle = useAnimatedStyle(() => {
     return {
-      opacity: progressValue.value,
+      opacity: loadingDotOpacity.value,
     };
   });
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+      <StatusBar style={theme === "dark" ? "light" : "dark"} />
 
-      {/* Elementos de fundo */}
+      {/* Elementos de fundo sutis */}
       <MotiView
         from={{ opacity: 0 }}
-        animate={{ opacity: 0.5 }}
-        transition={{ type: "timing", duration: 2000 }}
-        style={[styles.backgroundCircle, styles.circle1]}
-      />
-      <MotiView
-        from={{ opacity: 0 }}
-        animate={{ opacity: 0.3 }}
-        transition={{ type: "timing", duration: 2000, delay: 200 }}
-        style={[styles.backgroundCircle, styles.circle2]}
+        animate={{ opacity: 0.05 }}
+        transition={{ type: "timing", duration: 1500 }}
+        style={[styles.backgroundElement, { backgroundColor: colors.primary }]}
       />
 
       <View style={styles.contentContainer}>
         {/* Logo animado */}
-        <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
-          <Animated.View style={[styles.pulseContainer, pulseAnimatedStyle]}>
-            <LinearGradient
-              colors={[colors.primary, "#6C63FF"]}
-              style={styles.logoGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <Ionicons name="fitness" size={60} color="#fff" />
-            </LinearGradient>
-          </Animated.View>
-
-          {/* Ícones orbitando */}
-          <MotiView
-            from={{ opacity: 0, rotate: "0deg" }}
-            animate={{ opacity: 1, rotate: "360deg" }}
-            transition={{
-              type: "timing",
-              duration: 20000,
-              loop: true,
-              repeatReverse: false,
-            }}
-            style={styles.orbitContainer}
+        <Animated.View 
+          style={[styles.logoContainer, logoAnimatedStyle]}
+          entering={FadeIn.duration(800)}
+        >
+          <LinearGradient
+            colors={[colors.primary, colors.primary + "CC"]}
+            style={styles.logoGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
           >
-            <View style={styles.orbitIconContainer}>
-              <Ionicons
-                name="nutrition-outline"
-                size={24}
-                color={colors.primary}
-              />
-            </View>
-          </MotiView>
-
-          <MotiView
-            from={{ opacity: 0, rotate: "0deg" }}
-            animate={{ opacity: 1, rotate: "-360deg" }}
-            transition={{
-              type: "timing",
-              duration: 15000,
-              loop: true,
-              repeatReverse: false,
-            }}
-            style={[styles.orbitContainer, styles.orbit2]}
-          >
-            <View style={styles.orbitIconContainer}>
-              <Ionicons name="barbell-outline" size={24} color="#FF6B6B" />
-            </View>
-          </MotiView>
-
-          <MotiView
-            from={{ opacity: 0, rotate: "0deg" }}
-            animate={{ opacity: 1, rotate: "360deg" }}
-            transition={{
-              type: "timing",
-              duration: 25000,
-              loop: true,
-              repeatReverse: false,
-            }}
-            style={[styles.orbitContainer, styles.orbit3]}
-          >
-            <View style={styles.orbitIconContainer}>
-              <Ionicons name="water" size={24} color="#4ECDC4" />
-            </View>
-          </MotiView>
+            <Ionicons name="fitness" size={50} color="#fff" />
+          </LinearGradient>
         </Animated.View>
 
         {/* Título e subtítulo */}
         <Animated.Text
-          style={[styles.title, { color: colors.primary }, titleAnimatedStyle]}
+          entering={FadeInDown.duration(800).delay(300)}
+          style={[styles.title, { color: colors.text }]}
         >
           PumpGym
         </Animated.Text>
 
         <Animated.Text
-          style={[
-            styles.subtitle,
-            { color: colors.text },
-            subtitleAnimatedStyle,
-          ]}
+          entering={FadeInDown.duration(800).delay(500)}
+          style={[styles.subtitle, { color: colors.text + "CC" }]}
         >
           Transforme seu corpo, transforme sua vida
         </Animated.Text>
 
         {/* Barra de progresso */}
-        <View
-          style={[styles.progressContainer, { backgroundColor: colors.light }]}
-        >
-          <Animated.View
-            style={[
-              styles.progressBar,
-              { backgroundColor: colors.primary },
-              progressAnimatedStyle,
-            ]}
-          />
+        <View style={styles.progressSection}>
+          <View
+            style={[styles.progressContainer, { backgroundColor: colors.light }]}
+          >
+            <Animated.View
+              style={[
+                styles.progressBar,
+                { backgroundColor: colors.primary },
+                progressAnimatedStyle,
+              ]}
+            />
+          </View>
+
+          <View style={styles.loadingTextContainer}>
+            <Text style={[styles.loadingText, { color: colors.text + "99" }]}>
+              Carregando
+            </Text>
+            <Animated.Text 
+              style={[styles.loadingDots, { color: colors.primary }, loadingDotsStyle]}
+            >
+              ...
+            </Animated.Text>
+          </View>
         </View>
 
-        <Animated.Text
-          style={[
-            styles.progressText,
-            { color: colors.text + "99" },
-            progressTextAnimatedStyle,
-          ]}
-        >
-          Carregando seu plano personalizado...
-        </Animated.Text>
+        {/* Ícones de funcionalidades */}
+        <View style={styles.featuresContainer}>
+          <Animated.View 
+            entering={FadeIn.duration(600).delay(800)}
+            style={styles.featureIconWrapper}
+          >
+            <View style={[styles.featureIcon, { backgroundColor: colors.light }]}>
+              <Ionicons name="barbell-outline" size={20} color={colors.primary} />
+            </View>
+          </Animated.View>
+          
+          <Animated.View 
+            entering={FadeIn.duration(600).delay(1000)}
+            style={styles.featureIconWrapper}
+          >
+            <View style={[styles.featureIcon, { backgroundColor: colors.light }]}>
+              <Ionicons name="nutrition-outline" size={20} color={colors.primary} />
+            </View>
+          </Animated.View>
+          
+          <Animated.View 
+            entering={FadeIn.duration(600).delay(1200)}
+            style={styles.featureIconWrapper}
+          >
+            <View style={[styles.featureIcon, { backgroundColor: colors.light }]}>
+              <Ionicons name="stats-chart-outline" size={20} color={colors.primary} />
+            </View>
+          </Animated.View>
+        </View>
       </View>
     </View>
   );
@@ -280,131 +192,107 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
-  backgroundCircle: {
+  backgroundElement: {
     position: "absolute",
-    borderRadius: 1000,
-  },
-  circle1: {
-    width: width * 1.5,
-    height: width * 1.5,
-    backgroundColor: "#6C63FF",
-    top: -width * 0.5,
-    left: -width * 0.25,
-    opacity: 0.1,
-  },
-  circle2: {
-    width: width * 1.2,
-    height: width * 1.2,
-    backgroundColor: "#FF6B6B",
-    bottom: -width * 0.4,
-    right: -width * 0.3,
-    opacity: 0.1,
+    width: width * 2,
+    height: width * 2,
+    borderRadius: width,
+    top: -width,
+    transform: [{ translateX: -width / 2 }],
   },
   contentContainer: {
     alignItems: "center",
     justifyContent: "center",
     width: "100%",
+    paddingHorizontal: 24,
   },
   logoContainer: {
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 30,
-    width: 120,
-    height: 120,
-  },
-  pulseContainer: {
-    alignItems: "center",
-    justifyContent: "center",
+    marginBottom: 24,
   },
   logoGradient: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 90,
+    height: 90,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
     ...Platform.select({
       ios: {
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 8,
+        elevation: 6,
       },
     }),
   },
-  orbitContainer: {
-    position: "absolute",
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    borderWidth: 1,
-    borderColor: "rgba(108, 99, 255, 0.2)",
+  title: {
+    fontSize: 42,
+    fontWeight: "bold",
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 48,
+    letterSpacing: 0.3,
+  },
+  progressSection: {
+    width: "100%",
     alignItems: "center",
+    marginBottom: 48,
+  },
+  progressContainer: {
+    width: width * 0.7,
+    height: 4,
+    borderRadius: 2,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+  progressBar: {
+    height: "100%",
+    borderRadius: 2,
+  },
+  loadingTextContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 14,
+  },
+  loadingDots: {
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  featuresContainer: {
+    flexDirection: "row",
     justifyContent: "center",
+    alignItems: "center",
+    gap: 16,
   },
-  orbit2: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    borderColor: "rgba(255, 107, 107, 0.2)",
+  featureIconWrapper: {
+    padding: 4,
   },
-  orbit3: {
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    borderColor: "rgba(78, 205, 196, 0.2)",
-  },
-  orbitIconContainer: {
-    position: "absolute",
-    top: 0,
-    left: "50%",
+  featureIcon: {
     width: 40,
     height: 40,
-    marginLeft: -20,
-    borderRadius: 20,
-    backgroundColor: "white",
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     ...Platform.select({
       ios: {
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
+        shadowOpacity: 0.1,
         shadowRadius: 4,
       },
       android: {
-        elevation: 4,
+        elevation: 2,
       },
     }),
-  },
-  title: {
-    fontSize: 48,
-    fontWeight: "bold",
-    marginBottom: 10,
-    letterSpacing: 1,
-  },
-  subtitle: {
-    fontSize: 18,
-    textAlign: "center",
-    paddingHorizontal: 20,
-    marginBottom: 40,
-    opacity: 0.8,
-  },
-  progressContainer: {
-    width: width * 0.7,
-    height: 8,
-    borderRadius: 4,
-    overflow: "hidden",
-    marginBottom: 12,
-  },
-  progressBar: {
-    height: "100%",
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: 14,
-    textAlign: "center",
   },
 });
