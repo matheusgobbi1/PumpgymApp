@@ -74,6 +74,7 @@ export default function MeasurementsScreen() {
             onChangeText={setHeight}
             placeholder="170"
             keyboardType="numeric"
+            rightIcon="body-outline"
           />
 
           <Input
@@ -82,6 +83,7 @@ export default function MeasurementsScreen() {
             onChangeText={setWeight}
             placeholder="70"
             keyboardType="numeric"
+            rightIcon="scale-outline"
           />
         </View>
       </OnboardingLayout>

@@ -7,8 +7,10 @@ import {
   ScrollView,
   ActivityIndicator,
   Dimensions,
+  BackHandler,
+  Platform,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useNavigation } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
@@ -25,6 +27,7 @@ const screenWidth = Dimensions.get("window").width;
 
 export default function SummaryScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { theme } = useTheme();
   const colors = Colors[theme];
   const {
@@ -36,10 +39,10 @@ export default function SummaryScreen() {
   const { isAnonymous } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  
+
   // Estado para forçar re-renderização quando o tema mudar
   const [, setForceUpdate] = useState({});
-  
+
   // Efeito para forçar a re-renderização quando o tema mudar
   useEffect(() => {
     setForceUpdate({});
@@ -48,6 +51,25 @@ export default function SummaryScreen() {
   useEffect(() => {
     calculateMacros();
   }, []);
+
+  // Impedir o gesto de voltar no iOS
+  useEffect(() => {
+    if (Platform.OS === "ios") {
+      navigation.setOptions({
+        gestureEnabled: false,
+      });
+    }
+
+    // Impedir o botão de voltar no Android
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        return true; // Retorna true para impedir a navegação para trás
+      }
+    );
+
+    return () => backHandler.remove();
+  }, [navigation]);
 
   const handleStart = async () => {
     try {
@@ -184,7 +206,7 @@ export default function SummaryScreen() {
           key={`header-${theme}`}
           from={{ opacity: 0, translateY: -20 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 600 }}
+          transition={{ type: "timing", duration: 600 }}
         >
           <Text style={[styles.headerTitle, { color: colors.text }]}>
             Seu Plano Personalizado
@@ -197,27 +219,31 @@ export default function SummaryScreen() {
           style={styles.topCardsRow}
           from={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: 'spring', delay: 200 }}
+          transition={{ type: "spring", delay: 200 }}
         >
           {/* Card de Perfil */}
           <MotiView
             key={`profile-card-${theme}`}
             style={[
-              styles.profileCard, 
-              { 
-                backgroundColor: theme === 'dark' ? colors.dark : colors.light,
+              styles.profileCard,
+              {
+                backgroundColor: theme === "dark" ? colors.dark : colors.light,
                 borderColor: colors.border,
                 borderWidth: 1,
-              }
+                overflow: "hidden",
+              },
             ]}
             from={{ opacity: 0, translateX: -20 }}
             animate={{ opacity: 1, translateX: 0 }}
-            transition={{ type: 'spring', delay: 300 }}
+            transition={{ type: "spring", delay: 300 }}
           >
             <Text style={[styles.cardLabel, { color: colors.text }]}>
               Perfil
             </Text>
-            <View key={`measurement-row-${theme}`} style={styles.measurementRow}>
+            <View
+              key={`measurement-row-${theme}`}
+              style={styles.measurementRow}
+            >
               <View key={`height-item-${theme}`} style={styles.measurementItem}>
                 <Ionicons
                   key={`height-icon-${theme}`}
@@ -229,7 +255,18 @@ export default function SummaryScreen() {
                   {nutritionInfo.height}cm
                 </Text>
               </View>
-              <View key={`divider-${theme}`} style={[styles.measurementDivider, { backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} />
+              <View
+                key={`divider-${theme}`}
+                style={[
+                  styles.measurementDivider,
+                  {
+                    backgroundColor:
+                      theme === "dark"
+                        ? "rgba(255,255,255,0.1)"
+                        : "rgba(0,0,0,0.1)",
+                  },
+                ]}
+              />
               <View key={`weight-item-${theme}`} style={styles.measurementItem}>
                 <Ionicons
                   key={`weight-icon-${theme}`}
@@ -251,22 +288,28 @@ export default function SummaryScreen() {
           <MotiView
             key={`goal-card-${theme}`}
             style={[
-              styles.goalCard, 
-              { 
-                backgroundColor: theme === 'dark' ? colors.dark : colors.light,
+              styles.goalCard,
+              {
+                backgroundColor: theme === "dark" ? colors.dark : colors.light,
                 borderColor: colors.border,
                 borderWidth: 1,
-              }
+                overflow: "hidden",
+              },
             ]}
             from={{ opacity: 0, translateX: 20 }}
             animate={{ opacity: 1, translateX: 0 }}
-            transition={{ type: 'spring', delay: 400 }}
+            transition={{ type: "spring", delay: 400 }}
           >
             <Text style={[styles.cardLabel, { color: colors.text }]}>
               Objetivo
             </Text>
             <View key={`goal-content-${theme}`} style={styles.goalContent}>
-              <Ionicons key={`goal-icon-${theme}`} name={getGoalIcon()} size={20} color={colors.primary} />
+              <Ionicons
+                key={`goal-icon-${theme}`}
+                name={getGoalIcon()}
+                size={20}
+                color={colors.primary}
+              />
               <Text style={[styles.goalText, { color: colors.text }]}>
                 {getGoalText()}
               </Text>
@@ -283,18 +326,22 @@ export default function SummaryScreen() {
         <MotiView
           key={`health-score-card-${theme}`}
           style={[
-            styles.healthScoreCard, 
-            { 
-              backgroundColor: theme === 'dark' ? colors.dark : colors.light,
+            styles.healthScoreCard,
+            {
+              backgroundColor: theme === "dark" ? colors.dark : colors.light,
               borderColor: colors.border,
               borderWidth: 1,
-            }
+              overflow: "hidden",
+            },
           ]}
           from={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: 'spring', delay: 500 }}
+          transition={{ type: "spring", delay: 500 }}
         >
-          <View key={`health-score-content-${theme}`} style={styles.healthScoreContent}>
+          <View
+            key={`health-score-content-${theme}`}
+            style={styles.healthScoreContent}
+          >
             <CircularProgress
               key={`health-score-progress-${theme}`}
               value={nutritionInfo.healthScore || 0}
@@ -314,7 +361,10 @@ export default function SummaryScreen() {
               valueSuffix="/10"
               delay={0}
             />
-            <View key={`health-score-info-${theme}`} style={styles.healthScoreInfo}>
+            <View
+              key={`health-score-info-${theme}`}
+              style={styles.healthScoreInfo}
+            >
               <Text style={[styles.healthScoreTitle, { color: colors.text }]}>
                 Health Score
               </Text>
@@ -326,7 +376,12 @@ export default function SummaryScreen() {
                   : "Vamos melhorar seus hábitos!"}
               </Text>
             </View>
-            <Ionicons key={`health-score-icon-${theme}`} name="fitness-outline" size={24} color="#6C63FF" />
+            <Ionicons
+              key={`health-score-icon-${theme}`}
+              name="fitness-outline"
+              size={24}
+              color="#6C63FF"
+            />
           </View>
         </MotiView>
 
@@ -335,7 +390,7 @@ export default function SummaryScreen() {
           key={`macros-section-${theme}`}
           from={{ opacity: 0, translateY: 20 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 600, delay: 600 }}
+          transition={{ type: "timing", duration: 600, delay: 600 }}
         >
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             Necessidades Diárias
@@ -347,24 +402,28 @@ export default function SummaryScreen() {
           style={styles.macrosContainer}
           from={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ type: 'timing', duration: 800, delay: 700 }}
+          transition={{ type: "timing", duration: 800, delay: 700 }}
         >
           {/* Card de Calorias */}
           <MotiView
             key={`calories-card-${theme}`}
             style={[
-              styles.caloriesCard, 
-              { 
-                backgroundColor: theme === 'dark' ? colors.dark : colors.light,
+              styles.caloriesCard,
+              {
+                backgroundColor: theme === "dark" ? colors.dark : colors.light,
                 borderColor: colors.border,
                 borderWidth: 1,
-              }
+                overflow: "hidden",
+              },
             ]}
             from={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'spring', delay: 800 }}
+            transition={{ type: "spring", delay: 800 }}
           >
-            <View key={`calories-content-${theme}`} style={styles.caloriesContent}>
+            <View
+              key={`calories-content-${theme}`}
+              style={styles.caloriesContent}
+            >
               <CircularProgress
                 key={`calories-progress-${theme}`}
                 value={100}
@@ -399,38 +458,48 @@ export default function SummaryScreen() {
                     : "Manutenção do peso atual"}
                 </Text>
               </View>
-              <Ionicons key={`calories-icon-${theme}`} name="flame-outline" size={24} color={colors.primary} />
+              <Ionicons
+                key={`calories-icon-${theme}`}
+                name="flame-outline"
+                size={24}
+                color={colors.primary}
+              />
             </View>
           </MotiView>
 
           {/* Cards de Macronutrientes */}
-          <MotiView 
-            key={`macro-row-${theme}`} 
+          <MotiView
+            key={`macro-row-${theme}`}
             style={styles.macroRow}
             from={{ opacity: 0, translateY: 20 }}
             animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 600, delay: 900 }}
+            transition={{ type: "timing", duration: 600, delay: 900 }}
           >
             {/* Card de Proteína */}
-            <MotiView 
-              key={`protein-card-${theme}`} 
+            <MotiView
+              key={`protein-card-${theme}`}
               style={[
-                styles.macroCard, 
-                { 
-                  backgroundColor: theme === 'dark' ? colors.dark : colors.light,
+                styles.macroCard,
+                {
+                  backgroundColor:
+                    theme === "dark" ? colors.dark : colors.light,
                   borderColor: colors.border,
                   borderWidth: 1,
-                }
+                  overflow: "hidden",
+                },
               ]}
               from={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: 'spring', delay: 1000 }}
+              transition={{ type: "spring", delay: 1000 }}
             >
-              <View key={`protein-content-${theme}`} style={styles.macroContent}>
+              <View
+                key={`protein-content-${theme}`}
+                style={styles.macroContent}
+              >
                 <CircularProgress
                   key={`protein-progress-${theme}`}
                   value={macroPercentages.protein}
-                  radius={32}
+                  radius={28}
                   duration={1000}
                   progressValueColor={colors.text}
                   maxValue={100}
@@ -440,14 +509,19 @@ export default function SummaryScreen() {
                   activeStrokeColor="#FF6B6B"
                   inActiveStrokeColor={colors.border}
                   inActiveStrokeOpacity={0.2}
-                  activeStrokeWidth={6}
-                  inActiveStrokeWidth={6}
-                  progressValueStyle={{ fontSize: 14, fontWeight: "bold" }}
+                  activeStrokeWidth={5}
+                  inActiveStrokeWidth={5}
+                  progressValueStyle={{ fontSize: 12, fontWeight: "bold" }}
                   valueSuffix="%"
                   delay={0}
                 />
                 <View key={`protein-info-${theme}`} style={styles.macroInfo}>
-                  <Ionicons key={`protein-icon-${theme}`} name="egg-outline" size={20} color="#FF6B6B" />
+                  <Ionicons
+                    key={`protein-icon-${theme}`}
+                    name="egg-outline"
+                    size={18}
+                    color="#FF6B6B"
+                  />
                   <Text style={[styles.macroTitle, { color: colors.text }]}>
                     Proteína
                   </Text>
@@ -467,25 +541,27 @@ export default function SummaryScreen() {
             </MotiView>
 
             {/* Card de Carboidratos */}
-            <MotiView 
-              key={`carbs-card-${theme}`} 
+            <MotiView
+              key={`carbs-card-${theme}`}
               style={[
-                styles.macroCard, 
-                { 
-                  backgroundColor: theme === 'dark' ? colors.dark : colors.light,
+                styles.macroCard,
+                {
+                  backgroundColor:
+                    theme === "dark" ? colors.dark : colors.light,
                   borderColor: colors.border,
                   borderWidth: 1,
-                }
+                  overflow: "hidden",
+                },
               ]}
               from={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: 'spring', delay: 1100 }}
+              transition={{ type: "spring", delay: 1100 }}
             >
               <View key={`carbs-content-${theme}`} style={styles.macroContent}>
                 <CircularProgress
                   key={`carbs-progress-${theme}`}
                   value={macroPercentages.carbs}
-                  radius={32}
+                  radius={28}
                   duration={1000}
                   progressValueColor={colors.text}
                   maxValue={100}
@@ -495,9 +571,9 @@ export default function SummaryScreen() {
                   activeStrokeColor="#4ECDC4"
                   inActiveStrokeColor={colors.border}
                   inActiveStrokeOpacity={0.2}
-                  activeStrokeWidth={6}
-                  inActiveStrokeWidth={6}
-                  progressValueStyle={{ fontSize: 14, fontWeight: "bold" }}
+                  activeStrokeWidth={5}
+                  inActiveStrokeWidth={5}
+                  progressValueStyle={{ fontSize: 12, fontWeight: "bold" }}
                   valueSuffix="%"
                   delay={0}
                 />
@@ -505,7 +581,7 @@ export default function SummaryScreen() {
                   <Ionicons
                     key={`carbs-icon-${theme}`}
                     name="nutrition-outline"
-                    size={20}
+                    size={18}
                     color="#4ECDC4"
                   />
                   <Text style={[styles.macroTitle, { color: colors.text }]}>
@@ -522,25 +598,27 @@ export default function SummaryScreen() {
             </MotiView>
 
             {/* Card de Gorduras */}
-            <MotiView 
-              key={`fat-card-${theme}`} 
+            <MotiView
+              key={`fat-card-${theme}`}
               style={[
-                styles.macroCard, 
-                { 
-                  backgroundColor: theme === 'dark' ? colors.dark : colors.light,
+                styles.macroCard,
+                {
+                  backgroundColor:
+                    theme === "dark" ? colors.dark : colors.light,
                   borderColor: colors.border,
                   borderWidth: 1,
-                }
+                  overflow: "hidden",
+                },
               ]}
               from={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: 'spring', delay: 1200 }}
+              transition={{ type: "spring", delay: 1200 }}
             >
               <View key={`fat-content-${theme}`} style={styles.macroContent}>
                 <CircularProgress
                   key={`fat-progress-${theme}`}
                   value={macroPercentages.fat}
-                  radius={32}
+                  radius={28}
                   duration={1000}
                   progressValueColor={colors.text}
                   maxValue={100}
@@ -550,14 +628,19 @@ export default function SummaryScreen() {
                   activeStrokeColor="#FFE66D"
                   inActiveStrokeColor={colors.border}
                   inActiveStrokeOpacity={0.2}
-                  activeStrokeWidth={6}
-                  inActiveStrokeWidth={6}
-                  progressValueStyle={{ fontSize: 14, fontWeight: "bold" }}
+                  activeStrokeWidth={5}
+                  inActiveStrokeWidth={5}
+                  progressValueStyle={{ fontSize: 12, fontWeight: "bold" }}
                   valueSuffix="%"
                   delay={0}
                 />
                 <View key={`fat-info-${theme}`} style={styles.macroInfo}>
-                  <Ionicons key={`fat-icon-${theme}`} name="water-outline" size={20} color="#FFE66D" />
+                  <Ionicons
+                    key={`fat-icon-${theme}`}
+                    name="water-outline"
+                    size={18}
+                    color="#FFE66D"
+                  />
                   <Text style={[styles.macroTitle, { color: colors.text }]}>
                     Gorduras
                   </Text>
@@ -573,22 +656,28 @@ export default function SummaryScreen() {
           </MotiView>
 
           {/* Card de Água */}
-          <MotiView 
-            key={`water-card-${theme}`} 
+          <MotiView
+            key={`water-card-${theme}`}
             style={[
-              styles.waterCard, 
-              { 
-                backgroundColor: theme === 'dark' ? colors.dark : colors.light,
+              styles.waterCard,
+              {
+                backgroundColor: theme === "dark" ? colors.dark : colors.light,
                 borderColor: colors.border,
                 borderWidth: 1,
-              }
+                overflow: "hidden",
+              },
             ]}
             from={{ opacity: 0, translateY: 20 }}
             animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'spring', delay: 1300 }}
+            transition={{ type: "spring", delay: 1300 }}
           >
             <View key={`water-content-${theme}`} style={styles.waterContent}>
-              <Ionicons key={`water-icon-${theme}`} name="water" size={24} color="#4ECDC4" />
+              <Ionicons
+                key={`water-icon-${theme}`}
+                name="water"
+                size={24}
+                color="#4ECDC4"
+              />
               <View key={`water-info-${theme}`} style={styles.waterInfo}>
                 <Text style={[styles.waterTitle, { color: colors.text }]}>
                   Água Recomendada
@@ -611,19 +700,20 @@ export default function SummaryScreen() {
         </MotiView>
 
         {/* Informações Adicionais */}
-        <MotiView 
-          key={`info-card-${theme}`} 
+        <MotiView
+          key={`info-card-${theme}`}
           style={[
-            styles.infoCard, 
-            { 
-              backgroundColor: theme === 'dark' ? colors.dark : colors.light,
+            styles.infoCard,
+            {
+              backgroundColor: theme === "dark" ? colors.dark : colors.light,
               borderColor: colors.border,
               borderWidth: 1,
-            }
+              overflow: "hidden",
+            },
           ]}
           from={{ opacity: 0, translateY: 20 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'spring', delay: 1400 }}
+          transition={{ type: "spring", delay: 1400 }}
         >
           <Ionicons
             key={`info-icon-${theme}`}
@@ -638,36 +728,35 @@ export default function SummaryScreen() {
         </MotiView>
 
         {/* Dica do dia */}
-        <MotiView 
-          key={`tip-card-${theme}`} 
+        <MotiView
+          key={`tip-card-${theme}`}
           style={[
-            styles.tipCard, 
-            { 
-              backgroundColor: theme === 'dark' ? 'rgba(28, 154, 190, 0.15)' : 'rgba(28, 154, 190, 0.1)',
+            styles.tipCard,
+            {
+              backgroundColor:
+                theme === "dark"
+                  ? "rgba(28, 154, 190, 0.15)"
+                  : "rgba(28, 154, 190, 0.1)",
               borderColor: colors.primary,
               borderWidth: 1,
-              marginTop: 16,
-              marginBottom: 16,
-              padding: 16,
-              borderRadius: 16,
-            }
+            },
           ]}
           from={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: 'spring', delay: 1500 }}
+          transition={{ type: "spring", delay: 1500 }}
         >
-          <View key={`tip-header-${theme}`} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          <View key={`tip-header-${theme}`} style={styles.tipHeader}>
             <Ionicons
               key={`tip-icon-${theme}`}
               name="bulb-outline"
               size={20}
               color={colors.primary}
             />
-            <Text style={{ color: colors.primary, fontWeight: '600', marginLeft: 8, fontSize: 16 }}>
+            <Text style={[styles.tipTitle, { color: colors.primary }]}>
               Dica do dia
             </Text>
           </View>
-          <Text style={{ color: colors.text, fontSize: 14, lineHeight: 20 }}>
+          <Text style={[styles.tipText, { color: colors.text }]}>
             {nutritionInfo.goal === "lose"
               ? "Beba um copo de água antes das refeições para ajudar a controlar o apetite e melhorar a digestão."
               : nutritionInfo.goal === "gain"
@@ -677,27 +766,27 @@ export default function SummaryScreen() {
         </MotiView>
 
         {error && (
-          <MotiView 
-            key={`error-container-${theme}`} 
+          <MotiView
+            key={`error-container-${theme}`}
             style={[
               styles.errorContainer,
-              { borderColor: colors.danger, borderWidth: 1 }
+              { borderColor: colors.danger, borderWidth: 1 },
             ]}
             from={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'spring' }}
+            transition={{ type: "spring" }}
           >
             <Text style={styles.errorText}>{error}</Text>
           </MotiView>
         )}
       </ScrollView>
 
-      <MotiView 
-        key={`footer-${theme}`} 
+      <MotiView
+        key={`footer-${theme}`}
         style={styles.footer}
         from={{ opacity: 0, translateY: 20 }}
         animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: 'timing', duration: 600, delay: 1600 }}
+        transition={{ type: "timing", duration: 600, delay: 1600 }}
       >
         <TouchableOpacity
           key={`start-button-${theme}`}
@@ -760,7 +849,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   goalCard: {
     flex: 1,
@@ -770,7 +859,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   cardLabel: {
     fontSize: 12,
@@ -826,66 +915,70 @@ const styles = StyleSheet.create({
   },
   caloriesCard: {
     borderRadius: 16,
-    padding: 16,
+    padding: 14,
     marginBottom: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   caloriesContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: 12,
   },
   caloriesInfo: {
     flex: 1,
   },
   caloriesTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
-    marginBottom: 4,
+    marginBottom: 3,
   },
   caloriesValue: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "700",
-    marginBottom: 4,
+    marginBottom: 3,
   },
   caloriesDesc: {
-    fontSize: 12,
+    fontSize: 11,
     opacity: 0.7,
+    lineHeight: 14,
   },
   macroRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 8,
+    flexWrap: screenWidth < 360 ? "wrap" : "nowrap",
   },
   macroCard: {
-    flex: 1,
+    flex: screenWidth < 360 ? 0 : 1,
+    width: screenWidth < 360 ? "48%" : "auto",
     borderRadius: 16,
-    padding: 12,
+    padding: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
+    marginBottom: screenWidth < 360 ? 8 : 0,
   },
   macroContent: {
     alignItems: "center",
   },
   macroInfo: {
     alignItems: "center",
-    marginTop: 8,
+    marginTop: 6,
   },
   macroTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
-    marginBottom: 4,
+    marginBottom: 2,
     textAlign: "center",
   },
   macroValue: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
     marginBottom: 2,
   },
@@ -904,7 +997,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   infoText: {
     flex: 1,
@@ -942,7 +1035,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   healthScoreContent: {
     flexDirection: "row",
@@ -969,7 +1062,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   waterContent: {
     flexDirection: "row",
@@ -1000,6 +1093,24 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
+    marginTop: 16,
+    marginBottom: 16,
+    padding: 16,
+    overflow: "hidden",
+  },
+  tipHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  tipTitle: {
+    fontWeight: "600",
+    marginLeft: 8,
+    fontSize: 16,
+  },
+  tipText: {
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

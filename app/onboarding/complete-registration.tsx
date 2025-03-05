@@ -36,10 +36,10 @@ export default function CompleteRegistrationScreen() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { completeAnonymousRegistration, isAnonymous } = useAuth();
-  
+
   // Estado para forçar re-renderização quando o tema mudar
   const [, setForceUpdate] = useState({});
-  
+
   // Efeito para forçar a re-renderização quando o tema mudar
   useEffect(() => {
     setForceUpdate({});
@@ -91,7 +91,7 @@ export default function CompleteRegistrationScreen() {
 
   const handleCompleteRegistration = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
+
     const validationResult = validateRegistration(
       name,
       email,
@@ -135,14 +135,14 @@ export default function CompleteRegistrationScreen() {
         setError("Por favor, preencha seu nome e email");
         return;
       }
-      
+
       // Validação básica de email
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         setError("Por favor, insira um email válido");
         return;
       }
-      
+
       setError("");
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setFormStep(2);
@@ -157,12 +157,12 @@ export default function CompleteRegistrationScreen() {
   };
 
   return (
-    <SafeAreaView 
+    <SafeAreaView
       key={`registration-container-${theme}`}
       style={styles.container}
     >
-      <StatusBar style={theme === 'dark' ? "light" : "dark"} />
-      
+      <StatusBar style={theme === "dark" ? "light" : "dark"} />
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -170,7 +170,7 @@ export default function CompleteRegistrationScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.scrollContent,
-            { backgroundColor: colors.background }
+            { backgroundColor: colors.background },
           ]}
           showsVerticalScrollIndicator={false}
         >
@@ -191,7 +191,7 @@ export default function CompleteRegistrationScreen() {
             >
               {formStep === 1 ? "Quase lá!" : "Crie sua senha"}
             </MotiText>
-            
+
             <MotiText
               key={`subtitle-${theme}`}
               from={{ opacity: 0 }}
@@ -199,28 +199,38 @@ export default function CompleteRegistrationScreen() {
               transition={{ type: "timing", delay: 500, duration: 800 }}
               style={[styles.subtitle, { color: colors.text }]}
             >
-              {formStep === 1 
+              {formStep === 1
                 ? "Complete seu cadastro para salvar seu plano nutricional personalizado"
                 : "Escolha uma senha segura para proteger sua conta"}
             </MotiText>
           </MotiView>
 
           {/* Indicador de progresso */}
-          <MotiView 
+          <MotiView
             key={`progress-indicator-${theme}`}
             style={styles.progressContainer}
           >
             <MotiView
               key={`step-1-${theme}`}
               style={[
-                styles.progressStep, 
-                { 
-                  backgroundColor: formStep >= 1 ? colors.primary : theme === 'dark' ? '#333' : '#e0e0e0',
+                styles.progressStep,
+                {
+                  backgroundColor:
+                    formStep >= 1
+                      ? colors.primary
+                      : theme === "dark"
+                      ? "#333"
+                      : "#e0e0e0",
                   width: formStep === 1 ? 24 : 12,
-                }
+                },
               ]}
-              animate={{ 
-                backgroundColor: formStep >= 1 ? colors.primary : theme === 'dark' ? '#333' : '#e0e0e0',
+              animate={{
+                backgroundColor:
+                  formStep >= 1
+                    ? colors.primary
+                    : theme === "dark"
+                    ? "#333"
+                    : "#e0e0e0",
                 width: formStep === 1 ? 24 : 12,
               }}
               transition={{ type: "timing", duration: 300 }}
@@ -228,14 +238,24 @@ export default function CompleteRegistrationScreen() {
             <MotiView
               key={`step-2-${theme}`}
               style={[
-                styles.progressStep, 
-                { 
-                  backgroundColor: formStep >= 2 ? colors.primary : theme === 'dark' ? '#333' : '#e0e0e0',
+                styles.progressStep,
+                {
+                  backgroundColor:
+                    formStep >= 2
+                      ? colors.primary
+                      : theme === "dark"
+                      ? "#333"
+                      : "#e0e0e0",
                   width: formStep === 2 ? 24 : 12,
-                }
+                },
               ]}
-              animate={{ 
-                backgroundColor: formStep >= 2 ? colors.primary : theme === 'dark' ? '#333' : '#e0e0e0',
+              animate={{
+                backgroundColor:
+                  formStep >= 2
+                    ? colors.primary
+                    : theme === "dark"
+                    ? "#333"
+                    : "#e0e0e0",
                 width: formStep === 2 ? 24 : 12,
               }}
               transition={{ type: "timing", duration: 300 }}
@@ -244,28 +264,29 @@ export default function CompleteRegistrationScreen() {
 
           {/* Formulário */}
           <View style={styles.formContainer}>
-            <AnimatePresence mode="sync">
+            <AnimatePresence>
               {formStep === 1 && (
                 <MotiView
                   key={`form-step-1-${theme}`}
                   from={{ opacity: 0, transform: [{ translateX: -width }] }}
                   animate={{ opacity: 1, transform: [{ translateX: 0 }] }}
                   exit={{ opacity: 0, transform: [{ translateX: -width }] }}
-                  transition={{ 
-                    type: "timing", 
+                  transition={{
+                    type: "timing",
                     duration: 350,
                     delay: 0,
                   }}
                   style={[
                     styles.formCard,
                     {
-                      backgroundColor: theme === "dark" ? colors.dark : colors.light,
+                      backgroundColor:
+                        theme === "dark" ? colors.dark : colors.light,
                       borderColor: colors.border,
                     },
                   ]}
                 >
                   {error ? (
-                    <MotiView 
+                    <MotiView
                       key={`error-container-${theme}`}
                       from={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -310,7 +331,7 @@ export default function CompleteRegistrationScreen() {
                       key={`next-button-${theme}`}
                       style={[
                         styles.nextButton,
-                        { backgroundColor: colors.primary }
+                        { backgroundColor: colors.primary },
                       ]}
                       onPress={nextStep}
                       activeOpacity={0.8}
@@ -320,9 +341,32 @@ export default function CompleteRegistrationScreen() {
                     </TouchableOpacity>
 
                     <View style={styles.dividerContainer}>
-                      <View style={[styles.divider, { backgroundColor: theme === 'dark' ? '#444' : '#e0e0e0' }]} />
-                      <Text style={[styles.dividerText, { color: theme === 'dark' ? '#aaa' : '#888' }]}>ou continue com</Text>
-                      <View style={[styles.divider, { backgroundColor: theme === 'dark' ? '#444' : '#e0e0e0' }]} />
+                      <View
+                        style={[
+                          styles.divider,
+                          {
+                            backgroundColor:
+                              theme === "dark" ? "#444" : "#e0e0e0",
+                          },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.dividerText,
+                          { color: theme === "dark" ? "#aaa" : "#888" },
+                        ]}
+                      >
+                        ou continue com
+                      </Text>
+                      <View
+                        style={[
+                          styles.divider,
+                          {
+                            backgroundColor:
+                              theme === "dark" ? "#444" : "#e0e0e0",
+                          },
+                        ]}
+                      />
                     </View>
 
                     <View style={styles.socialButtonsContainer}>
@@ -330,28 +374,38 @@ export default function CompleteRegistrationScreen() {
                         key={`google-button-${theme}`}
                         style={[
                           styles.socialButton,
-                          { 
-                            backgroundColor: theme === 'dark' ? '#333' : '#f5f5f5',
-                            borderColor: theme === 'dark' ? '#444' : '#e0e0e0'
-                          }
+                          {
+                            backgroundColor:
+                              theme === "dark" ? "#333" : "#f5f5f5",
+                            borderColor: theme === "dark" ? "#444" : "#e0e0e0",
+                          },
                         ]}
-                        onPress={() => handleSocialLogin('Google')}
+                        onPress={() => handleSocialLogin("Google")}
                       >
-                        <Ionicons name="logo-google" size={20} color="#DB4437" />
+                        <Ionicons
+                          name="logo-google"
+                          size={20}
+                          color="#DB4437"
+                        />
                       </TouchableOpacity>
-                      
+
                       <TouchableOpacity
                         key={`apple-button-${theme}`}
                         style={[
                           styles.socialButton,
-                          { 
-                            backgroundColor: theme === 'dark' ? '#333' : '#f5f5f5',
-                            borderColor: theme === 'dark' ? '#444' : '#e0e0e0'
-                          }
+                          {
+                            backgroundColor:
+                              theme === "dark" ? "#333" : "#f5f5f5",
+                            borderColor: theme === "dark" ? "#444" : "#e0e0e0",
+                          },
                         ]}
-                        onPress={() => handleSocialLogin('Apple')}
+                        onPress={() => handleSocialLogin("Apple")}
                       >
-                        <Ionicons name="logo-apple" size={20} color={theme === 'dark' ? '#fff' : '#000'} />
+                        <Ionicons
+                          name="logo-apple"
+                          size={20}
+                          color={theme === "dark" ? "#fff" : "#000"}
+                        />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -364,21 +418,22 @@ export default function CompleteRegistrationScreen() {
                   from={{ opacity: 0, transform: [{ translateX: width }] }}
                   animate={{ opacity: 1, transform: [{ translateX: 0 }] }}
                   exit={{ opacity: 0, transform: [{ translateX: width }] }}
-                  transition={{ 
-                    type: "timing", 
+                  transition={{
+                    type: "timing",
                     duration: 350,
                     delay: 0,
                   }}
                   style={[
                     styles.formCard,
                     {
-                      backgroundColor: theme === "dark" ? colors.dark : colors.light,
+                      backgroundColor:
+                        theme === "dark" ? colors.dark : colors.light,
                       borderColor: colors.border,
                     },
                   ]}
                 >
                   {error ? (
-                    <MotiView 
+                    <MotiView
                       key={`error-container-step2-${theme}`}
                       from={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -400,17 +455,19 @@ export default function CompleteRegistrationScreen() {
                         onFocus={() => setActiveField("password")}
                         onBlur={() => setActiveField("")}
                         leftIcon="lock-closed-outline"
-                        rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
+                        rightIcon={
+                          showPassword ? "eye-off-outline" : "eye-outline"
+                        }
                         onRightIconPress={() => setShowPassword(!showPassword)}
                         isActive={activeField === "password"}
                       />
                     </View>
 
                     {password.length > 0 && (
-                      <MotiView 
+                      <MotiView
                         key={`password-strength-${theme}`}
                         from={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
+                        animate={{ opacity: 1, height: "auto" }}
                         style={styles.passwordStrengthContainer}
                       >
                         <View style={styles.strengthBarContainer}>
@@ -419,7 +476,8 @@ export default function CompleteRegistrationScreen() {
                               styles.strengthBar,
                               {
                                 width: `${passwordStrength * 100}%`,
-                                backgroundColor: getPasswordStrengthColor(),
+                                backgroundColor:
+                                  getPasswordStrengthColor(passwordStrength),
                               },
                             ]}
                           />
@@ -427,10 +485,12 @@ export default function CompleteRegistrationScreen() {
                         <Text
                           style={[
                             styles.strengthText,
-                            { color: getPasswordStrengthColor() },
+                            {
+                              color: getPasswordStrengthColor(passwordStrength),
+                            },
                           ]}
                         >
-                          {getPasswordStrengthText()}
+                          {getPasswordStrengthText(passwordStrength)}
                         </Text>
                       </MotiView>
                     )}
@@ -445,8 +505,14 @@ export default function CompleteRegistrationScreen() {
                         onFocus={() => setActiveField("confirmPassword")}
                         onBlur={() => setActiveField("")}
                         leftIcon="shield-checkmark-outline"
-                        rightIcon={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
-                        onRightIconPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                        rightIcon={
+                          showConfirmPassword
+                            ? "eye-off-outline"
+                            : "eye-outline"
+                        }
+                        onRightIconPress={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                         isActive={activeField === "confirmPassword"}
                       />
                     </View>
@@ -456,22 +522,26 @@ export default function CompleteRegistrationScreen() {
                         key={`back-button-${theme}`}
                         style={[
                           styles.backButton,
-                          { 
-                            backgroundColor: 'transparent',
+                          {
+                            backgroundColor: "transparent",
                             borderColor: colors.border,
-                          }
+                          },
                         ]}
                         onPress={prevStep}
                         activeOpacity={0.8}
                       >
-                        <Ionicons name="arrow-back" size={20} color={colors.text} />
+                        <Ionicons
+                          name="arrow-back"
+                          size={20}
+                          color={colors.text}
+                        />
                       </TouchableOpacity>
-                      
+
                       <TouchableOpacity
                         key={`create-account-button-${theme}`}
                         style={[
                           styles.createAccountButton,
-                          { backgroundColor: colors.primary }
+                          { backgroundColor: colors.primary },
                         ]}
                         onPress={handleCompleteRegistration}
                         disabled={loading}
@@ -483,10 +553,17 @@ export default function CompleteRegistrationScreen() {
                             animate={{ opacity: 1 }}
                             transition={{ type: "timing", duration: 200 }}
                           >
-                            <Ionicons name="sync" size={24} color="white" style={styles.loadingIcon} />
+                            <Ionicons
+                              name="sync"
+                              size={24}
+                              color="white"
+                              style={styles.loadingIcon}
+                            />
                           </MotiView>
                         ) : (
-                          <Text style={styles.createAccountButtonText}>Criar Conta</Text>
+                          <Text style={styles.createAccountButtonText}>
+                            Criar Conta
+                          </Text>
                         )}
                       </TouchableOpacity>
                     </View>
@@ -497,7 +574,12 @@ export default function CompleteRegistrationScreen() {
           </View>
 
           <View style={styles.termsContainer}>
-            <Text style={[styles.termsText, { color: theme === 'dark' ? '#aaa' : '#888' }]}>
+            <Text
+              style={[
+                styles.termsText,
+                { color: theme === "dark" ? "#aaa" : "#888" },
+              ]}
+            >
               Ao criar uma conta, você concorda com nossos{" "}
               <Text style={[styles.termsLink, { color: colors.primary }]}>
                 Termos de Serviço
@@ -539,9 +621,9 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   progressContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 24,
     gap: 8,
   },
@@ -550,9 +632,9 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   formContainer: {
-    position: 'relative',
-    width: '100%',
-    overflow: 'hidden',
+    position: "relative",
+    width: "100%",
+    overflow: "hidden",
   },
   formCard: {
     borderRadius: 24,
@@ -609,20 +691,20 @@ const styles = StyleSheet.create({
   nextButton: {
     height: 56,
     borderRadius: 28,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 8,
     gap: 8,
   },
   nextButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: 24,
   },
   divider: {
@@ -634,20 +716,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   socialButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     gap: 16,
   },
   socialButton: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 1,
   },
   buttonRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginTop: 8,
   },
@@ -655,24 +737,24 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 1,
   },
   createAccountButton: {
     flex: 1,
     height: 56,
     borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   createAccountButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   loadingIcon: {
-    transform: [{ rotate: '0deg' }],
+    transform: [{ rotate: "0deg" }],
   },
   termsContainer: {
     marginTop: 8,
@@ -683,7 +765,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
     lineHeight: 18,
-    maxWidth: '90%',
+    maxWidth: "90%",
   },
   termsLink: {
     fontWeight: "bold",

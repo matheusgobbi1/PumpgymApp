@@ -1,171 +1,52 @@
-import React, {
-  useState,
-  useRef,
-  useCallback,
-  useMemo,
-  useEffect,
-} from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   StyleSheet,
   View,
   Text,
   TouchableOpacity,
   Image,
-  KeyboardAvoidingView,
-  Platform,
   Dimensions,
   StatusBar,
-  TextInput,
-  ActivityIndicator,
   Keyboard,
-  ScrollView,
   TouchableWithoutFeedback,
+  ImageBackground,
 } from "react-native";
 import { useRouter } from "expo-router";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
-import Input from "../../components/common/Input";
-import Button from "../../components/common/Button";
+import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons, FontAwesome } from "@expo/vector-icons";
-import BottomSheet, {
-  BottomSheetView,
-  BottomSheetBackdrop,
-  BottomSheetScrollView,
-} from "@gorhom/bottom-sheet";
 import Animated, {
-  FadeIn,
-  FadeOut,
-  SlideInUp,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
   Easing,
-  runOnJS,
-  useAnimatedReaction,
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
-import { validateLogin } from "../../utils/validations";
+import LoginBottomSheet from "../../components/auth/LoginBottomSheet";
+import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get("window");
 
+const AnimatedTouchableOpacity =
+  Animated.createAnimatedComponent(TouchableOpacity);
+
 export default function LoginScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
-  const { login, signInAnonymously } = useAuth();
+  const { theme } = useTheme();
+  const colors = Colors[theme];
+  const { signInAnonymously } = useAuth();
   const insets = useSafeAreaInsets();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
-  // Animação para elementos da tela
-  const logoOpacity = useSharedValue(0);
-  const textOpacity = useSharedValue(0);
-  const buttonOpacity = useSharedValue(0);
-  const linkOpacity = useSharedValue(0);
-
-  // Efeito para iniciar as animações após a montagem do componente
-  useEffect(() => {
-    const animationDuration = 800;
-
-    // Animação sequencial elegante
-    setTimeout(() => {
-      logoOpacity.value = withTiming(1, {
-        duration: animationDuration,
-        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-      });
-    }, 100);
-
-    setTimeout(() => {
-      textOpacity.value = withTiming(1, {
-        duration: animationDuration,
-        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-      });
-    }, 300);
-
-    setTimeout(() => {
-      buttonOpacity.value = withTiming(1, {
-        duration: animationDuration,
-        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-      });
-    }, 500);
-
-    setTimeout(() => {
-      linkOpacity.value = withTiming(1, {
-        duration: animationDuration,
-        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-      });
-    }, 700);
-  }, []);
-
-  // Estilos animados - usando useAnimatedStyle para evitar acesso direto ao .value durante renderização
-  const logoStyle = useAnimatedStyle(() => {
-    return {
-      opacity: logoOpacity.value,
-      transform: [{ translateY: (1 - logoOpacity.value) * 20 }],
-    };
-  });
-
-  const textStyle = useAnimatedStyle(() => {
-    return {
-      opacity: textOpacity.value,
-      transform: [{ translateY: (1 - textOpacity.value) * 15 }],
-    };
-  });
-
-  const buttonStyle = useAnimatedStyle(() => {
-    return {
-      opacity: buttonOpacity.value,
-      transform: [{ translateY: (1 - buttonOpacity.value) * 10 }],
-    };
-  });
-
-  const linkStyle = useAnimatedStyle(() => {
-    return {
-      opacity: linkOpacity.value,
-    };
-  });
-
-  // Bottom sheet reference
-  const bottomSheetRef = useRef<BottomSheet>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
-  const passwordInputRef = useRef<TextInput>(null);
-
-  // Snap points for bottom sheet
-  const snapPoints = useMemo(() => ["85%"], []);
-  
   // Estado para controlar o índice do bottom sheet
   const [bottomSheetIndex, setBottomSheetIndex] = useState(-1);
-
-  // Monitorar o teclado
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      "keyboardDidShow",
-      (event) => {
-        setKeyboardVisible(true);
-      }
-    );
-    const keyboardDidHideListener = Keyboard.addListener(
-      "keyboardDidHide",
-      () => {
-        setKeyboardVisible(false);
-      }
-    );
-
-    return () => {
-      keyboardDidHideListener.remove();
-      keyboardDidShowListener.remove();
-    };
-  }, []);
 
   // Função para fechar o teclado
   const dismissKeyboard = () => {
@@ -178,58 +59,8 @@ export default function LoginScreen() {
     setTimeout(() => {
       setBottomSheetIndex(0);
     }, 100);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   }, []);
-
-  const handleCloseBottomSheet = useCallback(() => {
-    Keyboard.dismiss();
-    setBottomSheetIndex(-1);
-  }, []);
-
-  const handleSheetChanges = useCallback((index: number) => {
-    setBottomSheetIndex(index);
-  }, []);
-
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.7}
-      />
-    ),
-    []
-  );
-
-  const handleLogin = async () => {
-    const validationResult = validateLogin(email, password);
-    if (!validationResult.isValid) {
-      setError(validationResult.message);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError("");
-      await login(email, password);
-      // O redirecionamento será feito automaticamente pelo AuthProvider
-    } catch (err: any) {
-      console.error("Erro ao fazer login:", err);
-      if (
-        err.code === "auth/user-not-found" ||
-        err.code === "auth/wrong-password"
-      ) {
-        setError("Email ou senha incorretos");
-      } else if (err.code === "auth/invalid-email") {
-        setError("Email inválido");
-      } else {
-        setError("Ocorreu um erro ao fazer login. Tente novamente.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleStartAnonymously = async () => {
     try {
@@ -246,41 +77,39 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGoogleLogin = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Implementar login com Google
-  };
-
-  const handleAppleLogin = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Implementar login com Apple
-  };
-
-  // Função para atualizar o email sem causar o aviso do Reanimated
-  const handleEmailChange = useCallback((text: string) => {
-    setEmail(text);
-  }, []);
-
-  // Função para atualizar a senha sem causar o aviso do Reanimated
-  const handlePasswordChange = useCallback((text: string) => {
-    setPassword(text);
-  }, []);
-
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" />
+        <StatusBar
+          barStyle="light-content"
+          translucent
+          backgroundColor="transparent"
+        />
 
-        {/* Clean Gradient Background */}
-        <LinearGradient
-          colors={[colors.primary, "#1a2a6c", "#4ecdc4"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.backgroundGradient}
+        {/* Background Image */}
+        <ImageBackground
+          source={require("../../assets/images/fitness-background.jpg")}
+          style={styles.backgroundImage}
+          resizeMode="cover"
         >
-          <View style={styles.content}>
-            {/* Logo and App Name */}
-            <Animated.View style={[styles.logoContainer, logoStyle]}>
+          {/* Overlay para escurecer a imagem */}
+          <View style={styles.overlay} />
+
+          {/* Conteúdo principal */}
+          <View
+            style={[
+              styles.content,
+              {
+                paddingTop: insets.top + 20,
+                paddingBottom: insets.bottom + 20,
+              },
+            ]}
+          >
+            {/* Logo e Nome do App */}
+            <Animated.View
+              entering={FadeInDown.delay(200).duration(800)}
+              style={styles.logoContainer}
+            >
               <Image
                 source={require("../../assets/images/Logo.png")}
                 style={styles.logo}
@@ -289,296 +118,76 @@ export default function LoginScreen() {
               <Text style={styles.appName}>PumpGym</Text>
             </Animated.View>
 
-            {/* Motivational Text */}
-            <Animated.View style={[styles.motivationalContainer, textStyle]}>
-              <Text style={styles.motivationalText}>
-                Transforme seu corpo,{"\n"}
-                <Text style={styles.highlightText}>transforme sua vida</Text>
-              </Text>
-              <Text style={styles.subText}>
-                Comece sua jornada fitness hoje mesmo
-              </Text>
+            {/* Slogan */}
+            <Animated.View
+              entering={FadeInDown.delay(400).duration(800)}
+              style={styles.sloganContainer}
+            >
+              <Text style={styles.slogan}>Transforme seu corpo,</Text>
+              <Text style={styles.sloganHighlight}>transforme sua vida</Text>
             </Animated.View>
 
-            {/* Get Started Button */}
-            <Animated.View style={[styles.buttonContainer, buttonStyle]}>
-              <TouchableOpacity
-                style={styles.getStartedButton}
+            {/* Botões */}
+            <View style={styles.buttonsContainer}>
+              <AnimatedTouchableOpacity
+                entering={FadeInUp.delay(600).duration(800)}
+                style={[
+                  styles.button,
+                  styles.primaryButton,
+                  { backgroundColor: colors.primary },
+                ]}
                 onPress={handleStartAnonymously}
                 activeOpacity={0.8}
               >
-                <LinearGradient
-                  colors={[colors.primary, "#2ab7ca"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.gradientButton}
-                >
-                  <Text style={styles.getStartedText}>COMEÇAR AGORA</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </Animated.View>
+                <Ionicons
+                  name="rocket-outline"
+                  size={20}
+                  color="#FFFFFF"
+                  style={styles.buttonIcon}
+                />
+                <Text style={styles.buttonText}>COMEÇAR AGORA</Text>
+              </AnimatedTouchableOpacity>
 
-            {/* Login Link */}
-            <Animated.View style={[styles.loginLinkContainer, linkStyle]}>
-              <Text style={styles.loginText}>Já tem uma conta?</Text>
-              <TouchableOpacity onPress={handleOpenBottomSheet}>
-                <Text style={styles.loginLink}>Entrar</Text>
-              </TouchableOpacity>
-            </Animated.View>
+              <AnimatedTouchableOpacity
+                entering={FadeInUp.delay(700).duration(800)}
+                style={[styles.button, styles.secondaryButton]}
+                onPress={handleOpenBottomSheet}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name="log-in-outline"
+                  size={20}
+                  color={colors.primary}
+                  style={styles.buttonIcon}
+                />
+                <Text
+                  style={[
+                    styles.buttonText,
+                    styles.secondaryButtonText,
+                    { color: colors.primary },
+                  ]}
+                >
+                  ENTRAR
+                </Text>
+              </AnimatedTouchableOpacity>
+            </View>
+
+            {/* Texto de rodapé */}
+            <Animated.Text
+              entering={FadeIn.delay(900).duration(800)}
+              style={styles.footerText}
+            >
+              Ao continuar, você concorda com nossos Termos de Uso e Política de
+              Privacidade
+            </Animated.Text>
           </View>
-        </LinearGradient>
+        </ImageBackground>
 
         {/* Login Bottom Sheet */}
-        <BottomSheet
-          ref={bottomSheetRef}
-          index={bottomSheetIndex}
-          snapPoints={snapPoints}
-          enablePanDownToClose
-          backdropComponent={renderBackdrop}
-          handleIndicatorStyle={styles.bottomSheetIndicator}
-          backgroundStyle={[
-            styles.bottomSheetBackground,
-            { backgroundColor: colorScheme === "dark" ? "#1c1c1e" : "#ffffff" },
-          ]}
-          onChange={handleSheetChanges}
-          keyboardBehavior="interactive"
-          android_keyboardInputMode="adjustResize"
-          animateOnMount={false}
-          enableContentPanningGesture={true}
-          enableHandlePanningGesture={true}
-          handleHeight={24}
-        >
-          <TouchableWithoutFeedback onPress={dismissKeyboard}>
-            <KeyboardAvoidingView 
-              behavior={Platform.OS === "ios" ? "padding" : undefined}
-              style={{ flex: 1 }}
-              keyboardVerticalOffset={Platform.OS === "ios" ? 30 : 0}
-            >
-              <View style={{ flex: 1, padding: 24 }}>
-                <View style={styles.bottomSheetHeader}>
-                  <Text
-                    style={[
-                      styles.bottomSheetTitle,
-                      {
-                        color: colorScheme === "dark" ? "#ffffff" : "#000000",
-                      },
-                    ]}
-                  >
-                    Entrar
-                  </Text>
-                  <TouchableOpacity
-                    onPress={handleCloseBottomSheet}
-                    style={styles.closeButton}
-                  >
-                    <Ionicons
-                      name="close-circle"
-                      size={28}
-                      color={colors.primary}
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                {error ? (
-                  <Animated.View
-                    entering={FadeIn.duration(300)}
-                    style={styles.errorContainer}
-                  >
-                    <Text style={styles.errorText}>{error}</Text>
-                  </Animated.View>
-                ) : null}
-
-                {/* Email Login Form */}
-                <View style={styles.formContainer}>
-                  <View
-                    style={[
-                      styles.inputContainer,
-                      {
-                        backgroundColor:
-                          colorScheme === "dark" ? "#2c2c2e" : "#f5f5f5",
-                        borderColor: colors.primary + "30",
-                        borderWidth: 1,
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name="mail-outline"
-                      size={20}
-                      color={colors.primary}
-                      style={styles.inputIcon}
-                    />
-                    <TextInput
-                      style={[
-                        styles.input,
-                        {
-                          color:
-                            colorScheme === "dark" ? "#ffffff" : "#000000",
-                        },
-                      ]}
-                      placeholder="Email"
-                      placeholderTextColor={
-                        colorScheme === "dark" ? "#999999" : "#999999"
-                      }
-                      value={email}
-                      onChangeText={handleEmailChange}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      returnKeyType="next"
-                      onSubmitEditing={() => {
-                        // Focar no próximo input (senha)
-                        passwordInputRef.current?.focus();
-                      }}
-                      blurOnSubmit={false}
-                    />
-                  </View>
-
-                  <View
-                    style={[
-                      styles.inputContainer,
-                      {
-                        backgroundColor:
-                          colorScheme === "dark" ? "#2c2c2e" : "#f5f5f5",
-                        borderColor: colors.primary + "30",
-                        borderWidth: 1,
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name="lock-closed-outline"
-                      size={20}
-                      color={colors.primary}
-                      style={styles.inputIcon}
-                    />
-                    <TextInput
-                      ref={passwordInputRef}
-                      style={[
-                        styles.input,
-                        {
-                          color:
-                            colorScheme === "dark" ? "#ffffff" : "#000000",
-                        },
-                      ]}
-                      placeholder="Senha"
-                      placeholderTextColor={
-                        colorScheme === "dark" ? "#999999" : "#999999"
-                      }
-                      value={password}
-                      onChangeText={handlePasswordChange}
-                      secureTextEntry
-                      returnKeyType="done"
-                      onSubmitEditing={handleLogin}
-                    />
-                  </View>
-
-                  <TouchableOpacity
-                    style={styles.forgotPasswordContainer}
-                    onPress={() => {
-                      /* Implementar recuperação de senha */
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.forgotPasswordText,
-                        {
-                          color: colors.primary,
-                        },
-                      ]}
-                    >
-                      Esqueceu sua senha?
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.loginButton}
-                    onPress={handleLogin}
-                    disabled={loading}
-                  >
-                    <LinearGradient
-                      colors={[colors.primary, "#2ab7ca"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.gradientButton}
-                    >
-                      {loading ? (
-                        <ActivityIndicator color="#FFFFFF" />
-                      ) : (
-                        <Text style={styles.loginButtonText}>ENTRAR</Text>
-                      )}
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.dividerContainer}>
-                  <View
-                    style={[
-                      styles.divider,
-                      {
-                        backgroundColor: colors.primary + "30",
-                      },
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.dividerText,
-                      {
-                        color:
-                          colorScheme === "dark" ? "#ffffff" : "#000000",
-                      },
-                    ]}
-                  >
-                    ou
-                  </Text>
-                  <View
-                    style={[
-                      styles.divider,
-                      {
-                        backgroundColor: colors.primary + "30",
-                      },
-                    ]}
-                  />
-                </View>
-
-                {/* Social Login Buttons */}
-                <View style={styles.socialButtonsContainer}>
-                  <TouchableOpacity
-                    style={[styles.socialButton, styles.appleButton]}
-                    onPress={handleAppleLogin}
-                  >
-                    <FontAwesome name="apple" size={24} color="#FFFFFF" />
-                    <Text style={styles.socialButtonText}>
-                      Continuar com Apple
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.socialButton, styles.googleButton]}
-                    onPress={handleGoogleLogin}
-                  >
-                    <FontAwesome name="google" size={24} color="#FFFFFF" />
-                    <Text style={styles.socialButtonText}>
-                      Continuar com Google
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              
-              {/* Botão para fechar o teclado dentro do Bottom Sheet */}
-              {keyboardVisible && (
-                <Animated.View 
-                  entering={FadeIn.duration(200)}
-                  exiting={FadeOut.duration(200)}
-                  style={[styles.keyboardDismissButton, { bottom: 10 }]}
-                >
-                  <TouchableOpacity
-                    onPress={dismissKeyboard}
-                    style={styles.keyboardDismissButtonInner}
-                  >
-                    <Ionicons name="chevron-down" size={24} color="#FFFFFF" />
-                  </TouchableOpacity>
-                </Animated.View>
-              )}
-            </KeyboardAvoidingView>
-          </TouchableWithoutFeedback>
-        </BottomSheet>
+        <LoginBottomSheet
+          bottomSheetIndex={bottomSheetIndex}
+          setBottomSheetIndex={setBottomSheetIndex}
+        />
       </View>
     </TouchableWithoutFeedback>
   );
@@ -588,233 +197,92 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  backgroundGradient: {
+  backgroundImage: {
     flex: 1,
     width: width,
     height: height,
   },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+  },
   content: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
+    justifyContent: "space-between",
+    padding: 24,
   },
   logoContainer: {
     alignItems: "center",
-    marginBottom: 40,
+    marginTop: 20,
   },
   logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 16,
+    width: 80,
+    height: 80,
+    marginBottom: 8,
   },
   appName: {
-    fontSize: 42,
+    fontSize: 36,
     fontWeight: "bold",
     color: "#FFFFFF",
-    textShadowColor: "rgba(0, 0, 0, 0.75)",
-    textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 10,
-  },
-  motivationalContainer: {
-    alignItems: "center",
-    marginBottom: 60,
-  },
-  motivationalText: {
-    fontSize: 28,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    textAlign: "center",
-    marginBottom: 12,
-    textShadowColor: "rgba(0, 0, 0, 0.75)",
-    textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 10,
-  },
-  highlightText: {
-    color: "#FFEB3B",
-    fontWeight: "bold",
-  },
-  subText: {
-    fontSize: 16,
-    color: "#FFFFFF",
-    textAlign: "center",
-    opacity: 0.8,
-  },
-  buttonContainer: {
-    width: "100%",
-    alignItems: "center",
-    marginBottom: 30,
-  },
-  getStartedButton: {
-    width: "80%",
-    height: 60,
-    borderRadius: 30,
-    overflow: "hidden",
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-  },
-  gradientButton: {
-    width: "100%",
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  getStartedText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "bold",
     letterSpacing: 1,
   },
-  loginLinkContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
+  sloganContainer: {
     alignItems: "center",
   },
-  loginText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    marginRight: 5,
-  },
-  loginLink: {
-    color: "#FFEB3B",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  bottomSheetBackground: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-  bottomSheetIndicator: {
-    backgroundColor: "#4ecdc4",
-    width: 40,
-  },
-  bottomSheetScrollViewContent: {
-    flexGrow: 1,
-  },
-  bottomSheetContent: {
-    padding: 24,
-  },
-  bottomSheetHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  bottomSheetTitle: {
+  slogan: {
     fontSize: 24,
-    fontWeight: "bold",
-  },
-  closeButton: {
-    padding: 4,
-  },
-  errorContainer: {
-    backgroundColor: "rgba(255, 0, 0, 0.1)",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorText: {
-    color: "red",
+    color: "#FFFFFF",
     textAlign: "center",
+    fontWeight: "300",
   },
-  socialButtonsContainer: {
-    marginBottom: 24,
+  sloganHighlight: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+    textAlign: "center",
+    marginTop: 8,
   },
-  socialButton: {
+  buttonsContainer: {
+    width: "100%",
+    marginBottom: 20,
+    gap: 16,
+  },
+  button: {
+    height: 56,
+    borderRadius: 28,
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "center",
-    height: 60,
-    borderRadius: 30,
-    marginBottom: 12,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  appleButton: {
-    backgroundColor: "#000000",
+  primaryButton: {
+    backgroundColor: "#4ecdc4",
   },
-  googleButton: {
-    backgroundColor: "#DB4437",
+  secondaryButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
-  socialButtonText: {
+  buttonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
-    marginLeft: 12,
-  },
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    marginHorizontal: 10,
-    fontSize: 14,
-  },
-  formContainer: {
-    marginBottom: 24,
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    height: 60,
-    borderRadius: 30,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    height: "100%",
-    fontSize: 16,
-  },
-  forgotPasswordContainer: {
-    alignSelf: "flex-end",
-    marginBottom: 24,
-  },
-  forgotPasswordText: {
-    fontSize: 14,
-  },
-  loginButton: {
-    height: 60,
-    borderRadius: 30,
-    overflow: "hidden",
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
-  },
-  loginButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "bold",
     letterSpacing: 1,
   },
-  keyboardDismissButton: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    zIndex: 1000,
+  secondaryButtonText: {
+    color: "#4ecdc4",
   },
-  keyboardDismissButtonInner: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#4ecdc4',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
+  buttonIcon: {
+    marginRight: 8,
+  },
+  footerText: {
+    color: "rgba(255, 255, 255, 0.7)",
+    fontSize: 12,
+    textAlign: "center",
+    marginBottom: 10,
   },
 });

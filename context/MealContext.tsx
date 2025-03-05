@@ -103,8 +103,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       mealsSnap.forEach((doc) => {
         mealsData[doc.id] = doc.data() as { [mealId: string]: Food[] };
       });
-
-      console.log("Refeições carregadas:", Object.keys(mealsData).length, "dias");
       
       // Definir o estado diretamente, sem limpar antes
       setMeals(mealsData);

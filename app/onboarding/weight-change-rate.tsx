@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Dimensions, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
   TouchableOpacity,
-  Animated
+  Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -27,18 +27,20 @@ const interpolateColor = (color1: string, color2: string, ratio: number) => {
   const r1 = parseInt(color1.substring(1, 3), 16);
   const g1 = parseInt(color1.substring(3, 5), 16);
   const b1 = parseInt(color1.substring(5, 7), 16);
-  
+
   const r2 = parseInt(color2.substring(1, 3), 16);
   const g2 = parseInt(color2.substring(3, 5), 16);
   const b2 = parseInt(color2.substring(5, 7), 16);
-  
+
   // Interpolar cada componente
   const r = Math.round(r1 + (r2 - r1) * ratio);
   const g = Math.round(g1 + (g2 - g1) * ratio);
   const b = Math.round(b1 + (b2 - b1) * ratio);
-  
+
   // Converter de volta para hex
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  return `#${r.toString(16).padStart(2, "0")}${g
+    .toString(16)
+    .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
 };
 
 export default function WeightChangeRateScreen() {
@@ -48,13 +50,13 @@ export default function WeightChangeRateScreen() {
   const { nutritionInfo, updateNutritionInfo } = useNutrition();
   const sliderRef = useRef<any>(null);
   const animatedScale = useRef(new Animated.Value(1)).current;
-  
+
   // Estado para forçar re-renderização quando o tema mudar
   const [, setForceUpdate] = useState({});
-  
+
   // Estado para armazenar a cor atual do gráfico
   const [chartColor, setChartColor] = useState<string>(colors.primary);
-  
+
   // Efeito para forçar a re-renderização quando o tema mudar
   useEffect(() => {
     setForceUpdate({});
@@ -67,11 +69,11 @@ export default function WeightChangeRateScreen() {
     targetDate: Date;
     weeksToGoal: number;
     dates?: Date[];
-  }>({ 
-    labels: [], 
-    datasets: [{ data: [] }], 
+  }>({
+    labels: [],
+    datasets: [{ data: [] }],
     targetDate: new Date(),
-    weeksToGoal: 0
+    weeksToGoal: 0,
   });
 
   // Atualizar a cor do gráfico quando a taxa muda
@@ -87,7 +89,7 @@ export default function WeightChangeRateScreen() {
     } else {
       newColor = colors.danger;
     }
-    
+
     // Atualizar o estado da cor
     setChartColor(newColor);
   }, [rate, colors]);
@@ -109,18 +111,18 @@ export default function WeightChangeRateScreen() {
     const labels = [];
     const dates = [];
     const today = new Date();
-    
+
     for (let i = 0; i < numPoints; i++) {
       const progress = i / (numPoints - 1);
-      const weight = currentWeight + (progress * totalChange);
+      const weight = currentWeight + progress * totalChange;
       data.push(parseFloat(weight.toFixed(1)));
-      
+
       // Calcular a data para cada ponto
       const pointDate = new Date(today);
-      const daysToAdd = Math.ceil((progress * weeksToGoal) * 7);
+      const daysToAdd = Math.ceil(progress * weeksToGoal * 7);
       pointDate.setDate(pointDate.getDate() + daysToAdd);
       dates.push(pointDate);
-      
+
       if (i === 0) {
         labels.push("Hoje");
       } else if (i === numPoints - 1) {
@@ -138,28 +140,27 @@ export default function WeightChangeRateScreen() {
       datasets: [{ data }],
       targetDate,
       weeksToGoal,
-      dates
+      dates,
     });
-
   }, [rate, nutritionInfo.weight, nutritionInfo.targetWeight]);
 
   // Função para animar o gráfico quando o valor do slider muda
   const animateChart = () => {
     // Feedback tátil sutil
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
+
     // Animar o gráfico com um efeito de pulso
     Animated.sequence([
       Animated.timing(animatedScale, {
         toValue: 1.03,
         duration: 150,
-        useNativeDriver: true
+        useNativeDriver: true,
       }),
       Animated.timing(animatedScale, {
         toValue: 1,
         duration: 150,
-        useNativeDriver: true
-      })
+        useNativeDriver: true,
+      }),
     ]).start();
   };
 
@@ -167,9 +168,14 @@ export default function WeightChangeRateScreen() {
   const handleRateChange = (newRate: number) => {
     setRate(newRate);
     animateChart();
-    
+
     // Feedback tátil adicional em valores específicos
-    if (newRate === 0.3 || newRate === 0.6 || newRate === 0.9 || newRate === 1.2) {
+    if (
+      newRate === 0.3 ||
+      newRate === 0.6 ||
+      newRate === 0.9 ||
+      newRate === 1.2
+    ) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
   };
@@ -191,7 +197,7 @@ export default function WeightChangeRateScreen() {
       year: "numeric",
     });
   };
-  
+
   // Formatar data curta para o gráfico
   const formatShortDate = (date: Date) => {
     return date.toLocaleDateString("pt-BR", {
@@ -199,7 +205,7 @@ export default function WeightChangeRateScreen() {
       month: "short",
     });
   };
-  
+
   // Formatar data intermediária
   const formatIntermediateDate = (date: Date) => {
     return date.toLocaleDateString("pt-BR", {
@@ -246,7 +252,7 @@ export default function WeightChangeRateScreen() {
     const diff = Math.abs(getWeightDifference()).toFixed(1);
     const speedText = getSpeedText().toLowerCase();
     const timeText = Math.ceil(projectedData.weeksToGoal);
-    
+
     if (isGainingWeight) {
       return `Você ganhará ${diff}kg em aproximadamente ${timeText} semanas com uma velocidade ${speedText}.`;
     } else {
@@ -275,7 +281,7 @@ export default function WeightChangeRateScreen() {
         key={`content-container-${theme}`}
         from={{ opacity: 0, translateY: 20 }}
         animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: 'timing', duration: 500 }}
+        transition={{ type: "timing", duration: 500 }}
         style={styles.contentContainer}
       >
         {/* Card principal com gráfico */}
@@ -283,14 +289,15 @@ export default function WeightChangeRateScreen() {
           key={`chart-card-${theme}`}
           from={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: 'spring', delay: 200 }}
+          transition={{ type: "spring", delay: 200 }}
           style={[
             styles.chartCard,
             {
-              backgroundColor: theme === 'dark' ? colors.dark : colors.light,
-              borderColor: getSpeedColor() + '20',
+              backgroundColor: theme === "dark" ? colors.dark : colors.light,
+              borderColor: getSpeedColor() + "20",
               shadowColor: colors.text,
-            }
+              overflow: "hidden",
+            },
           ]}
         >
           <View key={`chart-header-${theme}`} style={styles.chartHeader}>
@@ -298,16 +305,17 @@ export default function WeightChangeRateScreen() {
               <Text style={[styles.chartTitle, { color: colors.text }]}>
                 Projeção de {isGainingWeight ? "Ganho" : "Perda"}
               </Text>
-              <Animated.Text 
+              <Animated.Text
                 style={[
-                  styles.chartSubtitle, 
-                  { 
-                    color: colors.text + '80',
-                    transform: [{ scale: animatedScale }]
-                  }
+                  styles.chartSubtitle,
+                  {
+                    color: colors.text + "80",
+                    transform: [{ scale: animatedScale }],
+                  },
                 ]}
               >
-                {Math.abs(getWeightDifference()).toFixed(1)}kg em {Math.ceil(projectedData.weeksToGoal)} semanas
+                {Math.abs(getWeightDifference()).toFixed(1)}kg em{" "}
+                {Math.ceil(projectedData.weeksToGoal)} semanas
               </Animated.Text>
             </View>
             <Ionicons
@@ -317,34 +325,49 @@ export default function WeightChangeRateScreen() {
             />
           </View>
 
-          <Animated.View 
-            key={`chart-container-${theme}`} 
+          <Animated.View
+            key={`chart-container-${theme}`}
             style={[
               styles.chartContainer,
-              { transform: [{ scale: animatedScale }] }
+              { transform: [{ scale: animatedScale }] },
             ]}
           >
             <LineChart
               data={{
                 labels: projectedData.labels,
-                datasets: [{ 
-                  data: projectedData.datasets[0].data, 
-                  color: (opacity = 1) => {
-                    return chartColor + (Math.round(opacity * 255)).toString(16).padStart(2, '0');
-                  }
-                }],
+                datasets: [
+                  {
+                    data: projectedData.datasets[0].data,
+                    color: (opacity = 1) => {
+                      return (
+                        chartColor +
+                        Math.round(opacity * 255)
+                          .toString(16)
+                          .padStart(2, "0")
+                      );
+                    },
+                  },
+                ],
               }}
               width={screenWidth - 80}
               height={180}
               chartConfig={{
-                backgroundColor: 'transparent',
-                backgroundGradientFrom: theme === 'dark' ? colors.dark : colors.light,
-                backgroundGradientTo: theme === 'dark' ? colors.dark : colors.light,
+                backgroundColor: "transparent",
+                backgroundGradientFrom:
+                  theme === "dark" ? colors.dark : colors.light,
+                backgroundGradientTo:
+                  theme === "dark" ? colors.dark : colors.light,
                 decimalPlaces: 1,
                 color: (opacity = 1) => {
-                  return chartColor + (Math.round(opacity * 255)).toString(16).padStart(2, '0');
+                  return (
+                    chartColor +
+                    Math.round(opacity * 255)
+                      .toString(16)
+                      .padStart(2, "0")
+                  );
                 },
-                labelColor: (opacity = 1) => colors.text + (opacity * 100).toString(16).padStart(2, '0'),
+                labelColor: (opacity = 1) =>
+                  colors.text + (opacity * 100).toString(16).padStart(2, "0"),
                 style: {
                   borderRadius: 16,
                 },
@@ -354,11 +377,11 @@ export default function WeightChangeRateScreen() {
                   stroke: chartColor,
                 },
                 propsForBackgroundLines: {
-                  stroke: colors.border + '40',
-                  strokeDasharray: '5, 5',
+                  stroke: colors.border + "40",
+                  strokeDasharray: "5, 5",
                 },
                 propsForLabels: {
-                  fontWeight: 'bold',
+                  fontWeight: "bold",
                   fontSize: 10,
                 },
                 fillShadowGradient: chartColor,
@@ -375,21 +398,24 @@ export default function WeightChangeRateScreen() {
               fromZero={false}
               yAxisSuffix="kg"
               renderDotContent={({ x, y, index }) => {
-                if (index === 0 || index === projectedData.datasets[0].data.length - 1) {
+                if (
+                  index === 0 ||
+                  index === projectedData.datasets[0].data.length - 1
+                ) {
                   return (
-                    <View 
+                    <View
                       key={`dot-label-${index}-${theme}-${rate}`}
                       style={{
-                        position: 'absolute',
+                        position: "absolute",
                         top: y - 36,
                         left: x - 30,
                         width: 60,
-                        alignItems: 'center'
+                        alignItems: "center",
                       }}
                     >
-                      <View 
+                      <View
                         style={{
-                          backgroundColor: chartColor + '20',
+                          backgroundColor: chartColor + "20",
                           paddingHorizontal: 8,
                           paddingVertical: 4,
                           borderRadius: 12,
@@ -397,11 +423,11 @@ export default function WeightChangeRateScreen() {
                           borderColor: chartColor,
                         }}
                       >
-                        <Text 
-                          style={{ 
-                            color: chartColor, 
+                        <Text
+                          style={{
+                            color: chartColor,
                             fontSize: 10,
-                            fontWeight: 'bold',
+                            fontWeight: "bold",
                           }}
                         >
                           {projectedData.datasets[0].data[index]}kg
@@ -413,44 +439,48 @@ export default function WeightChangeRateScreen() {
                 return null;
               }}
             />
-            
+
             {/* Datas de início e fim simplificadas */}
-            <View key={`chart-dates-${theme}-${rate}`} style={styles.chartDates}>
+            <View
+              key={`chart-dates-${theme}-${rate}`}
+              style={styles.chartDates}
+            >
               <MotiView
                 key={`start-date-${theme}-${rate}`}
                 style={[
                   styles.dateChip,
                   {
-                    backgroundColor: chartColor + '10',
-                    borderColor: chartColor + '30',
+                    backgroundColor: chartColor + "10",
+                    borderColor: chartColor + "30",
                     left: 0,
-                  }
+                  },
                 ]}
                 from={{ opacity: 0, translateY: 10 }}
                 animate={{ opacity: 1, translateY: 0 }}
-                transition={{ type: 'spring', delay: 200 }}
+                transition={{ type: "spring", delay: 200 }}
               >
                 <Text style={[styles.dateChipText, { color: chartColor }]}>
                   Hoje
                 </Text>
               </MotiView>
-              
+
               <MotiView
                 key={`end-date-${theme}-${rate}`}
                 style={[
                   styles.dateChip,
                   {
-                    backgroundColor: chartColor + '10',
-                    borderColor: chartColor + '30',
+                    backgroundColor: chartColor + "10",
+                    borderColor: chartColor + "30",
                     right: 0,
-                  }
+                  },
                 ]}
                 from={{ opacity: 0, translateY: 10 }}
                 animate={{ opacity: 1, translateY: 0 }}
-                transition={{ type: 'spring', delay: 300 }}
+                transition={{ type: "spring", delay: 300 }}
               >
                 <Text style={[styles.dateChipText, { color: chartColor }]}>
-                  {formatShortDate(projectedData.targetDate)} • {Math.ceil(projectedData.weeksToGoal)} semanas
+                  {formatShortDate(projectedData.targetDate)} •{" "}
+                  {Math.ceil(projectedData.weeksToGoal)} semanas
                 </Text>
               </MotiView>
             </View>
@@ -462,31 +492,41 @@ export default function WeightChangeRateScreen() {
           key={`speed-card-${theme}`}
           from={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: 'spring', delay: 300 }}
+          transition={{ type: "spring", delay: 300 }}
           style={[
             styles.speedCard,
             {
-              backgroundColor: theme === 'dark' ? colors.dark : colors.light,
-              borderColor: getSpeedColor() + '20',
+              backgroundColor: theme === "dark" ? colors.dark : colors.light,
+              borderColor: getSpeedColor() + "20",
               shadowColor: colors.text,
-            }
+              overflow: "hidden",
+            },
           ]}
         >
           <View key={`speed-header-${theme}`} style={styles.speedHeader}>
-            <View style={[styles.speedIconContainer, { backgroundColor: getSpeedColor() + '20' }]}>
-              <Ionicons name={getSpeedIcon()} size={24} color={getSpeedColor()} />
+            <View
+              style={[
+                styles.speedIconContainer,
+                { backgroundColor: getSpeedColor() + "20" },
+              ]}
+            >
+              <Ionicons
+                name={getSpeedIcon()}
+                size={24}
+                color={getSpeedColor()}
+              />
             </View>
             <View style={styles.speedTextContainer}>
               <Text style={[styles.speedTitle, { color: colors.text }]}>
                 Velocidade {getSpeedText()}
               </Text>
-              <Animated.Text 
+              <Animated.Text
                 style={[
-                  styles.speedValue, 
-                  { 
+                  styles.speedValue,
+                  {
                     color: getSpeedColor(),
-                    transform: [{ scale: animatedScale }]
-                  }
+                    transform: [{ scale: animatedScale }],
+                  },
                 ]}
               >
                 {rate.toFixed(1)}kg por semana
@@ -494,7 +534,10 @@ export default function WeightChangeRateScreen() {
             </View>
           </View>
 
-          <View key={`slider-container-${theme}`} style={styles.sliderContainer}>
+          <View
+            key={`slider-container-${theme}`}
+            style={styles.sliderContainer}
+          >
             <Slider
               ref={sliderRef}
               style={styles.slider}
@@ -507,7 +550,7 @@ export default function WeightChangeRateScreen() {
               maximumTrackTintColor={colors.border}
               thumbTintColor={getSpeedColor()}
             />
-            
+
             <View key={`preset-buttons-${theme}`} style={styles.presetButtons}>
               {speedPresets.map((preset, index) => (
                 <TouchableOpacity
@@ -515,13 +558,17 @@ export default function WeightChangeRateScreen() {
                   style={[
                     styles.presetButton,
                     {
-                      backgroundColor: Math.abs(rate - preset.value) < 0.05 
-                        ? getSpeedColor() + '20' 
-                        : theme === 'dark' ? colors.dark + '80' : colors.light + '80',
-                      borderColor: Math.abs(rate - preset.value) < 0.05 
-                        ? getSpeedColor() 
-                        : colors.border,
-                    }
+                      backgroundColor:
+                        Math.abs(rate - preset.value) < 0.05
+                          ? getSpeedColor() + "20"
+                          : theme === "dark"
+                          ? colors.dark + "80"
+                          : colors.light + "80",
+                      borderColor:
+                        Math.abs(rate - preset.value) < 0.05
+                          ? getSpeedColor()
+                          : colors.border,
+                    },
                   ]}
                   onPress={() => {
                     setRate(preset.value);
@@ -529,14 +576,15 @@ export default function WeightChangeRateScreen() {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                   }}
                 >
-                  <Text 
+                  <Text
                     style={[
-                      styles.presetButtonText, 
-                      { 
-                        color: Math.abs(rate - preset.value) < 0.05 
-                          ? getSpeedColor() 
-                          : colors.text 
-                      }
+                      styles.presetButtonText,
+                      {
+                        color:
+                          Math.abs(rate - preset.value) < 0.05
+                            ? getSpeedColor()
+                            : colors.text,
+                      },
                     ]}
                   >
                     {preset.label}
@@ -552,29 +600,30 @@ export default function WeightChangeRateScreen() {
           key={`info-card-${theme}`}
           from={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: 'spring', delay: 400 }}
+          transition={{ type: "spring", delay: 400 }}
           style={[
             styles.infoCard,
             {
-              backgroundColor: theme === 'dark' ? colors.dark : colors.light,
-              borderColor: colors.primary + '20',
+              backgroundColor: theme === "dark" ? colors.dark : colors.light,
+              borderColor: colors.primary + "20",
               shadowColor: colors.text,
-            }
+              overflow: "hidden",
+            },
           ]}
         >
           <View key={`info-content-${theme}`} style={styles.infoContent}>
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
-                <Text style={[styles.infoLabel, { color: colors.text + '80' }]}>
+                <Text style={[styles.infoLabel, { color: colors.text + "80" }]}>
                   Peso Atual
                 </Text>
                 <Text style={[styles.infoValue, { color: colors.text }]}>
                   {nutritionInfo.weight?.toFixed(1)}kg
                 </Text>
               </View>
-              
+
               <View style={styles.infoItem}>
-                <Text style={[styles.infoLabel, { color: colors.text + '80' }]}>
+                <Text style={[styles.infoLabel, { color: colors.text + "80" }]}>
                   Peso Meta
                 </Text>
                 <Text style={[styles.infoValue, { color: colors.text }]}>
@@ -582,19 +631,19 @@ export default function WeightChangeRateScreen() {
                 </Text>
               </View>
             </View>
-            
+
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
-                <Text style={[styles.infoLabel, { color: colors.text + '80' }]}>
+                <Text style={[styles.infoLabel, { color: colors.text + "80" }]}>
                   Data Prevista
                 </Text>
-                <Animated.Text 
+                <Animated.Text
                   style={[
-                    styles.infoValue, 
-                    { 
+                    styles.infoValue,
+                    {
                       color: colors.text,
-                      transform: [{ scale: animatedScale }]
-                    }
+                      transform: [{ scale: animatedScale }],
+                    },
                   ]}
                 >
                   {formatTargetDate(projectedData.targetDate)}
@@ -602,21 +651,32 @@ export default function WeightChangeRateScreen() {
               </View>
             </View>
           </View>
-          
-          <View key={`info-footer-${theme}`} style={styles.infoFooter}>
+
+          <View
+            key={`info-footer-${theme}`}
+            style={[
+              styles.infoFooter,
+              {
+                borderTopColor:
+                  theme === "dark"
+                    ? "rgba(255, 255, 255, 0.05)"
+                    : "rgba(0, 0, 0, 0.05)",
+              },
+            ]}
+          >
             <Ionicons
               name="information-circle-outline"
               size={20}
               color={getSpeedColor()}
               style={styles.infoIcon}
             />
-            <Animated.Text 
+            <Animated.Text
               style={[
-                styles.infoText, 
-                { 
-                  color: colors.text + '80',
-                  transform: [{ scale: animatedScale }]
-                }
+                styles.infoText,
+                {
+                  color: colors.text + "80",
+                  transform: [{ scale: animatedScale }],
+                },
               ]}
             >
               {getDescriptionText()}
@@ -637,27 +697,27 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 4,
+    elevation: 3,
   },
   chartHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   chartTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   chartSubtitle: {
     fontSize: 14,
     marginTop: 2,
   },
   chartContainer: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   chart: {
     borderRadius: 16,
@@ -667,22 +727,22 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 4,
+    elevation: 3,
   },
   speedHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 16,
   },
   speedIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 16,
   },
   speedTextContainer: {
@@ -690,23 +750,23 @@ const styles = StyleSheet.create({
   },
   speedTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   speedValue: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     marginTop: 4,
   },
   sliderContainer: {
     marginTop: 8,
   },
   slider: {
-    width: '100%',
+    width: "100%",
     height: 40,
   },
   presetButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: 8,
   },
   presetButton: {
@@ -717,22 +777,22 @@ const styles = StyleSheet.create({
   },
   presetButtonText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   infoCard: {
     borderRadius: 20,
     marginBottom: 16,
     borderWidth: 1,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 4,
+    elevation: 3,
   },
   infoContent: {
     padding: 16,
   },
   infoRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 16,
   },
   infoItem: {
@@ -744,14 +804,14 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   infoFooter: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.05)',
-    alignItems: 'flex-start',
+    borderTopColor: "rgba(0, 0, 0, 0.05)",
+    alignItems: "flex-start",
   },
   infoIcon: {
     marginRight: 8,
@@ -763,40 +823,40 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   chartDates: {
-    width: '100%',
+    width: "100%",
     height: 30,
-    position: 'relative',
+    position: "relative",
     marginTop: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   dateChip: {
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
     borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   dateChipText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   timeline: {
-    width: '90%',
+    width: "90%",
     height: 40,
-    position: 'relative',
+    position: "relative",
     marginTop: 20,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   timelineLine: {
-    position: 'absolute',
-    width: '100%',
+    position: "absolute",
+    width: "100%",
     height: 2,
     top: 10,
   },
   timelinePoint: {
-    position: 'absolute',
+    position: "absolute",
     width: 10,
     height: 10,
     borderRadius: 5,
@@ -804,17 +864,17 @@ const styles = StyleSheet.create({
     marginLeft: -5,
   },
   timelineDate: {
-    position: 'absolute',
+    position: "absolute",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     minWidth: 70,
   },
   timelineDateText: {
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

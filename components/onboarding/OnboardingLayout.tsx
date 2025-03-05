@@ -33,10 +33,10 @@ export default function OnboardingLayout({
 }: OnboardingLayoutProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
-  
+
   // Estado para forçar re-renderização quando o tema mudar
   const [, setForceUpdate] = useState({});
-  
+
   // Efeito para forçar a re-renderização quando o tema mudar
   useEffect(() => {
     // Forçar re-renderização quando o tema mudar
@@ -70,7 +70,10 @@ export default function OnboardingLayout({
           )}
 
           {error && (
-            <View key={`error-container-${theme}`} style={styles.errorContainer}>
+            <View
+              key={`error-container-${theme}`}
+              style={styles.errorContainer}
+            >
               <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
@@ -134,6 +137,6 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 24,
-    paddingBottom: Platform.OS === "ios" ? 32 : 24,
+    paddingBottom: Platform.OS === "ios" ? 10 : 20,
   },
 });

@@ -354,7 +354,6 @@ export default function ExerciseDetailsScreen() {
       id: `set-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       reps: 12,
       weight: 10,
-      completed: false,
     };
     
     setSets(prevSets => [...prevSets, newSet]);

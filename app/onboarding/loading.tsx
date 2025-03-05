@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useNavigation } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
@@ -51,16 +51,17 @@ const LOADING_STEPS = [
 
 export default function LoadingScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { calculateMacros } = useNutrition();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
-  
+
   // Estado para forçar re-renderização quando o tema mudar
   const [, setForceUpdate] = useState({});
-  
+
   // Efeito para forçar a re-renderização quando o tema mudar
   useEffect(() => {
     setForceUpdate({});
@@ -99,10 +100,16 @@ export default function LoadingScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <View key={`content-container-${theme}`} style={styles.content}>
-        <Text key={`title-${theme}`} style={[styles.title, { color: colors.text }]}>
+        <Text
+          key={`title-${theme}`}
+          style={[styles.title, { color: colors.text }]}
+        >
           Preparando seu Plano
         </Text>
-        <Text key={`subtitle-${theme}`} style={[styles.subtitle, { color: colors.text }]}>
+        <Text
+          key={`subtitle-${theme}`}
+          style={[styles.subtitle, { color: colors.text }]}
+        >
           Calculando as melhores recomendações para você
         </Text>
 
@@ -134,14 +141,22 @@ export default function LoadingScreen() {
                   {
                     backgroundColor: isActive
                       ? `${step.color}15`
-                      : theme === 'dark' ? colors.dark : colors.background,
+                      : theme === "dark"
+                      ? colors.dark
+                      : colors.background,
                     borderColor: isActive ? step.color : "transparent",
                     borderWidth: 2,
                   },
                 ]}
               >
-                <View key={`step-header-${index}-${theme}`} style={styles.stepHeader}>
-                  <View key={`step-icon-container-${index}-${theme}`} style={styles.stepIconContainer}>
+                <View
+                  key={`step-header-${index}-${theme}`}
+                  style={styles.stepHeader}
+                >
+                  <View
+                    key={`step-icon-container-${index}-${theme}`}
+                    style={styles.stepIconContainer}
+                  >
                     <Ionicons
                       key={`step-icon-${index}-${theme}`}
                       name={step.icon as any}
@@ -165,7 +180,10 @@ export default function LoadingScreen() {
                     )}
                   </View>
 
-                  <View key={`step-content-${index}-${theme}`} style={styles.stepContent}>
+                  <View
+                    key={`step-content-${index}-${theme}`}
+                    style={styles.stepContent}
+                  >
                     <Text
                       key={`step-title-${index}-${theme}`}
                       style={[
@@ -193,7 +211,12 @@ export default function LoadingScreen() {
                       animate={{ opacity: 1 }}
                       style={[styles.badge, { backgroundColor: step.color }]}
                     >
-                      <Text key={`badge-text-${index}-${theme}`} style={styles.badgeText}>{step.detail}</Text>
+                      <Text
+                        key={`badge-text-${index}-${theme}`}
+                        style={styles.badgeText}
+                      >
+                        {step.detail}
+                      </Text>
                     </MotiView>
                   )}
                 </View>

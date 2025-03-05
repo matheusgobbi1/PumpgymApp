@@ -1,11 +1,27 @@
-import React, { useCallback, useMemo, useState, useRef, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from "react-native";
+import React, {
+  useCallback,
+  useMemo,
+  useState,
+  useRef,
+  useEffect,
+} from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Dimensions,
+  TouchableOpacity,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import Calendar from "../../components/nutrition/Calendar";
 import { useNutrition } from "../../context/NutritionContext";
-import { useMeals, MealType as MealTypeContext } from "../../context/MealContext";
+import {
+  useMeals,
+  MealType as MealTypeContext,
+} from "../../context/MealContext";
 import { MotiView } from "moti";
 import { format } from "date-fns";
 import MealCard from "../../components/nutrition/MealCard";
@@ -80,8 +96,11 @@ export default function NutritionScreen() {
 
   // Verificar se a referência do bottom sheet está sendo inicializada
   useEffect(() => {
-    console.log('MealConfigSheet ref inicializado:', !!mealConfigSheetRef.current);
-    
+    console.log(
+      "MealConfigSheet ref inicializado:",
+      !!mealConfigSheetRef.current
+    );
+
     return () => {};
   }, [hasMealTypesConfigured]);
 
@@ -109,53 +128,83 @@ export default function NutritionScreen() {
   // Função para abrir o bottom sheet de configuração de refeições
   const openMealConfigSheet = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    console.log('Tentando abrir o bottom sheet');
-    
+    console.log("Tentando abrir o bottom sheet");
+
     // Verificar se a referência existe antes de chamar o método present
     if (mealConfigSheetRef.current) {
       mealConfigSheetRef.current.present();
     } else {
-      console.error('Referência do bottom sheet é null em NutritionScreen');
+      console.error("Referência do bottom sheet é null em NutritionScreen");
     }
   }, []);
 
   // Função para lidar com a configuração de refeições
-  const handleMealConfigured = useCallback((configuredMeals: MealTypeContext[]) => {
-    // Log para depuração
-    console.log('Refeições recebidas para configuração:', configuredMeals.map((m: MealTypeContext) => m.name).join(', '));
-    
-    // Converter as refeições configuradas para o formato esperado pelo contexto
-    const mealTypesToUpdate = configuredMeals.map((meal: MealTypeContext) => ({
-      id: meal.id,
-      name: meal.name,
-      icon: meal.icon
-    }));
-    
-    // Atualizar todos os tipos de refeições de uma vez
-    updateMealTypes(mealTypesToUpdate);
-  }, [updateMealTypes]);
+  const handleMealConfigured = useCallback(
+    (configuredMeals: MealTypeContext[]) => {
+      // Log para depuração
+      console.log(
+        "Refeições recebidas para configuração:",
+        configuredMeals.map((m: MealTypeContext) => m.name).join(", ")
+      );
+
+      // Converter as refeições configuradas para o formato esperado pelo contexto
+      const mealTypesToUpdate = configuredMeals.map(
+        (meal: MealTypeContext) => ({
+          id: meal.id,
+          name: meal.name,
+          icon: meal.icon,
+        })
+      );
+
+      // Atualizar todos os tipos de refeições de uma vez
+      updateMealTypes(mealTypesToUpdate);
+    },
+    [updateMealTypes]
+  );
 
   // Função para redefinir as refeições
   const handleResetMealTypes = useCallback(async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    
+
     // Primeiro, redefinir as refeições
     await resetMealTypes();
-    
+
     // Forçar a recriação do componente MealConfigSheet
     setMealConfigKey(Date.now());
-    
-    console.log('Refeições redefinidas');
+
+    console.log("Refeições redefinidas");
   }, [resetMealTypes]);
 
   // Obter os tipos de refeições configuradas
   const configuredMealTypes = useMemo(() => {
-    return mealTypes.map(type => ({
+    return mealTypes.map((type) => ({
       id: type.id,
       name: type.name,
       icon: type.icon,
     }));
   }, [mealTypes]);
+
+  // Memoizar o componente EmptyNutritionState para evitar re-renderizações desnecessárias
+  const emptyStateComponent = useMemo(
+    () => (
+      <EmptyNutritionState
+        onMealConfigured={handleMealConfigured}
+        onOpenMealConfig={openMealConfigSheet}
+      />
+    ),
+    [handleMealConfigured, openMealConfigSheet]
+  );
+
+  // Memoizar o componente Calendar para evitar re-renderizações desnecessárias
+  const calendarComponent = useMemo(
+    () => (
+      <Calendar
+        selectedDate={getLocalDate(selectedDate)}
+        onSelectDate={handleDateSelect}
+      />
+    ),
+    [selectedDate, handleDateSelect]
+  );
 
   // Se não houver refeições configuradas, mostrar o estado vazio
   if (!hasMealTypesConfigured) {
@@ -164,17 +213,20 @@ export default function NutritionScreen() {
         style={{ flex: 1, backgroundColor: colors.background }}
         edges={["top"]}
       >
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
-          <Calendar
-            selectedDate={getLocalDate(selectedDate)}
-            onSelectDate={handleDateSelect}
-          />
-          
-          <EmptyNutritionState 
-            onMealConfigured={handleMealConfigured} 
-            onOpenMealConfig={openMealConfigSheet}
-          />
-          
+        <View
+          style={[styles.container, { backgroundColor: colors.background }]}
+        >
+          {calendarComponent}
+
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollViewContent}
+            showsVerticalScrollIndicator={false}
+            removeClippedSubviews={true}
+          >
+            {emptyStateComponent}
+          </ScrollView>
+
           {/* Bottom Sheet para configuração de refeições quando não há refeições configuradas */}
           <MealConfigSheet
             ref={mealConfigSheetRef}
@@ -193,16 +245,19 @@ export default function NutritionScreen() {
         style={{ flex: 1, backgroundColor: colors.background }}
         edges={["top"]}
       >
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
-          <Calendar
-            selectedDate={getLocalDate(selectedDate)}
-            onSelectDate={handleDateSelect}
-          />
-          
-          <EmptyNutritionState 
-            onMealConfigured={handleMealConfigured} 
-            onOpenMealConfig={openMealConfigSheet}
-          />
+        <View
+          style={[styles.container, { backgroundColor: colors.background }]}
+        >
+          {calendarComponent}
+
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollViewContent}
+            showsVerticalScrollIndicator={false}
+            removeClippedSubviews={true}
+          >
+            {emptyStateComponent}
+          </ScrollView>
         </View>
       </SafeAreaView>
     );
@@ -214,24 +269,19 @@ export default function NutritionScreen() {
       edges={["top"]}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Calendar
-          selectedDate={getLocalDate(selectedDate)}
-          onSelectDate={handleDateSelect}
-        />
+        {calendarComponent}
 
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={styles.scrollViewContent}
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews={true}
         >
-          <MacrosCard
-            dayTotals={dailyTotals}
-            nutritionInfo={nutritionInfo}
-          />
+          <MacrosCard dayTotals={dailyTotals} nutritionInfo={nutritionInfo} />
 
           {configuredMealTypes.map((meal, index) => (
             <MealCard
-              key={`meal-${meal.id}-${user?.uid || 'no-user'}`}
+              key={`meal-${meal.id}-${user?.uid || "no-user"}`}
               meal={meal}
               foods={getFoodsForMeal(meal.id)}
               mealTotals={getMealTotals(meal.id)}
@@ -243,7 +293,7 @@ export default function NutritionScreen() {
               onDeleteFood={(foodId) => handleDeleteFood(meal.id, foodId)}
             />
           ))}
-          
+
           {/* Botão para redefinir refeições */}
           <TouchableOpacity
             key={`reset-button-${theme}`}
@@ -255,7 +305,7 @@ export default function NutritionScreen() {
               Redefinir Refeições
             </Text>
           </TouchableOpacity>
-          
+
           {/* Botão para editar refeições */}
           <TouchableOpacity
             key={`edit-button-${theme}`}
@@ -263,12 +313,10 @@ export default function NutritionScreen() {
             onPress={openMealConfigSheet}
           >
             <Ionicons name="settings-outline" size={20} color="white" />
-            <Text style={styles.editButtonText}>
-              Editar Refeições
-            </Text>
+            <Text style={styles.editButtonText}>Editar Refeições</Text>
           </TouchableOpacity>
         </ScrollView>
-        
+
         {/* Bottom Sheet para configuração de refeições quando há refeições configuradas */}
         <MealConfigSheet
           ref={mealConfigSheetRef}
@@ -287,18 +335,18 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  scrollContent: {
+  scrollViewContent: {
     padding: 16,
     paddingBottom: 100,
   },
   resetButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderStyle: 'dashed',
+    borderStyle: "dashed",
     marginTop: 20,
     marginBottom: 12,
   },
@@ -307,17 +355,17 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   editButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 16,
     borderRadius: 16,
     marginBottom: 20,
   },
   editButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
+    fontWeight: "600",
+    color: "white",
     marginLeft: 8,
   },
 });

@@ -6,12 +6,6 @@ import {
 } from "../utils/translateUtils";
 import { EDAMAM_CONFIG } from "../config/api";
 
-// Log de verificação inicial
-console.log("Iniciando serviço food.ts com configuração:", {
-  APP_ID: EDAMAM_CONFIG.APP_ID || "Não definido",
-  BASE_URL: EDAMAM_CONFIG.BASE_URL,
-  APP_KEY: EDAMAM_CONFIG.APP_KEY ? "Definido" : "Não definido",
-});
 
 // Configuração do cliente axios
 const api = axios.create({

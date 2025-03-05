@@ -27,10 +27,10 @@ export default function WeightGoalScreen() {
   );
   const [error, setError] = useState("");
   const [weightDifference, setWeightDifference] = useState<string>("");
-  
+
   // Estado para forçar re-renderização quando o tema mudar
   const [, setForceUpdate] = useState({});
-  
+
   // Efeito para forçar a re-renderização quando o tema mudar
   useEffect(() => {
     setForceUpdate({});
@@ -88,6 +88,13 @@ export default function WeightGoalScreen() {
 
   const isNextDisabled = !targetWeight || isNaN(parseFloat(targetWeight));
 
+  // Função para obter a cor baseada na diferença de peso
+  const getDifferenceColor = () => {
+    if (parseFloat(weightDifference) > 0) return colors.success;
+    if (parseFloat(weightDifference) < 0) return colors.danger;
+    return colors.primary;
+  };
+
   return (
     <KeyboardAvoidingView
       key={`keyboard-view-${theme}`}
@@ -116,64 +123,64 @@ export default function WeightGoalScreen() {
             iconColor={colors.primary}
             inputContainerStyle={{
               borderRadius: 12,
-              borderColor: colors.primary + '40',
-              backgroundColor: theme === 'dark' ? 'rgba(28, 154, 190, 0.05)' : 'rgba(255, 255, 255, 0.8)',
+              borderColor: colors.primary + "40",
+              backgroundColor:
+                theme === "dark"
+                  ? "rgba(28, 154, 190, 0.05)"
+                  : "rgba(255, 255, 255, 0.8)",
             }}
           />
 
           {weightDifference && (
-            <MotiView 
-              key={`difference-container-${theme}`} 
+            <MotiView
+              key={`difference-container-${theme}`}
               style={[
                 styles.differenceContainer,
                 {
-                  backgroundColor: theme === 'dark' ? 'rgba(28, 154, 190, 0.1)' : 'rgba(28, 154, 190, 0.05)',
-                  borderRadius: 12,
-                  padding: 16,
+                  backgroundColor:
+                    theme === "dark"
+                      ? "rgba(28, 154, 190, 0.1)"
+                      : "rgba(255, 255, 255, 0.95)",
+                  borderRadius: 16,
+                  padding: 20,
                   borderWidth: 1,
-                  borderColor: colors.primary + '40',
-                  shadowColor: colors.text,
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 2,
-                }
+                  borderColor: getDifferenceColor() + "30",
+                  shadowColor: theme === "dark" ? "#000" : colors.text,
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: theme === "dark" ? 0.3 : 0.1,
+                  shadowRadius: 8,
+                  elevation: 5,
+                  overflow: "hidden",
+                },
               ]}
               from={{ opacity: 0, scale: 0.9, translateY: 10 }}
               animate={{ opacity: 1, scale: 1, translateY: 0 }}
-              transition={{ type: 'spring', delay: 300 }}
+              transition={{ type: "spring", delay: 300 }}
             >
-              <Ionicons
-                key={`difference-icon-${theme}`}
-                name={
-                  parseFloat(weightDifference) > 0
-                    ? "trending-up"
-                    : parseFloat(weightDifference) < 0
-                    ? "trending-down"
-                    : "remove"
-                }
-                size={32}
-                color={
-                  parseFloat(weightDifference) > 0
-                    ? colors.success
-                    : parseFloat(weightDifference) < 0
-                    ? colors.danger
-                    : colors.primary
-                }
-                style={{ marginBottom: 8 }}
-              />
-              <Text 
+              <View style={styles.iconContainer}>
+                <Ionicons
+                  key={`difference-icon-${theme}`}
+                  name={
+                    parseFloat(weightDifference) > 0
+                      ? "trending-up"
+                      : parseFloat(weightDifference) < 0
+                      ? "trending-down"
+                      : "remove"
+                  }
+                  size={32}
+                  color={getDifferenceColor()}
+                  style={{ marginBottom: 8 }}
+                />
+              </View>
+
+              <Text
                 key={`difference-text-${theme}`}
                 style={[
-                  styles.differenceText, 
-                  { 
-                    color: parseFloat(weightDifference) > 0 
-                      ? colors.success 
-                      : parseFloat(weightDifference) < 0 
-                        ? colors.danger 
-                        : colors.primary,
-                    fontWeight: "600"
-                  }
+                  styles.differenceText,
+                  {
+                    color: getDifferenceColor(),
+                    fontWeight: "700",
+                  },
                 ]}
               >
                 {parseFloat(weightDifference) > 0
@@ -182,12 +189,12 @@ export default function WeightGoalScreen() {
                   ? `Perder ${Math.abs(parseFloat(weightDifference))} kg`
                   : "Manter o peso atual"}
               </Text>
-              
-              <Text 
+
+              <Text
                 key={`difference-description-${theme}`}
                 style={[
-                  styles.differenceDescription, 
-                  { color: colors.text + '80' }
+                  styles.differenceDescription,
+                  { color: colors.text + "90" },
                 ]}
               >
                 {parseFloat(weightDifference) > 0
@@ -196,6 +203,37 @@ export default function WeightGoalScreen() {
                   ? "Você precisará reduzir sua ingestão calórica"
                   : "Continue com sua ingestão calórica atual"}
               </Text>
+
+              <View
+                style={[
+                  styles.differenceFooter,
+                  {
+                    borderTopColor:
+                      theme === "dark"
+                        ? "rgba(255, 255, 255, 0.05)"
+                        : "rgba(0, 0, 0, 0.05)",
+                    backgroundColor:
+                      theme === "dark"
+                        ? "rgba(0, 0, 0, 0.2)"
+                        : "rgba(0, 0, 0, 0.02)",
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="information-circle-outline"
+                  size={16}
+                  color={colors.text + "70"}
+                />
+                <Text
+                  style={[styles.footerText, { color: colors.text + "70" }]}
+                >
+                  {parseFloat(weightDifference) > 0
+                    ? "Recomendamos ganho de 0.5kg por semana"
+                    : parseFloat(weightDifference) < 0
+                    ? "Recomendamos perda de 0.5kg por semana"
+                    : "Manter o peso é uma ótima meta!"}
+                </Text>
+              </View>
             </MotiView>
           )}
         </View>
@@ -212,13 +250,32 @@ const styles = StyleSheet.create({
     marginTop: 24,
     alignItems: "center",
   },
+  iconContainer: {
+    marginBottom: 8,
+  },
   differenceText: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "600",
     marginBottom: 8,
   },
   differenceDescription: {
-    fontSize: 14,
+    fontSize: 15,
     textAlign: "center",
+    marginBottom: 16,
+  },
+  differenceFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 12,
+    paddingBottom: 8,
+    borderTopWidth: 1,
+    marginHorizontal: -20,
+    marginBottom: -20,
+    paddingHorizontal: 20,
+  },
+  footerText: {
+    fontSize: 13,
+    marginLeft: 6,
   },
 });

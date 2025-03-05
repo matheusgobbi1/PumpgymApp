@@ -143,20 +143,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           const onboardingCompleted = userData?.onboardingCompleted ?? false;
 
           if (!onboardingCompleted) {
-            console.log(
-              "Onboarding não completo, redirecionando para onboarding..."
-            );
             await router.replace("/onboarding/gender");
           } else {
-            console.log(
-              "Usuário autenticado e onboarding completo, indo para tabs..."
-            );
             await router.replace("/(tabs)");
           }
         } catch (error) {
-          console.log(
-            "Erro ao acessar Firestore, redirecionando para login..."
-          );
           await router.replace("/auth/login");
         }
       } catch (error) {
@@ -253,10 +244,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         authUnsubscribe = onAuthStateChanged(
           firebaseAuth,
           async (currentUser) => {
-            console.log(
-              "Estado de autenticação alterado:",
-              currentUser ? "Autenticado" : "Não autenticado"
-            );
 
             setAuthStateStable(false);
             setIsRestoringSession(true);
