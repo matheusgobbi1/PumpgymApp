@@ -8,6 +8,7 @@ import { AuthProvider } from "../context/AuthContext";
 import { NutritionProvider } from "../context/NutritionContext";
 import { MealProvider } from "../context/MealContext";
 import { WorkoutProvider } from "../context/WorkoutContext";
+import { RefreshProvider } from "../context/RefreshContext";
 import { ThemeProvider, useTheme } from "../context/ThemeContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -39,12 +40,6 @@ export default function RootLayout() {
     if (error) throw error;
   }, [error]);
 
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
   if (!loaded) {
     return null;
   }
@@ -62,8 +57,10 @@ function RootLayoutNav() {
               <NutritionProvider>
                 <MealProvider>
                   <WorkoutProvider>
-                    <OfflineNotice />
-                    <StackNavigator />
+                    <RefreshProvider>
+                      <OfflineNotice />
+                      <StackNavigator />
+                    </RefreshProvider>
                   </WorkoutProvider>
                 </MealProvider>
               </NutritionProvider>
@@ -93,6 +90,34 @@ function StackNavigator() {
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="(add-food)" />
+      <Stack.Screen 
+        name="notifications-modal" 
+        options={{
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+        }}
+      />
+      <Stack.Screen 
+        name="privacy-modal" 
+        options={{
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+        }}
+      />
+      <Stack.Screen 
+        name="about-modal" 
+        options={{
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+        }}
+      />
+      <Stack.Screen 
+        name="help-modal" 
+        options={{
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+        }}
+      />
     </Stack>
   );
 }

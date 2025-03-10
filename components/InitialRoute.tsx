@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Redirect } from "expo-router";
-import SplashScreen from "./SplashScreen";
+import SplashScreen from "./common/SplashScreen";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { OfflineStorage } from "../services/OfflineStorage";

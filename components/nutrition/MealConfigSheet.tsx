@@ -31,6 +31,7 @@ import { MotiView } from "moti";
 import { Easing } from "react-native-reanimated";
 import { useMeals } from "../../context/MealContext";
 import { Swipeable } from "react-native-gesture-handler";
+import ButtonNew from "../common/ButtonNew";
 
 const { width } = Dimensions.get("window");
 
@@ -39,7 +40,9 @@ interface MealType {
   id: string;
   name: string;
   icon: string;
+  color: string;
   selected: boolean;
+  isDefault?: boolean;
 }
 
 // Tipos de refeições pré-definidas
@@ -48,57 +51,69 @@ const DEFAULT_MEAL_TYPES: MealType[] = [
     id: "breakfast",
     name: "Café da Manhã",
     icon: "sunny-outline",
+    color: "#FF9500",
     selected: false,
+    isDefault: true,
   },
   {
     id: "morning_snack",
     name: "Lanche da Manhã",
     icon: "cafe-outline",
+    color: "#FF3B30",
     selected: false,
+    isDefault: true,
   },
   {
     id: "lunch",
     name: "Almoço",
     icon: "restaurant-outline",
+    color: "#34C759",
     selected: false,
+    isDefault: true,
   },
   {
     id: "afternoon_snack",
     name: "Lanche da Tarde",
     icon: "ice-cream-outline",
+    color: "#AF52DE",
     selected: false,
+    isDefault: true,
   },
   {
     id: "dinner",
     name: "Jantar",
     icon: "moon-outline",
+    color: "#5856D6",
     selected: false,
+    isDefault: true,
   },
   {
     id: "supper",
     name: "Ceia",
     icon: "bed-outline",
+    color: "#007AFF",
     selected: false,
+    isDefault: true,
   },
 ];
 
-// Ícones disponíveis para seleção
+// Ícones disponíveis para seleção com cores associadas
 const AVAILABLE_ICONS = [
-  "sunny-outline",
-  "cafe-outline",
-  "restaurant-outline",
-  "ice-cream-outline",
-  "moon-outline",
-  "bed-outline",
-  "nutrition-outline",
-  "fast-food-outline",
-  "pizza-outline",
-  "beer-outline",
-  "wine-outline",
-  "fish-outline",
-  "egg-outline",
-  "fruit-outline",
-  "water-outline",
+  { icon: "sunny-outline", color: "#FF9500" },
+  { icon: "cafe-outline", color: "#FF3B30" },
+  { icon: "restaurant-outline", color: "#34C759" },
+  { icon: "ice-cream-outline", color: "#AF52DE" },
+  { icon: "moon-outline", color: "#5856D6" },
+  { icon: "bed-outline", color: "#007AFF" },
+  { icon: "nutrition-outline", color: "#5AC8FA" },
+  { icon: "fast-food-outline", color: "#FFCC00" },
+  { icon: "pizza-outline", color: "#FF2D55" },
+  { icon: "beer-outline", color: "#FF9500" },
+  { icon: "wine-outline", color: "#FF3B30" },
+  { icon: "fish-outline", color: "#34C759" },
+  { icon: "egg-outline", color: "#AF52DE" },
+  { icon: "fruit-outline", color: "#5856D6" },
+  { icon: "water-outline", color: "#007AFF" },
 ];
 
 interface MealConfigSheetProps {
@@ -125,6 +140,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
     const [mealTypes, setMealTypes] = useState<MealType[]>([]);
     const [customMealName, setCustomMealName] = useState("");
     const [customMealIcon, setCustomMealIcon] = useState("nutrition-outline");
+    const [customMealColor, setCustomMealColor] = useState("#5AC8FA");
     const [showIconSelector, setShowIconSelector] = useState(false);
     const [isAddingCustomMeal, setIsAddingCustomMeal] = useState(false);
     const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -168,6 +184,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
               id: existingType.id,
               name: existingType.name,
               icon: existingType.icon,
+              color: existingType.color,
               selected: true,
             } as MealType);
           }
@@ -245,15 +262,18 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
         id: `custom_${Date.now()}`,
         name: customMealName,
         icon: customMealIcon,
+        color: customMealColor,
         selected: true,
+        isDefault: false,
       };
 
       setMealTypes((prev) => [...prev, newMeal]);
       setCustomMealName("");
       setCustomMealIcon("nutrition-outline");
+      setCustomMealColor("#5AC8FA");
       setIsAddingCustomMeal(false);
       Keyboard.dismiss();
-    }, [customMealName, customMealIcon]);
+    }, [customMealName, customMealIcon, customMealColor]);
 
     // Função para iniciar a adição de uma refeição personalizada
     const startAddingCustomMeal = useCallback(() => {
@@ -420,7 +440,11 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                         style={[
                           styles.mealCard,
                           { backgroundColor: colors.card },
-                          meal.selected && styles.mealCardSelected,
+                          meal.selected && {
+                            backgroundColor: meal.color + '08',
+                            borderWidth: 1,
+                            borderColor: meal.color + '30'
+                          },
                         ]}
                         onPress={() => toggleMealSelection(meal.id)}
                         activeOpacity={0.7}
@@ -428,7 +452,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                         <View
                           style={[
                             styles.mealCardContent,
-                            meal.selected && { backgroundColor: colors.card },
+                            meal.selected && { backgroundColor: 'transparent' },
                           ]}
                         >
                           <View
@@ -436,7 +460,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                               styles.mealIconContainer,
                               {
                                 backgroundColor: meal.selected
-                                  ? colors.primary + "20"
+                                  ? meal.color + "20"
                                   : "rgba(255, 255, 255, 0.2)",
                               },
                             ]}
@@ -444,9 +468,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                             <Ionicons
                               name={meal.icon as any}
                               size={24}
-                              color={
-                                meal.selected ? colors.primary : colors.primary
-                              }
+                              color={meal.selected ? meal.color : colors.primary}
                             />
                           </View>
                           <View style={styles.mealInfo}>
@@ -462,11 +484,11 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                                 styles.checkbox,
                                 {
                                   borderColor: meal.selected
-                                    ? colors.primary
+                                    ? meal.color
                                     : colors.border,
                                 },
                                 meal.selected && {
-                                  backgroundColor: colors.primary,
+                                  backgroundColor: meal.color,
                                 },
                               ]}
                             >
@@ -558,11 +580,13 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                       ]}
                       onPress={() => setShowIconSelector(!showIconSelector)}
                     >
-                      <Ionicons
-                        name={customMealIcon as any}
-                        size={24}
-                        color={colors.primary}
-                      />
+                      <View style={[styles.customIconContainer, { backgroundColor: customMealColor + '20' }]}>
+                        <Ionicons
+                          name={customMealIcon as any}
+                          size={24}
+                          color={customMealColor}
+                        />
+                      </View>
                       <Text
                         style={[
                           styles.iconSelectorText,
@@ -592,29 +616,30 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                         showsHorizontalScrollIndicator={false}
                       >
                         <View style={styles.iconGridContent}>
-                          {AVAILABLE_ICONS.map((icon) => (
+                          {AVAILABLE_ICONS.map((iconItem) => (
                             <TouchableOpacity
-                              key={`icon-${icon}-${theme}`}
+                              key={`icon-${iconItem.icon}-${theme}`}
                               style={[
                                 styles.iconItem,
                                 {
                                   backgroundColor:
-                                    icon === customMealIcon
-                                      ? colors.primary
+                                    iconItem.icon === customMealIcon
+                                      ? iconItem.color
                                       : colors.background,
                                   borderColor: colors.border,
                                 },
                               ]}
                               onPress={() => {
-                                setCustomMealIcon(icon);
+                                setCustomMealIcon(iconItem.icon);
+                                setCustomMealColor(iconItem.color);
                                 Haptics.selectionAsync();
                               }}
                             >
                               <Ionicons
-                                name={icon as any}
+                                name={iconItem.icon as any}
                                 size={24}
                                 color={
-                                  icon === customMealIcon
+                                  iconItem.icon === customMealIcon
                                     ? "white"
                                     : colors.text
                                 }
@@ -666,26 +691,32 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
               ]}
             >
               <TouchableOpacity
-                style={[styles.selectAllButton, { borderColor: colors.border }]}
+                style={[
+                  styles.selectAllButton,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.card,
+                  },
+                ]}
                 onPress={selectAllMeals}
               >
-                <Text style={[styles.selectAllText, { color: colors.primary }]}>
-                  Selecionar Todas
+                <Text
+                  style={[styles.selectAllText, { color: colors.text }]}
+                >
+                  Selecionar Todos
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[
-                  styles.confirmButton,
-                  { backgroundColor: colors.primary },
-                  !mealTypes.some((meal) => meal.selected) &&
-                    styles.confirmButtonDisabled,
-                ]}
+              <ButtonNew
+                title="Confirmar"
                 onPress={confirmMealConfig}
+                variant="primary"
+                iconName="checkmark-outline"
+                iconPosition="right"
                 disabled={!mealTypes.some((meal) => meal.selected)}
-              >
-                <Text style={styles.confirmButtonText}>Confirmar</Text>
-              </TouchableOpacity>
+                style={styles.confirmButton}
+                hapticFeedback="notification"
+              />
             </View>
           )}
         </KeyboardAvoidingView>
@@ -920,5 +951,12 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     fontWeight: "bold",
+  },
+  customIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

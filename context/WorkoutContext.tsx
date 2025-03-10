@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useCallback,
+  ReactNode,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { format } from "date-fns";
@@ -35,7 +36,8 @@ export interface Exercise {
 export interface Workout {
   id: string;
   name: string;
-  icon: string;
+  icon?: string; // Tornar opcional para compatibilidade
+  iconType?: { type: string; name: string }; // Adicionar propriedade iconType
   color: string;
   exercises: Exercise[];
 }
@@ -125,7 +127,7 @@ interface WorkoutContextType {
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
 
 // Provider do contexto
-export function WorkoutProvider({ children }: { children: React.ReactNode }) {
+export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const userId = user?.uid || "anonymous";
 
@@ -1177,20 +1179,104 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
       {children}
     </WorkoutContext.Provider>
   );
-}
+};
 
 // Hook para usar o contexto de treinos
-export function useWorkouts() {
+export const useWorkout = () => {
   const context = useContext(WorkoutContext);
-
-  if (context === undefined) {
-    throw new Error("useWorkouts deve ser usado dentro de um WorkoutProvider");
+  if (!context) {
+    throw new Error('useWorkout must be used within a WorkoutProvider');
   }
-
   return context;
-}
+};
 
 // Hook para usar o contexto de treinos (alias)
-export function useWorkoutContext() {
-  return useWorkouts();
-}
+export const useWorkoutContext = () => {
+  return useWorkout();
+};
+
+// Dados de exemplo para demonstração
+const SAMPLE_WORKOUTS: { [id: string]: Workout } = {
+  'chest': {
+    id: 'chest',
+    name: 'Treino de Peito',
+    iconType: { type: 'ionicons', name: 'body-outline' },
+    color: '#FF5252',
+    exercises: []
+  },
+  'back': {
+    id: 'back',
+    name: 'Treino de Costas',
+    iconType: { type: 'material', name: 'human-handsup' },
+    color: '#448AFF',
+    exercises: []
+  },
+  'legs': {
+    id: 'legs',
+    name: 'Treino de Pernas',
+    iconType: { type: 'material', name: 'human-legs' },
+    color: '#66BB6A',
+    exercises: []
+  }
+};
+
+const SAMPLE_EXERCISES: { [id: string]: Exercise } = {
+  'bench_press': {
+    id: 'bench_press',
+    name: 'Supino Reto',
+    sets: [
+      { id: '1', weight: 60, reps: 12, completed: true },
+      { id: '2', weight: 70, reps: 10, completed: true },
+      { id: '3', weight: 80, reps: 8, completed: true }
+    ]
+  },
+  'incline_press': {
+    id: 'incline_press',
+    name: 'Supino Inclinado',
+    sets: [
+      { id: '1', weight: 50, reps: 12, completed: true },
+      { id: '2', weight: 60, reps: 10, completed: true },
+      { id: '3', weight: 70, reps: 8, completed: true }
+    ]
+  },
+  'chest_fly': {
+    id: 'chest_fly',
+    name: 'Crucifixo',
+    sets: [
+      { id: '1', weight: 15, reps: 15, completed: true },
+      { id: '2', weight: 17.5, reps: 12, completed: true },
+      { id: '3', weight: 20, reps: 10, completed: true }
+    ]
+  },
+  'lat_pulldown': {
+    id: 'lat_pulldown',
+    name: 'Puxada Frontal',
+    sets: [
+      { id: '1', weight: 60, reps: 12, completed: true },
+      { id: '2', weight: 70, reps: 10, completed: true },
+      { id: '3', weight: 80, reps: 8, completed: true }
+    ]
+  },
+  'squat': {
+    id: 'squat',
+    name: 'Agachamento',
+    sets: [
+      { id: '1', weight: 80, reps: 12, completed: true },
+      { id: '2', weight: 100, reps: 10, completed: true },
+      { id: '3', weight: 120, reps: 8, completed: true }
+    ]
+  }
+};
+
+// Dados de exemplo para demonstração
+const SAMPLE_WORKOUT_DATA: { [date: string]: { [workoutId: string]: Exercise[] } } = {
+  [format(new Date(), 'yyyy-MM-dd')]: {
+    'chest': [SAMPLE_EXERCISES.bench_press, SAMPLE_EXERCISES.incline_press, SAMPLE_EXERCISES.chest_fly]
+  },
+  [format(new Date(Date.now() - 86400000), 'yyyy-MM-dd')]: {
+    'back': [SAMPLE_EXERCISES.lat_pulldown]
+  },
+  [format(new Date(Date.now() - 172800000), 'yyyy-MM-dd')]: {
+    'legs': [SAMPLE_EXERCISES.squat]
+  }
+};

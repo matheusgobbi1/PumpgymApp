@@ -115,28 +115,18 @@ function removeAccents(str: string): string {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-export async function translateFoodSearch(query: string): Promise<string> {
-  try {
-    // Normaliza a query (remove acentos e converte para minúsculas)
-    const normalizedQuery = removeAccents(query.toLowerCase());
+// Nota: Estas funções são mantidas para compatibilidade com o código existente,
+// mas não são mais necessárias para tradução, já que a API FatSecret suporta português.
+// Elas podem ser removidas quando todo o código for atualizado.
 
-    // Procura no dicionário
-    return ptToEnDictionary[normalizedQuery] || query;
-  } catch (error) {
-    console.error("Erro na tradução:", error);
-    return query;
-  }
+export async function translateFoodSearch(query: string): Promise<string> {
+  // Agora apenas retorna a query original, pois a API FatSecret suporta português
+  return query;
 }
 
 export async function translateFoodResult(text: string): Promise<string> {
-  try {
-    // Normaliza o texto e procura no dicionário invertido
-    const normalizedText = text.toLowerCase();
-    return enToPtDictionary[normalizedText] || text;
-  } catch (error) {
-    console.error("Erro na tradução:", error);
-    return text;
-  }
+  // Agora apenas retorna o texto original, pois a API FatSecret já retorna em português
+  return text;
 }
 
 export function translateMeasure(measure: string): string {

@@ -24,10 +24,13 @@ import { MotiView, MotiText, AnimatePresence } from "moti";
 import * as Haptics from "expo-haptics";
 import {
   validateRegistration,
+  validateRegistrationStep1,
+  validateRegistrationStep2,
   calculatePasswordStrength,
   getPasswordStrengthColor,
   getPasswordStrengthText,
 } from "../../utils/validations";
+import { ErrorMessage } from "../../components/common/ErrorMessage";
 
 const { width } = Dimensions.get("window");
 
@@ -92,14 +95,19 @@ export default function CompleteRegistrationScreen() {
   const handleCompleteRegistration = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    const validationResult = validateRegistration(
-      name,
-      email,
-      password,
-      confirmPassword
-    );
+    // Validar a segunda etapa (senha e confirmação)
+    const validationResult = validateRegistrationStep2(password, confirmPassword);
     if (!validationResult.isValid) {
       setError(validationResult.message);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
+
+    // Validar o formulário completo para garantir que todos os dados estão corretos
+    const fullValidationResult = validateRegistration(name, email, password, confirmPassword);
+    if (!fullValidationResult.isValid) {
+      setError(fullValidationResult.message);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
 
@@ -118,6 +126,7 @@ export default function CompleteRegistrationScreen() {
       } else {
         setError("Ocorreu um erro ao completar o registro. Tente novamente.");
       }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setLoading(false);
     }
@@ -131,15 +140,10 @@ export default function CompleteRegistrationScreen() {
 
   const nextStep = () => {
     if (formStep === 1) {
-      if (!name.trim() || !email.trim()) {
-        setError("Por favor, preencha seu nome e email");
-        return;
-      }
-
-      // Validação básica de email
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        setError("Por favor, insira um email válido");
+      const validationResult = validateRegistrationStep1(name, email);
+      if (!validationResult.isValid) {
+        setError(validationResult.message);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         return;
       }
 
@@ -285,17 +289,7 @@ export default function CompleteRegistrationScreen() {
                     },
                   ]}
                 >
-                  {error ? (
-                    <MotiView
-                      key={`error-container-${theme}`}
-                      from={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      style={styles.errorContainer}
-                    >
-                      <Ionicons name="alert-circle" size={20} color="#FF5252" />
-                      <Text style={styles.errorText}>{error}</Text>
-                    </MotiView>
-                  ) : null}
+                  {error ? <ErrorMessage message={error} /> : null}
 
                   <View style={styles.formInnerContainer}>
                     <View style={styles.inputWrapper}>
@@ -432,17 +426,7 @@ export default function CompleteRegistrationScreen() {
                     },
                   ]}
                 >
-                  {error ? (
-                    <MotiView
-                      key={`error-container-step2-${theme}`}
-                      from={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      style={styles.errorContainer}
-                    >
-                      <Ionicons name="alert-circle" size={20} color="#FF5252" />
-                      <Text style={styles.errorText}>{error}</Text>
-                    </MotiView>
-                  ) : null}
+                  {error ? <ErrorMessage message={error} /> : null}
 
                   <View style={styles.formInnerContainer}>
                     <View style={styles.inputWrapper}>

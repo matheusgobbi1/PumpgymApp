@@ -4,6 +4,7 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
@@ -15,7 +16,7 @@ import React, {
   useEffect,
   useMemo,
 } from "react";
-import Calendar from "../../components/training/Calendar";
+import Calendar from '../../components/shared/Calendar';
 import { getLocalDate } from "../../utils/dateUtils";
 import { format } from "date-fns";
 import EmptyWorkoutState from "../../components/training/EmptyWorkoutState";
@@ -24,10 +25,12 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import WorkoutConfigSheet, {
   WorkoutType,
 } from "../../components/training/WorkoutConfigSheet";
-import { useWorkouts, Exercise } from "../../context/WorkoutContext";
+import { useWorkoutContext, Exercise } from "../../context/WorkoutContext";
 import WorkoutCard from "../../components/training/WorkoutCard";
 import TrainingStatsCard from "../../components/training/TrainingStatsCard";
 import { useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
+import { useRefresh } from "../../context/RefreshContext";
 
 // Componente memoizado para o card de treino
 const MemoizedWorkoutGroup = React.memo(
@@ -42,6 +45,7 @@ const MemoizedWorkoutGroup = React.memo(
     onNavigate,
     onDeleteExercise,
     onDeleteWorkout,
+    refreshKey,
   }: {
     workoutId: string;
     workoutType: WorkoutType;
@@ -53,6 +57,7 @@ const MemoizedWorkoutGroup = React.memo(
     onNavigate: (id: string) => void;
     onDeleteExercise: (workoutId: string, exerciseId: string) => Promise<void>;
     onDeleteWorkout: (workoutId: string) => Promise<void>;
+    refreshKey?: number;
   }) => {
     return (
       <View key={`workout-group-${workoutId}-${index}`}>
@@ -64,6 +69,7 @@ const MemoizedWorkoutGroup = React.memo(
           workoutColor={workoutType.color}
           currentExercises={exercises}
           previousExercises={previousExercises}
+          refreshKey={refreshKey}
         />
 
         {/* Card do treino */}
@@ -88,6 +94,7 @@ const MemoizedWorkoutGroup = React.memo(
             onDeleteExercise(workoutId, exerciseId)
           }
           onDeleteWorkout={() => onDeleteWorkout(workoutId)}
+          refreshKey={refreshKey}
         />
       </View>
     );
@@ -98,6 +105,9 @@ export default function TrainingScreen() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const [refreshing, setRefreshing] = useState(false);
+  const { refreshKey, triggerRefresh } = useRefresh();
 
   // Usar o contexto de treinos
   const {
@@ -121,7 +131,7 @@ export default function TrainingScreen() {
     weeklyTemplate,
     hasWeeklyTemplateConfigured,
     getWorkoutsForDate,
-  } = useWorkouts();
+  } = useWorkoutContext();
 
   // Estado para a data selecionada (sincronizado com o contexto)
   const [selectedDate, setSelectedDate] = useState<string>(contextSelectedDate);
@@ -167,6 +177,36 @@ export default function TrainingScreen() {
       );
     }
   }, [workoutTypes, workouts, selectedDate]);
+
+  // Efeito para abrir o WorkoutConfigSheet quando solicitado via parâmetro
+  useEffect(() => {
+    if (params?.openWorkoutConfig === "true") {
+      // Aumentar o tempo de espera para garantir que o componente esteja completamente montado
+      const timer = setTimeout(() => {
+        if (workoutConfigSheetRef.current) {
+          workoutConfigSheetRef.current.present();
+          // Feedback tátil para indicar que o sheet foi aberto
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          // Limpar o parâmetro após abrir
+          router.replace("/training");
+        } else {
+          // Se ainda não estiver montado, tentar novamente após um tempo maior
+          console.log("WorkoutConfigSheet ref ainda não está disponível, tentando novamente...");
+          setTimeout(() => {
+            if (workoutConfigSheetRef.current) {
+              workoutConfigSheetRef.current.present();
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              router.replace("/training");
+            } else {
+              console.log("WorkoutConfigSheet ref ainda não disponível após segunda tentativa");
+            }
+          }, 1000);
+        }
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [params, router]);
 
   // Função para lidar com a seleção de data
   const handleDateSelect = useCallback(
@@ -264,6 +304,17 @@ export default function TrainingScreen() {
     [workoutsForSelectedDate]
   );
 
+  // Função para lidar com o pull to refresh
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    // Usar o triggerRefresh do contexto para atualizar todos os componentes
+    triggerRefresh();
+    // Simular carregamento de dados
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setRefreshing(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
   // Renderizar os cards de treino
   const renderWorkoutCards = useCallback(() => {
     if (
@@ -306,6 +357,7 @@ export default function TrainingScreen() {
             handleDeleteExercise(workoutId, exerciseId)
           }
           onDeleteWorkout={handleDeleteWorkout}
+          refreshKey={refreshKey}
         />
       );
     });
@@ -319,6 +371,7 @@ export default function TrainingScreen() {
     navigateToWorkoutDetails,
     handleDeleteExercise,
     handleDeleteWorkout,
+    refreshKey,
   ]);
 
   // Memoizar o componente EmptyWorkoutState para evitar re-renderizações desnecessárias
@@ -340,6 +393,32 @@ export default function TrainingScreen() {
         onSelectDate={handleDateSelect}
         workouts={workouts}
         weeklyTemplate={weeklyTemplate}
+        hasContent={(date) => {
+          try {
+            // Verificar treinos específicos para a data
+            const dateString = format(date, "yyyy-MM-dd");
+            const hasSpecificWorkouts =
+              workouts &&
+              workouts[dateString] &&
+              Object.keys(workouts[dateString]).length > 0;
+
+            if (hasSpecificWorkouts) {
+              return true;
+            }
+
+            // Verificar treinos no template semanal para o dia da semana
+            const dayOfWeek = date.getDay(); // 0 = domingo, 1 = segunda, ..., 6 = sábado
+            const hasTemplateWorkouts =
+              weeklyTemplate &&
+              weeklyTemplate[dayOfWeek] &&
+              Object.keys(weeklyTemplate[dayOfWeek]).length > 0;
+
+            return hasTemplateWorkouts;
+          } catch (error) {
+            console.error("Erro ao verificar treinos para a data:", error);
+            return false;
+          }
+        }}
       />
     ),
     [selectedDate, handleDateSelect, workouts, weeklyTemplate]
@@ -355,6 +434,14 @@ export default function TrainingScreen() {
           contentContainerStyle={styles.scrollViewContent}
           showsVerticalScrollIndicator={false}
           removeClippedSubviews={true} // Melhora a performance para listas longas
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
         >
           {hasWorkoutTypesConfigured && hasWeeklyTemplateConfigured
             ? hasWorkoutsForSelectedDate

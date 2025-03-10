@@ -58,7 +58,7 @@ const LoginBottomSheet = ({
   const passwordInputRef = useRef<TextInput>(null);
 
   // Snap points for bottom sheet
-  const snapPoints = useMemo(() => ["70%", "85%"], []);
+  const snapPoints = useMemo(() => ["85%", "75%"], []);
 
   // Efeito para controlar a abertura e fechamento do bottom sheet
   useEffect(() => {

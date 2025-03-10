@@ -12,11 +12,12 @@ import {
   ScrollView,
   Dimensions,
   TouchableOpacity,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
-import Calendar from "../../components/nutrition/Calendar";
+import Calendar from '../../components/shared/Calendar';
 import { useNutrition } from "../../context/NutritionContext";
 import {
   useMeals,
@@ -33,13 +34,28 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import MealConfigSheet from "../../components/nutrition/MealConfigSheet";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
+import { useRefresh } from "../../context/RefreshContext";
+import { useRouter, useLocalSearchParams } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
 // Interface local para os tipos de refeição com a propriedade foods
 interface MealType extends MealTypeContext {
   foods: any[];
+  color: string;
 }
+
+// Cores padrão para os tipos de refeição
+const DEFAULT_MEAL_COLORS: { [key: string]: string } = {
+  breakfast: "#FF9500", // Laranja
+  morning_snack: "#FF3B30", // Vermelho
+  lunch: "#34C759", // Verde
+  afternoon_snack: "#AF52DE", // Roxo
+  dinner: "#5856D6", // Índigo
+  supper: "#007AFF", // Azul
+  snack: "#5AC8FA", // Azul claro
+  other: "#FFCC00", // Amarelo
+};
 
 const MEAL_TYPES: MealType[] = [
   {
@@ -47,24 +63,28 @@ const MEAL_TYPES: MealType[] = [
     name: "Café da Manhã",
     icon: "sunny-outline",
     foods: [],
+    color: DEFAULT_MEAL_COLORS["breakfast"],
   },
   {
     id: "lunch",
     name: "Almoço",
     icon: "restaurant-outline",
     foods: [],
+    color: DEFAULT_MEAL_COLORS["lunch"],
   },
   {
     id: "snack",
     name: "Lanche",
     icon: "cafe-outline",
     foods: [],
+    color: DEFAULT_MEAL_COLORS["snack"],
   },
   {
     id: "dinner",
     name: "Jantar",
     icon: "moon-outline",
     foods: [],
+    color: DEFAULT_MEAL_COLORS["dinner"],
   },
 ];
 
@@ -73,6 +93,10 @@ export default function NutritionScreen() {
   const colors = Colors[theme];
   const { nutritionInfo } = useNutrition();
   const { user } = useAuth();
+  const { refreshKey, triggerRefresh } = useRefresh();
+  const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
+  const params = useLocalSearchParams();
   const {
     selectedDate,
     setSelectedDate,
@@ -113,12 +137,14 @@ export default function NutritionScreen() {
       try {
         await removeFoodFromMeal(mealId, foodId);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        // Atualizar o gráfico de progresso após remover o alimento
+        triggerRefresh();
       } catch (error) {
         console.error("Erro ao deletar alimento:", error);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     },
-    [removeFoodFromMeal]
+    [removeFoodFromMeal, triggerRefresh]
   );
 
   const dailyTotals = useMemo(() => {
@@ -133,10 +159,39 @@ export default function NutritionScreen() {
     // Verificar se a referência existe antes de chamar o método present
     if (mealConfigSheetRef.current) {
       mealConfigSheetRef.current.present();
+
+      // Se o parâmetro openMealConfig estiver presente, limpar a URL
+      if (params?.openMealConfig === "true") {
+        router.replace("/nutrition");
+      }
     } else {
       console.error("Referência do bottom sheet é null em NutritionScreen");
+      
+      // Tentar novamente após um pequeno atraso
+      if (params?.openMealConfig === "true") {
+        setTimeout(() => {
+          if (mealConfigSheetRef.current) {
+            mealConfigSheetRef.current.present();
+            router.replace("/nutrition");
+          } else {
+            console.error("MealConfigSheet ref ainda não disponível após segunda tentativa");
+          }
+        }, 500);
+      }
     }
-  }, []);
+  }, [mealConfigSheetRef, params, router]);
+
+  // Tentar abrir o bottom sheet se o parâmetro estiver presente
+  // Isso é executado uma vez durante a renderização inicial
+  // em vez de usar useEffect
+  useMemo(() => {
+    if (params?.openMealConfig === "true") {
+      // Pequeno atraso para garantir que o componente esteja montado
+      setTimeout(() => {
+        openMealConfigSheet();
+      }, 100);
+    }
+  }, [params, openMealConfigSheet]);
 
   // Função para lidar com a configuração de refeições
   const handleMealConfigured = useCallback(
@@ -153,6 +208,7 @@ export default function NutritionScreen() {
           id: meal.id,
           name: meal.name,
           icon: meal.icon,
+          color: meal.color || DEFAULT_MEAL_COLORS[meal.id] || DEFAULT_MEAL_COLORS.other,
         })
       );
 
@@ -181,6 +237,8 @@ export default function NutritionScreen() {
       id: type.id,
       name: type.name,
       icon: type.icon,
+      color: type.color || DEFAULT_MEAL_COLORS[type.id] || DEFAULT_MEAL_COLORS.other,
+      foods: [],
     }));
   }, [mealTypes]);
 
@@ -201,10 +259,29 @@ export default function NutritionScreen() {
       <Calendar
         selectedDate={getLocalDate(selectedDate)}
         onSelectDate={handleDateSelect}
+        meals={meals}
+        hasContent={(date) => {
+          const dateString = format(date, "yyyy-MM-dd");
+          return (
+            meals[dateString] &&
+            Object.values(meals[dateString]).some((foods) => foods.length > 0)
+          );
+        }}
       />
     ),
-    [selectedDate, handleDateSelect]
+    [selectedDate, handleDateSelect, meals]
   );
+
+  // Função para lidar com o pull to refresh
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    // Usar o triggerRefresh do contexto para atualizar todos os componentes
+    triggerRefresh();
+    // Simular carregamento de dados
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setRefreshing(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
 
   // Se não houver refeições configuradas, mostrar o estado vazio
   if (!hasMealTypesConfigured) {
@@ -223,6 +300,14 @@ export default function NutritionScreen() {
             contentContainerStyle={styles.scrollViewContent}
             showsVerticalScrollIndicator={false}
             removeClippedSubviews={true}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor={colors.primary}
+                colors={[colors.primary]}
+              />
+            }
           >
             {emptyStateComponent}
           </ScrollView>
@@ -255,6 +340,14 @@ export default function NutritionScreen() {
             contentContainerStyle={styles.scrollViewContent}
             showsVerticalScrollIndicator={false}
             removeClippedSubviews={true}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor={colors.primary}
+                colors={[colors.primary]}
+              />
+            }
           >
             {emptyStateComponent}
           </ScrollView>
@@ -276,6 +369,14 @@ export default function NutritionScreen() {
           contentContainerStyle={styles.scrollViewContent}
           showsVerticalScrollIndicator={false}
           removeClippedSubviews={true}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
         >
           <MacrosCard dayTotals={dailyTotals} nutritionInfo={nutritionInfo} />
 

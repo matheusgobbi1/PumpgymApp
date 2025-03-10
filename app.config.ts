@@ -1,8 +1,8 @@
 import "dotenv/config";
 
 export default {
-  name: "PumpgymApp",
-  slug: "PumpgymApp",
+  name: "FitFolio",
+  slug: "fitfolio",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
@@ -16,14 +16,14 @@ export default {
   assetBundlePatterns: ["**/*"],
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.pumpgym.app",
+    bundleIdentifier: "com.matheus.fitfolio",
   },
   android: {
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#ffffff",
     },
-    package: "com.pumpgym.app",
+    package: "com.matheus.fitfolio",
   },
   web: {
     favicon: "./assets/images/favicon.png",
@@ -32,8 +32,7 @@ export default {
   extra: {
     EDAMAM_APP_ID: process.env.EXPO_PUBLIC_EDAMAM_APP_ID,
     EDAMAM_APP_KEY: process.env.EXPO_PUBLIC_EDAMAM_APP_KEY,
-    eas: {
-      projectId: "your-project-id",
-    },
+    FATSECRET_CLIENT_ID: process.env.EXPO_PUBLIC_FATSECRET_CLIENT_ID,
+    FATSECRET_CLIENT_SECRET: process.env.EXPO_PUBLIC_FATSECRET_CLIENT_SECRET,
   },
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MotiView } from "moti";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
@@ -19,11 +19,13 @@ interface MacrosCardProps {
     carbs?: number;
     fat?: number;
   };
+  refreshKey?: number;
 }
 
 export default function MacrosCard({
   dayTotals,
   nutritionInfo,
+  refreshKey,
 }: MacrosCardProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
@@ -44,13 +46,13 @@ export default function MacrosCard({
     ) {
       setIsLoading(false);
     }
-  }, [nutritionInfo]);
+  }, [nutritionInfo, refreshKey]);
   
   // Efeito para forçar a re-renderização quando o tema mudar
   useEffect(() => {
     // Forçar re-renderização quando o tema mudar
     setForceUpdate({});
-  }, [theme]);
+  }, [theme, refreshKey]);
 
   const calculateProgress = (consumed: number, target: number) => {
     if (!target) return 0;
@@ -71,6 +73,8 @@ export default function MacrosCard({
   const renderMacroProgress = (
     title: string,
     icon: string,
+    iconType: 'ionicons' | 'material',
+    iconColor: string,
     consumed: number,
     target: number,
     unit: string
@@ -92,7 +96,13 @@ export default function MacrosCard({
       >
         <View style={styles.macroInfo}>
           <View style={styles.macroHeader}>
-            <Ionicons name={icon as any} size={20} color={progressColor} />
+            <View style={[styles.iconContainer, { backgroundColor: iconColor + '15' }]}>
+              {iconType === 'ionicons' ? (
+                <Ionicons name={icon as any} size={18} color={iconColor} />
+              ) : (
+                <MaterialCommunityIcons name={icon as any} size={18} color={iconColor} />
+              )}
+            </View>
             <Text style={[styles.macroTitle, { color: colors.text }]}>
               {title}
             </Text>
@@ -156,10 +166,7 @@ export default function MacrosCard({
   };
 
   return (
-    <TouchableOpacity
-      onPress={() => router.push("/macros-details")}
-      activeOpacity={0.7}
-    >
+    <TouchableOpacity>
       <MotiView
         key={`macros-card-${theme}`}
         style={[styles.container, { backgroundColor: colors.background }]}
@@ -178,7 +185,6 @@ export default function MacrosCard({
             </Text>
             <TouchableOpacity
               style={[styles.configButton, { backgroundColor: colors.tint }]}
-              onPress={() => router.push("/macros-details")}
             >
               <Text style={styles.configButtonText}>Configurar Metas</Text>
             </TouchableOpacity>
@@ -188,27 +194,35 @@ export default function MacrosCard({
             {renderMacroProgress(
               "Calorias",
               "flame-outline",
+              'ionicons',
+              colors.primary,
               dayTotals.calories,
               nutritionInfo.calories || 0,
               "kcal"
             )}
             {renderMacroProgress(
               "Proteína",
-              "fitness-outline",
+              "food-steak",
+              'material',
+              colors.primary,
               dayTotals.protein,
               nutritionInfo.protein || 0,
               "g"
             )}
             {renderMacroProgress(
               "Carboidratos",
-              "leaf-outline",
+              "bread-slice",
+              'material',
+              colors.primary,
               dayTotals.carbs,
               nutritionInfo.carbs || 0,
               "g"
             )}
             {renderMacroProgress(
               "Gorduras",
-              "water-outline",
+              "oil",
+              'material',
+              colors.primary,
               dayTotals.fat,
               nutritionInfo.fat || 0,
               "g"
@@ -223,7 +237,6 @@ export default function MacrosCard({
 const styles = StyleSheet.create({
   container: {
     borderRadius: 16,
-    padding: 5,
     marginBottom: 16,
   },
   sectionTitle: {
@@ -247,7 +260,14 @@ const styles = StyleSheet.create({
   macroHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
+  },
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   macroTitle: {
     fontSize: 15,
@@ -256,6 +276,7 @@ const styles = StyleSheet.create({
   remaining: {
     fontSize: 13,
     opacity: 0.8,
+    marginLeft: 42,
   },
   remainingValue: {
     fontWeight: "600",

@@ -1,19 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import { NutritionInfo } from "../context/NutritionContext";
-
-// Chaves para armazenamento
-const KEYS = {
-  NUTRITION_DATA: "pumpgym_nutrition_data",
-  PENDING_OPERATIONS: "pumpgym_pending_operations",
-  ONBOARDING_COMPLETED: "pumpgym_onboarding_completed",
-  USER_DATA: "pumpgym_user_data",
-  ONBOARDING_DATA: "pumpgym_onboarding_data",
-  ONBOARDING_STEP: "pumpgym_onboarding_step",
-  PENDING_SYNC: "pumpgym_pending_sync",
-  TEMP_NUTRITION_DATA: "@temp_nutrition_data",
-  MEALS_KEY: "@meals:",
-};
+import { KEYS } from "../constants/keys";
 
 // Tipos para operações pendentes
 type OperationType = "create" | "update" | "delete";
@@ -48,33 +36,18 @@ export const OfflineStorage = {
 
       // Obter dados existentes
       const existingDataStr = await AsyncStorage.getItem(KEYS.ONBOARDING_DATA);
-      const existingData = existingDataStr ? JSON.parse(existingDataStr) : {};
+      let existingData = existingDataStr ? JSON.parse(existingDataStr) : {};
 
-      // Mesclar com novos dados
-      const updatedData = { ...existingData, ...data };
+      // Mesclar dados existentes com novos dados
+      const mergedData = { ...existingData, ...data };
 
-      // Converter datas para strings antes de salvar
-      const dataToSave = Object.entries(updatedData).reduce<
-        Record<string, any>
-      >((acc, [key, value]) => {
-        if (value instanceof Date) {
-          acc[key] = value.toISOString();
-        } else {
-          acc[key] = value;
-        }
-        return acc;
-      }, {});
-
-      // Salvar dados atualizados
+      // Salvar dados mesclados
       await AsyncStorage.setItem(
         KEYS.ONBOARDING_DATA,
-        JSON.stringify(dataToSave)
+        JSON.stringify(mergedData)
       );
-      await AsyncStorage.setItem(KEYS.PENDING_SYNC, "true");
-
-      console.log("Dados do onboarding salvos localmente");
     } catch (error) {
-      console.error("Erro ao salvar dados do onboarding localmente:", error);
+      console.error("Erro ao salvar dados do onboarding:", error);
     }
   },
 
@@ -208,9 +181,53 @@ export const OfflineStorage = {
   saveNutritionData: async (userId: string, data: any): Promise<void> => {
     try {
       const key = `${KEYS.NUTRITION_DATA}_${userId}`;
-      await AsyncStorage.setItem(key, JSON.stringify(data));
+      console.log(`OfflineStorage - Salvando dados de nutrição para usuário ${userId}`, {
+        dietType: data.dietType,
+        goal: data.goal,
+        calories: data.calories,
+        protein: data.protein,
+        carbs: data.carbs,
+        fat: data.fat
+      });
+      
+      // Garantir que os dados são serializáveis e criar uma cópia profunda
+      const dataToSave = JSON.stringify(data);
+      
+      // Verificar se os dados são válidos antes de salvar
+      try {
+        JSON.parse(dataToSave);
+      } catch (parseError) {
+        console.error(`OfflineStorage - Erro ao serializar dados para usuário ${userId}:`, parseError);
+        throw new Error('Dados inválidos para serialização');
+      }
+      
+      // Salvar os dados
+      await AsyncStorage.setItem(key, dataToSave);
+      
+      // Verificar se os dados foram salvos corretamente
+      const savedData = await AsyncStorage.getItem(key);
+      if (!savedData) {
+        console.error(`OfflineStorage - Falha ao verificar dados salvos para usuário ${userId}`);
+        throw new Error('Falha ao verificar dados salvos');
+      }
+      
+      // Verificar se os dados salvos são iguais aos dados originais
+      const parsedSavedData = JSON.parse(savedData);
+      console.log(`OfflineStorage - Dados salvos com sucesso para usuário ${userId}`, {
+        dietType: parsedSavedData.dietType,
+        goal: parsedSavedData.goal,
+        calories: parsedSavedData.calories,
+        protein: parsedSavedData.protein,
+        carbs: parsedSavedData.carbs,
+        fat: parsedSavedData.fat
+      });
+      
+      // Adicionar flag para indicar que os dados foram modificados
+      await AsyncStorage.setItem(`${key}_modified`, 'true');
+      
     } catch (error) {
-      console.error("Erro ao salvar dados de nutrição offline:", error);
+      console.error(`OfflineStorage - Erro ao salvar dados de nutrição para usuário ${userId}:`, error);
+      throw error;
     }
   },
 
@@ -218,10 +235,57 @@ export const OfflineStorage = {
   loadNutritionData: async (userId: string): Promise<any | null> => {
     try {
       const key = `${KEYS.NUTRITION_DATA}_${userId}`;
+      console.log(`OfflineStorage - Carregando dados de nutrição para usuário ${userId}`);
+      
       const data = await AsyncStorage.getItem(key);
-      return data ? JSON.parse(data) : null;
+      if (!data) {
+        console.log(`OfflineStorage - Nenhum dado encontrado para usuário ${userId}`);
+        return null;
+      }
+      
+      try {
+        const parsedData = JSON.parse(data);
+        console.log(`OfflineStorage - Dados carregados com sucesso para usuário ${userId}`, {
+          dietType: parsedData.dietType,
+          goal: parsedData.goal,
+          calories: parsedData.calories,
+          protein: parsedData.protein,
+          carbs: parsedData.carbs,
+          fat: parsedData.fat
+        });
+        
+        // Verificar se os dados carregados são válidos
+        if (!parsedData) {
+          console.error(`OfflineStorage - Dados carregados inválidos para usuário ${userId}`);
+          return null;
+        }
+        
+        // Verificar se os campos críticos estão presentes
+        if (parsedData.dietType === undefined || parsedData.goal === undefined || parsedData.calories === undefined) {
+          console.warn(`OfflineStorage - Dados carregados incompletos para usuário ${userId}`);
+        }
+        
+        // Verificar se há uma versão mais recente dos dados
+        const isModified = await AsyncStorage.getItem(`${key}_modified`);
+        if (isModified === 'true') {
+          console.log(`OfflineStorage - Dados modificados localmente para usuário ${userId}`);
+          parsedData._isModifiedLocally = true;
+        }
+        
+        return parsedData;
+      } catch (parseError) {
+        console.error(`OfflineStorage - Erro ao analisar dados para usuário ${userId}:`, parseError);
+        
+        // Tentar recuperar os dados brutos em caso de erro de parsing
+        console.log(`OfflineStorage - Tentando recuperar dados brutos para usuário ${userId}`);
+        return { 
+          _rawData: data,
+          _parseError: true,
+          error: parseError.message
+        };
+      }
     } catch (error) {
-      console.error("Erro ao carregar dados de nutrição offline:", error);
+      console.error("OfflineStorage - Erro ao carregar dados de nutrição offline:", error);
       return null;
     }
   },
@@ -413,6 +477,40 @@ export const OfflineStorage = {
     } catch (error) {
       console.error("Erro ao buscar datas com refeições:", error);
       return [];
+    }
+  },
+
+  // Funções para gerenciar o histórico de busca
+  saveSearchHistory: async (userId: string, searchHistory: { id: string; name: string; portion: number; calories: number; protein: number; carbs: number; fat: number }[]): Promise<void> => {
+    try {
+      const key = `${KEYS.SEARCH_HISTORY}_${userId}`;
+      await AsyncStorage.setItem(key, JSON.stringify(searchHistory));
+      console.log("Histórico de busca salvo com sucesso");
+    } catch (error) {
+      console.error("Erro ao salvar histórico de busca:", error);
+      throw error;
+    }
+  },
+
+  loadSearchHistory: async (userId: string): Promise<{ id: string; name: string; portion: number; calories: number; protein: number; carbs: number; fat: number }[]> => {
+    try {
+      const key = `${KEYS.SEARCH_HISTORY}_${userId}`;
+      const data = await AsyncStorage.getItem(key);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error("Erro ao carregar histórico de busca:", error);
+      return [];
+    }
+  },
+
+  clearSearchHistory: async (userId: string): Promise<void> => {
+    try {
+      const key = `${KEYS.SEARCH_HISTORY}_${userId}`;
+      await AsyncStorage.removeItem(key);
+      console.log("Histórico de busca limpo com sucesso");
+    } catch (error) {
+      console.error("Erro ao limpar histórico de busca:", error);
+      throw error;
     }
   },
 };

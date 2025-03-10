@@ -5,6 +5,8 @@ import SplashScreen from "../common/SplashScreen";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import { OfflineStorage } from "../../services/OfflineStorage";
+import * as ExpoSplashScreen from "expo-splash-screen";
+import { Asset } from 'expo-asset';
 
 export default function InitialRoute() {
   const { loading, authStateStable, isRestoringSession, appInitialized, user } =
@@ -13,6 +15,29 @@ export default function InitialRoute() {
   const [onboardingCompleted, setOnboardingCompleted] = useState<
     boolean | null
   >(null);
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
+
+  // Pré-carregar recursos
+  useEffect(() => {
+    async function preloadAssets() {
+      try {
+        // Pré-carregar a imagem de fundo do login usando Asset.loadAsync
+        await Asset.loadAsync([require("../../assets/images/fitness-background.jpg")]);
+        
+        setAssetsLoaded(true);
+        
+        // Esconder o SplashScreen apenas quando todos os recursos estiverem carregados
+        if (!loading && authStateStable && appInitialized) {
+          await ExpoSplashScreen.hideAsync();
+        }
+      } catch (error) {
+        console.error("Erro ao pré-carregar recursos:", error);
+        setAssetsLoaded(true); // Mesmo com erro, continuamos para não travar o app
+      }
+    }
+
+    preloadAssets();
+  }, [loading, authStateStable, appInitialized]);
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
@@ -48,12 +73,13 @@ export default function InitialRoute() {
     checkOnboardingStatus();
   }, [user, isCheckingOnboarding, onboardingCompleted]);
 
-  // Mostrar SplashScreen enquanto carrega ou verifica onboarding
+  // Mostrar SplashScreen enquanto carrega recursos
   if (
     loading ||
     !authStateStable ||
     isRestoringSession ||
     !appInitialized ||
+    !assetsLoaded ||
     (user && (isCheckingOnboarding || onboardingCompleted === null))
   ) {
     return <SplashScreen />;

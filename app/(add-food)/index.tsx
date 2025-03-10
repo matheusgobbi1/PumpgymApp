@@ -17,9 +17,8 @@ import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
 import { MotiView } from "moti";
 import { searchFoods } from "../../services/food";
-import { EdamamResponse, FoodHint } from "../../types/food";
+import { FoodItem } from "../../types/food";
 import {
-  translateFoodSearch,
   translateMeasure,
 } from "../../utils/translateUtils";
 import { debounce } from "lodash";
@@ -29,7 +28,7 @@ import { v4 as uuidv4 } from "uuid";
 
 const { width } = Dimensions.get("window");
 
-interface FoodItem {
+interface RecentFoodItem {
   id: string;
   name: string;
   calories: number;
@@ -37,9 +36,10 @@ interface FoodItem {
   carbs: number;
   fat: number;
   portion: string;
+  portionDescription?: string;
 }
 
-const recentFoods: FoodItem[] = [
+const recentFoods: RecentFoodItem[] = [
   {
     id: "1",
     name: "Frango Grelhado",
@@ -103,7 +103,7 @@ const FoodItemSkeleton = ({ index }: { index: number }) => {
           ]}
         />
         <MotiView
-          key={`skeleton-category-${index}-${theme}`}
+          key={`skeleton-portion-${index}-${theme}`}
           from={{ opacity: 0.5 }}
           animate={{ opacity: 1 }}
           transition={{
@@ -154,10 +154,18 @@ export default function AddFoodScreen() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<FoodHint[]>([]);
+  const [searchResults, setSearchResults] = useState<FoodItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { meals, selectedDate, addFoodToMeal, saveMeals } = useMeals();
+  const { 
+    meals, 
+    selectedDate, 
+    addFoodToMeal, 
+    saveMeals,
+    searchHistory,
+    addToSearchHistory,
+    clearSearchHistory 
+  } = useMeals();
   const [recentlyAddedFoods, setRecentlyAddedFoods] = useState<
     {
       id: string;
@@ -263,13 +271,10 @@ export default function AddFoodScreen() {
     setError(null);
 
     try {
-      // Traduz a query antes de fazer a busca
-      const translatedQuery = await translateFoodSearch(query);
-      console.log("Query original:", query);
-      console.log("Query traduzida:", translatedQuery);
-
-      const response = await searchFoods(translatedQuery);
-      setSearchResults(response.hints || []);
+      const response = await searchFoods(query);
+      console.log(`Recebidos ${response.items?.length || 0} resultados da API`);
+      console.log("Primeiro resultado:", response.items && response.items.length > 0 ? JSON.stringify(response.items[0], null, 2) : "Nenhum");
+      setSearchResults(response.items || []);
     } catch (err) {
       setError("Erro ao buscar alimentos. Tente novamente.");
       console.error(err);
@@ -294,8 +299,7 @@ export default function AddFoodScreen() {
   }) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    // Adicionar o alimento à refeição
-    addFoodToMeal(mealId, {
+    const newFood: Food = {
       id: uuidv4(),
       name: food.name,
       calories: food.calories,
@@ -303,58 +307,55 @@ export default function AddFoodScreen() {
       carbs: food.carbs,
       fat: food.fat,
       portion: food.portion,
-    });
+    };
+
+    // Adicionar o alimento à refeição
+    addFoodToMeal(mealId, newFood);
+
+    // Adicionar ao histórico de busca
+    await addToSearchHistory(newFood);
 
     // Salvar as alterações
     await saveMeals();
-
-    // Mostrar confirmação
-    Alert.alert(
-      "Alimento Adicionado",
-      `${food.name} foi adicionado à refeição ${mealName}`,
-      [{ text: "OK" }]
-    );
   };
 
   // Função para adicionar alimento da pesquisa diretamente
-  const handleQuickAddFromSearch = async (food: FoodHint) => {
+  const handleQuickAddFromSearch = async (food: FoodItem) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     // Calcula os valores nutricionais baseado na porção padrão (100g)
     const calculatedNutrients = {
-      calories: Math.round(food.food.nutrients.ENERC_KCAL),
-      protein: Math.round(food.food.nutrients.PROCNT * 10) / 10,
-      carbs: Math.round(food.food.nutrients.CHOCDF * 10) / 10,
-      fat: Math.round(food.food.nutrients.FAT * 10) / 10,
+      calories: Math.round(food.servings[0].calories),
+      protein: Math.round(food.servings[0].protein * 10) / 10,
+      carbs: Math.round(food.servings[0].carbohydrate * 10) / 10,
+      fat: Math.round(food.servings[0].fat * 10) / 10,
     };
 
-    // Adicionar o alimento à refeição
-    addFoodToMeal(mealId, {
+    const newFood: Food = {
       id: uuidv4(),
-      name: food.food.label,
+      name: food.food_name,
       calories: calculatedNutrients.calories,
       protein: calculatedNutrients.protein,
       carbs: calculatedNutrients.carbs,
       fat: calculatedNutrients.fat,
       portion: 100, // Porção padrão de 100g
-    });
+    };
+
+    // Adicionar o alimento à refeição
+    addFoodToMeal(mealId, newFood);
+
+    // Adicionar ao histórico de busca
+    await addToSearchHistory(newFood);
 
     // Salvar as alterações
     await saveMeals();
-
-    // Mostrar confirmação
-    Alert.alert(
-      "Alimento Adicionado",
-      `${food.food.label} (100g) foi adicionado à refeição ${mealName}`,
-      [{ text: "OK" }]
-    );
   };
 
-  const handleFoodSelect = (food: FoodHint) => {
+  const handleFoodSelect = (food: FoodItem) => {
     router.push({
       pathname: "/(add-food)/food-details",
       params: {
-        foodId: food.food.foodId,
+        foodId: food.food_id,
         mealId,
         mealName,
         targetCalories,
@@ -379,6 +380,7 @@ export default function AddFoodScreen() {
     protein: number;
     carbs: number;
     fat: number;
+    portionDescription?: string;
   }) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -398,12 +400,15 @@ export default function AddFoodScreen() {
         carbs: food.carbs,
         fat: food.fat,
         portion: food.portion,
+        portionDescription: food.portionDescription || "",
         isFromHistory: "true",
       },
     });
   };
 
   const renderSearchResults = () => {
+    console.log(`Renderizando ${searchResults.length} resultados`);
+    
     if (isLoading) {
       return <SearchResultsSkeleton />;
     }
@@ -428,40 +433,45 @@ export default function AddFoodScreen() {
       );
     }
 
-    return searchResults.map((result, index) => {
-      // Encontra a medida mais comum (geralmente a primeira após gramas)
-      const commonMeasure =
-        result.measures.find((m) => !m.label.toLowerCase().includes("gram")) ||
-        result.measures[0];
+    // Limitar a 10 resultados
+    const limitedResults = searchResults.slice(0, 10);
+    
+    return limitedResults.map((result, index) => {
+      // Verificar se o resultado tem as propriedades necessárias
+      if (!result.food_name) {
+        console.warn(`Resultado ${index} inválido:`, JSON.stringify(result));
+        return null;
+      }
 
       return (
         <MotiView
-          key={`${result.food.foodId}_${index}_${theme}`}
+          key={`${result.food_id}_${index}_${theme}`}
           from={{ opacity: 0, translateY: 20 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ delay: index * 100 }}
         >
           <TouchableOpacity
-            key={`food-item-${result.food.foodId}-${theme}`}
+            key={`food-item-${result.food_id}-${theme}`}
             style={[styles.foodItem, { backgroundColor: colors.light }]}
             onPress={() => handleFoodSelect(result)}
           >
             <View style={styles.foodInfo}>
               <Text style={[styles.foodName, { color: colors.text }]}>
-                {result.food.label}
+                {result.food_name}
               </Text>
               <Text
                 style={[styles.foodCategory, { color: colors.text + "80" }]}
               >
-                {result.food.categoryLabel}
-                {commonMeasure &&
-                  ` • ${Math.round(
-                    commonMeasure.weight
-                  )}g por ${translateMeasure(commonMeasure.label)}`}
+                {result.servings && result.servings[0] && 
+                  (result.servings[0].serving_description.includes("bar") || 
+                   result.servings[0].serving_description.includes("piece") || 
+                   result.servings[0].serving_description.includes("serving"))
+                  ? `${result.servings[0].serving_description} (${result.servings[0].calories} kcal)`
+                  : `${Math.round(result.servings[0].metric_serving_amount || 100)}g por porção`}
               </Text>
             </View>
             <TouchableOpacity
-              key={`add-button-${result.food.foodId}-${theme}`}
+              key={`add-button-${result.food_id}-${theme}`}
               style={[styles.addButton, { backgroundColor: colors.primary }]}
               onPress={() => handleQuickAddFromSearch(result)}
             >
@@ -556,13 +566,20 @@ export default function AddFoodScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Histórico de Adições Recentes */}
-        {recentlyAddedFoods.length > 0 && !searchQuery && (
+        {searchHistory.length > 0 && !searchQuery && (
           <View key={`recent-history-${theme}`} style={styles.recentHistorySection}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Adicionados Recentemente
-            </Text>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Adicionados Recentemente
+              </Text>
+              <TouchableOpacity onPress={clearSearchHistory}>
+                <Text style={[styles.clearHistoryText, { color: colors.danger }]}>
+                  Limpar Histórico
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-            {recentlyAddedFoods.map((food, index) => (
+            {searchHistory.map((food, index) => (
               <MotiView
                 key={`recent_${food.id}_${index}_${theme}`}
                 from={{ opacity: 0, translateY: 10 }}
@@ -589,7 +606,9 @@ export default function AddFoodScreen() {
                         { color: colors.text + "80" },
                       ]}
                     >
-                      {food.portion}g • {food.mealName}
+                      {food.portionDescription 
+                        ? `${food.portionDescription} • ${food.calories} kcal`
+                        : `${food.portion}g • ${food.calories} kcal`}
                     </Text>
                   </View>
                   <TouchableOpacity
@@ -598,16 +617,7 @@ export default function AddFoodScreen() {
                       styles.addButton,
                       { backgroundColor: colors.primary },
                     ]}
-                    onPress={() =>
-                      handleQuickAdd({
-                        name: food.name,
-                        portion: food.portion,
-                        calories: food.calories,
-                        protein: food.protein,
-                        carbs: food.carbs,
-                        fat: food.fat,
-                      })
-                    }
+                    onPress={() => handleQuickAdd(food)}
                   >
                     <Ionicons name="add" size={20} color="#FFF" />
                   </TouchableOpacity>
@@ -797,5 +807,15 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  clearHistoryText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

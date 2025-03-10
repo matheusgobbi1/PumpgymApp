@@ -19,9 +19,10 @@ import { MotiView } from 'moti';
 import * as Haptics from 'expo-haptics';
 import Slider from '@react-native-community/slider';
 import { useTheme } from '../../context/ThemeContext';
-import { useWorkouts, Exercise, ExerciseSet } from '../../context/WorkoutContext';
+import { useWorkoutContext, Exercise, ExerciseSet } from '../../context/WorkoutContext';
 import Colors from '../../constants/Colors';
 import { ExerciseData, getExerciseById } from '../../data/exerciseDatabase';
+import { useRefresh } from '../../context/RefreshContext';
 
 const { width } = Dimensions.get('window');
 
@@ -59,12 +60,78 @@ const SetCard = ({
   const { theme } = useTheme();
   const colors = Colors[theme];
   
+  // Estados locais para os valores de entrada
+  const [repsInput, setRepsInput] = useState(set.reps.toString());
+  const [weightInput, setWeightInput] = useState(set.weight.toString());
+  
+  // Função para atualizar as repetições
   const handleRepsChange = (reps: number) => {
+    setRepsInput(reps.toString());
     onUpdate({ ...set, reps });
   };
   
+  // Função para atualizar o peso
   const handleWeightChange = (weight: number) => {
+    setWeightInput(weight.toString());
     onUpdate({ ...set, weight });
+  };
+  
+  // Função para validar e atualizar as repetições a partir da entrada de texto
+  const handleRepsInputChange = (value: string) => {
+    setRepsInput(value);
+    
+    // Validar se é um número
+    const numValue = parseInt(value);
+    if (!isNaN(numValue)) {
+      // Limitar entre 1 e 50
+      const validReps = Math.min(50, Math.max(1, numValue));
+      onUpdate({ ...set, reps: validReps });
+    }
+  };
+  
+  // Função para validar e atualizar o peso a partir da entrada de texto
+  const handleWeightInputChange = (value: string) => {
+    setWeightInput(value);
+    
+    // Validar se é um número
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue)) {
+      // Limitar entre 0 e 200
+      const validWeight = Math.min(200, Math.max(0, numValue));
+      onUpdate({ ...set, weight: validWeight });
+    }
+  };
+  
+  // Função para finalizar a edição e garantir que os valores sejam válidos
+  const handleInputBlur = (type: 'reps' | 'weight') => {
+    // Feedback tátil leve
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    if (type === 'reps') {
+      const numValue = parseInt(repsInput);
+      if (isNaN(numValue) || numValue < 1) {
+        // Se for inválido, resetar para 1
+        setRepsInput('1');
+        onUpdate({ ...set, reps: 1 });
+      } else {
+        // Limitar entre 1 e 50
+        const validReps = Math.min(50, Math.max(1, numValue));
+        setRepsInput(validReps.toString());
+        onUpdate({ ...set, reps: validReps });
+      }
+    } else {
+      const numValue = parseFloat(weightInput);
+      if (isNaN(numValue) || numValue < 0) {
+        // Se for inválido, resetar para 0
+        setWeightInput('0');
+        onUpdate({ ...set, weight: 0 });
+      } else {
+        // Limitar entre 0 e 200
+        const validWeight = Math.min(200, Math.max(0, numValue));
+        setWeightInput(validWeight.toFixed(1));
+        onUpdate({ ...set, weight: validWeight });
+      }
+    }
   };
   
   return (
@@ -109,7 +176,15 @@ const SetCard = ({
               <Ionicons name="remove" size={18} color={color} />
             </TouchableOpacity>
             
-            <Text style={[styles.setMetricValue, { color: colors.text }]}>{set.reps}</Text>
+            <TextInput
+              style={[styles.setMetricValue, { color: colors.text }]}
+              value={repsInput}
+              onChangeText={handleRepsInputChange}
+              onBlur={() => handleInputBlur('reps')}
+              keyboardType="number-pad"
+              maxLength={2}
+              selectTextOnFocus
+            />
             
             <TouchableOpacity
               style={[styles.setMetricButton, { backgroundColor: color + '15' }]}
@@ -133,7 +208,15 @@ const SetCard = ({
               <Ionicons name="remove" size={18} color={color} />
             </TouchableOpacity>
             
-            <Text style={[styles.setMetricValue, { color: colors.text }]}>{set.weight}</Text>
+            <TextInput
+              style={[styles.setMetricValue, { color: colors.text }]}
+              value={weightInput}
+              onChangeText={handleWeightInputChange}
+              onBlur={() => handleInputBlur('weight')}
+              keyboardType="decimal-pad"
+              maxLength={5}
+              selectTextOnFocus
+            />
             
             <TouchableOpacity
               style={[styles.setMetricButton, { backgroundColor: color + '15' }]}
@@ -253,8 +336,9 @@ export default function ExerciseDetailsScreen() {
   const exerciseDataParam = params.exerciseData as string;
   
   // Contexto de treinos
-  const { addExerciseToWorkout, updateExerciseInWorkout, getWorkoutTypeById } = useWorkouts();
+  const { addExerciseToWorkout, updateExerciseInWorkout, getWorkoutTypeById } = useWorkoutContext();
   const workoutType = getWorkoutTypeById(workoutId);
+  const { triggerRefresh } = useRefresh();
   
   // Estados
   const [isLoading, setIsLoading] = useState(true);
@@ -396,11 +480,15 @@ export default function ExerciseDetailsScreen() {
   
   // Função para adicionar o exercício ao treino
   const handleAddExercise = () => {
+    // Feedback tátil
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    
+    // Criar o objeto de exercício
     const newExercise: Exercise = {
       id: mode === 'edit' && exerciseId ? exerciseId : `exercise-${Date.now()}`,
       name: exercise ? exercise.name : customExerciseName.trim(),
       sets: exercise?.category === 'cardio' ? [] : sets,
-      notes: notes.trim(),
+      notes: notes,
       category: exercise?.category || 'força',
       cardioDuration: exercise?.category === 'cardio' ? cardioDuration : undefined,
       cardioIntensity: exercise?.category === 'cardio' ? cardioIntensity : undefined,
@@ -414,11 +502,11 @@ export default function ExerciseDetailsScreen() {
       addExerciseToWorkout(workoutId, newExercise);
     }
     
-    // Feedback tátil
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
     // Voltar para a tela anterior
     router.back();
+    
+    // Atualizar o gráfico de progresso
+    triggerRefresh();
   };
   
   // Verificar se é um exercício personalizado
@@ -435,6 +523,16 @@ export default function ExerciseDetailsScreen() {
           headerTintColor: colors.text,
           headerShadowVisible: false,
           headerTransparent: true,
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={{ marginLeft: 10 }}
+            >
+              <Ionicons name="close" size={24} color={colors.text} />
+            </TouchableOpacity>
+          ),
           headerBackground: () => (
             <Animated.View
               style={[
@@ -795,7 +893,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   setMetricIcon: {
-    marginRight: 6,
+    marginRight: 3,
   },
   setMetricLabel: {
     fontSize: 14,
@@ -819,6 +917,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     minWidth: 40,
+    padding: 0,
+    backgroundColor: 'transparent',
   },
   addSetButton: {
     flexDirection: 'row',
@@ -833,7 +933,7 @@ const styles = StyleSheet.create({
   addSetButtonText: {
     fontSize: 16,
     fontWeight: '500',
-    marginLeft: 8,
+    marginLeft: 4,
   },
   notesContainer: {
     marginBottom: 16,
@@ -866,7 +966,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 8,
+    marginLeft: 4,
   },
   cardioCard: {
     borderRadius: 12,

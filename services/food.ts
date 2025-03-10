@@ -1,141 +1,189 @@
-import axios from "axios";
-import { EdamamResponse } from "../types/food";
-import {
-  translateFoodSearch,
-  translateFoodResult,
-} from "../utils/translateUtils";
-import { EDAMAM_CONFIG } from "../config/api";
+import { FoodResponse, FatSecretSearchResponse, FatSecretFoodResponse, convertFatSecretToFoodItem, FoodItem } from "../types/food";
+import { FATSECRET_CONFIG, getFatSecretToken } from "../config/api";
+import { searchFoodsMockup, getFoodDetailsMockup } from "../data/foodDatabase";
 
-
-// Configuração do cliente axios
-const api = axios.create({
-  baseURL: EDAMAM_CONFIG.BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-// Interceptor para validar a configuração antes de cada requisição
-api.interceptors.request.use((config) => {
-  // Log da requisição
-  console.log("Interceptor - Configuração da requisição:", {
-    url: config.url,
-    method: config.method,
-    params: {
-      ...config.params,
-      app_key: config.params?.app_key ? "***" : undefined,
-    },
-    headers: config.headers,
-  });
-
-  if (!EDAMAM_CONFIG.APP_ID || !EDAMAM_CONFIG.APP_KEY) {
-    throw new Error("Credenciais da API Edamam não configuradas");
-  }
-  return config;
-});
-
-export const searchFoods = async (query: string): Promise<EdamamResponse> => {
+// Função para buscar alimentos usando a API FatSecret
+export const searchFoods = async (query: string): Promise<FoodResponse> => {
   try {
-    const translatedQuery = await translateFoodSearch(query);
     console.log("Query original:", query);
-    console.log("Query traduzida:", translatedQuery);
-
-    // Log dos parâmetros da requisição
-    console.log("Parâmetros da busca:", {
-      app_id: EDAMAM_CONFIG.APP_ID,
-      ingr: translatedQuery,
-      "nutrition-type": "logging",
-    });
-
-    const response = await api.get("/parser", {
-      params: {
-        app_id: EDAMAM_CONFIG.APP_ID,
-        app_key: EDAMAM_CONFIG.APP_KEY,
-        ingr: translatedQuery,
-        "nutrition-type": "logging",
-      },
-    });
-
-    console.log("Status da resposta:", response.status);
-    console.log("Headers da resposta:", response.headers);
-
-    // Traduz os resultados de volta para português
-    const data = response.data;
-    if (data.hints && data.hints.length > 0) {
-      for (let hint of data.hints) {
-        if (hint.food && hint.food.label) {
-          hint.food.label = await translateFoodResult(hint.food.label);
-        }
-      }
+    
+    // Primeiro buscar no banco de dados local
+    const localResults = searchFoodsMockup(query);
+    
+    // Se não houver query, retornar vazio
+    if (!query) {
+      return { items: [] };
     }
 
-    return data;
-  } catch (error: any) {
-    console.error("Erro na busca:", {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status,
-      config: {
-        url: error.config?.url,
-        method: error.config?.method,
-        params: {
-          ...error.config?.params,
-          app_key: "***",
+    // Tentar API FatSecret 
+    try {
+      // Obter token de acesso
+      const token = await getFatSecretToken();
+      
+      // Construir URL com parâmetros
+      const params = new URLSearchParams({
+        method: "foods.search",
+        search_expression: query,
+        format: "json",
+        max_results: "20",
+      });
+      
+      const url = `${FATSECRET_CONFIG.BASE_URL}?${params.toString()}`;
+      
+      console.log("URL da requisição:", url);
+      console.log("Parâmetros:", Object.fromEntries(params.entries()));
+      
+      // Fazer requisição com timeout
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000); // 30 segundos de timeout
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json",
         },
-      },
-    });
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+      
+      console.log("Status da resposta:", response.status);
+      console.log("Headers da resposta:", Object.fromEntries([...response.headers.entries()]));
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Erro na resposta:", errorText);
+        throw new Error(`Erro na busca: ${response.status} - ${errorText}`);
+      }
+      
+      // Converter a resposta para JSON
+      const responseText = await response.text();
+      console.log("Resposta da API (texto):", responseText);
+      
+      const data: FatSecretSearchResponse = JSON.parse(responseText);
+      console.log("Resposta da API (JSON):", JSON.stringify(data, null, 2));
+      
+      // Verificar se há um erro na resposta
+      if (data.error) {
+        throw new Error(`Erro da API: ${data.error.code} - ${data.error.message}`);
+      }
+      
+      const apiResults: FoodItem[] = [];
+
+      if (data.foods && data.foods.food) {
+        // Verificar se é um array ou um único objeto
+        const foods = Array.isArray(data.foods.food) ? data.foods.food : [data.foods.food];
+        
+        console.log(`Encontrados ${foods.length} alimentos na busca`);
+        
+        // Converter cada alimento para o formato FoodItem
+        apiResults.push(...foods.map(food => convertFatSecretToFoodItem(food)));
+      } else {
+        console.log("Nenhum alimento encontrado na resposta da API");
+      }
+
+      // Combinar resultados locais com resultados da API
+      // Evitar duplicações baseadas no ID (embora improvável devido aos diferentes formatos)
+      const localIds = new Set(localResults.items?.map(item => item.food_id) || []);
+      const filteredApiResults = apiResults.filter(item => !localIds.has(item.food_id));
+      
+      // Priorizar resultados locais colocando-os no início da lista
+      const combinedResults: FoodResponse = {
+        items: [
+          ...(localResults.items || []),
+          ...filteredApiResults
+        ]
+      };
+      
+      console.log(`Retornando ${combinedResults.items?.length || 0} resultados combinados`);
+      return combinedResults;
+    } catch (error) {
+      console.warn("Erro ao usar a API FatSecret. Usando apenas resultados locais:", error);
+      // Em caso de erro na API, usar apenas o mockup local
+      return localResults;
+    }
+  } catch (error: any) {
+    console.error("Erro na busca:", error);
     throw error;
   }
 };
 
+// Função para obter detalhes de um alimento usando a API FatSecret
 export const getFoodDetails = async (
   foodId: string
-): Promise<EdamamResponse> => {
+): Promise<FoodResponse> => {
   try {
-    // Log dos parâmetros da requisição
-    console.log("Parâmetros dos detalhes:", {
-      app_id: EDAMAM_CONFIG.APP_ID,
-      foodId: foodId,
-    });
+    // Tentar API FatSecret primeiro
+    try {
+      // Obter token de acesso
+      const token = await getFatSecretToken();
+      
+      // Construir URL com parâmetros
+      const params = new URLSearchParams({
+        method: "food.get.v2",
+        food_id: foodId,
+        format: "json",
+        flag_default_serving: "true",
+      });
+      
+      const url = `${FATSECRET_CONFIG.BASE_URL}?${params.toString()}`;
+      
+      console.log("URL da requisição de detalhes:", url);
+      console.log("Parâmetros (detalhes):", Object.fromEntries(params.entries()));
+      
+      // Fazer requisição com timeout
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000); // 30 segundos de timeout
 
-    const response = await api.post(
-      "/nutrients",
-      {
-        ingredients: [
-          {
-            quantity: 100,
-            measureURI:
-              "http://www.edamam.com/ontologies/edamam.owl#Measure_gram",
-            foodId: foodId,
-          },
-        ],
-      },
-      {
-        params: {
-          app_id: EDAMAM_CONFIG.APP_ID,
-          app_key: EDAMAM_CONFIG.APP_KEY,
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json",
         },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+      
+      console.log("Status da resposta (detalhes):", response.status);
+      console.log("Headers da resposta (detalhes):", Object.fromEntries([...response.headers.entries()]));
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Erro na resposta (detalhes):", errorText);
+        throw new Error(`Erro ao obter detalhes: ${response.status} - ${errorText}`);
       }
-    );
+      
+      // Converter a resposta para JSON
+      const responseText = await response.text();
+      console.log("Resposta da API (detalhes - texto):", responseText);
+      
+      const data: FatSecretFoodResponse = JSON.parse(responseText);
+      console.log("Resposta da API (detalhes - JSON):", JSON.stringify(data, null, 2));
+      
+      // Verificar se há um erro na resposta
+      if (data.error) {
+        throw new Error(`Erro da API: ${data.error.code} - ${data.error.message}`);
+      }
 
-    console.log("Status da resposta (detalhes):", response.status);
-    console.log("Headers da resposta (detalhes):", response.headers);
+      const result: FoodResponse = { items: [] };
 
-    return response.data;
+      if (data.food) {
+        // Converter o alimento para o formato FoodItem
+        const foodItem = convertFatSecretToFoodItem(data.food);
+        result.items = [foodItem];
+      }
+
+      return result;
+    } catch (error) {
+      console.warn("Erro ao usar a API FatSecret para detalhes. Usando mockup local:", error);
+      // Em caso de erro na API, usar o mockup local
+      return getFoodDetailsMockup(foodId);
+    }
   } catch (error: any) {
-    console.error("Erro ao obter detalhes:", {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status,
-      config: {
-        url: error.config?.url,
-        method: error.config?.method,
-        params: {
-          ...error.config?.params,
-          app_key: "***",
-        },
-      },
-    });
+    console.error("Erro ao obter detalhes:", error);
     throw error;
   }
 };

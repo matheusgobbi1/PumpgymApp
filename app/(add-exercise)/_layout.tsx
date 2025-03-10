@@ -2,7 +2,7 @@ import { Stack } from "expo-router";
 
 export default function AddExerciseLayout() {
   return (
-    <Stack>
+    <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen
         name="index"
         options={{
@@ -12,9 +12,11 @@ export default function AddExerciseLayout() {
       <Stack.Screen
         name="exercise-details"
         options={{
-          headerShown: false,
+          headerShown: true,
           presentation: "modal",
           animation: "slide_from_bottom",
+          gestureEnabled: true,
+          gestureDirection: "vertical",
         }}
       />
     </Stack>

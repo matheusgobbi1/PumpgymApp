@@ -115,7 +115,7 @@ export default function SplashScreen() {
           entering={FadeInDown.duration(800).delay(300)}
           style={[styles.title, { color: colors.text }]}
         >
-          PumpGym
+          Fitfolio
         </Animated.Text>
 
         <Animated.Text

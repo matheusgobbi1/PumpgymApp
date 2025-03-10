@@ -12,6 +12,20 @@ import { OfflineStorage, PendingOperation } from "../services/OfflineStorage";
 import NetInfo from "@react-native-community/netinfo";
 import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// Chaves para armazenamento no AsyncStorage
+const KEYS = {
+  NUTRITION_DATA: "pumpgym_nutrition_data",
+  PENDING_OPERATIONS: "pumpgym_pending_operations",
+  ONBOARDING_COMPLETED: "pumpgym_onboarding_completed",
+  USER_DATA: "pumpgym_user_data",
+  ONBOARDING_DATA: "pumpgym_onboarding_data",
+  ONBOARDING_STEP: "pumpgym_onboarding_step",
+  PENDING_SYNC: "pumpgym_pending_sync",
+  TEMP_NUTRITION_DATA: "@temp_nutrition_data",
+  MEALS_KEY: "@meals:",
+};
 
 // Definindo os tipos para as informações de nutrição
 export type Gender = "male" | "female" | "other";
@@ -38,7 +52,7 @@ export type MacroDistribution =
 export interface NutritionInfo {
   gender?: Gender;
   trainingFrequency?: TrainingFrequency;
-  birthDate?: Date;
+  birthDate?: Date | string | null;
   height?: number; // em cm
   weight?: number; // em kg
   targetWeight?: number;
@@ -50,12 +64,14 @@ export interface NutritionInfo {
   protein?: number;
   carbs?: number;
   fat?: number;
-  targetDate?: Date;
+  targetDate?: Date | string | null;
   activityLevel?: ActivityLevel;
   macros?: MacroDistribution;
   meals?: number;
   waterIntake?: number;
   healthScore?: number;
+  updatedAt?: string; // Data da última atualização
+  _isModifiedLocally?: boolean; // Flag interna para controle
 }
 
 interface NutritionContextType {
@@ -158,34 +174,73 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
       console.log("Carregando dados do usuário...");
       const isDeviceOnline = await OfflineStorage.isOnline();
       setIsOnline(isDeviceOnline);
+      
+      let userData = null;
+      let useLocalData = false;
 
-      if (isDeviceOnline) {
-        // Carregar dados do Firestore
-        const nutritionDoc = await getDoc(doc(db, "nutrition", user.uid));
-        if (nutritionDoc.exists()) {
-          const data = nutritionDoc.data() as NutritionInfo;
-          console.log("Dados carregados do Firestore:", data);
-
-          // Converter timestamps para Date
-          if (data.birthDate) {
-            data.birthDate = new Date(data.birthDate);
-          }
-          if (data.targetDate) {
-            data.targetDate = new Date(data.targetDate);
-          }
-
-          setNutritionInfo(data);
-
-          // Salvar dados localmente para acesso offline
-          await OfflineStorage.saveNutritionData(user.uid, data);
+      // Primeiro, tentar carregar dados locais
+      const offlineData = await OfflineStorage.loadNutritionData(user.uid);
+      
+      if (offlineData) {
+        console.log("Dados carregados do armazenamento local:", {
+          calories: offlineData.calories,
+          protein: offlineData.protein,
+          carbs: offlineData.carbs,
+          fat: offlineData.fat
+        });
+        userData = offlineData;
+        
+        // Se os dados foram modificados localmente, usá-los independentemente dos dados do Firestore
+        if (offlineData._isModifiedLocally) {
+          console.log("Usando dados modificados localmente");
+          useLocalData = true;
         }
-      } else {
-        // Carregar dados do armazenamento local
-        const offlineData = await OfflineStorage.loadNutritionData(user.uid);
-        if (offlineData) {
-          console.log("Dados carregados do armazenamento local:", offlineData);
-          setNutritionInfo(offlineData);
+      }
+
+      // Se estiver online e não estiver usando dados locais modificados, verificar se há dados mais recentes no Firestore
+      if (isDeviceOnline && !useLocalData) {
+        try {
+          const nutritionDoc = await getDoc(doc(db, "nutrition", user.uid));
+          
+          if (nutritionDoc.exists()) {
+            const firestoreData = nutritionDoc.data() as NutritionInfo;
+            console.log("Dados carregados do Firestore:", {
+              calories: firestoreData.calories,
+              protein: firestoreData.protein,
+              carbs: firestoreData.carbs,
+              fat: firestoreData.fat
+            });
+            
+            // Verificar qual dado é mais recente
+            if (!userData || 
+                (firestoreData.updatedAt && (!userData.updatedAt || 
+                new Date(firestoreData.updatedAt) > new Date(userData.updatedAt)))) {
+              userData = firestoreData;
+              
+              // Salvar os dados mais recentes localmente
+              await OfflineStorage.saveNutritionData(user.uid, firestoreData);
+              
+              // Limpar a flag de modificação local
+              await AsyncStorage.removeItem(`${KEYS.NUTRITION_DATA}_${user.uid}_modified`);
+            }
+          }
+        } catch (firestoreError) {
+          console.error("Erro ao carregar dados do Firestore:", firestoreError);
+          // Continuar usando os dados locais se houver erro no Firestore
         }
+      }
+
+      // Se temos dados, processar e atualizar o estado
+      if (userData) {
+        // Converter timestamps para Date
+        if (userData.birthDate && typeof userData.birthDate === 'string') {
+          userData.birthDate = new Date(userData.birthDate);
+        }
+        if (userData.targetDate && typeof userData.targetDate === 'string') {
+          userData.targetDate = new Date(userData.targetDate);
+        }
+
+        setNutritionInfo(userData);
       }
     } catch (error) {
       console.error("Erro ao carregar dados do usuário:", error);
@@ -193,22 +248,35 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
   };
 
   const updateNutritionInfo = async (info: Partial<NutritionInfo>) => {
-    setNutritionInfo((prev) => ({ ...prev, ...info }));
+    // Criar uma cópia do estado atual para evitar problemas de referência
+    const updatedInfo = { ...nutritionInfo, ...info };
+    
+    // Atualizar o estado com os novos valores
+    setNutritionInfo(updatedInfo);
 
     if (user) {
-      if (user.isAnonymous) {
-        // Para usuários anônimos, salvar temporariamente
-        console.log("Salvando dados temporários para usuário anônimo");
-        const currentInfo = { ...nutritionInfo, ...info };
-        await OfflineStorage.saveTemporaryNutritionData(currentInfo);
-      } else {
-        // Para usuários autenticados, salvar localmente
-        await OfflineStorage.saveNutritionData(user.uid, {
-          ...nutritionInfo,
-          ...info,
-        });
+      try {
+        if (user.isAnonymous) {
+          // Para usuários anônimos, salvar temporariamente
+          console.log("Salvando dados temporários para usuário anônimo");
+          await OfflineStorage.saveTemporaryNutritionData(updatedInfo);
+        } else {
+          // Para usuários autenticados, salvar localmente
+          console.log("Salvando dados localmente para usuário autenticado", {
+            calories: updatedInfo.calories,
+            protein: updatedInfo.protein,
+            carbs: updatedInfo.carbs,
+            fat: updatedInfo.fat
+          });
+          await OfflineStorage.saveNutritionData(user.uid, updatedInfo);
+        }
+      } catch (error) {
+        console.error("Erro ao salvar dados de nutrição:", error);
+        throw error;
       }
     }
+    
+    return updatedInfo;
   };
 
   // Função para resetar as informações de nutrição
@@ -221,11 +289,12 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
   };
 
   // Função para calcular idade precisa em anos (incluindo meses)
-  const calculatePreciseAge = (birthDate: Date): number => {
+  const calculatePreciseAge = (birthDate: Date | string): number => {
+    const birthDateObj = birthDate instanceof Date ? birthDate : new Date(birthDate);
     const today = new Date();
     const monthsDiff =
-      (today.getFullYear() - birthDate.getFullYear()) * 12 +
-      (today.getMonth() - birthDate.getMonth());
+      (today.getFullYear() - birthDateObj.getFullYear()) * 12 +
+      (today.getMonth() - birthDateObj.getMonth());
     return Math.round((monthsDiff / 12) * 10) / 10; // Arredonda para 1 casa decimal
   };
 
@@ -489,7 +558,7 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
   };
 
   // Função para salvar as informações de nutrição no Firebase
-  const saveNutritionInfo = async () => {
+  const saveNutritionInfo = async (): Promise<void> => {
     if (!user) {
       console.error("Usuário não autenticado");
       return;
@@ -498,29 +567,91 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
     try {
       // Verificar se está online
       const online = await OfflineStorage.isOnline();
-
-      // Converter as datas para timestamps do Firestore e remover campos undefined
-      const nutritionData = Object.entries({
-        ...nutritionInfo,
-        birthDate: nutritionInfo.birthDate
-          ? nutritionInfo.birthDate.toISOString()
-          : null,
-        targetDate: nutritionInfo.targetDate
-          ? nutritionInfo.targetDate.toISOString()
-          : null,
-        updatedAt: new Date().toISOString(),
-      }).reduce<Record<string, any>>((acc, [key, value]) => {
-        // Não incluir campos com valor undefined
-        if (value !== undefined) {
-          acc[key] = value;
+      
+      // Carregar os dados mais recentes do armazenamento local
+      let currentData = { ...nutritionInfo };
+      
+      try {
+        const localData = await OfflineStorage.loadNutritionData(user.uid);
+        if (localData && localData._isModifiedLocally) {
+          console.log("Usando dados locais modificados para salvar no Firestore", {
+            calories: localData.calories,
+            protein: localData.protein,
+            carbs: localData.carbs,
+            fat: localData.fat
+          });
+          // Remover a flag interna antes de salvar
+          delete localData._isModifiedLocally;
+          currentData = localData;
         }
-        return acc;
-      }, {});
+      } catch (localError) {
+        console.error("Erro ao carregar dados locais:", localError);
+      }
+
+      // Preparar os dados para salvar, tratando as datas com segurança
+      const preparedData = { ...currentData };
+      
+      // Tratar birthDate com segurança
+      if (preparedData.birthDate) {
+        if (preparedData.birthDate instanceof Date) {
+          preparedData.birthDate = preparedData.birthDate.toISOString();
+        } else if (typeof preparedData.birthDate === 'string') {
+          // Já é uma string, manter como está
+        } else {
+          // Tipo desconhecido, converter para null
+          preparedData.birthDate = null;
+        }
+      } else {
+        preparedData.birthDate = null;
+      }
+      
+      // Tratar targetDate com segurança
+      if (preparedData.targetDate) {
+        if (preparedData.targetDate instanceof Date) {
+          preparedData.targetDate = preparedData.targetDate.toISOString();
+        } else if (typeof preparedData.targetDate === 'string') {
+          // Já é uma string, manter como está
+        } else {
+          // Tipo desconhecido, converter para null
+          preparedData.targetDate = null;
+        }
+      } else {
+        preparedData.targetDate = null;
+      }
+      
+      // Adicionar timestamp de atualização
+      preparedData.updatedAt = new Date().toISOString();
+
+      // Remover campos undefined
+      const nutritionData = Object.entries(preparedData).reduce<Record<string, any>>(
+        (acc, [key, value]) => {
+          // Não incluir campos com valor undefined
+          if (value !== undefined) {
+            acc[key] = value;
+          }
+          return acc;
+        }, 
+        {}
+      );
+
+      console.log("Salvando informações de nutrição:", {
+        calories: nutritionData.calories,
+        protein: nutritionData.protein,
+        carbs: nutritionData.carbs,
+        fat: nutritionData.fat,
+        online
+      });
 
       if (online) {
         // Salvar no Firestore se estiver online
         await setDoc(doc(db, "nutrition", user.uid), nutritionData);
-        console.log("Informações de nutrição salvas com sucesso!");
+        console.log("Informações de nutrição salvas no Firestore com sucesso!");
+        
+        // Também salvar localmente para acesso offline
+        await OfflineStorage.saveNutritionData(user.uid, nutritionData);
+        
+        // Limpar a flag de modificação local após salvar no Firestore
+        await AsyncStorage.removeItem(`${KEYS.NUTRITION_DATA}_${user.uid}_modified`);
       } else {
         // Se estiver offline, salvar localmente e adicionar à fila de operações pendentes
         await OfflineStorage.saveNutritionData(user.uid, nutritionData);
@@ -537,15 +668,31 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         await OfflineStorage.addPendingOperation(pendingOp);
         console.log("Informações de nutrição salvas localmente (offline)");
       }
+      
+      // Atualizar o estado com os dados salvos
+      setNutritionInfo(prev => {
+        // Converter as datas de volta para objetos Date
+        const updatedData = { ...nutritionData };
+        if (updatedData.birthDate && typeof updatedData.birthDate === 'string') {
+          try {
+            updatedData.birthDate = new Date(updatedData.birthDate);
+          } catch (e) {
+            console.error("Erro ao converter birthDate:", e);
+            updatedData.birthDate = undefined;
+          }
+        }
+        if (updatedData.targetDate && typeof updatedData.targetDate === 'string') {
+          try {
+            updatedData.targetDate = new Date(updatedData.targetDate);
+          } catch (e) {
+            console.error("Erro ao converter targetDate:", e);
+            updatedData.targetDate = undefined;
+          }
+        }
+        return updatedData;
+      });
     } catch (error) {
       console.error("Erro ao salvar informações de nutrição:", error);
-
-      // Em caso de erro, salvar localmente
-      if (user) {
-        await OfflineStorage.saveNutritionData(user.uid, nutritionInfo);
-      }
-      console.log("Informações salvas localmente devido a erro");
-
       throw error;
     }
   };

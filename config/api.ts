@@ -1,85 +1,105 @@
-
-
-// Configuração da API Edamam
-export const EDAMAM_CONFIG = {
-  APP_ID: process.env.EXPO_PUBLIC_EDAMAM_APP_ID || "",
-  APP_KEY: process.env.EXPO_PUBLIC_EDAMAM_APP_KEY || "",
-  BASE_URL: "https://api.edamam.com/api/food-database/v2",
+// Configuração da API FatSecret
+export const FATSECRET_CONFIG = {
+  CLIENT_ID: process.env.EXPO_PUBLIC_FATSECRET_CLIENT_ID || "",
+  CLIENT_SECRET: process.env.EXPO_PUBLIC_FATSECRET_CLIENT_SECRET || "",
+  BASE_URL: "https://platform.fatsecret.com/rest/server.api",
+  AUTH_URL: "https://oauth.fatsecret.com/connect/token",
 } as const;
 
-// Interface para os resultados da API
-export interface EdamamFood {
-  food: {
-    foodId: string;
-    label: string;
-    nutrients: {
-      ENERC_KCAL: number; // calories
-      PROCNT: number; // protein
-      FAT: number; // fat
-      CHOCDF: number; // carbs
-      FIBTG?: number; // fiber
-    };
-    category: string;
-    categoryLabel: string;
-    image?: string;
+// Interface para os resultados da API FatSecret
+export interface FatSecretFood {
+  food_id: string;
+  food_name: string;
+  food_description?: string;
+  brand_name?: string;
+  food_type?: string;
+  food_url?: string;
+}
+
+export interface FatSecretNutrients {
+  calories: number;
+  protein: number;
+  fat: number;
+  carbohydrate: number;
+  fiber?: number;
+}
+
+export interface FatSecretServing {
+  serving_id: string;
+  serving_description: string;
+  serving_url?: string;
+  metric_serving_amount?: number;
+  metric_serving_unit?: string;
+  measurement_description?: string;
+  number_of_units?: number;
+  serving_nutrients: FatSecretNutrients;
+}
+
+export interface FatSecretFoodDetails {
+  food_id: string;
+  food_name: string;
+  food_type?: string;
+  brand_name?: string;
+  food_url?: string;
+  servings: {
+    serving: FatSecretServing[] | FatSecretServing;
   };
 }
 
-// Função para buscar alimentos
-export async function searchFoods(query: string): Promise<EdamamFood[]> {
+// Função para obter token de acesso
+export async function getFatSecretToken(): Promise<string> {
   try {
-    const response = await fetch(
-      `${EDAMAM_CONFIG.BASE_URL}/parser?app_id=${
-        EDAMAM_CONFIG.APP_ID
-      }&app_key=${EDAMAM_CONFIG.APP_KEY}&ingr=${encodeURIComponent(
-        query
-      )}&lang=pt-BR`
-    );
+    console.log("Iniciando obtenção de token FatSecret...");
+    console.log("URL de autenticação:", FATSECRET_CONFIG.AUTH_URL);
+    console.log("CLIENT_ID:", FATSECRET_CONFIG.CLIENT_ID ? "Definido (não exibindo por segurança)" : "Não definido");
+    console.log("CLIENT_SECRET:", FATSECRET_CONFIG.CLIENT_SECRET ? "Definido (não exibindo por segurança)" : "Não definido");
+    
+    // Criar credenciais Basic Auth usando btoa (Base64) em vez de Buffer
+    const credentialsString = `${FATSECRET_CONFIG.CLIENT_ID}:${FATSECRET_CONFIG.CLIENT_SECRET}`;
+    const credentials = btoa(credentialsString);
+    
+    const params = new URLSearchParams({
+      grant_type: "client_credentials",
+      scope: "basic",
+    });
+    
+    console.log("Usando autenticação Basic");
+    
+    const response = await fetch(FATSECRET_CONFIG.AUTH_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": `Basic ${credentials}`,
+      },
+      body: params.toString(),
+    });
 
+    console.log("Status da resposta:", response.status);
+    console.log("Headers da resposta:", Object.fromEntries([...response.headers.entries()]));
+    
     if (!response.ok) {
-      throw new Error("Erro ao buscar alimentos");
+      const errorText = await response.text();
+      console.error("Erro na resposta:", errorText);
+      throw new Error(`Erro ao obter token de acesso: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    return data.hints || [];
+    console.log("Token obtido com sucesso!");
+    return data.access_token;
   } catch (error) {
-    console.error("Erro na busca de alimentos:", error);
-    throw error;
-  }
-}
-
-import { FoodHint } from "../types/food";
-
-// Função para obter detalhes de um alimento específico
-export async function getFoodDetails(foodId: string): Promise<FoodHint | null> {
-  try {
-    const response = await fetch(
-      `${EDAMAM_CONFIG.BASE_URL}/parser?app_id=${EDAMAM_CONFIG.APP_ID}&app_key=${EDAMAM_CONFIG.APP_KEY}&ingr=${foodId}&lang=pt-BR`
-    );
-
-    if (!response.ok) {
-      throw new Error("Erro ao buscar detalhes do alimento");
-    }
-
-    const data = await response.json();
-    if (data.hints && data.hints.length > 0) {
-      return data.hints[0];
-    }
-    return null;
-  } catch (error) {
-    console.error("Erro ao buscar detalhes do alimento:", error);
+    console.error("Erro detalhado ao obter token de acesso:", error);
     throw error;
   }
 }
 
 // Validação das variáveis de ambiente
-if (!EDAMAM_CONFIG.APP_ID || !EDAMAM_CONFIG.APP_KEY) {
-  console.error("Erro de configuração:", {
-    APP_ID: EDAMAM_CONFIG.APP_ID ? "Definido" : "Não definido",
-    APP_KEY: EDAMAM_CONFIG.APP_KEY ? "Definido" : "Não definido",
+if (!FATSECRET_CONFIG.CLIENT_ID || !FATSECRET_CONFIG.CLIENT_SECRET) {
+  console.error("Erro de configuração FatSecret:", {
+    CLIENT_ID: FATSECRET_CONFIG.CLIENT_ID ? "Definido" : "Não definido",
+    CLIENT_SECRET: FATSECRET_CONFIG.CLIENT_SECRET ? "Definido" : "Não definido",
   });
   throw new Error(
-    "As variáveis de ambiente EXPO_PUBLIC_EDAMAM_APP_ID e EXPO_PUBLIC_EDAMAM_APP_KEY são obrigatórias."
+    "As variáveis de ambiente EXPO_PUBLIC_FATSECRET_CLIENT_ID e EXPO_PUBLIC_FATSECRET_CLIENT_SECRET são obrigatórias."
   );
 }
 

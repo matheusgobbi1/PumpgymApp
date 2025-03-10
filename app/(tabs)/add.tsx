@@ -4,9 +4,11 @@ import { useColorScheme } from "react-native";
 import Colors from "../../constants/Colors";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function AddScreen() {
-  const colorScheme = useColorScheme() ?? "light";
+  const { theme } = useTheme();
+  const colors = Colors[theme];
 
   // Esta tela não deve ser visível diretamente, mas podemos redirecioná-la
   // ou mostrar um modal de opções
@@ -15,11 +17,11 @@ export default function AddScreen() {
     <SafeAreaView
       style={[
         styles.container,
-        { backgroundColor: Colors[colorScheme].background },
+        { backgroundColor: colors.background },
       ]}
     >
       <View style={styles.content}>
-        <Text style={[styles.title, { color: Colors[colorScheme].text }]}>
+        <Text style={[styles.title, { color: colors.text }]}>
           Adicionar
         </Text>
 
@@ -27,37 +29,49 @@ export default function AddScreen() {
           <TouchableOpacity
             style={[
               styles.option,
-              { backgroundColor: Colors[colorScheme].tint },
+              { backgroundColor: colors.light },
             ]}
             onPress={() => {
               // Navegar para adicionar treino
               router.push("/training/new");
             }}
           >
-            <Ionicons name="barbell-outline" size={32} color="white" />
-            <Text style={styles.optionText}>Novo Treino</Text>
+            <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+              <Ionicons name="barbell-outline" size={24} color={colors.primary} />
+            </View>
+            <Text style={[styles.optionText, { color: colors.text }]}>Novo Treino</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.option, { backgroundColor: "#4CAF50" }]}
+            style={[
+              styles.option,
+              { backgroundColor: colors.light },
+            ]}
             onPress={() => {
               // Navegar para adicionar refeição
               router.push("/nutrition/new");
             }}
           >
-            <Ionicons name="nutrition-outline" size={32} color="white" />
-            <Text style={styles.optionText}>Nova Refeição</Text>
+            <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+              <Ionicons name="nutrition-outline" size={24} color={colors.primary} />
+            </View>
+            <Text style={[styles.optionText, { color: colors.text }]}>Nova Refeição</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.option, { backgroundColor: "#FF9800" }]}
+            style={[
+              styles.option,
+              { backgroundColor: colors.light },
+            ]}
             onPress={() => {
               // Navegar para adicionar progresso
               router.push("/progress/new");
             }}
           >
-            <Ionicons name="trending-up-outline" size={32} color="white" />
-            <Text style={styles.optionText}>Registrar Progresso</Text>
+            <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+              <Ionicons name="trending-up-outline" size={24} color={colors.primary} />
+            </View>
+            <Text style={[styles.optionText, { color: colors.text }]}>Registrar Progresso</Text>
           </TouchableOpacity>
         </View>
 
@@ -71,7 +85,7 @@ export default function AddScreen() {
           <Text
             style={[
               styles.closeButtonText,
-              { color: Colors[colorScheme].text },
+              { color: colors.text },
             ]}
           >
             Fechar
@@ -107,21 +121,27 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 20,
-    borderRadius: 15,
+    borderRadius: 16,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 3,
+  },
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
   },
   optionText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginLeft: 15,
+    fontSize: 16,
+    fontWeight: "600",
   },
   closeButton: {
     marginTop: 40,

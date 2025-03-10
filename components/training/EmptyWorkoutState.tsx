@@ -13,7 +13,7 @@ import type { Icon } from "@expo/vector-icons/build/createIconSet";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "../../context/ThemeContext";
-import { useWorkouts } from "../../context/WorkoutContext";
+import { useWorkoutContext } from "../../context/WorkoutContext";
 import Colors from "../../constants/Colors";
 import { WorkoutType } from "./WorkoutConfigSheet";
 
@@ -51,7 +51,7 @@ function EmptyWorkoutState({
 }: EmptyWorkoutStateProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
-  const { hasWorkoutTypesConfigured } = useWorkouts();
+  const { hasWorkoutTypesConfigured } = useWorkoutContext();
   const [isVisible, setIsVisible] = useState(false);
 
   // Efeito para atrasar a animação inicial

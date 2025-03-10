@@ -24,6 +24,7 @@ export interface Food {
   id: string;
   name: string;
   portion: number;
+  portionDescription?: string; // Descrição opcional da porção (ex: "1 barra", "1 unidade")
   calories: number;
   protein: number;
   carbs: number;
@@ -41,6 +42,7 @@ export interface MealType {
   id: string;
   name: string;
   icon: string;
+  color?: string;
 }
 
 interface MealTotals {
@@ -65,6 +67,9 @@ interface MealContextType {
   resetMealTypes: () => Promise<void>;
   updateMealTypes: (mealTypes: MealType[]) => Promise<void>;
   hasMealTypesConfigured: boolean;
+  searchHistory: Food[];
+  addToSearchHistory: (food: Food) => Promise<void>;
+  clearSearchHistory: () => Promise<void>;
 }
 
 const MealContext = createContext<MealContextType | undefined>(undefined);
@@ -79,20 +84,52 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   }>({});
   const [mealTypes, setMealTypes] = useState<MealType[]>([]);
   const [hasMealTypesConfigured, setHasMealTypesConfigured] = useState<boolean>(false);
+  const [searchHistory, setSearchHistory] = useState<Food[]>([]);
+
+  // Resetar o estado quando o usuário mudar
+  const resetState = () => {
+    setMeals({});
+    setMealTypes([]);
+    setHasMealTypesConfigured(false);
+  };
 
   // Carregar refeições do usuário
   useEffect(() => {
     if (user) {
+      // Limpar dados do usuário anterior antes de carregar os novos
+      resetState();
       loadMeals();
       loadMealTypes();
+    } else {
+      // Limpar dados quando não houver usuário (logout)
+      resetState();
     }
-  }, [user]);
+  }, [user?.uid]); // Usar user.uid como dependência para detectar mudança de usuário
+
+  // Carregar histórico de busca
+  useEffect(() => {
+    const loadSearchHistory = async () => {
+      if (user) {
+        try {
+          const history = await OfflineStorage.loadSearchHistory(user.uid);
+          setSearchHistory(history);
+        } catch (error) {
+          console.error("Erro ao carregar histórico de busca:", error);
+        }
+      }
+    };
+
+    loadSearchHistory();
+  }, [user?.uid]);
 
   const loadMeals = async () => {
     try {
       if (!user) return;
 
       console.log("Carregando refeições para o usuário:", user.uid);
+
+      // Limpar dados existentes antes de carregar
+      setMeals({});
 
       // Buscar todas as refeições do usuário
       const mealsRef = collection(db, "users", user.uid, "meals");
@@ -104,16 +141,21 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
         mealsData[doc.id] = doc.data() as { [mealId: string]: Food[] };
       });
       
-      // Definir o estado diretamente, sem limpar antes
       setMeals(mealsData);
     } catch (error) {
       console.error("Erro ao carregar refeições:", error);
+      // Em caso de erro, garantir que os dados estejam limpos
+      setMeals({});
     }
   };
 
   const loadMealTypes = async () => {
     try {
       if (!user) return;
+
+      // Limpar dados existentes antes de carregar
+      setMealTypes([]);
+      setHasMealTypesConfigured(false);
 
       // Buscar os tipos de refeições do usuário
       const mealTypesDoc = await getDoc(doc(db, "users", user.uid, "config", "mealTypes"));
@@ -127,6 +169,8 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error("Erro ao carregar tipos de refeições:", error);
+      // Em caso de erro, garantir que os dados estejam limpos
+      setMealTypes([]);
       setHasMealTypesConfigured(false);
     }
   };
@@ -313,6 +357,38 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  const addToSearchHistory = async (food: Food) => {
+    if (!user) return;
+
+    try {
+      // Preservar a porção exata do alimento adicionado
+      // Remover duplicatas pelo ID e manter apenas os 10 itens mais recentes
+      const updatedHistory = [
+        food, 
+        ...searchHistory.filter(item => item.id !== food.id)
+      ].slice(0, 10);
+      
+      // Atualizar estado imediatamente para refletir a mudança na UI
+      setSearchHistory(updatedHistory);
+      
+      // Persistir o histórico entre sessões
+      await OfflineStorage.saveSearchHistory(user.uid, updatedHistory);
+    } catch (error) {
+      console.error("Erro ao adicionar ao histórico de busca:", error);
+    }
+  };
+
+  const clearSearchHistory = async () => {
+    if (!user) return;
+
+    try {
+      setSearchHistory([]);
+      await OfflineStorage.clearSearchHistory(user.uid);
+    } catch (error) {
+      console.error("Erro ao limpar histórico de busca:", error);
+    }
+  };
+
   return (
     <MealContext.Provider
       value={{
@@ -330,6 +406,9 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
         resetMealTypes,
         updateMealTypes,
         hasMealTypesConfigured,
+        searchHistory,
+        addToSearchHistory,
+        clearSearchHistory,
       }}
     >
       {children}

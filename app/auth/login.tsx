@@ -10,6 +10,7 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   ImageBackground,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import Colors from "../../constants/Colors";
@@ -29,6 +30,7 @@ import LoginBottomSheet from "../../components/auth/LoginBottomSheet";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useFonts } from "expo-font";
 
 const { width, height } = Dimensions.get("window");
 
@@ -106,79 +108,68 @@ export default function LoginScreen() {
             ]}
           >
             {/* Logo e Nome do App */}
-            <Animated.View
-              entering={FadeInDown.delay(200).duration(800)}
+            <Animated.View 
+              entering={FadeInDown.delay(100).duration(1000)}
               style={styles.logoContainer}
             >
-              <Image
-                source={require("../../assets/images/Logo.png")}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-              <Text style={styles.appName}>PumpGym</Text>
+              <Text style={styles.appName}>FitFolio</Text>
             </Animated.View>
 
-            {/* Slogan */}
-            <Animated.View
-              entering={FadeInDown.delay(400).duration(800)}
-              style={styles.sloganContainer}
-            >
-              <Text style={styles.slogan}>Transforme seu corpo,</Text>
-              <Text style={styles.sloganHighlight}>transforme sua vida</Text>
-            </Animated.View>
+            {/* Espaço vazio para dar mais destaque à imagem de fundo */}
+            <View style={styles.spacer} />
 
-            {/* Botões */}
-            <View style={styles.buttonsContainer}>
-              <AnimatedTouchableOpacity
-                entering={FadeInUp.delay(600).duration(800)}
-                style={[
-                  styles.button,
-                  styles.primaryButton,
-                  { backgroundColor: colors.primary },
-                ]}
-                onPress={handleStartAnonymously}
-                activeOpacity={0.8}
+            {/* Texto e Botões */}
+            <View style={styles.bottomContainer}>
+              {/* Texto central */}
+              <Animated.View 
+                entering={FadeInDown.delay(200).duration(1000)}
+                style={styles.centralTextContainer}
               >
-                <Ionicons
-                  name="rocket-outline"
-                  size={20}
-                  color="#FFFFFF"
-                  style={styles.buttonIcon}
-                />
-                <Text style={styles.buttonText}>COMEÇAR AGORA</Text>
-              </AnimatedTouchableOpacity>
-
-              <AnimatedTouchableOpacity
-                entering={FadeInUp.delay(700).duration(800)}
-                style={[styles.button, styles.secondaryButton]}
-                onPress={handleOpenBottomSheet}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name="log-in-outline"
-                  size={20}
-                  color={colors.primary}
-                  style={styles.buttonIcon}
-                />
-                <Text
-                  style={[
-                    styles.buttonText,
-                    styles.secondaryButtonText,
-                    { color: colors.primary },
-                  ]}
-                >
-                  ENTRAR
+                <Text style={styles.titleText}>Acompanhe seu progresso</Text>
+                <Text style={styles.subtitleText}>
+                  Registre suas refeições e treinos para alcançar suas metas e uma vida mais saudável
                 </Text>
-              </AnimatedTouchableOpacity>
+              </Animated.View>
+
+              {/* Botões */}
+              <View style={styles.buttonsContainer}>
+                <AnimatedTouchableOpacity
+                  entering={FadeInUp.delay(400).duration(800)}
+                  style={[
+                    styles.button,
+                    styles.primaryButton,
+                    { backgroundColor: colors.primary },
+                  ]}
+                  onPress={handleStartAnonymously}
+                  activeOpacity={0.8}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.buttonText}>COMEÇAR AGORA</Text>
+                  )}
+                </AnimatedTouchableOpacity>
+
+                <AnimatedTouchableOpacity
+                  entering={FadeInUp.delay(500).duration(800)}
+                  style={styles.loginLink}
+                  onPress={handleOpenBottomSheet}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.loginLinkText}>
+                    Já tem conta? <Text style={styles.loginLinkHighlight}>Entrar</Text>
+                  </Text>
+                </AnimatedTouchableOpacity>
+              </View>
             </View>
 
             {/* Texto de rodapé */}
             <Animated.Text
-              entering={FadeIn.delay(900).duration(800)}
+              entering={FadeIn.delay(600).duration(800)}
               style={styles.footerText}
             >
-              Ao continuar, você concorda com nossos Termos de Uso e Política de
-              Privacidade
+              Ao continuar, você concorda com nossos termos de uso e política de
+              privacidade
             </Animated.Text>
           </View>
         </ImageBackground>
@@ -196,6 +187,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#1a1a1a',
   },
   backgroundImage: {
     flex: 1,
@@ -204,51 +196,54 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    backgroundColor: "rgba(0, 0, 0, 0.65)", // Overlay mais leve para destacar a imagem
   },
   content: {
     flex: 1,
     justifyContent: "space-between",
     padding: 24,
   },
-  logoContainer: {
-    alignItems: "center",
-    marginTop: 20,
+  spacer: {
+    flex: 1, // Isso empurra o conteúdo para baixo
   },
-  logo: {
-    width: 80,
-    height: 80,
-    marginBottom: 8,
+  bottomContainer: {
+    width: "100%",
+    marginBottom: 20,
   },
-  appName: {
-    fontSize: 36,
-    fontWeight: "bold",
+  centralTextContainer: {
+    marginBottom: 24,
+  },
+  titleText: {
     color: "#FFFFFF",
-    letterSpacing: 1,
-  },
-  sloganContainer: {
-    alignItems: "center",
-  },
-  slogan: {
-    fontSize: 24,
-    color: "#FFFFFF",
+    fontSize: 31,
+    fontWeight: "200",
+    letterSpacing: 0.1,
     textAlign: "center",
-    fontWeight: "300",
+    marginBottom: 10,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
-  sloganHighlight: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#FFFFFF",
+  subtitleText: {
+    color: "rgba(255, 255, 255, 0.9)",
+    fontSize: 16,
+    fontWeight: "200",
     textAlign: "center",
-    marginTop: 8,
+    maxWidth: "100%",
+    lineHeight: 22,
+    textShadowColor: 'rgba(0, 0, 0, 0.7)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    alignSelf: "center",
   },
   buttonsContainer: {
     width: "100%",
-    marginBottom: 20,
-    gap: 16,
+    gap: 8, // Reduzindo o espaçamento para aproximar os botões
+    alignItems: "center",
   },
   button: {
     height: 56,
+    width: "100%",
     borderRadius: 28,
     flexDirection: "row",
     justifyContent: "center",
@@ -262,27 +257,46 @@ const styles = StyleSheet.create({
   primaryButton: {
     backgroundColor: "#4ecdc4",
   },
-  secondaryButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
-  },
   buttonText: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "300",
     letterSpacing: 1,
-  },
-  secondaryButtonText: {
-    color: "#4ecdc4",
   },
   buttonIcon: {
     marginRight: 8,
+  },
+  loginLink: {
+    padding: 10,
+  },
+  loginLinkText: {
+    color: "rgba(255, 255, 255, 0.9)",
+    fontSize: 16,
+    fontWeight: "200",
+    textAlign: "center",
+  },
+  loginLinkHighlight: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
   },
   footerText: {
     color: "rgba(255, 255, 255, 0.7)",
     fontSize: 12,
     textAlign: "center",
     marginBottom: 10,
+    fontWeight: "200",
+  },
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  appName: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
 });

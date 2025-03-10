@@ -12,10 +12,11 @@ import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import React, { useEffect, useRef, useState } from "react";
-import { LinearGradient } from "expo-linear-gradient";
+import React, { useRef, useState } from "react";
 import * as Haptics from "expo-haptics";
 import { useTheme } from '../../context/ThemeContext';
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 
 const { width, height } = Dimensions.get("window");
 
@@ -37,9 +38,8 @@ export default function TabLayout() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const insets = useSafeAreaInsets();
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const router = useRouter();
 
   // Animações para o menu flutuante
   const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -54,69 +54,44 @@ export default function TabLayout() {
     {
       icon: "barbell-outline" as const,
       label: "Novo Treino",
-      gradient: ["#FF5722", "#FF9800"] as const,
       onPress: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         closeMenu();
-        // Navegar para criar novo treino
+        // Navegar para a tela de treino com parâmetro na URL
+        router.push("/training?openWorkoutConfig=true");
       },
     },
     {
       icon: "nutrition-outline" as const,
       label: "Nova Refeição",
-      gradient: ["#4CAF50", "#8BC34A"] as const,
       onPress: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         closeMenu();
-        // Navegar para criar nova refeição
+        // Navegar para a tela de nutrição com parâmetro na URL
+        router.push("/nutrition?openMealConfig=true");
       },
     },
     {
-      icon: "fitness-outline" as const,
-      label: "Registrar Medidas",
-      gradient: ["#2196F3", "#03A9F4"] as const,
+      icon: "restaurant-outline" as const,
+      label: "Configuração de Dieta",
       onPress: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         closeMenu();
-        // Navegar para registrar medidas
+        // Navegar para a tela de perfil com parâmetro na URL
+        router.push("/profile?openDietSettings=true");
       },
     },
     {
       icon: "water-outline" as const,
       label: "Registrar Água",
-      gradient: ["#00BCD4", "#3F51B5"] as const,
       onPress: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         closeMenu();
-        // Navegar para registrar consumo de água
+        // Navegar para a tela de nutrição com parâmetro na URL para abrir o WaterIntakeSheet
+        router.push("/nutrition?openWaterIntake=true");
       },
     },
   ];
-
-  // Animação de pulso para o botão FAB
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, []);
-
-  // Cores para o gradiente do botão
-  const gradientColors = [
-    colors.primary,
-    colors.accent,
-    colors.info,
-  ] as const;
 
   const openMenu = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -229,32 +204,15 @@ export default function TabLayout() {
           options={{
             title: "Início",
             tabBarIcon: ({ color, focused }) => (
-              <Animated.View
-                style={[
-                  styles.iconContainer,
-                  focused && { transform: [{ scale: scaleAnim }] },
-                ]}
-              >
+              <View style={styles.iconContainer}>
                 <TabBarIcon name="home" color={color} />
                 {focused && <View style={styles.activeIndicator} />}
-              </Animated.View>
+              </View>
             ),
           }}
           listeners={({ navigation }) => ({
             tabPress: () => {
               Haptics.selectionAsync();
-              Animated.sequence([
-                Animated.timing(scaleAnim, {
-                  toValue: 1.3,
-                  duration: 200,
-                  useNativeDriver: true,
-                }),
-                Animated.timing(scaleAnim, {
-                  toValue: 1,
-                  duration: 200,
-                  useNativeDriver: true,
-                }),
-              ]).start();
             },
           })}
         />
@@ -263,32 +221,15 @@ export default function TabLayout() {
           options={{
             title: "Nutrição",
             tabBarIcon: ({ color, focused }) => (
-              <Animated.View
-                style={[
-                  styles.iconContainer,
-                  focused && { transform: [{ scale: scaleAnim }] },
-                ]}
-              >
+              <View style={styles.iconContainer}>
                 <TabBarIcon5 name="apple-alt" color={color} />
                 {focused && <View style={styles.activeIndicator} />}
-              </Animated.View>
+              </View>
             ),
           }}
           listeners={({ navigation }) => ({
             tabPress: () => {
               Haptics.selectionAsync();
-              Animated.sequence([
-                Animated.timing(scaleAnim, {
-                  toValue: 1.3,
-                  duration: 200,
-                  useNativeDriver: true,
-                }),
-                Animated.timing(scaleAnim, {
-                  toValue: 1,
-                  duration: 200,
-                  useNativeDriver: true,
-                }),
-              ]).start();
             },
           })}
         />
@@ -298,18 +239,8 @@ export default function TabLayout() {
             title: "Adicionar",
             tabBarIcon: ({ color }) => (
               <View style={styles.fabContainer}>
-                <Animated.View
-                  style={[
-                    styles.fabShadow,
-                    { transform: [{ scale: pulseAnim }] },
-                  ]}
-                >
-                  <LinearGradient
-                    colors={gradientColors}
-                    style={styles.fabGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
+                <View style={styles.fabShadow}>
+                  <View style={[styles.fabBackground, { backgroundColor: colors.primary }]}>
                     <TouchableOpacity
                       style={styles.fab}
                       activeOpacity={0.8}
@@ -321,8 +252,8 @@ export default function TabLayout() {
                         color="white"
                       />
                     </TouchableOpacity>
-                  </LinearGradient>
-                </Animated.View>
+                  </View>
+                </View>
                 <View style={styles.fabRing} />
               </View>
             ),
@@ -331,25 +262,6 @@ export default function TabLayout() {
             tabPress: (e) => {
               e.preventDefault();
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-              // Animação ao pressionar
-              Animated.sequence([
-                Animated.timing(pulseAnim, {
-                  toValue: 0.8,
-                  duration: 100,
-                  useNativeDriver: true,
-                }),
-                Animated.timing(pulseAnim, {
-                  toValue: 1.2,
-                  duration: 200,
-                  useNativeDriver: true,
-                }),
-                Animated.timing(pulseAnim, {
-                  toValue: 1,
-                  duration: 100,
-                  useNativeDriver: true,
-                }),
-              ]).start();
-
               openMenu();
             },
           })}
@@ -359,32 +271,15 @@ export default function TabLayout() {
           options={{
             title: "Treino",
             tabBarIcon: ({ color, focused }) => (
-              <Animated.View
-                style={[
-                  styles.iconContainer,
-                  focused && { transform: [{ scale: scaleAnim }] },
-                ]}
-              >
+              <View style={styles.iconContainer}>
                 <TabBarIcon5 name="dumbbell" color={color} />
                 {focused && <View style={styles.activeIndicator} />}
-              </Animated.View>
+              </View>
             ),
           }}
           listeners={({ navigation }) => ({
             tabPress: () => {
               Haptics.selectionAsync();
-              Animated.sequence([
-                Animated.timing(scaleAnim, {
-                  toValue: 1.3,
-                  duration: 200,
-                  useNativeDriver: true,
-                }),
-                Animated.timing(scaleAnim, {
-                  toValue: 1,
-                  duration: 200,
-                  useNativeDriver: true,
-                }),
-              ]).start();
             },
           })}
         />
@@ -393,32 +288,15 @@ export default function TabLayout() {
           options={{
             title: "Perfil",
             tabBarIcon: ({ color, focused }) => (
-              <Animated.View
-                style={[
-                  styles.iconContainer,
-                  focused && { transform: [{ scale: scaleAnim }] },
-                ]}
-              >
+              <View style={styles.iconContainer}>
                 <TabBarIcon name="user" color={color} />
                 {focused && <View style={styles.activeIndicator} />}
-              </Animated.View>
+              </View>
             ),
           }}
           listeners={({ navigation }) => ({
             tabPress: () => {
               Haptics.selectionAsync();
-              Animated.sequence([
-                Animated.timing(scaleAnim, {
-                  toValue: 1.3,
-                  duration: 200,
-                  useNativeDriver: true,
-                }),
-                Animated.timing(scaleAnim, {
-                  toValue: 1,
-                  duration: 200,
-                  useNativeDriver: true,
-                }),
-              ]).start();
             },
           })}
         />
@@ -444,29 +322,20 @@ export default function TabLayout() {
                   style={[styles.gridCard, getMenuItemStyle(index)]}
                 >
                   <TouchableOpacity
-                    style={styles.gridCardTouchable}
+                    style={[styles.gridCardTouchable, { backgroundColor: colors.light }]}
                     activeOpacity={0.9}
                     onPress={option.onPress}
                   >
-                    <LinearGradient
-                      colors={option.gradient}
-                      style={styles.gridCardGradient}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                    >
-                      <View style={styles.cardDecoration} />
-                      <View style={styles.cardDecorationTwo} />
-                      <View style={styles.gridCardContent}>
-                        <View style={styles.gridIconContainer}>
-                          <Ionicons
-                            name={option.icon}
-                            size={32}
-                            color="white"
-                          />
-                        </View>
-                        <Text style={styles.gridCardText}>{option.label}</Text>
+                    <View style={styles.gridCardContent}>
+                      <View style={[styles.gridIconContainer, { backgroundColor: colors.primary + '20' }]}>
+                        <Ionicons
+                          name={option.icon}
+                          size={32}
+                          color={colors.primary}
+                        />
                       </View>
-                    </LinearGradient>
+                      <Text style={[styles.gridCardText, { color: colors.text }]}>{option.label}</Text>
+                    </View>
                   </TouchableOpacity>
                 </Animated.View>
               ))}
@@ -478,29 +347,20 @@ export default function TabLayout() {
                   style={[styles.gridCard, getMenuItemStyle(index + 2)]}
                 >
                   <TouchableOpacity
-                    style={styles.gridCardTouchable}
+                    style={[styles.gridCardTouchable, { backgroundColor: colors.light }]}
                     activeOpacity={0.9}
                     onPress={option.onPress}
                   >
-                    <LinearGradient
-                      colors={option.gradient}
-                      style={styles.gridCardGradient}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                    >
-                      <View style={styles.cardDecoration} />
-                      <View style={styles.cardDecorationTwo} />
-                      <View style={styles.gridCardContent}>
-                        <View style={styles.gridIconContainer}>
-                          <Ionicons
-                            name={option.icon}
-                            size={32}
-                            color="white"
-                          />
-                        </View>
-                        <Text style={styles.gridCardText}>{option.label}</Text>
+                    <View style={styles.gridCardContent}>
+                      <View style={[styles.gridIconContainer, { backgroundColor: colors.primary + '20' }]}>
+                        <Ionicons
+                          name={option.icon}
+                          size={32}
+                          color={colors.primary}
+                        />
                       </View>
-                    </LinearGradient>
+                      <Text style={[styles.gridCardText, { color: colors.text }]}>{option.label}</Text>
+                    </View>
                   </TouchableOpacity>
                 </Animated.View>
               ))}
@@ -552,7 +412,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10.32,
     elevation: 16,
   },
-  fabGradient: {
+  fabBackground: {
     width: 65,
     height: 65,
     borderRadius: 35,
@@ -607,79 +467,41 @@ const styles = StyleSheet.create({
   gridCard: {
     width: width * 0.42,
     height: width * 0.42,
-    borderRadius: 20,
+    borderRadius: 16,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 8,
+      height: 2,
     },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 10,
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 3,
     overflow: "hidden",
   },
   gridCardTouchable: {
     width: "100%",
     height: "100%",
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: "hidden",
-  },
-  gridCardGradient: {
-    width: "100%",
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
     padding: 15,
-    position: "relative",
-    overflow: "hidden",
-  },
-  cardDecoration: {
-    position: "absolute",
-    width: width * 0.3,
-    height: width * 0.3,
-    borderRadius: width * 0.15,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    top: -width * 0.15,
-    right: -width * 0.15,
-  },
-  cardDecorationTwo: {
-    position: "absolute",
-    width: width * 0.2,
-    height: width * 0.2,
-    borderRadius: width * 0.1,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    bottom: -width * 0.1,
-    left: -width * 0.1,
   },
   gridCardContent: {
     alignItems: "center",
     justifyContent: "center",
     width: "100%",
-    zIndex: 2,
+    height: "100%",
   },
   gridIconContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: "rgba(255,255,255,0.25)",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 15,
-    shadowColor: "rgba(0,0,0,0.3)",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.3)",
   },
   gridCardText: {
-    color: "white",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
     textAlign: "center",
-    textShadowColor: "rgba(0,0,0,0.3)",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
   },
 });

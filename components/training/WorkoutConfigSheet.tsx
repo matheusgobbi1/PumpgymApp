@@ -33,8 +33,9 @@ import { MotiView } from "moti";
 import { Swipeable } from "react-native-gesture-handler";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
-import { useWorkouts } from "../../context/WorkoutContext";
+import { useWorkoutContext } from "../../context/WorkoutContext";
 import Colors from "../../constants/Colors";
+import ButtonNew from "../common/ButtonNew";
 
 // Tipo para os ícones do Ionicons
 type IoniconsNames = React.ComponentProps<typeof Ionicons>["name"];
@@ -310,48 +311,55 @@ const WorkoutItem = React.memo(
         <TouchableOpacity
           style={[
             styles.workoutItem,
-            {
-              backgroundColor: workout.selected
-                ? workout.color + "20"
-                : colors.background,
-              borderColor: colors.border,
+            { backgroundColor: colors.card },
+            workout.selected && {
+              backgroundColor: workout.color + '08',
+              borderWidth: 1,
+              borderColor: workout.color + '30'
             },
           ]}
           onPress={() => onToggleSelection(dayId, workout.id)}
           activeOpacity={0.7}
         >
-          <View style={styles.workoutInfo}>
+          <View style={[
+            styles.workoutContent,
+            workout.selected && { backgroundColor: 'transparent' }
+          ]}>
             <View
               style={[
                 styles.workoutIconContainer,
-                { backgroundColor: workout.color },
+                {
+                  backgroundColor: workout.selected
+                    ? workout.color + "20"
+                    : "rgba(255, 255, 255, 0.2)",
+                },
               ]}
             >
               <WorkoutIcon
                 iconType={workout.iconType}
-                size={20}
-                color="white"
+                size={24}
+                color={workout.selected ? workout.color : colors.primary}
               />
             </View>
-            <Text style={[styles.workoutName, { color: colors.text }]}>
-              {workout.name}
-            </Text>
-          </View>
-          <View style={styles.workoutSelection}>
-            <View
-              style={[
-                styles.checkbox,
-                {
-                  backgroundColor: workout.selected
-                    ? workout.color
-                    : "transparent",
-                  borderColor: workout.selected ? workout.color : colors.border,
-                },
-              ]}
-            >
-              {workout.selected && (
-                <Ionicons name="checkmark" size={16} color="white" />
-              )}
+            <View style={styles.workoutInfo}>
+              <Text style={[styles.workoutName, { color: colors.text }]}>
+                {workout.name}
+              </Text>
+            </View>
+            <View style={styles.workoutSelection}>
+              <View
+                style={[
+                  styles.checkbox,
+                  {
+                    borderColor: workout.selected ? workout.color : colors.border,
+                    backgroundColor: workout.selected ? workout.color : 'transparent',
+                  },
+                ]}
+              >
+                {workout.selected && (
+                  <Ionicons name="checkmark" size={16} color="white" />
+                )}
+              </View>
             </View>
           </View>
         </TouchableOpacity>
@@ -688,12 +696,15 @@ const BottomSheetContent = React.memo(
         </ScrollView>
 
         <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.confirmButton, { backgroundColor: colors.primary }]}
+          <ButtonNew
+            title="Confirmar Configuração"
             onPress={onConfirmWorkoutConfig}
-          >
-            <Text style={styles.confirmButtonText}>Confirmar Configuração</Text>
-          </TouchableOpacity>
+            variant="primary"
+            iconName="checkmark-outline"
+            iconPosition="right"
+            style={styles.confirmButton}
+            hapticFeedback="notification"
+          />
         </View>
       </KeyboardAvoidingView>
     );
@@ -825,7 +836,7 @@ const WorkoutConfigSheet = forwardRef<
     weeklyTemplate,
     updateWeeklyTemplate,
     hasWeeklyTemplateConfigured,
-  } = useWorkouts();
+  } = useWorkoutContext();
 
   // Expor a referência para o componente pai
   useImperativeHandle(ref, () => {
@@ -1609,30 +1620,36 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   workoutItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 8,
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    marginBottom: 12,
   },
-  workoutInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
+  workoutContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    minHeight: 80,
   },
   workoutIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  workoutInfo: {
+    flex: 1,
+    justifyContent: 'center',
   },
   workoutName: {
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: '600',
   },
   workoutSelection: {
     marginLeft: 8,
@@ -1642,8 +1659,8 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   customWorkoutContainer: {
     backgroundColor: "transparent",

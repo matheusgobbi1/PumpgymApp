@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "PumpGym-app-new",
-    "slug": "PumpGym-app-new",
+    "name": "fitfolio",
+    "slug": "fitfolio",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

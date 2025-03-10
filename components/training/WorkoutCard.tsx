@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import { MotiView } from "moti";
 import { Swipeable } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "../../context/ThemeContext";
-import { useWorkouts } from "../../context/WorkoutContext";
+import { useWorkoutContext } from "../../context/WorkoutContext";
 import Colors from "../../constants/Colors";
 import { Exercise } from "../../context/WorkoutContext";
 import { useRouter } from "expo-router";
@@ -30,6 +30,7 @@ import Animated, {
   FadeInDown,
 } from "react-native-reanimated";
 import { useAuth } from "../../context/AuthContext";
+import { useRefresh } from "../../context/RefreshContext";
 
 const { width } = Dimensions.get("window");
 
@@ -58,6 +59,7 @@ interface WorkoutCardProps {
   onPress: () => void;
   onDeleteExercise: (exerciseId: string) => Promise<void>;
   onDeleteWorkout?: (workoutId: string) => Promise<void>;
+  refreshKey?: number;
 }
 
 export default function WorkoutCard({
@@ -68,12 +70,17 @@ export default function WorkoutCard({
   onPress,
   onDeleteExercise,
   onDeleteWorkout,
+  refreshKey,
 }: WorkoutCardProps) {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { user } = useAuth();
   const userId = user?.uid || "no-user";
+  const { refreshKey: contextRefreshKey } = useRefresh();
+  
+  // Combinar refreshKey da prop com o do contexto
+  const combinedRefreshKey = refreshKey || contextRefreshKey;
 
   // Estado para controlar quais exercícios estão expandidos
   const [expandedExercises, setExpandedExercises] = useState<{
@@ -83,7 +90,16 @@ export default function WorkoutCard({
   // Efeito para forçar a re-renderização quando o tema ou usuário mudar
   useEffect(() => {
     // Não é necessário fazer nada aqui, o React já vai re-renderizar quando as props mudarem
-  }, [theme, userId, exercises]);
+  }, [theme, user, exercises]);
+
+  // Efeito para atualizar o estado quando o refreshKey mudar
+  useEffect(() => {
+    // Atualizar o estado quando o refreshKey mudar
+    if (combinedRefreshKey) {
+      // Forçar re-renderização quando o refreshKey mudar
+      setExpandedExercises({});
+    }
+  }, [combinedRefreshKey]);
 
   // Função para lidar com o feedback tátil
   const handleHapticFeedback = async () => {
@@ -108,29 +124,31 @@ export default function WorkoutCard({
     return volume.toString();
   };
 
-  // Função para navegar para a tela de detalhes do exercício
+  // Função para navegar para os detalhes do exercício
   const navigateToExerciseDetails = (exercise: Exercise) => {
-    handleHapticFeedback();
-
-    // Navegar para a tela de detalhes do exercício com os dados do exercício
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    // Preparar os dados do exercício para passar como parâmetro
+    const exerciseData = {
+      id: exercise.id,
+      name: exercise.name,
+      notes: exercise.notes,
+      sets: exercise.sets,
+      category: exercise.category,
+      cardioDuration: exercise.cardioDuration,
+      cardioIntensity: exercise.cardioIntensity,
+    };
+    
+    // Navegar para a tela de detalhes do exercício como um modal
     router.push({
       pathname: "/(add-exercise)/exercise-details",
       params: {
+        exerciseId: exercise.id,
         workoutId: workout.id,
         workoutName: workout.name,
         workoutColor: workout.color,
-        exerciseId: exercise.id,
-        mode: "edit",
-        // Passar os dados do exercício como parâmetros para edição
-        exerciseData: JSON.stringify({
-          id: exercise.id,
-          name: exercise.name,
-          sets: exercise.sets || [],
-          notes: exercise.notes || "",
-          category: exercise.category || "força",
-          cardioDuration: exercise.cardioDuration,
-          cardioIntensity: exercise.cardioIntensity,
-        }),
+        mode: 'edit',
+        exerciseData: JSON.stringify(exerciseData),
       },
     });
   };
@@ -148,20 +166,38 @@ export default function WorkoutCard({
     [colors.primary, navigateToExerciseDetails]
   );
 
-  // Função para renderizar as ações de deslize à direita (excluir exercício)
-  const renderRightActions = useCallback(
-    (exerciseId: string) => (
-      <TouchableOpacity
-        style={[styles.swipeAction, { backgroundColor: colors.danger + "CC" }]}
-        onPress={async () => {
-          await handleHapticFeedback();
-          await onDeleteExercise(exerciseId);
-        }}
-      >
-        <Ionicons name="trash-outline" size={20} color="white" />
-      </TouchableOpacity>
-    ),
-    [colors.danger, onDeleteExercise, handleHapticFeedback]
+  // Renderizar as ações de deslizar para a direita (excluir)
+  const renderRightActions = (exerciseId: string) => (
+    <TouchableOpacity
+      style={[
+        styles.deleteAction,
+        { backgroundColor: colors.danger || "#FF3B30" },
+      ]}
+      onPress={async () => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        
+        // Confirmar exclusão
+        Alert.alert(
+          "Excluir Exercício",
+          "Tem certeza que deseja excluir este exercício?",
+          [
+            {
+              text: "Cancelar",
+              style: "cancel",
+            },
+            {
+              text: "Excluir",
+              style: "destructive",
+              onPress: async () => {
+                await onDeleteExercise(exerciseId);
+              },
+            },
+          ]
+        );
+      }}
+    >
+      <Ionicons name="trash-outline" size={24} color="white" />
+    </TouchableOpacity>
   );
 
   // Função para renderizar as ações de deslize à direita (excluir treino)
@@ -977,5 +1013,10 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 10,
     marginTop: 4,
+  },
+  deleteAction: {
+    justifyContent: "center",
+    alignItems: "center",
+    width: 70,
   },
 });

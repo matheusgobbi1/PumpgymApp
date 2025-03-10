@@ -18,7 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { MotiView } from "moti";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "../../context/ThemeContext";
-import { useWorkouts, Exercise } from "../../context/WorkoutContext";
+import { useWorkoutContext, Exercise } from "../../context/WorkoutContext";
 import Colors from "../../constants/Colors";
 import {
   ExerciseData,
@@ -318,7 +318,7 @@ export default function AddExerciseScreen() {
   const workoutColor = (params.workoutColor as string) || colors.primary;
 
   // Contexto de treinos
-  const { addExerciseToWorkout, getWorkoutTypeById, workouts } = useWorkouts();
+  const { addExerciseToWorkout, getWorkoutTypeById, workouts } = useWorkoutContext();
   const workoutType = getWorkoutTypeById(workoutId);
 
   // Estados
@@ -449,17 +449,8 @@ export default function AddExerciseScreen() {
 
       // Feedback tátil
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-      // Mostrar confirmação
-      Alert.alert(
-        "Exercício Adicionado",
-        `${exercise.name} foi adicionado ao treino ${
-          workoutName || "selecionado"
-        }`,
-        [{ text: "OK" }]
-      );
     },
-    [workoutId, workoutName, addExerciseToWorkout]
+    [workoutId, addExerciseToWorkout]
   );
 
   // Função para navegar para a tela de detalhes do exercício
@@ -732,13 +723,6 @@ export default function AddExerciseScreen() {
                       addExerciseToWorkout(workoutId, newExercise);
                       Haptics.notificationAsync(
                         Haptics.NotificationFeedbackType.Success
-                      );
-                      Alert.alert(
-                        "Exercício Adicionado",
-                        `${exercise.name} foi adicionado ao treino ${
-                          workoutName || "selecionado"
-                        }`,
-                        [{ text: "OK" }]
                       );
                     }}
                   >

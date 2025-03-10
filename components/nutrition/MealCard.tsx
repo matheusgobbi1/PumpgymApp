@@ -23,6 +23,7 @@ interface MealCardProps {
     id: string;
     name: string;
     icon: string;
+    color: string;
   };
   foods: Food[];
   mealTotals: {
@@ -35,6 +36,7 @@ interface MealCardProps {
   onPress: () => void;
   onDeleteFood: (foodId: string) => Promise<void>;
   onDeleteMeal?: (mealId: string) => Promise<void>;
+  refreshKey?: number;
 }
 
 const { width } = Dimensions.get("window");
@@ -47,6 +49,7 @@ export default function MealCard({
   onPress,
   onDeleteFood,
   onDeleteMeal,
+  refreshKey,
 }: MealCardProps) {
   const router = useRouter();
   const { theme } = useTheme();
@@ -122,7 +125,7 @@ export default function MealCard({
   const renderLeftActions = (food: Food) => (
     <View style={styles.swipeActionContainer}>
       <TouchableOpacity
-        style={[styles.swipeAction, { backgroundColor: colors.primary + "CC" }]}
+        style={[styles.swipeAction, { backgroundColor: meal.color + "CC" }]}
         onPress={() => navigateToFoodDetails(food)}
       >
         <Ionicons name="create-outline" size={20} color="white" />
@@ -255,12 +258,14 @@ export default function MealCard({
           >
             <View style={styles.mealHeader}>
               <View style={styles.mealTitleContainer}>
-                <Ionicons
-                  name={meal.icon as any}
-                  size={18}
-                  color={colors.tint}
-                  style={styles.mealIcon}
-                />
+                <View style={[styles.mealIconContainer, { backgroundColor: meal.color + '20' }]}>
+                  <Ionicons
+                    name={meal.icon as any}
+                    size={18}
+                    color={meal.color}
+                    style={styles.mealIcon}
+                  />
+                </View>
                 <View>
                   <Text style={[styles.mealTitle, { color: colors.text }]}>
                     {meal.name}
@@ -276,7 +281,7 @@ export default function MealCard({
                 </View>
               </View>
               <View style={styles.mealCaloriesContainer}>
-                <Text style={[styles.mealCalories, { color: colors.tint }]}>
+                <Text style={[styles.mealCalories, { color: meal.color }]}>
                   {mealTotals.calories}
                 </Text>
                 <Text
@@ -341,7 +346,7 @@ export default function MealCard({
 
           <View style={styles.addButtonContainer}>
             <TouchableOpacity
-              style={[styles.addButton, { borderColor: colors.tint }]}
+              style={[styles.addButton, { borderColor: meal.color, backgroundColor: meal.color + '10' }]}
               onPress={(e) => {
                 e.stopPropagation();
                 handleHapticFeedback();
@@ -354,7 +359,7 @@ export default function MealCard({
                 });
               }}
             >
-              <Ionicons name="add" size={20} color={colors.tint} />
+              <Ionicons name="add" size={20} color={meal.color} />
             </TouchableOpacity>
           </View>
         </View>
@@ -398,8 +403,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  mealIcon: {
+  mealIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 12,
+  },
+  mealIcon: {
+    // Remover marginRight pois agora está no container
   },
   mealTitle: {
     fontSize: 16,
