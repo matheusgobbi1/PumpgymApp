@@ -376,15 +376,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       // Verificar se há treinos específicos para a data
       const specificWorkouts = workouts[date] || {};
 
-      // Se houver treinos específicos, retorná-los
-      if (Object.keys(specificWorkouts).length > 0) {
-        console.log(`Usando treinos específicos para a data ${date}`);
-        return specificWorkouts;
-      }
-
-      // Caso contrário, verificar o template semanal
       // Converter a data para o dia da semana (0 = domingo, 1 = segunda, ..., 6 = sábado)
-      // Criar uma nova data com a string da data para evitar problemas de fuso horário
       const [year, month, day] = date.split("-").map(Number);
       // Mês em JavaScript é 0-indexed (0 = janeiro, 11 = dezembro)
       const dateObj = new Date(year, month - 1, day);
@@ -406,8 +398,18 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
       // Verificar se há treinos configurados para este dia da semana
       const templateWorkouts = weeklyTemplate[dayOfWeek] || {};
-
-      return templateWorkouts;
+      
+      // Combinar os treinos do template com os treinos específicos
+      const combinedWorkouts: { [workoutId: string]: Exercise[] } = {};
+      
+      // Adicionar todos os treinos do template para este dia da semana
+      Object.keys(templateWorkouts).forEach(workoutId => {
+        // Se não houver exercícios específicos para este treino nesta data,
+        // usar um array vazio (o usuário pode adicionar exercícios depois)
+        combinedWorkouts[workoutId] = specificWorkouts[workoutId] || [];
+      });
+      
+      return combinedWorkouts;
     } catch (error) {
       console.error("Erro ao obter treinos para a data:", error);
       return {};
@@ -445,26 +447,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         JSON.stringify(updatedWorkoutTypes)
       );
 
-      // Inicializar entrada vazia para o novo tipo de treino
-      // APENAS para o dia selecionado
-      setWorkouts((prevWorkouts) => {
-        const updatedWorkouts = { ...prevWorkouts };
-
-        // Garantir que existe uma entrada para o dia selecionado
-        if (!updatedWorkouts[selectedDate]) {
-          updatedWorkouts[selectedDate] = {};
-        }
-
-        // Inicializar o treino para o dia selecionado
-        if (!updatedWorkouts[selectedDate][id]) {
-          updatedWorkouts[selectedDate][id] = [];
-        }
-
-        return updatedWorkouts;
-      });
-
-      await saveWorkouts();
-
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       console.error("Erro ao adicionar tipo de treino:", error);
@@ -477,8 +459,14 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     try {
       setWorkoutTypes([]);
       setHasWorkoutTypesConfigured(false);
+      
+      // Também limpar o template semanal
+      setWeeklyTemplate({});
+      setHasWeeklyTemplateConfigured(false);
 
       await AsyncStorage.removeItem(`@pumpgym:workoutTypes:${userId}`);
+      // Também remover o template semanal do AsyncStorage
+      await AsyncStorage.removeItem(`@pumpgym:weeklyTemplate:${userId}`);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
@@ -488,15 +476,12 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   };
 
   /**
-   * Atualiza os tipos de treino e configura os treinos para a data selecionada.
+   * Atualiza os tipos de treino disponíveis.
    * Esta função é chamada quando o usuário confirma a configuração de treinos no WorkoutConfigSheet.
    *
    * Comportamento:
-   * 1. Salva os treinos atuais para evitar perda de dados
-   * 2. Atualiza os tipos de treino no estado e no AsyncStorage
-   * 3. Cria entradas vazias para os tipos de treino selecionados na data atual
-   * 4. Remove treinos que não estão mais selecionados
-   * 5. Salva as alterações no AsyncStorage
+   * 1. Atualiza os tipos de treino no estado e no AsyncStorage
+   * 2. Não adiciona treinos específicos para o dia atual, pois usamos apenas o template semanal
    */
   const updateWorkoutTypes = async (newWorkoutTypes: WorkoutType[]) => {
     try {
@@ -509,44 +494,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         `@pumpgym:workoutTypes:${userId}`,
         JSON.stringify(newWorkoutTypes)
       );
-
-      // Obter apenas os tipos de treino selecionados
-      const selectedWorkoutTypes = newWorkoutTypes.filter(
-        (type) => type.selected
-      );
-
-      // Atualizar os treinos apenas para o dia selecionado
-      setWorkouts((prevWorkouts) => {
-        const updatedWorkouts = { ...prevWorkouts };
-
-        // Garantir que existe uma entrada para o dia selecionado
-        if (!updatedWorkouts[selectedDate]) {
-          updatedWorkouts[selectedDate] = {};
-        }
-
-        // Obter os treinos atuais para o dia selecionado
-        const currentWorkouts = { ...updatedWorkouts[selectedDate] };
-
-        // Verificar quais treinos estão selecionados
-        const selectedWorkoutIds = selectedWorkoutTypes.map(
-          (workoutType) => workoutType.id
-        );
-
-        // Atualizar os treinos para o dia selecionado
-        selectedWorkoutIds.forEach((workoutId) => {
-          if (!currentWorkouts[workoutId]) {
-            currentWorkouts[workoutId] = [];
-          }
-        });
-
-        // Atualizar apenas o dia selecionado
-        updatedWorkouts[selectedDate] = currentWorkouts;
-
-        return updatedWorkouts;
-      });
-
-      // Salvar os treinos imediatamente
-      await saveWorkouts();
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
@@ -571,34 +518,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Obter o dia da semana da data selecionada
-      // Criar uma nova data com a string da data para evitar problemas de fuso horário
-      const [year, month, day] = selectedDate.split("-").map(Number);
-      // Mês em JavaScript é 0-indexed (0 = janeiro, 11 = dezembro)
-      const dateObj = new Date(year, month - 1, day);
-      const dayOfWeek = dateObj.getDay();
-
-      // Verificar se estamos trabalhando com um treino específico ou do template
-      const hasSpecificWorkout =
-        workouts[selectedDate] && workouts[selectedDate][workoutId];
-
-      // Obter os exercícios atuais (do treino específico ou do template)
-      let currentExercises: Exercise[] = [];
-
-      if (hasSpecificWorkout) {
-        // Usar os exercícios do treino específico
-        currentExercises = [...workouts[selectedDate][workoutId]];
-      } else {
-        // Usar os exercícios do template semanal (se existirem)
-        if (weeklyTemplate[dayOfWeek] && weeklyTemplate[dayOfWeek][workoutId]) {
-          currentExercises = [...weeklyTemplate[dayOfWeek][workoutId]];
-        }
-      }
-
-      // Adicionar o novo exercício à lista
-      currentExercises.push(exercise);
-
-      // Sempre atualizar o treino específico para a data selecionada
+      // Adicionar o exercício ao treino específico para a data selecionada
       setWorkouts((prev) => {
         const updatedWorkouts = { ...prev };
 
@@ -607,8 +527,16 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           updatedWorkouts[selectedDate] = {};
         }
 
-        // Atualizar ou criar o treino específico com todos os exercícios
-        updatedWorkouts[selectedDate][workoutId] = currentExercises;
+        // Garantir que existe uma entrada para o treino
+        if (!updatedWorkouts[selectedDate][workoutId]) {
+          updatedWorkouts[selectedDate][workoutId] = [];
+        }
+
+        // Adicionar o exercício ao treino
+        updatedWorkouts[selectedDate][workoutId] = [
+          ...updatedWorkouts[selectedDate][workoutId],
+          exercise
+        ];
 
         return updatedWorkouts;
       });
@@ -629,68 +557,32 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     exerciseId: string
   ) => {
     try {
-      // Obter o dia da semana da data selecionada
-      // Criar uma nova data com a string da data para evitar problemas de fuso horário
-      const [year, month, day] = selectedDate.split("-").map(Number);
-      // Mês em JavaScript é 0-indexed (0 = janeiro, 11 = dezembro)
-      const dateObj = new Date(year, month - 1, day);
-      const dayOfWeek = dateObj.getDay();
+      // Remover o exercício do treino específico para a data selecionada
+      setWorkouts((prev) => {
+        const updatedWorkouts = { ...prev };
 
-      // Verificar se estamos trabalhando com um treino específico ou do template
-      const hasSpecificWorkout =
-        workouts[selectedDate] && workouts[selectedDate][workoutId];
-
-      if (hasSpecificWorkout) {
-        // Remover do treino específico
-        setWorkouts((prev) => {
-          const updatedWorkouts = { ...prev };
-
-          // Verificar se existe uma entrada para a data selecionada
-          if (
-            !updatedWorkouts[selectedDate] ||
-            !updatedWorkouts[selectedDate][workoutId]
-          ) {
-            return updatedWorkouts;
-          }
-
-          // Remover o exercício
-          updatedWorkouts[selectedDate][workoutId] = updatedWorkouts[
-            selectedDate
-          ][workoutId].filter((exercise) => exercise.id !== exerciseId);
-
+        // Verificar se existe uma entrada para a data selecionada e o treino
+        if (
+          !updatedWorkouts[selectedDate] ||
+          !updatedWorkouts[selectedDate][workoutId]
+        ) {
           return updatedWorkouts;
-        });
-      } else {
-        // Remover do template semanal
-        setWeeklyTemplate((prev) => {
-          const updatedTemplate = { ...prev };
+        }
 
-          // Verificar se existe uma entrada para o dia da semana
-          if (
-            !updatedTemplate[dayOfWeek] ||
-            !updatedTemplate[dayOfWeek][workoutId]
-          ) {
-            return updatedTemplate;
-          }
+        // Remover o exercício do treino
+        updatedWorkouts[selectedDate][workoutId] = updatedWorkouts[selectedDate][
+          workoutId
+        ].filter((exercise) => exercise.id !== exerciseId);
 
-          // Remover o exercício
-          updatedTemplate[dayOfWeek][workoutId] = updatedTemplate[dayOfWeek][
-            workoutId
-          ].filter((exercise) => exercise.id !== exerciseId);
-
-          return updatedTemplate;
-        });
-
-        // Salvar o template semanal
-        await saveWeeklyTemplate();
-      }
+        return updatedWorkouts;
+      });
 
       // Salvar os treinos
       await saveWorkouts();
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      console.error("Erro ao remover exercício do treino:", error);
+      console.error("Erro ao remover exercício:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
@@ -701,65 +593,27 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     updatedExercise: Exercise
   ) => {
     try {
-      // Obter o dia da semana da data selecionada
-      // Criar uma nova data com a string da data para evitar problemas de fuso horário
-      const [year, month, day] = selectedDate.split("-").map(Number);
-      // Mês em JavaScript é 0-indexed (0 = janeiro, 11 = dezembro)
-      const dateObj = new Date(year, month - 1, day);
-      const dayOfWeek = dateObj.getDay();
+      // Atualizar o exercício no treino específico para a data selecionada
+      setWorkouts((prev) => {
+        const updatedWorkouts = { ...prev };
 
-      // Verificar se estamos trabalhando com um treino específico ou do template
-      const hasSpecificWorkout =
-        workouts[selectedDate] && workouts[selectedDate][workoutId];
-
-      if (hasSpecificWorkout) {
-        // Atualizar no treino específico
-        setWorkouts((prev) => {
-          const updatedWorkouts = { ...prev };
-
-          // Verificar se existe uma entrada para a data selecionada
-          if (
-            !updatedWorkouts[selectedDate] ||
-            !updatedWorkouts[selectedDate][workoutId]
-          ) {
-            return updatedWorkouts;
-          }
-
-          // Atualizar o exercício
-          updatedWorkouts[selectedDate][workoutId] = updatedWorkouts[
-            selectedDate
-          ][workoutId].map((exercise) =>
-            exercise.id === updatedExercise.id ? updatedExercise : exercise
-          );
-
+        // Verificar se existe uma entrada para a data selecionada e o treino
+        if (
+          !updatedWorkouts[selectedDate] ||
+          !updatedWorkouts[selectedDate][workoutId]
+        ) {
           return updatedWorkouts;
-        });
-      } else {
-        // Atualizar no template semanal
-        setWeeklyTemplate((prev) => {
-          const updatedTemplate = { ...prev };
+        }
 
-          // Verificar se existe uma entrada para o dia da semana
-          if (
-            !updatedTemplate[dayOfWeek] ||
-            !updatedTemplate[dayOfWeek][workoutId]
-          ) {
-            return updatedTemplate;
-          }
+        // Atualizar o exercício no treino
+        updatedWorkouts[selectedDate][workoutId] = updatedWorkouts[selectedDate][
+          workoutId
+        ].map((exercise) =>
+          exercise.id === updatedExercise.id ? updatedExercise : exercise
+        );
 
-          // Atualizar o exercício
-          updatedTemplate[dayOfWeek][workoutId] = updatedTemplate[dayOfWeek][
-            workoutId
-          ].map((exercise) =>
-            exercise.id === updatedExercise.id ? updatedExercise : exercise
-          );
-
-          return updatedTemplate;
-        });
-
-        // Salvar o template semanal
-        await saveWeeklyTemplate();
-      }
+        return updatedWorkouts;
+      });
 
       // Salvar os treinos
       await saveWorkouts();
@@ -787,10 +641,10 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   // Obter exercícios para um treino específico
   const getExercisesForWorkout = (workoutId: string): Exercise[] => {
     try {
-      // Obter os treinos para a data selecionada (específicos ou do template)
+      // Obter os treinos para a data selecionada (combinando template e específicos)
       const workoutsForDate = getWorkoutsForDate(selectedDate);
 
-      // Verificar se existe o treino específico
+      // Verificar se existe o treino para esta data
       if (!workoutsForDate[workoutId]) {
         return [];
       }
@@ -820,10 +674,10 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       totalReps: 0,
     };
 
-    // Obter os treinos para a data selecionada (específicos ou do template)
+    // Obter os treinos para a data selecionada (combinando template e específicos)
     const workoutsForDate = getWorkoutsForDate(selectedDate);
 
-    // Verificar se existe o treino específico
+    // Verificar se existe o treino para esta data
     if (!workoutsForDate[workoutId]) {
       console.log(
         `Nenhum treino encontrado para ${workoutId} na data ${selectedDate}`
@@ -883,10 +737,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       totalRepsCount > 0 ? Math.round(totalRepsSum / totalRepsCount) : 0;
     totals.maxWeight = maxWeightFound;
 
-    console.log(
-      `Totais calculados para o treino ${workoutId} na data ${selectedDate}:`,
-      totals
-    );
+    console.log(`Totais calculados para o treino ${workoutId}:`, totals);
     return totals;
   };
 
@@ -1069,60 +920,25 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   // Remover um treino completo
   const removeWorkout = async (workoutId: string) => {
     try {
-      // Obter o dia da semana da data selecionada
-      const [year, month, day] = selectedDate.split("-").map(Number);
-      // Mês em JavaScript é 0-indexed (0 = janeiro, 11 = dezembro)
-      const dateObj = new Date(year, month - 1, day);
-      const dayOfWeek = dateObj.getDay();
+      // Remover o treino específico para a data selecionada
+      setWorkouts((prev) => {
+        const updatedWorkouts = { ...prev };
 
-      // Verificar se estamos trabalhando com um treino específico ou do template
-      const hasSpecificWorkout =
-        workouts[selectedDate] && workouts[selectedDate][workoutId];
-
-      if (hasSpecificWorkout) {
-        // Remover do treino específico
-        setWorkouts((prev) => {
-          const updatedWorkouts = { ...prev };
-
-          // Verificar se existe uma entrada para a data selecionada
-          if (!updatedWorkouts[selectedDate]) {
-            return updatedWorkouts;
-          }
-
-          // Remover o treino
-          delete updatedWorkouts[selectedDate][workoutId];
-
-          // Se não houver mais treinos para esta data, remover a data
-          if (Object.keys(updatedWorkouts[selectedDate]).length === 0) {
-            delete updatedWorkouts[selectedDate];
-          }
-
+        // Verificar se existe uma entrada para a data selecionada
+        if (!updatedWorkouts[selectedDate]) {
           return updatedWorkouts;
-        });
-      } else {
-        // Remover do template semanal
-        setWeeklyTemplate((prev) => {
-          const updatedTemplate = { ...prev };
+        }
 
-          // Verificar se existe uma entrada para o dia da semana
-          if (!updatedTemplate[dayOfWeek]) {
-            return updatedTemplate;
-          }
+        // Remover o treino
+        delete updatedWorkouts[selectedDate][workoutId];
 
-          // Remover o treino
-          delete updatedTemplate[dayOfWeek][workoutId];
+        // Se não houver mais treinos para esta data, remover a data
+        if (Object.keys(updatedWorkouts[selectedDate]).length === 0) {
+          delete updatedWorkouts[selectedDate];
+        }
 
-          // Se não houver mais treinos para este dia, remover o dia
-          if (Object.keys(updatedTemplate[dayOfWeek]).length === 0) {
-            delete updatedTemplate[dayOfWeek];
-          }
-
-          return updatedTemplate;
-        });
-
-        // Salvar o template semanal
-        await saveWeeklyTemplate();
-      }
+        return updatedWorkouts;
+      });
 
       // Salvar os treinos
       await saveWorkouts();

@@ -17,6 +17,9 @@ export default {
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.matheus.fitfolio",
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false
+    }
   },
   android: {
     adaptiveIcon: {
@@ -34,5 +37,14 @@ export default {
     EDAMAM_APP_KEY: process.env.EXPO_PUBLIC_EDAMAM_APP_KEY,
     FATSECRET_CLIENT_ID: process.env.EXPO_PUBLIC_FATSECRET_CLIENT_ID,
     FATSECRET_CLIENT_SECRET: process.env.EXPO_PUBLIC_FATSECRET_CLIENT_SECRET,
+    eas: {
+      projectId: "1831e653-eb5e-45fc-a600-7a202c73cea9"
+    },
   },
+  updates: {
+    url: "https://u.expo.dev/1831e653-eb5e-45fc-a600-7a202c73cea9"
+  },
+  runtimeVersion: {
+    policy: "appVersion"
+  }
 };

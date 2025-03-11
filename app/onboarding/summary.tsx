@@ -170,12 +170,14 @@ export default function SummaryScreen() {
 
   const formatNumber = (num: number | undefined) => {
     if (!num) return "0";
-    return num.toFixed(1);
+    // Arredondar para o número inteiro para evitar problemas de exibição
+    return Math.round(num).toString();
   };
 
   const calculateMacroPercentage = (macroCalories: number) => {
     if (!nutritionInfo.calories) return 0;
-    return (macroCalories / nutritionInfo.calories) * 100;
+    // Arredondar para o número inteiro mais próximo para evitar problemas de exibição
+    return Math.round((macroCalories / nutritionInfo.calories) * 100);
   };
 
   const getMacroCalories = {
@@ -428,12 +430,12 @@ export default function SummaryScreen() {
                 key={`calories-progress-${theme}`}
                 value={100}
                 radius={32}
-                duration={1000}
+                duration={300}
                 progressValueColor={colors.text}
                 maxValue={100}
-                title=""
+                title={`${formatNumber(nutritionInfo.calories)}`}
                 titleColor={colors.text}
-                titleStyle={{ fontSize: 8 }}
+                titleStyle={{ fontSize: 14 }}
                 activeStrokeColor={colors.primary}
                 inActiveStrokeColor={colors.border}
                 inActiveStrokeOpacity={0.2}
@@ -442,13 +444,14 @@ export default function SummaryScreen() {
                 progressValueStyle={{ fontSize: 14, fontWeight: "bold" }}
                 valueSuffix=""
                 delay={0}
+                showProgressValue={false}
               />
               <View key={`calories-info-${theme}`} style={styles.caloriesInfo}>
                 <Text style={[styles.caloriesTitle, { color: colors.text }]}>
                   Calorias Diárias
                 </Text>
                 <Text style={[styles.caloriesValue, { color: colors.primary }]}>
-                  {nutritionInfo.calories || 0} kcal
+                  {formatNumber(nutritionInfo.calories)} kcal
                 </Text>
                 <Text style={[styles.caloriesDesc, { color: colors.text }]}>
                   {nutritionInfo.goal === "lose"
@@ -500,12 +503,12 @@ export default function SummaryScreen() {
                   key={`protein-progress-${theme}`}
                   value={macroPercentages.protein}
                   radius={28}
-                  duration={1000}
+                  duration={300}
                   progressValueColor={colors.text}
                   maxValue={100}
                   title=""
                   titleColor={colors.text}
-                  titleStyle={{ fontSize: 8 }}
+                  titleStyle={{ fontSize: 12 }}
                   activeStrokeColor="#FF6B6B"
                   inActiveStrokeColor={colors.border}
                   inActiveStrokeOpacity={0.2}
@@ -514,6 +517,7 @@ export default function SummaryScreen() {
                   progressValueStyle={{ fontSize: 12, fontWeight: "bold" }}
                   valueSuffix="%"
                   delay={0}
+                  showProgressValue={true}
                 />
                 <View key={`protein-info-${theme}`} style={styles.macroInfo}>
                   <Ionicons
@@ -526,7 +530,7 @@ export default function SummaryScreen() {
                     Proteína
                   </Text>
                   <Text style={[styles.macroValue, { color: "#FF6B6B" }]}>
-                    {nutritionInfo.protein || 0}g
+                    {formatNumber(nutritionInfo.protein)}g
                   </Text>
                   <Text style={[styles.macroDesc, { color: colors.text }]}>
                     {nutritionInfo.protein && nutritionInfo.weight
@@ -562,12 +566,12 @@ export default function SummaryScreen() {
                   key={`carbs-progress-${theme}`}
                   value={macroPercentages.carbs}
                   radius={28}
-                  duration={1000}
+                  duration={300}
                   progressValueColor={colors.text}
                   maxValue={100}
                   title=""
                   titleColor={colors.text}
-                  titleStyle={{ fontSize: 8 }}
+                  titleStyle={{ fontSize: 12 }}
                   activeStrokeColor="#4ECDC4"
                   inActiveStrokeColor={colors.border}
                   inActiveStrokeOpacity={0.2}
@@ -576,6 +580,7 @@ export default function SummaryScreen() {
                   progressValueStyle={{ fontSize: 12, fontWeight: "bold" }}
                   valueSuffix="%"
                   delay={0}
+                  showProgressValue={true}
                 />
                 <View key={`carbs-info-${theme}`} style={styles.macroInfo}>
                   <Ionicons
@@ -588,7 +593,7 @@ export default function SummaryScreen() {
                     Carboidratos
                   </Text>
                   <Text style={[styles.macroValue, { color: "#4ECDC4" }]}>
-                    {nutritionInfo.carbs || 0}g
+                    {formatNumber(nutritionInfo.carbs)}g
                   </Text>
                   <Text style={[styles.macroDesc, { color: colors.text }]}>
                     {Math.round(getMacroCalories.carbs)} kcal
@@ -619,12 +624,12 @@ export default function SummaryScreen() {
                   key={`fat-progress-${theme}`}
                   value={macroPercentages.fat}
                   radius={28}
-                  duration={1000}
+                  duration={300}
                   progressValueColor={colors.text}
                   maxValue={100}
                   title=""
                   titleColor={colors.text}
-                  titleStyle={{ fontSize: 8 }}
+                  titleStyle={{ fontSize: 12 }}
                   activeStrokeColor="#FFE66D"
                   inActiveStrokeColor={colors.border}
                   inActiveStrokeOpacity={0.2}
@@ -633,6 +638,7 @@ export default function SummaryScreen() {
                   progressValueStyle={{ fontSize: 12, fontWeight: "bold" }}
                   valueSuffix="%"
                   delay={0}
+                  showProgressValue={true}
                 />
                 <View key={`fat-info-${theme}`} style={styles.macroInfo}>
                   <Ionicons
@@ -645,7 +651,7 @@ export default function SummaryScreen() {
                     Gorduras
                   </Text>
                   <Text style={[styles.macroValue, { color: "#FFE66D" }]}>
-                    {nutritionInfo.fat || 0}g
+                    {formatNumber(nutritionInfo.fat)}g
                   </Text>
                   <Text style={[styles.macroDesc, { color: colors.text }]}>
                     {Math.round(getMacroCalories.fat)} kcal
@@ -951,6 +957,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 8,
     flexWrap: screenWidth < 360 ? "wrap" : "nowrap",
+    marginBottom: 10,
   },
   macroCard: {
     flex: screenWidth < 360 ? 0 : 1,
@@ -963,13 +970,18 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
     marginBottom: screenWidth < 360 ? 8 : 0,
+    minHeight: 140,
+    justifyContent: "center",
   },
   macroContent: {
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 5,
   },
   macroInfo: {
     alignItems: "center",
     marginTop: 6,
+    paddingBottom: 5,
   },
   macroTitle: {
     fontSize: 13,
@@ -986,6 +998,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     opacity: 0.7,
     textAlign: "center",
+    paddingHorizontal: 2,
   },
   infoCard: {
     flexDirection: "row",

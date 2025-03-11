@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
@@ -31,6 +32,7 @@ import TrainingStatsCard from "../../components/training/TrainingStatsCard";
 import { useRouter } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
 import { useRefresh } from "../../context/RefreshContext";
+import { Ionicons } from "@expo/vector-icons";
 
 // Componente memoizado para o card de treino
 const MemoizedWorkoutGroup = React.memo(
@@ -108,6 +110,8 @@ export default function TrainingScreen() {
   const params = useLocalSearchParams();
   const [refreshing, setRefreshing] = useState(false);
   const { refreshKey, triggerRefresh } = useRefresh();
+  // Estado para forçar a recriação do WorkoutConfigSheet
+  const [workoutConfigKey, setWorkoutConfigKey] = useState(Date.now());
 
   // Usar o contexto de treinos
   const {
@@ -131,6 +135,7 @@ export default function TrainingScreen() {
     weeklyTemplate,
     hasWeeklyTemplateConfigured,
     getWorkoutsForDate,
+    resetWorkoutTypes,
   } = useWorkoutContext();
 
   // Estado para a data selecionada (sincronizado com o contexto)
@@ -162,8 +167,9 @@ export default function TrainingScreen() {
 
   // Efeito para verificar se os treinos estão sendo renderizados corretamente após a atualização dos tipos de treino
   useEffect(() => {
-    if (workouts && workouts[selectedDate]) {
-      const workoutIdsForSelectedDate = Object.keys(workouts[selectedDate]);
+    const workoutsForSelectedDate = getWorkoutsForDate(selectedDate);
+    if (Object.keys(workoutsForSelectedDate).length > 0) {
+      const workoutIdsForSelectedDate = Object.keys(workoutsForSelectedDate);
       const selectedWorkoutTypes = workoutTypes.filter((w) => w.selected);
 
       // Verificar se todos os tipos de treino selecionados têm um treino correspondente
@@ -239,7 +245,17 @@ export default function TrainingScreen() {
   // Função para lidar com a configuração de treinos
   const handleWorkoutConfigured = useCallback(
     (configuredWorkouts: WorkoutType[]) => {
-      updateWorkoutTypes(configuredWorkouts);
+      // Aqui precisamos apenas atualizar os tipos de treino disponíveis
+      // sem vinculá-los ao dia atual. Isso já é feito pelo template semanal.
+      
+      // Desmarcar a seleção de todos os workoutTypes para que não sejam
+      // adicionados automaticamente ao dia atual
+      const typesWithoutSelection = configuredWorkouts.map(workout => ({
+        ...workout,
+        selected: false
+      }));
+      
+      updateWorkoutTypes(typesWithoutSelection);
     },
     [updateWorkoutTypes]
   );
@@ -314,6 +330,43 @@ export default function TrainingScreen() {
     setRefreshing(false);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
+
+  // Função para redefinir os tipos de treino
+  const handleResetWorkoutTypes = useCallback(async () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+
+    // Confirmar a redefinição
+    Alert.alert(
+      "Redefinir Treinos",
+      "Tem certeza que deseja redefinir todos os tipos de treino? Esta ação não pode ser desfeita.",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Redefinir",
+          style: "destructive",
+          onPress: async () => {
+            // Primeiro, redefinir os tipos de treino
+            await resetWorkoutTypes();
+            // Forçar a recriação do WorkoutConfigSheet
+            setWorkoutConfigKey(Date.now());
+            console.log("Treinos redefinidos");
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          },
+        },
+      ]
+    );
+  }, [resetWorkoutTypes]);
+
+  // Obter os tipos de treino configurados
+  const configuredWorkoutTypes = useMemo(() => {
+    return workoutTypes.map((type) => ({
+      ...type,
+      exercises: [],
+    }));
+  }, [workoutTypes]);
 
   // Renderizar os cards de treino
   const renderWorkoutCards = useCallback(() => {
@@ -393,27 +446,19 @@ export default function TrainingScreen() {
         onSelectDate={handleDateSelect}
         workouts={workouts}
         weeklyTemplate={weeklyTemplate}
+        getWorkoutsForDate={getWorkoutsForDate}
         hasContent={(date) => {
           try {
-            // Verificar treinos específicos para a data
+            // Verificar treinos para a data usando o template semanal
             const dateString = format(date, "yyyy-MM-dd");
-            const hasSpecificWorkouts =
-              workouts &&
-              workouts[dateString] &&
-              Object.keys(workouts[dateString]).length > 0;
+            const workoutsForDate = getWorkoutsForDate(dateString);
+            const hasWorkouts = Object.keys(workoutsForDate).length > 0;
 
-            if (hasSpecificWorkouts) {
+            if (hasWorkouts) {
               return true;
             }
-
-            // Verificar treinos no template semanal para o dia da semana
-            const dayOfWeek = date.getDay(); // 0 = domingo, 1 = segunda, ..., 6 = sábado
-            const hasTemplateWorkouts =
-              weeklyTemplate &&
-              weeklyTemplate[dayOfWeek] &&
-              Object.keys(weeklyTemplate[dayOfWeek]).length > 0;
-
-            return hasTemplateWorkouts;
+            
+            return false;
           } catch (error) {
             console.error("Erro ao verificar treinos para a data:", error);
             return false;
@@ -421,7 +466,7 @@ export default function TrainingScreen() {
         }}
       />
     ),
-    [selectedDate, handleDateSelect, workouts, weeklyTemplate]
+    [selectedDate, handleDateSelect, workouts, weeklyTemplate, getWorkoutsForDate]
   );
 
   return (
@@ -448,6 +493,33 @@ export default function TrainingScreen() {
               ? renderWorkoutCards()
               : emptyStateComponent
             : emptyStateComponent}
+            
+          {/* Botões de redefinir e editar treinos (apenas mostrar se houver treinos configurados) */}
+          {hasWorkoutTypesConfigured && (
+            <>
+              {/* Botão para redefinir treinos */}
+              <TouchableOpacity
+                key={`reset-button-${theme}`}
+                style={[styles.resetButton, { borderColor: colors.border }]}
+                onPress={handleResetWorkoutTypes}
+              >
+                <Ionicons name="refresh-outline" size={20} color={colors.primary} />
+                <Text style={[styles.resetButtonText, { color: colors.text }]}>
+                  Redefinir Treinos
+                </Text>
+              </TouchableOpacity>
+
+              {/* Botão para editar treinos */}
+              <TouchableOpacity
+                key={`edit-button-${theme}`}
+                style={[styles.editButton, { backgroundColor: colors.primary }]}
+                onPress={openWorkoutConfigSheet}
+              >
+                <Ionicons name="settings-outline" size={20} color="white" />
+                <Text style={styles.editButtonText}>Editar Treinos</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </ScrollView>
       </View>
 
@@ -455,6 +527,7 @@ export default function TrainingScreen() {
         ref={workoutConfigSheetRef}
         onWorkoutConfigured={handleWorkoutConfigured}
         selectedDate={getLocalDate(selectedDate)}
+        key={`workout-config-${workoutConfigKey}-${theme}`}
       />
     </SafeAreaView>
   );
@@ -470,5 +543,34 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     padding: 16,
     paddingBottom: 100,
+  },
+  resetButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  resetButtonText: {
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  editButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+  },
+  editButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "white",
+    marginLeft: 8,
   },
 });

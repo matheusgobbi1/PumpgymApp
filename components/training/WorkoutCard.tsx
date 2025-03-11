@@ -28,6 +28,7 @@ import Animated, {
   FadeInRight,
   FadeIn,
   FadeInDown,
+  Easing,
 } from "react-native-reanimated";
 import { useAuth } from "../../context/AuthContext";
 import { useRefresh } from "../../context/RefreshContext";
@@ -200,7 +201,7 @@ export default function WorkoutCard({
     </TouchableOpacity>
   );
 
-  // Função para renderizar as ações de deslize à direita (excluir treino)
+  // Função para renderizar as ações de deslize à direita para o card de treino
   const renderWorkoutRightActions = useCallback(() => {
     console.log(
       "renderWorkoutRightActions chamado, onDeleteWorkout existe:",
@@ -587,7 +588,7 @@ export default function WorkoutCard({
                 <View
                   style={[
                     styles.workoutIconContainer,
-                    { backgroundColor: workout.color },
+                    { backgroundColor: workout.color + "30" },
                   ]}
                 >
                   {/* Determinar qual biblioteca de ícones usar com base no nome */}
@@ -595,19 +596,19 @@ export default function WorkoutCard({
                     <MaterialCommunityIcons
                       name={workout.icon.replace("material-", "") as any}
                       size={18}
-                      color="white"
+                      color={workout.color}
                     />
                   ) : workout.icon.includes("fa5-") ? (
                     <FontAwesome5
                       name={workout.icon.replace("fa5-", "") as any}
                       size={18}
-                      color="white"
+                      color={workout.color}
                     />
                   ) : (
                     <Ionicons
                       name={workout.icon as any}
                       size={18}
-                      color="white"
+                      color={workout.color}
                     />
                   )}
                 </View>
@@ -739,7 +740,7 @@ const styles = StyleSheet.create({
   exerciseIconContainer: {
     width: 32,
     height: 32,
-    borderRadius: 8,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,

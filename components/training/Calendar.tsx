@@ -39,6 +39,7 @@ interface CalendarProps {
   selectedDate: Date;
   workouts?: { [date: string]: any }; // Propriedade opcional para verificar se há treinos específicos
   weeklyTemplate?: { [dayOfWeek: number]: any }; // Propriedade opcional para verificar se há treinos no template semanal
+  getWorkoutsForDate?: (date: string) => any; // Função para obter treinos para uma data
 }
 
 export default function Calendar({
@@ -46,6 +47,7 @@ export default function Calendar({
   selectedDate,
   workouts = {},
   weeklyTemplate = {},
+  getWorkoutsForDate,
 }: CalendarProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
@@ -180,10 +182,19 @@ export default function Calendar({
     [dates]
   );
 
-  // Verifica se uma data tem treinos registrados (específicos ou no template)
-  const hasRegisteredWorkouts = useCallback(
+  // Função para verificar se uma data tem treinos
+  const checkHasWorkouts = useCallback(
     (date: Date) => {
       try {
+        // Verificar treinos para a data usando getWorkoutsForDate
+        if (getWorkoutsForDate) {
+          const dateString = format(date, "yyyy-MM-dd");
+          const workoutsForDate = getWorkoutsForDate(dateString);
+          const hasWorkouts = Object.keys(workoutsForDate).length > 0;
+          return hasWorkouts;
+        }
+
+        // Fallback para o método antigo se getWorkoutsForDate não estiver disponível
         // Verificar treinos específicos para a data
         const dateString = format(date, "yyyy-MM-dd");
         const hasSpecificWorkouts =
@@ -208,7 +219,7 @@ export default function Calendar({
         return false;
       }
     },
-    [workouts, weeklyTemplate]
+    [workouts, weeklyTemplate, getWorkoutsForDate]
   );
 
   const handleDatePress = useCallback(
@@ -300,7 +311,7 @@ export default function Calendar({
             {dates.map((date) => {
               const isSelected = isSameDay(date, normalizedSelectedDate);
               const isToday = isSameDay(date, today);
-              const hasWorkouts = hasRegisteredWorkouts(date);
+              const hasWorkouts = checkHasWorkouts(date);
 
               // Determinar a cor de fundo do dia atual com base no tema
               const todayBackgroundColor =

@@ -36,7 +36,7 @@ export default function SelectionOption({
     // Novo estilo com fundo azul claro e bordas coloridas quando selecionado
     return {
       backgroundColor: isSelected 
-        ? (theme === 'dark' ? 'rgba(28, 154, 190, 0.1)' : 'rgba(28, 154, 190, 0.05)')
+        ? (theme === 'dark' ? 'rgba(255, 255, 255, 0.22)' : 'rgba(0, 0, 0, 0.05)')
         : colors.light,
       borderColor: isSelected ? colors.primary : colors.border,
       borderWidth: isSelected ? 2 : 1,

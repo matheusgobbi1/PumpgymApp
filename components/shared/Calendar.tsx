@@ -43,6 +43,7 @@ interface CalendarProps {
   workouts?: { [date: string]: any };
   weeklyTemplate?: { [dayOfWeek: number]: any };
   meals?: { [date: string]: any };
+  getWorkoutsForDate?: (date: string) => any;
 }
 
 export default function Calendar({
@@ -52,6 +53,7 @@ export default function Calendar({
   workouts = {},
   weeklyTemplate = {},
   meals = {},
+  getWorkoutsForDate,
 }: CalendarProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
@@ -187,40 +189,26 @@ export default function Calendar({
     [dates]
   );
 
-  // Função genérica para verificar se uma data tem conteúdo
+  // Função para verificar se uma data tem conteúdo
   const checkHasContent = useCallback(
-    (date: Date) => {
-      // Se a função hasContent for fornecida, use-a
+    (date: Date): boolean => {
+      // Se a função hasContent for fornecida, usá-la
       if (hasContent) {
         return hasContent(date);
       }
 
       try {
-        // Verificar treinos específicos para a data (compatibilidade com tela de treino)
-        if (Object.keys(workouts).length > 0 || Object.keys(weeklyTemplate).length > 0) {
-          const dateString = format(date, "yyyy-MM-dd");
-          const hasSpecificWorkouts =
-            workouts &&
-            workouts[dateString] &&
-            Object.keys(workouts[dateString]).length > 0;
+        // Verificar treinos para a data usando getWorkoutsForDate
+        const dateString = format(date, "yyyy-MM-dd");
+        const workoutsForDate = getWorkoutsForDate ? getWorkoutsForDate(dateString) : {};
+        const hasWorkouts = Object.keys(workoutsForDate).length > 0;
 
-          if (hasSpecificWorkouts) {
-            return true;
-          }
-
-          // Verificar treinos no template semanal para o dia da semana
-          const dayOfWeek = date.getDay(); // 0 = domingo, 1 = segunda, ..., 6 = sábado
-          const hasTemplateWorkouts =
-            weeklyTemplate &&
-            weeklyTemplate[dayOfWeek] &&
-            Object.keys(weeklyTemplate[dayOfWeek]).length > 0;
-
-          return hasTemplateWorkouts;
+        if (hasWorkouts) {
+          return true;
         }
 
         // Verificar refeições para a data (compatibilidade com tela de nutrição)
         if (Object.keys(meals).length > 0) {
-          const dateString = format(date, "yyyy-MM-dd");
           return (
             meals[dateString] &&
             Object.values(meals[dateString]).some((foods: any) => foods.length > 0)
@@ -233,7 +221,7 @@ export default function Calendar({
         return false;
       }
     },
-    [hasContent, workouts, weeklyTemplate, meals]
+    [hasContent, getWorkoutsForDate, meals]
   );
 
   const handleDatePress = useCallback(
