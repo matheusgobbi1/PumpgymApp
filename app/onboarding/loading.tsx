@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
-import { useRouter, useNavigation } from "expo-router";
+import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
@@ -51,69 +51,75 @@ const LOADING_STEPS = [
 
 export default function LoadingScreen() {
   const router = useRouter();
-  const navigation = useNavigation();
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { calculateMacros } = useNutrition();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
-
-  // Estado para forçar re-renderização quando o tema mudar
-  const [, setForceUpdate] = useState({});
-
-  // Efeito para forçar a re-renderização quando o tema mudar
-  useEffect(() => {
-    setForceUpdate({});
-  }, [theme]);
+  const [calculationComplete, setCalculationComplete] = useState(false);
 
   // Animação e progresso dos passos
   useEffect(() => {
     const stepDuration = 1500; // 1.5 segundos por etapa
+    let isMounted = true;
 
     const advanceStep = (step: number) => {
+      if (!isMounted) return;
+
       if (step < LOADING_STEPS.length) {
         setTimeout(() => {
+          if (!isMounted) return;
+
           setCurrentStep(step);
           setCompletedSteps((prev) => [...prev, step]);
+
+          // No penúltimo passo, calcular os macros
+          if (step === LOADING_STEPS.length - 2) {
+            try {
+              calculateMacros();
+            } catch (error) {
+              console.error("Erro ao calcular macros:", error);
+            }
+            setCalculationComplete(true);
+          }
+
           advanceStep(step + 1);
         }, stepDuration);
       }
     };
 
     advanceStep(0);
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // Navegar para a tela de resumo após calcular os macros
+  // Navegar para a tela de resumo após completar os passos
   useEffect(() => {
-    const timer = setTimeout(() => {
-      calculateMacros();
-      router.push("/onboarding/summary" as any);
-    }, LOADING_STEPS.length * 1500); // Tempo total baseado no número de passos
+    const totalDuration = LOADING_STEPS.length * 1500;
+    const navigationTimer = setTimeout(() => {
+      // Garantir que a navegação aconteça mesmo se o cálculo falhar
+      router.replace("/onboarding/summary");
+    }, totalDuration);
 
-    return () => clearTimeout(timer);
+    return () => clearTimeout(navigationTimer);
   }, []);
 
   return (
     <SafeAreaView
-      key={`loading-container-${theme}`}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <View key={`content-container-${theme}`} style={styles.content}>
-        <Text
-          key={`title-${theme}`}
-          style={[styles.title, { color: colors.text }]}
-        >
+      <View style={styles.content}>
+        <Text style={[styles.title, { color: colors.text }]}>
           Preparando seu Plano
         </Text>
-        <Text
-          key={`subtitle-${theme}`}
-          style={[styles.subtitle, { color: colors.text }]}
-        >
+        <Text style={[styles.subtitle, { color: colors.text }]}>
           Calculando as melhores recomendações para você
         </Text>
 
-        <View key={`steps-container-${theme}`} style={styles.stepsContainer}>
+        <View style={styles.stepsContainer}>
           {LOADING_STEPS.map((step, index) => {
             const isActive = index === currentStep;
             const isCompleted = completedSteps.includes(index);
@@ -121,7 +127,7 @@ export default function LoadingScreen() {
 
             return (
               <MotiView
-                key={`step-${step.title}-${theme}`}
+                key={`step-${step.title}`}
                 from={{
                   opacity: 0,
                   translateX: -20,
@@ -149,29 +155,20 @@ export default function LoadingScreen() {
                   },
                 ]}
               >
-                <View
-                  key={`step-header-${index}-${theme}`}
-                  style={styles.stepHeader}
-                >
-                  <View
-                    key={`step-icon-container-${index}-${theme}`}
-                    style={styles.stepIconContainer}
-                  >
+                <View style={styles.stepHeader}>
+                  <View style={styles.stepIconContainer}>
                     <Ionicons
-                      key={`step-icon-${index}-${theme}`}
                       name={step.icon as any}
                       size={24}
                       color={isActive || isCompleted ? step.color : colors.text}
                     />
                     {isCompleted && (
                       <MotiView
-                        key={`checkmark-${index}-${theme}`}
                         from={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         style={styles.checkmark}
                       >
                         <Ionicons
-                          key={`checkmark-icon-${index}-${theme}`}
                           name="checkmark-circle"
                           size={16}
                           color={step.color}
@@ -180,12 +177,8 @@ export default function LoadingScreen() {
                     )}
                   </View>
 
-                  <View
-                    key={`step-content-${index}-${theme}`}
-                    style={styles.stepContent}
-                  >
+                  <View style={styles.stepContent}>
                     <Text
-                      key={`step-title-${index}-${theme}`}
                       style={[
                         styles.stepTitle,
                         { color: isActive ? step.color : colors.text },
@@ -194,7 +187,6 @@ export default function LoadingScreen() {
                       {step.title}
                     </Text>
                     <Text
-                      key={`step-description-${index}-${theme}`}
                       style={[
                         styles.stepDescription,
                         { color: colors.text, opacity: 0.7 },
@@ -206,24 +198,17 @@ export default function LoadingScreen() {
 
                   {isActive && (
                     <MotiView
-                      key={`badge-${index}-${theme}`}
                       from={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       style={[styles.badge, { backgroundColor: step.color }]}
                     >
-                      <Text
-                        key={`badge-text-${index}-${theme}`}
-                        style={styles.badgeText}
-                      >
-                        {step.detail}
-                      </Text>
+                      <Text style={styles.badgeText}>{step.detail}</Text>
                     </MotiView>
                   )}
                 </View>
 
                 {isActive && (
                   <MotiView
-                    key={`progress-bar-${index}-${theme}`}
                     from={{ width: "0%" }}
                     animate={{ width: "100%" }}
                     transition={{
@@ -242,7 +227,6 @@ export default function LoadingScreen() {
         </View>
 
         <MotiView
-          key={`total-progress-${theme}`}
           animate={{
             width: `${((currentStep + 1) / LOADING_STEPS.length) * 100}%`,
           }}

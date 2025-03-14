@@ -735,11 +735,7 @@ const styles = StyleSheet.create({
   mealCard: {
     borderRadius: 16,
     overflow: "hidden",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    
   },
   mealCardSelected: {
     elevation: 4,

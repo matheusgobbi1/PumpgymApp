@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   StyleSheet,
@@ -28,20 +28,15 @@ export default function WeightGoalScreen() {
   const [error, setError] = useState("");
   const [weightDifference, setWeightDifference] = useState<string>("");
 
-  // Estado para forçar re-renderização quando o tema mudar
-  const [, setForceUpdate] = useState({});
+  // Função para atualizar a diferença de peso quando o peso alvo muda
+  const updateWeightDifference = (value: string) => {
+    setTargetWeight(value);
 
-  // Efeito para forçar a re-renderização quando o tema mudar
-  useEffect(() => {
-    setForceUpdate({});
-  }, [theme]);
-
-  useEffect(() => {
-    if (targetWeight && nutritionInfo.weight) {
-      const targetWeightNum = parseFloat(targetWeight);
+    if (value && nutritionInfo.weight) {
+      const targetWeightNum = parseFloat(value);
       const currentWeight = nutritionInfo.weight;
 
-      if (!isNaN(targetWeightNum)) {
+      if (!isNaN(targetWeightNum) && isFinite(targetWeightNum)) {
         const diff = targetWeightNum - currentWeight;
         setWeightDifference(diff.toFixed(1));
       } else {
@@ -50,7 +45,7 @@ export default function WeightGoalScreen() {
     } else {
       setWeightDifference("");
     }
-  }, [targetWeight, nutritionInfo.weight]);
+  };
 
   const handleNext = () => {
     if (targetWeight && nutritionInfo.weight) {
@@ -90,14 +85,50 @@ export default function WeightGoalScreen() {
 
   // Função para obter a cor baseada na diferença de peso
   const getDifferenceColor = () => {
-    if (parseFloat(weightDifference) > 0) return colors.success;
-    if (parseFloat(weightDifference) < 0) return colors.danger;
+    const diff = parseFloat(weightDifference);
+    if (!isNaN(diff) && isFinite(diff) && diff > 0) return colors.success;
+    if (!isNaN(diff) && isFinite(diff) && diff < 0) return colors.danger;
     return colors.primary;
+  };
+
+  // Função segura para verificar se a diferença é positiva
+  const isDifferencePositive = () => {
+    const diff = parseFloat(weightDifference);
+    return !isNaN(diff) && isFinite(diff) && diff > 0;
+  };
+
+  // Função segura para verificar se a diferença é negativa
+  const isDifferenceNegative = () => {
+    const diff = parseFloat(weightDifference);
+    return !isNaN(diff) && isFinite(diff) && diff < 0;
+  };
+
+  // Função segura para obter o valor absoluto da diferença
+  const getAbsoluteDifference = () => {
+    const diff = parseFloat(weightDifference);
+    return !isNaN(diff) && isFinite(diff) ? Math.abs(diff) : 0;
+  };
+
+  // Função segura para formatar cores com opacidade
+  const safeColorWithOpacity = (color: string, opacity: number) => {
+    try {
+      // Limitar a opacidade entre 0 e 1
+      const safeOpacity = Math.min(1, Math.max(0, opacity));
+
+      // Converter para um valor hexadecimal entre 00 e FF
+      const opacityHex = Math.round(safeOpacity * 255)
+        .toString(16)
+        .padStart(2, "0");
+
+      return `${color}${opacityHex}`;
+    } catch (error) {
+      // Em caso de erro, retornar a cor original
+      return color;
+    }
   };
 
   return (
     <KeyboardAvoidingView
-      key={`keyboard-view-${theme}`}
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
@@ -111,19 +142,18 @@ export default function WeightGoalScreen() {
         nextButtonDisabled={isNextDisabled}
         error={error}
       >
-        <View key={`input-container-${theme}`} style={styles.inputContainer}>
+        <View style={styles.inputContainer}>
           <Input
-            key={`weight-input-${theme}`}
             label="Peso meta (kg)"
             value={targetWeight}
-            onChangeText={setTargetWeight}
+            onChangeText={updateWeightDifference}
             placeholder="70"
             keyboardType="numeric"
             rightIcon="scale-outline"
             iconColor={colors.primary}
             inputContainerStyle={{
               borderRadius: 12,
-              borderColor: colors.primary + "40",
+              borderColor: safeColorWithOpacity(colors.primary, 0.25),
               backgroundColor:
                 theme === "dark"
                   ? "rgba(28, 154, 190, 0.05)"
@@ -133,7 +163,6 @@ export default function WeightGoalScreen() {
 
           {weightDifference && (
             <MotiView
-              key={`difference-container-${theme}`}
               style={[
                 styles.differenceContainer,
                 {
@@ -144,7 +173,7 @@ export default function WeightGoalScreen() {
                   borderRadius: 16,
                   padding: 20,
                   borderWidth: 1,
-                  borderColor: getDifferenceColor() + "30",
+                  borderColor: safeColorWithOpacity(getDifferenceColor(), 0.3),
                   shadowColor: theme === "dark" ? "#000" : colors.text,
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: theme === "dark" ? 0.3 : 0.1,
@@ -159,11 +188,10 @@ export default function WeightGoalScreen() {
             >
               <View style={styles.iconContainer}>
                 <Ionicons
-                  key={`difference-icon-${theme}`}
                   name={
-                    parseFloat(weightDifference) > 0
+                    isDifferencePositive()
                       ? "trending-up"
-                      : parseFloat(weightDifference) < 0
+                      : isDifferenceNegative()
                       ? "trending-down"
                       : "remove"
                   }
@@ -174,7 +202,6 @@ export default function WeightGoalScreen() {
               </View>
 
               <Text
-                key={`difference-text-${theme}`}
                 style={[
                   styles.differenceText,
                   {
@@ -183,23 +210,22 @@ export default function WeightGoalScreen() {
                   },
                 ]}
               >
-                {parseFloat(weightDifference) > 0
+                {isDifferencePositive()
                   ? `Ganhar ${weightDifference} kg`
-                  : parseFloat(weightDifference) < 0
-                  ? `Perder ${Math.abs(parseFloat(weightDifference))} kg`
+                  : isDifferenceNegative()
+                  ? `Perder ${getAbsoluteDifference()} kg`
                   : "Manter o peso atual"}
               </Text>
 
               <Text
-                key={`difference-description-${theme}`}
                 style={[
                   styles.differenceDescription,
-                  { color: colors.text + "90" },
+                  { color: safeColorWithOpacity(colors.text, 0.56) },
                 ]}
               >
-                {parseFloat(weightDifference) > 0
+                {isDifferencePositive()
                   ? "Você precisará aumentar sua ingestão calórica"
-                  : parseFloat(weightDifference) < 0
+                  : isDifferenceNegative()
                   ? "Você precisará reduzir sua ingestão calórica"
                   : "Continue com sua ingestão calórica atual"}
               </Text>
@@ -222,14 +248,17 @@ export default function WeightGoalScreen() {
                 <Ionicons
                   name="information-circle-outline"
                   size={16}
-                  color={colors.text + "70"}
+                  color={safeColorWithOpacity(colors.text, 0.44)}
                 />
                 <Text
-                  style={[styles.footerText, { color: colors.text + "70" }]}
+                  style={[
+                    styles.footerText,
+                    { color: safeColorWithOpacity(colors.text, 0.44) },
+                  ]}
                 >
-                  {parseFloat(weightDifference) > 0
+                  {isDifferencePositive()
                     ? "Recomendamos ganho de 0.5kg por semana"
-                    : parseFloat(weightDifference) < 0
+                    : isDifferenceNegative()
                     ? "Recomendamos perda de 0.5kg por semana"
                     : "Manter o peso é uma ótima meta!"}
                 </Text>

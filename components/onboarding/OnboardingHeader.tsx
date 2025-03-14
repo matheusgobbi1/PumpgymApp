@@ -1,85 +1,114 @@
-import React, { useState, useEffect } from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import React from "react";
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+  StatusBar,
+  Dimensions,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
+import * as Haptics from "expo-haptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const { width } = Dimensions.get("window");
 
 interface OnboardingHeaderProps {
   currentStep: number;
   totalSteps: number;
   onBack: () => void;
-  onSettings?: () => void;
 }
 
 export default function OnboardingHeader({
   currentStep,
   totalSteps,
   onBack,
-  onSettings,
 }: OnboardingHeaderProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
-  
-  // Estado para forçar re-renderização quando o tema mudar
-  const [, setForceUpdate] = useState({});
-  
-  // Efeito para forçar a re-renderização quando o tema mudar
-  useEffect(() => {
-    setForceUpdate({});
-  }, [theme]);
+  const insets = useSafeAreaInsets();
+
+  const handleBack = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onBack();
+  };
 
   return (
-    <View key={`header-container-${theme}`} style={styles.header}>
-      <TouchableOpacity key={`back-button-${theme}`} onPress={onBack} style={styles.backButton}>
-        <Ionicons name="arrow-back" size={24} color={colors.text} />
-      </TouchableOpacity>
-      <View key={`progress-container-${theme}`} style={styles.progressContainer}>
-        {[...Array(totalSteps)].map((_, index) => (
-          <View
-            key={`progress-bar-${index}-${theme}`}
-            style={[
-              styles.progressBar,
-              {
-                backgroundColor:
-                  index < currentStep ? colors.primary : colors.border,
-              },
-            ]}
-          />
-        ))}
+    <View
+      style={[
+        styles.container,
+        {
+          paddingTop: insets.top > 0 ? insets.top : 16,
+          height: (insets.top > 0 ? insets.top : 16) + 56, // Altura base + insets
+        },
+      ]}
+    >
+      <View style={styles.contentContainer}>
+        {/* Botão de voltar */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={handleBack}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="chevron-back" size={28} color={colors.text} />
+        </TouchableOpacity>
+
+        {/* Stepper centralizado */}
+        <View style={styles.stepperContainer}>
+          {Array.from({ length: totalSteps }).map((_, index) => (
+            <View
+              key={`progress-${index}`}
+              style={[
+                styles.progressBar,
+                {
+                  backgroundColor:
+                    index < currentStep ? colors.primary : colors.border,
+                  marginRight: index < totalSteps - 1 ? 8 : 0,
+                },
+              ]}
+            />
+          ))}
+        </View>
+
+        {/* Espaço vazio para equilibrar o layout */}
+        <View style={styles.spacer} />
       </View>
-      <TouchableOpacity
-        key={`settings-button-${theme}`}
-        style={styles.settingsButton}
-        onPress={onSettings || (() => {})}
-      >
-        <Ionicons name="settings-outline" size={24} color={colors.text} />
-      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
+  container: {
+    width: "100%",
+    paddingHorizontal: 16,
+  },
+  contentContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    justifyContent: "space-between",
+    height: 56,
+    width: "100%",
   },
   backButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "flex-start",
   },
-  settingsButton: {
-    padding: 8,
-  },
-  progressContainer: {
+  stepperContainer: {
     flex: 1,
     flexDirection: "row",
     justifyContent: "center",
-    gap: 4,
+    alignItems: "center",
+  },
+  spacer: {
+    width: 40,
   },
   progressBar: {
     height: 4,
-    flex: 1,
+    width: 24,
     borderRadius: 2,
   },
 });

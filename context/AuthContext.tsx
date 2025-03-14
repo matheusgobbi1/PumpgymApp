@@ -554,6 +554,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         isAnonymous: false,
       });
 
+      // Salvar status de onboarding localmente
+      await OfflineStorage.saveOnboardingStatus(newUser.uid, true);
+
       // Atualizar estado
       setUser(newUser);
       setIsAnonymous(false);
@@ -565,7 +568,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Limpar dados temporários após salvar
       await OfflineStorage.clearTemporaryNutritionData();
 
+      // Aguardar um momento para garantir que os estados sejam atualizados
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Usar replace para evitar problemas de navegação
       router.replace("/(tabs)");
+
       return newUser;
     } catch (error) {
       throw error;

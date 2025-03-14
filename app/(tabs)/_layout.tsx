@@ -14,7 +14,7 @@ import Colors from "../../constants/Colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useRef, useState } from "react";
 import * as Haptics from "expo-haptics";
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme } from "../../context/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 
@@ -173,7 +173,7 @@ export default function TabLayout() {
           headerShown: false,
           tabBarStyle: {
             position: "absolute",
-            bottom: insets.bottom + 10,
+            bottom: insets.bottom > 0 ? insets.bottom : 10,
             marginHorizontal: width * 0.1,
             width: width * 0.8,
             alignSelf: "center",
@@ -197,6 +197,9 @@ export default function TabLayout() {
             backgroundColor: colors.background,
           },
           headerTintColor: colors.text,
+          contentStyle: {
+            backgroundColor: colors.background,
+          },
         }}
       >
         <Tabs.Screen
@@ -240,7 +243,12 @@ export default function TabLayout() {
             tabBarIcon: ({ color }) => (
               <View style={styles.fabContainer}>
                 <View style={styles.fabShadow}>
-                  <View style={[styles.fabBackground, { backgroundColor: colors.primary }]}>
+                  <View
+                    style={[
+                      styles.fabBackground,
+                      { backgroundColor: colors.primary },
+                    ]}
+                  >
                     <TouchableOpacity
                       style={styles.fab}
                       activeOpacity={0.8}
@@ -322,19 +330,31 @@ export default function TabLayout() {
                   style={[styles.gridCard, getMenuItemStyle(index)]}
                 >
                   <TouchableOpacity
-                    style={[styles.gridCardTouchable, { backgroundColor: colors.light }]}
+                    style={[
+                      styles.gridCardTouchable,
+                      { backgroundColor: colors.light },
+                    ]}
                     activeOpacity={0.9}
                     onPress={option.onPress}
                   >
                     <View style={styles.gridCardContent}>
-                      <View style={[styles.gridIconContainer, { backgroundColor: colors.primary + '20' }]}>
+                      <View
+                        style={[
+                          styles.gridIconContainer,
+                          { backgroundColor: colors.primary + "20" },
+                        ]}
+                      >
                         <Ionicons
                           name={option.icon}
                           size={32}
                           color={colors.primary}
                         />
                       </View>
-                      <Text style={[styles.gridCardText, { color: colors.text }]}>{option.label}</Text>
+                      <Text
+                        style={[styles.gridCardText, { color: colors.text }]}
+                      >
+                        {option.label}
+                      </Text>
                     </View>
                   </TouchableOpacity>
                 </Animated.View>
@@ -347,19 +367,31 @@ export default function TabLayout() {
                   style={[styles.gridCard, getMenuItemStyle(index + 2)]}
                 >
                   <TouchableOpacity
-                    style={[styles.gridCardTouchable, { backgroundColor: colors.light }]}
+                    style={[
+                      styles.gridCardTouchable,
+                      { backgroundColor: colors.light },
+                    ]}
                     activeOpacity={0.9}
                     onPress={option.onPress}
                   >
                     <View style={styles.gridCardContent}>
-                      <View style={[styles.gridIconContainer, { backgroundColor: colors.primary + '20' }]}>
+                      <View
+                        style={[
+                          styles.gridIconContainer,
+                          { backgroundColor: colors.primary + "20" },
+                        ]}
+                      >
                         <Ionicons
                           name={option.icon}
                           size={32}
                           color={colors.primary}
                         />
                       </View>
-                      <Text style={[styles.gridCardText, { color: colors.text }]}>{option.label}</Text>
+                      <Text
+                        style={[styles.gridCardText, { color: colors.text }]}
+                      >
+                        {option.label}
+                      </Text>
                     </View>
                   </TouchableOpacity>
                 </Animated.View>

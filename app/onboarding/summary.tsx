@@ -71,6 +71,23 @@ export default function SummaryScreen() {
     return () => backHandler.remove();
   }, [navigation]);
 
+  // Garantir que os macros sejam calculados quando a tela for carregada
+  useEffect(() => {
+    // Tentar calcular os macros novamente se não houver dados
+    if (
+      !nutritionInfo.calories ||
+      !nutritionInfo.protein ||
+      !nutritionInfo.carbs ||
+      !nutritionInfo.fat
+    ) {
+      try {
+        calculateMacros();
+      } catch (error) {
+        console.error("Erro ao calcular macros na tela de resumo:", error);
+      }
+    }
+  }, [nutritionInfo]);
+
   const handleStart = async () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

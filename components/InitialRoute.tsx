@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Redirect } from "expo-router";
 import { doc, getDoc } from "firebase/firestore";
@@ -9,8 +9,14 @@ import Colors from "../constants/Colors";
 import { useTheme } from "../context/ThemeContext";
 
 export default function InitialRoute() {
-  const { loading, authStateStable, isRestoringSession, appInitialized, user } =
-    useAuth();
+  const {
+    loading,
+    authStateStable,
+    isRestoringSession,
+    appInitialized,
+    user,
+    isAnonymous,
+  } = useAuth();
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
   const [onboardingCompleted, setOnboardingCompleted] = useState<
     boolean | null
@@ -18,7 +24,7 @@ export default function InitialRoute() {
   const { theme } = useTheme();
 
   // Verificar o status de onboarding quando o usuário estiver autenticado
-  React.useEffect(() => {
+  useEffect(() => {
     let isMounted = true;
 
     // Resetar o estado quando o usuário mudar
@@ -53,6 +59,7 @@ export default function InitialRoute() {
                   }
                 }
               } catch (error) {
+                console.error("Erro ao verificar documento do usuário:", error);
               }
             }
           }
@@ -86,7 +93,9 @@ export default function InitialRoute() {
     !authStateStable ||
     isRestoringSession ||
     !appInitialized ||
-    (user && (isCheckingOnboarding || onboardingCompleted === null))
+    (user &&
+      !isAnonymous &&
+      (isCheckingOnboarding || onboardingCompleted === null))
   ) {
     return (
       <View
@@ -105,6 +114,11 @@ export default function InitialRoute() {
   // Após o carregamento, redirecionar baseado no estado de autenticação e onboarding
   if (!user) {
     return <Redirect href="/auth/login" />;
+  }
+
+  // Se usuário é anônimo, enviar para o onboarding
+  if (isAnonymous) {
+    return <Redirect href="/onboarding/gender" />;
   }
 
   // Se usuário está autenticado mas não completou onboarding

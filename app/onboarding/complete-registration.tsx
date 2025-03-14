@@ -50,7 +50,12 @@ export default function CompleteRegistrationScreen() {
 
   useEffect(() => {
     if (!isAnonymous) {
-      router.replace("/(tabs)");
+      // Adicionar um pequeno atraso para garantir que todos os estados sejam atualizados
+      const timer = setTimeout(() => {
+        router.replace("/(tabs)");
+      }, 500);
+
+      return () => clearTimeout(timer);
     }
   }, [isAnonymous, router]);
 
@@ -96,7 +101,10 @@ export default function CompleteRegistrationScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     // Validar a segunda etapa (senha e confirmação)
-    const validationResult = validateRegistrationStep2(password, confirmPassword);
+    const validationResult = validateRegistrationStep2(
+      password,
+      confirmPassword
+    );
     if (!validationResult.isValid) {
       setError(validationResult.message);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -104,7 +112,12 @@ export default function CompleteRegistrationScreen() {
     }
 
     // Validar o formulário completo para garantir que todos os dados estão corretos
-    const fullValidationResult = validateRegistration(name, email, password, confirmPassword);
+    const fullValidationResult = validateRegistration(
+      name,
+      email,
+      password,
+      confirmPassword
+    );
     if (!fullValidationResult.isValid) {
       setError(fullValidationResult.message);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

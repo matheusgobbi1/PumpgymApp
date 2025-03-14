@@ -108,7 +108,7 @@ export default function LoginScreen() {
             ]}
           >
             {/* Logo e Nome do App */}
-            <Animated.View 
+            <Animated.View
               entering={FadeInDown.delay(100).duration(1000)}
               style={styles.logoContainer}
             >
@@ -121,13 +121,14 @@ export default function LoginScreen() {
             {/* Texto e Botões */}
             <View style={styles.bottomContainer}>
               {/* Texto central */}
-              <Animated.View 
+              <Animated.View
                 entering={FadeInDown.delay(200).duration(1000)}
                 style={styles.centralTextContainer}
               >
                 <Text style={styles.titleText}>Acompanhe seu progresso</Text>
                 <Text style={styles.subtitleText}>
-                  Registre suas refeições e treinos para alcançar suas metas e uma vida mais saudável
+                  Registre suas refeições e treinos para alcançar suas metas e
+                  uma vida mais saudável
                 </Text>
               </Animated.View>
 
@@ -135,11 +136,7 @@ export default function LoginScreen() {
               <View style={styles.buttonsContainer}>
                 <AnimatedTouchableOpacity
                   entering={FadeInUp.delay(400).duration(800)}
-                  style={[
-                    styles.button,
-                    styles.primaryButton,
-                    { backgroundColor: colors.primary },
-                  ]}
+                  style={[styles.button, styles.primaryButton]}
                   onPress={handleStartAnonymously}
                   activeOpacity={0.8}
                 >
@@ -157,20 +154,35 @@ export default function LoginScreen() {
                   activeOpacity={0.8}
                 >
                   <Text style={styles.loginLinkText}>
-                    Já tem conta? <Text style={styles.loginLinkHighlight}>Entrar</Text>
+                    Já tem conta?{" "}
+                    <Text style={styles.loginLinkHighlight}>Entrar</Text>
                   </Text>
                 </AnimatedTouchableOpacity>
               </View>
             </View>
 
             {/* Texto de rodapé */}
-            <Animated.Text
+            <Animated.View
               entering={FadeIn.delay(600).duration(800)}
-              style={styles.footerText}
+              style={styles.footerContainer}
             >
-              Ao continuar, você concorda com nossos termos de uso e política de
-              privacidade
-            </Animated.Text>
+              <Text style={styles.footerText}>
+                Ao continuar, você concorda com nossos{" "}
+                <Text
+                  style={styles.footerLink}
+                  onPress={() => router.push("/terms-of-use")}
+                >
+                  termos de uso
+                </Text>{" "}
+                e{" "}
+                <Text
+                  style={styles.footerLink}
+                  onPress={() => router.push("/privacy-policy")}
+                >
+                  política de privacidade
+                </Text>
+              </Text>
+            </Animated.View>
           </View>
         </ImageBackground>
 
@@ -187,7 +199,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: "#1a1a1a",
   },
   backgroundImage: {
     flex: 1,
@@ -220,7 +232,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
     textAlign: "center",
     marginBottom: 10,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowColor: "rgba(0, 0, 0, 0.75)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
@@ -231,7 +243,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     maxWidth: "100%",
     lineHeight: 22,
-    textShadowColor: 'rgba(0, 0, 0, 0.7)',
+    textShadowColor: "rgba(0, 0, 0, 0.7)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
     alignSelf: "center",
@@ -255,7 +267,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   primaryButton: {
-    backgroundColor: "#4ecdc4",
+    backgroundColor: "#000000",
   },
   buttonText: {
     color: "#FFFFFF",
@@ -279,23 +291,31 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "bold",
   },
+  footerContainer: {
+    marginBottom: 10,
+    alignItems: "center",
+  },
   footerText: {
     color: "rgba(255, 255, 255, 0.7)",
     fontSize: 12,
     textAlign: "center",
-    marginBottom: 10,
     fontWeight: "200",
   },
+  footerLink: {
+    color: "#FFFFFF",
+    fontWeight: "500",
+    textDecorationLine: "underline",
+  },
   logoContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 20,
   },
   appName: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 28,
-    fontWeight: '600',
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    fontWeight: "600",
+    textShadowColor: "rgba(0, 0, 0, 0.75)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },

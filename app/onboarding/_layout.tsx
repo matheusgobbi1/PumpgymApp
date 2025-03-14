@@ -1,32 +1,39 @@
-import React, { useState, useEffect } from "react";
-import { View, StyleSheet } from "react-native";
+import React from "react";
+import { View, StyleSheet, StatusBar, Platform } from "react-native";
 import { Stack } from "expo-router";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function OnboardingLayout() {
   const { theme } = useTheme();
   const colors = Colors[theme];
-
-  // Estado para forçar re-renderização quando o tema mudar
-  const [, setForceUpdate] = useState({});
-
-  // Efeito para forçar a re-renderização quando o tema mudar
-  useEffect(() => {
-    setForceUpdate({});
-  }, [theme]);
+  const insets = useSafeAreaInsets();
 
   return (
     <View
-      key={`onboarding-container-${theme}`}
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+          paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+        },
+      ]}
     >
+      <StatusBar
+        backgroundColor={colors.background}
+        barStyle={theme === "dark" ? "light-content" : "dark-content"}
+        translucent={true}
+      />
+
       <Stack
-        key={`onboarding-stack-${theme}`}
         screenOptions={{
           headerShown: false,
           animation: "slide_from_right",
-          contentStyle: { backgroundColor: colors.background },
+          contentStyle: {
+            backgroundColor: colors.background,
+          },
+          presentation: "card",
         }}
       >
         <Stack.Screen

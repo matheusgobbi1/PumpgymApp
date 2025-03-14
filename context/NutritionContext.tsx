@@ -417,128 +417,143 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
   };
 
   const calculateMacros = () => {
-    const {
-      gender,
-      trainingFrequency,
-      birthDate,
-      height,
-      weight,
-      goal,
-      weightChangeRate,
-      dietType = "classic",
-    } = nutritionInfo;
+    try {
+      const {
+        gender,
+        trainingFrequency,
+        birthDate,
+        height,
+        weight,
+        goal,
+        weightChangeRate,
+        dietType = "classic",
+      } = nutritionInfo;
 
-    if (
-      !gender ||
-      !trainingFrequency ||
-      !birthDate ||
-      !height ||
-      !weight ||
-      !goal ||
-      !weightChangeRate
-    ) {
-      return;
+      if (
+        !gender ||
+        !trainingFrequency ||
+        !birthDate ||
+        !height ||
+        !weight ||
+        !goal ||
+        !weightChangeRate
+      ) {
+        console.warn("Dados insuficientes para calcular macros");
+        return;
+      }
+
+      // Calcular idade precisa
+      const preciseAge = calculatePreciseAge(birthDate);
+
+      // Calcular BMR usando Mifflin-St Jeor
+      let bmr = 0;
+      if (gender === "male") {
+        bmr = 10 * weight + 6.25 * height - 5 * preciseAge + 5;
+      } else {
+        bmr = 10 * weight + 6.25 * height - 5 * preciseAge - 161;
+      }
+
+      // Fator de atividade ajustado para ser mais conservador
+      let activityFactor = 1.2;
+      switch (trainingFrequency) {
+        case "sedentary":
+          activityFactor = 1.2;
+          break;
+        case "light":
+          activityFactor = 1.3;
+          break;
+        case "moderate":
+          activityFactor = 1.45;
+          break;
+        case "intense":
+          activityFactor = 1.6;
+          break;
+        case "athlete":
+          activityFactor = 1.75;
+          break;
+      }
+
+      // TDEE (Total Daily Energy Expenditure)
+      const maintenanceCalories = Math.round(bmr * activityFactor);
+
+      // Ajuste calórico baseado no objetivo
+      let targetCalories = maintenanceCalories;
+      if (goal === "lose") {
+        // Déficit de 20-25% para cutting
+        targetCalories = Math.round(maintenanceCalories * 0.8);
+      } else if (goal === "gain") {
+        // Superávit de 10-15% para bulking
+        targetCalories = Math.round(maintenanceCalories * 1.1);
+      }
+
+      // Cálculo de macros ajustado
+      let proteinPerKg = 0;
+      let fatPercentage = 0;
+
+      if (goal === "lose") {
+        proteinPerKg = 2.2; // Proteína alta para preservar massa magra
+        fatPercentage = 25; // 25% das calorias
+      } else if (goal === "gain") {
+        proteinPerKg = 2.0;
+        fatPercentage = 25;
+      } else {
+        proteinPerKg = 1.8;
+        fatPercentage = 25;
+      }
+
+      // Cálculo em gramas
+      let protein = Math.round(weight * proteinPerKg);
+      let fat = Math.round((targetCalories * (fatPercentage / 100)) / 9);
+
+      // Carboidratos preenchem o resto das calorias
+      let carbs = Math.round((targetCalories - (protein * 4 + fat * 9)) / 4);
+
+      // Ajuste final para macros
+      const adjustedMacros = adjustMacrosByDiet(
+        protein,
+        fat,
+        carbs,
+        dietType,
+        targetCalories
+      );
+
+      // Calcular data alvo
+      let targetDate = new Date();
+      if (goal !== "maintain") {
+        const weeksToGoal =
+          Math.abs(weight - (nutritionInfo.targetWeight || weight)) /
+          weightChangeRate;
+        targetDate.setDate(targetDate.getDate() + Math.round(weeksToGoal * 7));
+      }
+
+      // Adicionar cálculos de Health Score e Water Intake
+      const healthScore = calculateHealthScore(nutritionInfo);
+      const waterIntake = calculateWaterIntake(nutritionInfo);
+
+      // Atualizar o estado com os novos valores
+      updateNutritionInfo({
+        calories: targetCalories,
+        protein: adjustedMacros.protein,
+        carbs: adjustedMacros.carbs,
+        fat: adjustedMacros.fat,
+        targetDate,
+        healthScore,
+        waterIntake,
+        activityLevel: trainingFrequency,
+      });
+    } catch (error) {
+      console.error("Erro ao calcular macros:", error);
+
+      // Valores padrão em caso de erro
+      updateNutritionInfo({
+        calories: 2000,
+        protein: 100,
+        carbs: 200,
+        fat: 70,
+        healthScore: 5,
+        waterIntake: 2000,
+      });
     }
-
-    // Calcular idade precisa
-    const preciseAge = calculatePreciseAge(birthDate);
-
-    // Calcular BMR usando Mifflin-St Jeor
-    let bmr = 0;
-    if (gender === "male") {
-      bmr = 10 * weight + 6.25 * height - 5 * preciseAge + 5;
-    } else {
-      bmr = 10 * weight + 6.25 * height - 5 * preciseAge - 161;
-    }
-
-    // Fator de atividade ajustado para ser mais conservador
-    let activityFactor = 1.2;
-    switch (trainingFrequency) {
-      case "sedentary":
-        activityFactor = 1.2;
-        break;
-      case "light":
-        activityFactor = 1.3;
-        break;
-      case "moderate":
-        activityFactor = 1.45;
-        break;
-      case "intense":
-        activityFactor = 1.6;
-        break;
-      case "athlete":
-        activityFactor = 1.75;
-        break;
-    }
-
-    // TDEE (Total Daily Energy Expenditure)
-    const maintenanceCalories = Math.round(bmr * activityFactor);
-
-    // Ajuste calórico baseado no objetivo
-    let targetCalories = maintenanceCalories;
-    if (goal === "lose") {
-      // Déficit de 20-25% para cutting
-      targetCalories = Math.round(maintenanceCalories * 0.8);
-    } else if (goal === "gain") {
-      // Superávit de 10-15% para bulking
-      targetCalories = Math.round(maintenanceCalories * 1.1);
-    }
-
-    // Cálculo de macros ajustado
-    let proteinPerKg = 0;
-    let fatPercentage = 0;
-
-    if (goal === "lose") {
-      proteinPerKg = 2.2; // Proteína alta para preservar massa magra
-      fatPercentage = 25; // 25% das calorias
-    } else if (goal === "gain") {
-      proteinPerKg = 2.0;
-      fatPercentage = 25;
-    } else {
-      proteinPerKg = 1.8;
-      fatPercentage = 25;
-    }
-
-    // Cálculo em gramas
-    let protein = Math.round(weight * proteinPerKg);
-    let fat = Math.round((targetCalories * (fatPercentage / 100)) / 9);
-
-    // Carboidratos preenchem o resto das calorias
-    let carbs = Math.round((targetCalories - (protein * 4 + fat * 9)) / 4);
-
-    // Ajuste final para macros
-    const adjustedMacros = adjustMacrosByDiet(
-      protein,
-      fat,
-      carbs,
-      dietType,
-      targetCalories
-    );
-
-    // Calcular data alvo
-    let targetDate = new Date();
-    if (goal !== "maintain") {
-      const weeksToGoal =
-        Math.abs(weight - (nutritionInfo.targetWeight || weight)) /
-        weightChangeRate;
-      targetDate.setDate(targetDate.getDate() + Math.round(weeksToGoal * 7));
-    }
-
-    // Adicionar cálculos de Health Score e Water Intake
-    const healthScore = calculateHealthScore(nutritionInfo);
-    const waterIntake = calculateWaterIntake(nutritionInfo);
-
-    // Atualizar o estado com os novos valores
-    updateNutritionInfo({
-      calories: targetCalories,
-      protein: adjustedMacros.protein,
-      carbs: adjustedMacros.carbs,
-      fat: adjustedMacros.fat,
-      targetDate,
-      healthScore,
-      waterIntake,
-      activityLevel: trainingFrequency,
-    });
   };
 
   // Função para salvar as informações de nutrição no Firebase

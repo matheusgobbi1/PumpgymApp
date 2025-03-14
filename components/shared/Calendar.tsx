@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useMemo,
-  useEffect,
-  useState,
-  useRef,
-} from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -12,6 +6,7 @@ import {
   TouchableOpacity,
   Dimensions,
   ScrollView,
+  Platform,
 } from "react-native";
 import {
   format,
@@ -23,8 +18,7 @@ import {
   setSeconds,
   setMilliseconds,
 } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { MotiView, useAnimationState } from "moti";
+import { MotiView } from "moti";
 import Colors from "../../constants/Colors";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
@@ -60,19 +54,6 @@ export default function Calendar({
   const scrollViewRef = useRef<ScrollView>(null);
   const initialScrollDone = useRef(false);
 
-  // Estado de animação para o efeito de pulsação do gradiente
-  const gradientAnimationState = useAnimationState({
-    from: {
-      opacity: theme === "light" ? 0.92 : 0.95,
-    },
-    to: {
-      opacity: 1,
-    },
-  });
-
-  // Estado para forçar re-renderização quando o tema mudar
-  const [, setForceUpdate] = useState({});
-
   // Inicializa as datas zerando o horário
   const today = setMilliseconds(
     setSeconds(setMinutes(setHours(new Date(), 0), 0), 0),
@@ -84,9 +65,9 @@ export default function Calendar({
   const gradientColors = useMemo(() => {
     if (theme === "light") {
       return {
-        start: "rgba(255, 255, 255, 1)",
-        middle: "rgba(255, 255, 255, 0.95)",
-        end: "rgba(255, 255, 255, 0)",
+        start: colors.background,
+        middle: `${colors.background}F0`, // 94% opacidade
+        end: `${colors.background}00`, // 0% opacidade
       };
     } else {
       // No modo escuro, criamos um gradiente mais suave
@@ -99,66 +80,13 @@ export default function Calendar({
     }
   }, [theme, colors.background]);
 
-  // Configurações do gradiente baseadas no tema
-  const gradientConfig = useMemo(() => {
-    return {
-      leftStart: { x: 0, y: 0.5 },
-      leftEnd: { x: 0.4, y: 0.5 },
-      rightStart: { x: 0.7, y: 0.5 },
-      rightEnd: { x: 1, y: 0.5 },
-    };
-  }, []);
-
-  // Estilos dinâmicos baseados no tema
-  const dynamicStyles = useMemo(
-    () => ({
-      leftGradient: {
-        position: "absolute" as const,
-        left: 0,
-        top: 0,
-        bottom: 0,
-        width: 150,
-        zIndex: 1,
-        opacity: 1,
-      },
-      rightGradient: {
-        position: "absolute" as const,
-        right: 0,
-        top: 0,
-        bottom: 0,
-        width: 150,
-        zIndex: 1,
-        opacity: 1,
-      },
-      calendarContainer: {
-        position: "relative" as const,
-        width: "100%" as any,
-        backgroundColor: "transparent" as const,
-        ...(theme === "light" && {
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.03,
-          shadowRadius: 8,
-          elevation: 1,
-          borderRadius: 12,
-          borderWidth: 0,
-        }),
-      },
-      scrollView: {
-        backgroundColor: "transparent" as const,
-        ...(theme === "light" && {
-          borderRadius: 12,
-        }),
-      },
-      outerContainer: {
-        overflow: "hidden" as const,
-        ...(theme === "light" && {
-          borderRadius: 12,
-        }),
-      },
-    }),
-    [theme]
-  );
+  // Configurações do gradiente
+  const gradientConfig = {
+    leftStart: { x: 0, y: 0.5 },
+    leftEnd: { x: 0.4, y: 0.5 },
+    rightStart: { x: 0.7, y: 0.5 },
+    rightEnd: { x: 1, y: 0.5 },
+  };
 
   // Gera as datas do calendário
   const dates = useMemo(() => {
@@ -255,54 +183,30 @@ export default function Calendar({
     }
   }, [normalizedSelectedDate, scrollToDate]);
 
-  // Efeito para inicializar a rolagem
-  useEffect(() => {
-    initializeScroll();
-  }, [initializeScroll]);
+  // Função segura para formatar cores com opacidade
+  const safeColorWithOpacity = (color: string, opacity: number) => {
+    try {
+      // Limitar a opacidade entre 0 e 1
+      const safeOpacity = Math.min(1, Math.max(0, opacity));
 
-  // Efeito para forçar a re-renderização quando o tema mudar
-  useEffect(() => {
-    // Forçar re-renderização quando o tema mudar
-    setForceUpdate({});
-  }, [theme]);
+      // Converter para um valor hexadecimal entre 00 e FF
+      const opacityHex = Math.round(safeOpacity * 255)
+        .toString(16)
+        .padStart(2, "0");
 
-  // Efeito para iniciar a animação de pulsação
-  useEffect(() => {
-    // Inicia a animação de pulsação
-    const pulseInterval = setInterval(() => {
-      if (gradientAnimationState.current === "from") {
-        gradientAnimationState.transitionTo("to");
-      } else {
-        gradientAnimationState.transitionTo("from");
-      }
-    }, 3000);
-
-    return () => clearInterval(pulseInterval);
-  }, [gradientAnimationState]);
+      return `${color}${opacityHex}`;
+    } catch (error) {
+      // Em caso de erro, retornar a cor original
+      return color;
+    }
+  };
 
   return (
-    <View style={[styles.outerContainer, dynamicStyles.outerContainer]}>
-      <View
-        key={`calendar-container-${theme}`}
-        style={[
-          styles.container,
-          {
-            backgroundColor: "transparent",
-          },
-        ]}
-      >
-        <View
-          style={[styles.calendarContainer, dynamicStyles.calendarContainer]}
-        >
+    <View style={styles.outerContainer}>
+      <View style={styles.container}>
+        <View style={styles.calendarContainer}>
           {/* Gradiente esquerdo - cobre toda a altura */}
-          <MotiView
-            key={`left-gradient-${theme}`}
-            state={gradientAnimationState}
-            transition={{
-              type: "timing",
-              duration: 2000,
-              delay: 0,
-            }}
+          <View
             style={{
               position: "absolute",
               left: 0,
@@ -324,17 +228,10 @@ export default function Calendar({
               style={{ width: "100%", height: "100%" }}
               pointerEvents="none"
             />
-          </MotiView>
+          </View>
 
           {/* Gradiente direito - cobre toda a altura */}
-          <MotiView
-            key={`right-gradient-${theme}`}
-            state={gradientAnimationState}
-            transition={{
-              type: "timing",
-              duration: 2000,
-              delay: 0,
-            }}
+          <View
             style={{
               position: "absolute",
               right: 0,
@@ -356,7 +253,7 @@ export default function Calendar({
               style={{ width: "100%", height: "100%" }}
               pointerEvents="none"
             />
-          </MotiView>
+          </View>
 
           <ScrollView
             ref={scrollViewRef}
@@ -364,7 +261,8 @@ export default function Calendar({
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
             onLayout={initializeScroll}
-            style={dynamicStyles.scrollView}
+            style={styles.scrollView}
+            removeClippedSubviews={true}
           >
             {dates.map((date) => {
               const isSelected = isSameDay(date, normalizedSelectedDate);
@@ -377,21 +275,18 @@ export default function Calendar({
 
               return (
                 <View
-                  key={`${date.toISOString()}-${theme}`}
-                  style={[styles.dayColumn, { backgroundColor: "transparent" }]}
+                  key={`date-${date.toISOString()}`}
+                  style={styles.dayColumn}
                 >
                   <Text style={[styles.weekDayText, { color: colors.text }]}>
                     {format(date, "EEE").slice(0, 3)}
                   </Text>
                   <TouchableOpacity
                     onPress={() => handleDatePress(date)}
-                    style={[
-                      styles.dayButton,
-                      { backgroundColor: "transparent" },
-                    ]}
+                    style={styles.dayButton}
+                    activeOpacity={0.7}
                   >
                     <MotiView
-                      key={`day-${date.toISOString()}-${theme}`}
                       style={[
                         styles.dayContainer,
                         isSelected && {
@@ -446,13 +341,19 @@ export default function Calendar({
 const styles = StyleSheet.create({
   outerContainer: {
     overflow: "hidden",
+    backgroundColor: "transparent",
   },
   container: {
     width: "100%",
+    backgroundColor: "transparent",
   },
   calendarContainer: {
     position: "relative",
     width: "100%",
+    backgroundColor: "transparent",
+  },
+  scrollView: {
+    backgroundColor: "transparent",
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -461,6 +362,7 @@ const styles = StyleSheet.create({
   dayColumn: {
     alignItems: "center",
     marginHorizontal: 4,
+    backgroundColor: "transparent",
   },
   weekDayText: {
     fontSize: 13,
@@ -468,25 +370,10 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     textTransform: "lowercase",
   },
-  leftGradient: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 150,
-    zIndex: 1,
-  },
-  rightGradient: {
-    position: "absolute",
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: 150,
-    zIndex: 1,
-  },
   dayButton: {
     alignItems: "center",
     paddingBottom: 8,
+    backgroundColor: "transparent",
   },
   dayContainer: {
     width: 40,

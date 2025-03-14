@@ -1,10 +1,33 @@
 import React, { ReactNode, useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, Platform } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Platform,
+  StatusBar,
+  KeyboardAvoidingView,
+  Keyboard,
+  Animated,
+  LayoutAnimation,
+  UIManager,
+} from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
 import Button from "../common/Button";
 import OnboardingHeader from "./OnboardingHeader";
+
+// Habilitar LayoutAnimation para Android
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 interface OnboardingLayoutProps {
   title: string;
@@ -33,66 +56,152 @@ export default function OnboardingLayout({
 }: OnboardingLayoutProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const insets = useSafeAreaInsets();
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [footerHeight] = useState(
+    new Animated.Value(
+      Platform.OS === "ios" ? Math.max(insets.bottom + 24, 40) : 48
+    )
+  );
 
-  // Estado para forçar re-renderização quando o tema mudar
-  const [, setForceUpdate] = useState({});
+  // Configurar animação de layout
+  const configureLayoutAnimation = () => {
+    LayoutAnimation.configureNext({
+      duration: 300,
+      update: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+      },
+    });
+  };
 
-  // Efeito para forçar a re-renderização quando o tema mudar
+  // Monitorar o estado do teclado
   useEffect(() => {
-    // Forçar re-renderização quando o tema mudar
-    setForceUpdate({});
-  }, [theme]);
+    const keyboardWillShowListener =
+      Platform.OS === "ios"
+        ? Keyboard.addListener("keyboardWillShow", () => {
+            configureLayoutAnimation();
+            setIsKeyboardVisible(true);
+          })
+        : null;
+
+    const keyboardDidShowListener = Keyboard.addListener(
+      "keyboardDidShow",
+      () => {
+        if (Platform.OS === "android") {
+          configureLayoutAnimation();
+        }
+        setIsKeyboardVisible(true);
+      }
+    );
+
+    const keyboardWillHideListener =
+      Platform.OS === "ios"
+        ? Keyboard.addListener("keyboardWillHide", () => {
+            configureLayoutAnimation();
+            setIsKeyboardVisible(false);
+          })
+        : null;
+
+    const keyboardDidHideListener = Keyboard.addListener(
+      "keyboardDidHide",
+      () => {
+        if (Platform.OS === "android") {
+          configureLayoutAnimation();
+        }
+        setIsKeyboardVisible(false);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+      keyboardWillShowListener?.remove();
+      keyboardWillHideListener?.remove();
+    };
+  }, []);
+
+  // Calcular o padding inferior com base na plataforma
+  const bottomPadding = isKeyboardVisible
+    ? Platform.OS === "ios"
+      ? 8
+      : 8 // Reduzir quando o teclado estiver visível
+    : Platform.OS === "ios"
+    ? Math.max(insets.bottom, 16) // No iOS, usar o inset inferior ou pelo menos 16
+    : 24; // No Android, usar um valor fixo maior
 
   return (
     <SafeAreaView
-      key={`onboarding-layout-${theme}`}
       style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["left", "right"]}
     >
+      <StatusBar
+        backgroundColor={colors.background}
+        barStyle={theme === "dark" ? "light-content" : "dark-content"}
+        translucent={true}
+      />
+
       <OnboardingHeader
-        key={`onboarding-header-${theme}`}
         currentStep={currentStep}
         totalSteps={totalSteps}
         onBack={onBack}
       />
 
-      <ScrollView
-        key={`onboarding-scroll-${theme}`}
-        style={styles.mainScrollView}
-        contentContainerStyle={styles.mainScrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View key={`onboarding-content-${theme}`} style={styles.content}>
-          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-          {subtitle && (
-            <Text style={[styles.subtitle, { color: colors.text }]}>
-              {subtitle}
-            </Text>
-          )}
+      <View style={{ flex: 1 }}>
+        <ScrollView
+          style={styles.mainScrollView}
+          contentContainerStyle={[
+            styles.mainScrollContent,
+            { paddingBottom: isKeyboardVisible ? 8 : bottomPadding + 20 },
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.content}>
+            <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+            {subtitle && (
+              <Text style={[styles.subtitle, { color: colors.text }]}>
+                {subtitle}
+              </Text>
+            )}
 
-          {error && (
-            <View
-              key={`error-container-${theme}`}
-              style={styles.errorContainer}
-            >
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
+            {error && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
 
-          {children}
-        </View>
-      </ScrollView>
+            {children}
+          </View>
+        </ScrollView>
 
-      <View key={`footer-${theme}`} style={styles.footer}>
-        <Button
-          key={`next-button-${theme}`}
-          title={nextButtonTitle}
-          onPress={onNext}
-          disabled={nextButtonDisabled}
-          hapticFeedback={
-            currentStep === totalSteps ? "notification" : "impact"
-          }
-          hapticIntensity={currentStep === totalSteps ? "heavy" : "medium"}
-        />
+        <Animated.View
+          style={[
+            styles.footer,
+            {
+              paddingBottom: bottomPadding,
+              paddingTop: isKeyboardVisible ? 8 : 16,
+              backgroundColor: colors.background,
+              borderTopWidth: isKeyboardVisible ? 0 : 1,
+              height: isKeyboardVisible
+                ? Platform.OS === "ios"
+                  ? 64
+                  : 56
+                : Platform.OS === "ios"
+                ? Math.max(insets.bottom + 64, 80)
+                : 80,
+            },
+          ]}
+        >
+          <Button
+            title={nextButtonTitle}
+            onPress={onNext}
+            disabled={nextButtonDisabled}
+            hapticFeedback={
+              currentStep === totalSteps ? "notification" : "impact"
+            }
+            hapticIntensity={currentStep === totalSteps ? "heavy" : "medium"}
+          />
+        </Animated.View>
       </View>
     </SafeAreaView>
   );
@@ -107,7 +216,6 @@ const styles = StyleSheet.create({
   },
   mainScrollContent: {
     flexGrow: 1,
-    paddingBottom: 20,
   },
   content: {
     flex: 1,
@@ -136,7 +244,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   footer: {
-    padding: 24,
-    paddingBottom: Platform.OS === "ios" ? 10 : 20,
+    paddingHorizontal: 24,
+    borderTopColor: "rgba(0,0,0,0.05)",
+    justifyContent: "center",
   },
 });

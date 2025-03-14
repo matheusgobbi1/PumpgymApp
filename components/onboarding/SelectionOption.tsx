@@ -36,16 +36,10 @@ export default function SelectionOption({
     // Novo estilo com fundo azul claro e bordas coloridas quando selecionado
     return {
       backgroundColor: isSelected 
-        ? (theme === 'dark' ? 'rgba(255, 255, 255, 0.22)' : 'rgba(0, 0, 0, 0.05)')
+        ? (theme === 'dark' ? colors.primary + "20" : colors.primary + "20")
         : colors.light,
       borderColor: isSelected ? colors.primary : colors.border,
       borderWidth: isSelected ? 2 : 1,
-      // Adicionar sombra sutil para dar profundidade
-      shadowColor: colors.text,
-      shadowOffset: { width: 0, height: isSelected ? 2 : 1 },
-      shadowOpacity: isSelected ? 0.15 : 0.05,
-      shadowRadius: isSelected ? 4 : 2,
-      elevation: isSelected ? 3 : 1,
     };
   };
 

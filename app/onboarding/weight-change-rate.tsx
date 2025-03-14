@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -16,32 +16,9 @@ import Slider from "@react-native-community/slider";
 import { LineChart } from "react-native-chart-kit";
 import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
 import { MotiView } from "moti";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 
 const screenWidth = Dimensions.get("window").width;
-
-// Função para interpolar cores em formato hexadecimal
-const interpolateColor = (color1: string, color2: string, ratio: number) => {
-  // Converter cores hex para RGB
-  const r1 = parseInt(color1.substring(1, 3), 16);
-  const g1 = parseInt(color1.substring(3, 5), 16);
-  const b1 = parseInt(color1.substring(5, 7), 16);
-
-  const r2 = parseInt(color2.substring(1, 3), 16);
-  const g2 = parseInt(color2.substring(3, 5), 16);
-  const b2 = parseInt(color2.substring(5, 7), 16);
-
-  // Interpolar cada componente
-  const r = Math.round(r1 + (r2 - r1) * ratio);
-  const g = Math.round(g1 + (g2 - g1) * ratio);
-  const b = Math.round(b1 + (b2 - b1) * ratio);
-
-  // Converter de volta para hex
-  return `#${r.toString(16).padStart(2, "0")}${g
-    .toString(16)
-    .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
-};
 
 export default function WeightChangeRateScreen() {
   const router = useRouter();
@@ -51,16 +28,8 @@ export default function WeightChangeRateScreen() {
   const sliderRef = useRef<any>(null);
   const animatedScale = useRef(new Animated.Value(1)).current;
 
-  // Estado para forçar re-renderização quando o tema mudar
-  const [, setForceUpdate] = useState({});
-
   // Estado para armazenar a cor atual do gráfico
   const [chartColor, setChartColor] = useState<string>(colors.primary);
-
-  // Efeito para forçar a re-renderização quando o tema mudar
-  useEffect(() => {
-    setForceUpdate({});
-  }, [theme]);
 
   const [rate, setRate] = useState<number>(0.5);
   const [projectedData, setProjectedData] = useState<{
@@ -76,34 +45,26 @@ export default function WeightChangeRateScreen() {
     weeksToGoal: 0,
   });
 
-  // Atualizar a cor do gráfico quando a taxa muda
-  useEffect(() => {
-    // Determinar a cor baseada na taxa
-    let newColor: string;
-    if (rate <= 0.3) {
-      newColor = colors.success;
-    } else if (rate <= 0.6) {
-      newColor = colors.primary;
-    } else if (rate <= 0.9) {
-      newColor = colors.warning;
-    } else {
-      newColor = colors.danger;
-    }
-
-    // Atualizar o estado da cor
-    setChartColor(newColor);
-  }, [rate, colors]);
-
-  // Calcular os dados do gráfico baseado na taxa selecionada
-  useEffect(() => {
+  // Função para calcular os dados do gráfico baseado na taxa selecionada
+  const calculateProjectedData = () => {
     if (!nutritionInfo.weight || !nutritionInfo.targetWeight) return;
 
     const currentWeight = nutritionInfo.weight;
     const targetWeight = nutritionInfo.targetWeight;
     const weeklyChange = rate;
     const totalChange = targetWeight - currentWeight;
-    const weeksToGoal = Math.abs(totalChange / weeklyChange);
-    const isGaining = totalChange > 0;
+
+    // Garantir que weeksToGoal seja um número finito
+    let weeksToGoal = 0;
+    if (weeklyChange !== 0 && isFinite(weeklyChange)) {
+      weeksToGoal = Math.abs(totalChange / weeklyChange);
+      // Limitar para evitar valores infinitos
+      if (!isFinite(weeksToGoal)) {
+        weeksToGoal = 52; // Limitar a 1 ano
+      }
+    } else {
+      weeksToGoal = 52; // Valor padrão se weeklyChange for 0 ou não finito
+    }
 
     // Gerar pontos intermediários para o gráfico
     const numPoints = 5; // Número de pontos no gráfico
@@ -115,7 +76,10 @@ export default function WeightChangeRateScreen() {
     for (let i = 0; i < numPoints; i++) {
       const progress = i / (numPoints - 1);
       const weight = currentWeight + progress * totalChange;
-      data.push(parseFloat(weight.toFixed(1)));
+
+      // Garantir que o peso seja um número finito
+      const safeWeight = isFinite(weight) ? weight : currentWeight;
+      data.push(parseFloat(safeWeight.toFixed(1)));
 
       // Calcular a data para cada ponto
       const pointDate = new Date(today);
@@ -135,6 +99,19 @@ export default function WeightChangeRateScreen() {
 
     const targetDate = dates[dates.length - 1];
 
+    // Atualizar a cor do gráfico baseada na taxa
+    let newColor = colors.primary;
+    if (rate <= 0.3) {
+      newColor = colors.success;
+    } else if (rate <= 0.6) {
+      newColor = colors.primary;
+    } else if (rate <= 0.9) {
+      newColor = colors.warning;
+    } else {
+      newColor = colors.danger;
+    }
+    setChartColor(newColor);
+
     setProjectedData({
       labels,
       datasets: [{ data }],
@@ -142,7 +119,12 @@ export default function WeightChangeRateScreen() {
       weeksToGoal,
       dates,
     });
-  }, [rate, nutritionInfo.weight, nutritionInfo.targetWeight]);
+  };
+
+  // Calcular os dados do gráfico quando a taxa muda
+  React.useEffect(() => {
+    calculateProjectedData();
+  }, [rate, nutritionInfo.weight, nutritionInfo.targetWeight, colors]);
 
   // Função para animar o gráfico quando o valor do slider muda
   const animateChart = () => {
@@ -206,14 +188,6 @@ export default function WeightChangeRateScreen() {
     });
   };
 
-  // Formatar data intermediária
-  const formatIntermediateDate = (date: Date) => {
-    return date.toLocaleDateString("pt-BR", {
-      day: "numeric",
-      month: "short",
-    });
-  };
-
   // Determinar a velocidade baseada na taxa
   const getSpeedText = () => {
     if (rate <= 0.3) return "Conservadora";
@@ -249,14 +223,16 @@ export default function WeightChangeRateScreen() {
 
   // Determinar o texto de descrição
   const getDescriptionText = () => {
-    const diff = Math.abs(getWeightDifference()).toFixed(1);
+    const diff = Math.abs(getWeightDifference());
+    const diffFormatted = isFinite(diff) ? diff.toFixed(1) : "0.0";
     const speedText = getSpeedText().toLowerCase();
     const timeText = Math.ceil(projectedData.weeksToGoal);
+    const safeTimeText = isFinite(timeText) ? timeText : 0;
 
     if (isGainingWeight) {
-      return `Você ganhará ${diff}kg em aproximadamente ${timeText} semanas com uma velocidade ${speedText}.`;
+      return `Você ganhará ${diffFormatted}kg em aproximadamente ${safeTimeText} semanas com uma velocidade ${speedText}.`;
     } else {
-      return `Você perderá ${diff}kg em aproximadamente ${timeText} semanas com uma velocidade ${speedText}.`;
+      return `Você perderá ${diffFormatted}kg em aproximadamente ${safeTimeText} semanas com uma velocidade ${speedText}.`;
     }
   };
 
@@ -268,6 +244,30 @@ export default function WeightChangeRateScreen() {
     { label: "Intensa", value: 1.2 },
   ];
 
+  // Função segura para formatar números
+  const safeNumberFormat = (value: number) => {
+    if (!isFinite(value)) return "0";
+    return value.toFixed(1);
+  };
+
+  // Função segura para formatar cores com opacidade
+  const safeColorWithOpacity = (color: string, opacity: number) => {
+    try {
+      // Limitar a opacidade entre 0 e 1
+      const safeOpacity = Math.min(1, Math.max(0, opacity));
+
+      // Converter para um valor hexadecimal entre 00 e FF
+      const opacityHex = Math.round(safeOpacity * 255)
+        .toString(16)
+        .padStart(2, "0");
+
+      return `${color}${opacityHex}`;
+    } catch (error) {
+      // Em caso de erro, retornar a cor original
+      return color;
+    }
+  };
+
   return (
     <OnboardingLayout
       title="Velocidade da mudança"
@@ -278,7 +278,6 @@ export default function WeightChangeRateScreen() {
       onNext={handleNext}
     >
       <MotiView
-        key={`content-container-${theme}`}
         from={{ opacity: 0, translateY: 20 }}
         animate={{ opacity: 1, translateY: 0 }}
         transition={{ type: "timing", duration: 500 }}
@@ -286,7 +285,6 @@ export default function WeightChangeRateScreen() {
       >
         {/* Card principal com gráfico */}
         <MotiView
-          key={`chart-card-${theme}`}
           from={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: "spring", delay: 200 }}
@@ -294,13 +292,13 @@ export default function WeightChangeRateScreen() {
             styles.chartCard,
             {
               backgroundColor: theme === "dark" ? colors.dark : colors.light,
-              borderColor: getSpeedColor() + "20",
+              borderColor: safeColorWithOpacity(getSpeedColor(), 0.2),
               shadowColor: colors.text,
               overflow: "hidden",
             },
           ]}
         >
-          <View key={`chart-header-${theme}`} style={styles.chartHeader}>
+          <View style={styles.chartHeader}>
             <View>
               <Text style={[styles.chartTitle, { color: colors.text }]}>
                 Projeção de {isGainingWeight ? "Ganho" : "Perda"}
@@ -309,13 +307,16 @@ export default function WeightChangeRateScreen() {
                 style={[
                   styles.chartSubtitle,
                   {
-                    color: colors.text + "80",
+                    color: safeColorWithOpacity(colors.text, 0.5),
                     transform: [{ scale: animatedScale }],
                   },
                 ]}
               >
-                {Math.abs(getWeightDifference()).toFixed(1)}kg em{" "}
-                {Math.ceil(projectedData.weeksToGoal)} semanas
+                {safeNumberFormat(Math.abs(getWeightDifference()))}kg em{" "}
+                {isFinite(projectedData.weeksToGoal)
+                  ? Math.ceil(projectedData.weeksToGoal)
+                  : 0}{" "}
+                semanas
               </Animated.Text>
             </View>
             <Ionicons
@@ -326,132 +327,121 @@ export default function WeightChangeRateScreen() {
           </View>
 
           <Animated.View
-            key={`chart-container-${theme}`}
             style={[
               styles.chartContainer,
               { transform: [{ scale: animatedScale }] },
             ]}
           >
-            <LineChart
-              data={{
-                labels: projectedData.labels,
-                datasets: [
-                  {
-                    data: projectedData.datasets[0].data,
-                    color: (opacity = 1) => {
-                      return (
-                        chartColor +
-                        Math.round(opacity * 255)
-                          .toString(16)
-                          .padStart(2, "0")
-                      );
+            {projectedData.datasets[0].data.length > 0 && (
+              <LineChart
+                data={{
+                  labels: projectedData.labels,
+                  datasets: [
+                    {
+                      data: projectedData.datasets[0].data,
+                      color: () => getSpeedColor(),
+                      strokeWidth: 2,
                     },
+                  ],
+                }}
+                width={screenWidth - 80}
+                height={180}
+                chartConfig={{
+                  backgroundColor: "transparent",
+                  backgroundGradientFrom:
+                    theme === "dark" ? colors.dark : colors.light,
+                  backgroundGradientTo:
+                    theme === "dark" ? colors.dark : colors.light,
+                  decimalPlaces: 1,
+                  color: () => getSpeedColor(),
+                  labelColor: () => safeColorWithOpacity(colors.text, 0.7),
+                  style: {
+                    borderRadius: 16,
                   },
-                ],
-              }}
-              width={screenWidth - 80}
-              height={180}
-              chartConfig={{
-                backgroundColor: "transparent",
-                backgroundGradientFrom:
-                  theme === "dark" ? colors.dark : colors.light,
-                backgroundGradientTo:
-                  theme === "dark" ? colors.dark : colors.light,
-                decimalPlaces: 1,
-                color: (opacity = 1) => {
-                  return (
-                    chartColor +
-                    Math.round(opacity * 255)
-                      .toString(16)
-                      .padStart(2, "0")
-                  );
-                },
-                labelColor: (opacity = 1) =>
-                  colors.text + (opacity * 100).toString(16).padStart(2, "0"),
-                style: {
-                  borderRadius: 16,
-                },
-                propsForDots: {
-                  r: "6",
-                  strokeWidth: "2",
-                  stroke: chartColor,
-                },
-                propsForBackgroundLines: {
-                  stroke: colors.border + "40",
-                  strokeDasharray: "5, 5",
-                },
-                propsForLabels: {
-                  fontWeight: "bold",
-                  fontSize: 10,
-                },
-                fillShadowGradient: chartColor,
-                fillShadowGradientOpacity: 0.2,
-              }}
-              bezier
-              style={styles.chart}
-              withInnerLines={false}
-              withOuterLines={false}
-              withHorizontalLabels={true}
-              withVerticalLabels={true}
-              withDots={true}
-              segments={4}
-              fromZero={false}
-              yAxisSuffix="kg"
-              renderDotContent={({ x, y, index }) => {
-                if (
-                  index === 0 ||
-                  index === projectedData.datasets[0].data.length - 1
-                ) {
-                  return (
-                    <View
-                      key={`dot-label-${index}-${theme}-${rate}`}
-                      style={{
-                        position: "absolute",
-                        top: y - 36,
-                        left: x - 30,
-                        width: 60,
-                        alignItems: "center",
-                      }}
-                    >
+                  propsForDots: {
+                    r: "6",
+                    strokeWidth: "2",
+                    stroke: getSpeedColor(),
+                  },
+                  propsForBackgroundLines: {
+                    stroke: safeColorWithOpacity(colors.border, 0.25),
+                    strokeDasharray: "5, 5",
+                  },
+                  propsForLabels: {
+                    fontWeight: "bold",
+                    fontSize: 10,
+                  },
+                  fillShadowGradient: getSpeedColor(),
+                  fillShadowGradientOpacity: 0.2,
+                }}
+                bezier
+                style={styles.chart}
+                withInnerLines={false}
+                withOuterLines={false}
+                withHorizontalLabels={true}
+                withVerticalLabels={true}
+                withDots={true}
+                segments={4}
+                fromZero={false}
+                yAxisSuffix="kg"
+                renderDotContent={({ x, y, index }) => {
+                  if (
+                    index === 0 ||
+                    index === projectedData.datasets[0].data.length - 1
+                  ) {
+                    return (
                       <View
+                        key={`dot-label-${index}`}
                         style={{
-                          backgroundColor: chartColor + "20",
-                          paddingHorizontal: 8,
-                          paddingVertical: 4,
-                          borderRadius: 12,
-                          borderWidth: 1,
-                          borderColor: chartColor,
+                          position: "absolute",
+                          top: y - 36,
+                          left: x - 30,
+                          width: 60,
+                          alignItems: "center",
                         }}
                       >
-                        <Text
+                        <View
                           style={{
-                            color: chartColor,
-                            fontSize: 10,
-                            fontWeight: "bold",
+                            backgroundColor: safeColorWithOpacity(
+                              getSpeedColor(),
+                              0.2
+                            ),
+                            paddingHorizontal: 8,
+                            paddingVertical: 4,
+                            borderRadius: 12,
+                            borderWidth: 1,
+                            borderColor: getSpeedColor(),
                           }}
                         >
-                          {projectedData.datasets[0].data[index]}kg
-                        </Text>
+                          <Text
+                            style={{
+                              color: getSpeedColor(),
+                              fontSize: 10,
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {safeNumberFormat(
+                              projectedData.datasets[0].data[index]
+                            )}
+                            kg
+                          </Text>
+                        </View>
                       </View>
-                    </View>
-                  );
-                }
-                return null;
-              }}
-            />
+                    );
+                  }
+                  return null;
+                }}
+              />
+            )}
 
             {/* Datas de início e fim simplificadas */}
-            <View
-              key={`chart-dates-${theme}-${rate}`}
-              style={styles.chartDates}
-            >
+            <View style={styles.chartDates}>
               <MotiView
-                key={`start-date-${theme}-${rate}`}
                 style={[
                   styles.dateChip,
                   {
-                    backgroundColor: chartColor + "10",
-                    borderColor: chartColor + "30",
+                    backgroundColor: safeColorWithOpacity(getSpeedColor(), 0.1),
+                    borderColor: safeColorWithOpacity(getSpeedColor(), 0.3),
                     left: 0,
                   },
                 ]}
@@ -459,18 +449,17 @@ export default function WeightChangeRateScreen() {
                 animate={{ opacity: 1, translateY: 0 }}
                 transition={{ type: "spring", delay: 200 }}
               >
-                <Text style={[styles.dateChipText, { color: chartColor }]}>
+                <Text style={[styles.dateChipText, { color: getSpeedColor() }]}>
                   Hoje
                 </Text>
               </MotiView>
 
               <MotiView
-                key={`end-date-${theme}-${rate}`}
                 style={[
                   styles.dateChip,
                   {
-                    backgroundColor: chartColor + "10",
-                    borderColor: chartColor + "30",
+                    backgroundColor: safeColorWithOpacity(getSpeedColor(), 0.1),
+                    borderColor: safeColorWithOpacity(getSpeedColor(), 0.3),
                     right: 0,
                   },
                 ]}
@@ -478,9 +467,12 @@ export default function WeightChangeRateScreen() {
                 animate={{ opacity: 1, translateY: 0 }}
                 transition={{ type: "spring", delay: 300 }}
               >
-                <Text style={[styles.dateChipText, { color: chartColor }]}>
+                <Text style={[styles.dateChipText, { color: getSpeedColor() }]}>
                   {formatShortDate(projectedData.targetDate)} •{" "}
-                  {Math.ceil(projectedData.weeksToGoal)} semanas
+                  {isFinite(projectedData.weeksToGoal)
+                    ? Math.ceil(projectedData.weeksToGoal)
+                    : 0}{" "}
+                  semanas
                 </Text>
               </MotiView>
             </View>
@@ -489,7 +481,6 @@ export default function WeightChangeRateScreen() {
 
         {/* Card de velocidade */}
         <MotiView
-          key={`speed-card-${theme}`}
           from={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: "spring", delay: 300 }}
@@ -497,17 +488,17 @@ export default function WeightChangeRateScreen() {
             styles.speedCard,
             {
               backgroundColor: theme === "dark" ? colors.dark : colors.light,
-              borderColor: getSpeedColor() + "20",
+              borderColor: safeColorWithOpacity(getSpeedColor(), 0.2),
               shadowColor: colors.text,
               overflow: "hidden",
             },
           ]}
         >
-          <View key={`speed-header-${theme}`} style={styles.speedHeader}>
+          <View style={styles.speedHeader}>
             <View
               style={[
                 styles.speedIconContainer,
-                { backgroundColor: getSpeedColor() + "20" },
+                { backgroundColor: safeColorWithOpacity(getSpeedColor(), 0.2) },
               ]}
             >
               <Ionicons
@@ -529,15 +520,12 @@ export default function WeightChangeRateScreen() {
                   },
                 ]}
               >
-                {rate.toFixed(1)}kg por semana
+                {safeNumberFormat(rate)}kg por semana
               </Animated.Text>
             </View>
           </View>
 
-          <View
-            key={`slider-container-${theme}`}
-            style={styles.sliderContainer}
-          >
+          <View style={styles.sliderContainer}>
             <Slider
               ref={sliderRef}
               style={styles.slider}
@@ -551,19 +539,19 @@ export default function WeightChangeRateScreen() {
               thumbTintColor={getSpeedColor()}
             />
 
-            <View key={`preset-buttons-${theme}`} style={styles.presetButtons}>
+            <View style={styles.presetButtons}>
               {speedPresets.map((preset, index) => (
                 <TouchableOpacity
-                  key={`preset-${index}-${theme}`}
+                  key={`preset-${index}`}
                   style={[
                     styles.presetButton,
                     {
                       backgroundColor:
                         Math.abs(rate - preset.value) < 0.05
-                          ? getSpeedColor() + "20"
+                          ? safeColorWithOpacity(getSpeedColor(), 0.2)
                           : theme === "dark"
-                          ? colors.dark + "80"
-                          : colors.light + "80",
+                          ? safeColorWithOpacity(colors.dark, 0.8)
+                          : safeColorWithOpacity(colors.light, 0.8),
                       borderColor:
                         Math.abs(rate - preset.value) < 0.05
                           ? getSpeedColor()
@@ -597,7 +585,6 @@ export default function WeightChangeRateScreen() {
 
         {/* Card de informações */}
         <MotiView
-          key={`info-card-${theme}`}
           from={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: "spring", delay: 400 }}
@@ -605,36 +592,57 @@ export default function WeightChangeRateScreen() {
             styles.infoCard,
             {
               backgroundColor: theme === "dark" ? colors.dark : colors.light,
-              borderColor: colors.primary + "20",
+              borderColor: safeColorWithOpacity(colors.primary, 0.2),
               shadowColor: colors.text,
               overflow: "hidden",
             },
           ]}
         >
-          <View key={`info-content-${theme}`} style={styles.infoContent}>
+          <View style={styles.infoContent}>
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
-                <Text style={[styles.infoLabel, { color: colors.text + "80" }]}>
+                <Text
+                  style={[
+                    styles.infoLabel,
+                    { color: safeColorWithOpacity(colors.text, 0.5) },
+                  ]}
+                >
                   Peso Atual
                 </Text>
                 <Text style={[styles.infoValue, { color: colors.text }]}>
-                  {nutritionInfo.weight?.toFixed(1)}kg
+                  {nutritionInfo.weight
+                    ? safeNumberFormat(nutritionInfo.weight)
+                    : "0"}
+                  kg
                 </Text>
               </View>
 
               <View style={styles.infoItem}>
-                <Text style={[styles.infoLabel, { color: colors.text + "80" }]}>
+                <Text
+                  style={[
+                    styles.infoLabel,
+                    { color: safeColorWithOpacity(colors.text, 0.5) },
+                  ]}
+                >
                   Peso Meta
                 </Text>
                 <Text style={[styles.infoValue, { color: colors.text }]}>
-                  {nutritionInfo.targetWeight?.toFixed(1)}kg
+                  {nutritionInfo.targetWeight
+                    ? safeNumberFormat(nutritionInfo.targetWeight)
+                    : "0"}
+                  kg
                 </Text>
               </View>
             </View>
 
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
-                <Text style={[styles.infoLabel, { color: colors.text + "80" }]}>
+                <Text
+                  style={[
+                    styles.infoLabel,
+                    { color: safeColorWithOpacity(colors.text, 0.5) },
+                  ]}
+                >
                   Data Prevista
                 </Text>
                 <Animated.Text
@@ -653,7 +661,6 @@ export default function WeightChangeRateScreen() {
           </View>
 
           <View
-            key={`info-footer-${theme}`}
             style={[
               styles.infoFooter,
               {
@@ -674,7 +681,7 @@ export default function WeightChangeRateScreen() {
               style={[
                 styles.infoText,
                 {
-                  color: colors.text + "80",
+                  color: safeColorWithOpacity(colors.text, 0.5),
                   transform: [{ scale: animatedScale }],
                 },
               ]}

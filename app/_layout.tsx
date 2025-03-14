@@ -3,7 +3,7 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useCallback } from "react";
-import { useColorScheme } from "react-native";
+import { useColorScheme, StatusBar, Platform, View } from "react-native";
 import { AuthProvider } from "../context/AuthContext";
 import { NutritionProvider } from "../context/NutritionContext";
 import { MealProvider } from "../context/MealContext";
@@ -57,8 +57,7 @@ export default function RootLayout() {
       const timeoutId = setTimeout(async () => {
         try {
           await SplashScreen.hideAsync();
-        } catch (e) {
-        }
+        } catch (e) {}
       }, 3000);
 
       return () => clearTimeout(timeoutId);
@@ -83,8 +82,7 @@ function RootLayoutNav() {
                 <MealProvider>
                   <WorkoutProvider>
                     <RefreshProvider>
-                      <OfflineNotice />
-                      <StackNavigator />
+                      <AppContent />
                     </RefreshProvider>
                   </WorkoutProvider>
                 </MealProvider>
@@ -97,52 +95,81 @@ function RootLayoutNav() {
   );
 }
 
-function StackNavigator() {
+function AppContent() {
   const { theme } = useTheme();
+  const colors = Colors[theme];
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: {
-          backgroundColor: Colors[theme].background,
-        },
-      }}
-    >
-      <Stack.Screen name="index" />
-      <Stack.Screen name="auth/login" />
-      <Stack.Screen name="auth/register" />
-      <Stack.Screen name="onboarding" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="(add-food)" />
-      <Stack.Screen
-        name="notifications-modal"
-        options={{
-          presentation: "modal",
-          animation: "slide_from_bottom",
-        }}
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* Configuração da StatusBar para Android e iOS */}
+      <StatusBar
+        backgroundColor={colors.background}
+        barStyle={theme === "dark" ? "light-content" : "dark-content"}
+        translucent={true}
       />
-      <Stack.Screen
-        name="privacy-modal"
-        options={{
-          presentation: "modal",
-          animation: "slide_from_bottom",
+
+      <OfflineNotice />
+
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: {
+            backgroundColor: colors.background,
+          },
+          // Remover bordas e sombras
+          animation: Platform.OS === "android" ? "fade_from_bottom" : undefined,
+          presentation: "card",
         }}
-      />
-      <Stack.Screen
-        name="about-modal"
-        options={{
-          presentation: "modal",
-          animation: "slide_from_bottom",
-        }}
-      />
-      <Stack.Screen
-        name="help-modal"
-        options={{
-          presentation: "modal",
-          animation: "slide_from_bottom",
-        }}
-      />
-    </Stack>
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="auth/login" />
+        <Stack.Screen name="auth/register" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(add-food)" />
+        <Stack.Screen
+          name="terms-of-use"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+          }}
+        />
+        <Stack.Screen
+          name="privacy-policy"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+          }}
+        />
+        <Stack.Screen
+          name="notifications-modal"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+          }}
+        />
+        <Stack.Screen
+          name="privacy-modal"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+          }}
+        />
+        <Stack.Screen
+          name="about-modal"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+          }}
+        />
+        <Stack.Screen
+          name="help-modal"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+          }}
+        />
+      </Stack>
+    </View>
   );
 }

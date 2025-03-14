@@ -2,11 +2,11 @@ import "dotenv/config";
 
 export default {
   name: "FitFolio",
-  slug: "FitFolio",
+  slug: "fitfolio",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
-  scheme: "myapp",
+  scheme: "fitfolio",
   userInterfaceStyle: "automatic",
   splash: {
     image: "./assets/images/splash-icon.png",
@@ -16,17 +16,17 @@ export default {
   assetBundlePatterns: ["**/*"],
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.matheus.fitfolio",
+    bundleIdentifier: "com.fitfolio.app",
     infoPlist: {
-      ITSAppUsesNonExemptEncryption: false
-    }
+      ITSAppUsesNonExemptEncryption: false,
+    },
   },
   android: {
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#ffffff",
     },
-    package: "com.matheus.fitfolio",
+    package: "com.fitfolio.app",
   },
   web: {
     favicon: "./assets/images/favicon.png",
@@ -38,13 +38,13 @@ export default {
     FATSECRET_CLIENT_ID: process.env.EXPO_PUBLIC_FATSECRET_CLIENT_ID,
     FATSECRET_CLIENT_SECRET: process.env.EXPO_PUBLIC_FATSECRET_CLIENT_SECRET,
     eas: {
-      projectId: "1831e653-eb5e-45fc-a600-7a202c73cea9"
+      projectId: "1831e653-eb5e-45fc-a600-7a202c73cea9",
     },
   },
   updates: {
-    url: "https://u.expo.dev/1831e653-eb5e-45fc-a600-7a202c73cea9"
+    url: "https://u.expo.dev/1831e653-eb5e-45fc-a600-7a202c73cea9",
   },
   runtimeVersion: {
-    policy: "appVersion"
-  }
+    policy: "appVersion",
+  },
 };
