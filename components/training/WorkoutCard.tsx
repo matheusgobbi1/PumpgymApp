@@ -32,6 +32,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useAuth } from "../../context/AuthContext";
 import { useRefresh } from "../../context/RefreshContext";
+import ConfirmationModal from "../ui/ConfirmationModal";
 
 const { width } = Dimensions.get("window");
 
@@ -59,7 +60,6 @@ interface WorkoutCardProps {
   index: number;
   onPress: () => void;
   onDeleteExercise: (exerciseId: string) => Promise<void>;
-  onDeleteWorkout?: (workoutId: string) => Promise<void>;
   refreshKey?: number;
 }
 
@@ -70,7 +70,6 @@ export default function WorkoutCard({
   index,
   onPress,
   onDeleteExercise,
-  onDeleteWorkout,
   refreshKey,
 }: WorkoutCardProps) {
   const router = useRouter();
@@ -79,7 +78,7 @@ export default function WorkoutCard({
   const { user } = useAuth();
   const userId = user?.uid || "no-user";
   const { refreshKey: contextRefreshKey } = useRefresh();
-  
+
   // Combinar refreshKey da prop com o do contexto
   const combinedRefreshKey = refreshKey || contextRefreshKey;
 
@@ -87,6 +86,10 @@ export default function WorkoutCard({
   const [expandedExercises, setExpandedExercises] = useState<{
     [key: string]: boolean;
   }>({});
+
+  // Estado para controlar o modal de confirmação
+  const [showDeleteExerciseModal, setShowDeleteExerciseModal] = useState(false);
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string>("");
 
   // Efeito para forçar a re-renderização quando o tema ou usuário mudar
   useEffect(() => {
@@ -128,7 +131,7 @@ export default function WorkoutCard({
   // Função para navegar para os detalhes do exercício
   const navigateToExerciseDetails = (exercise: Exercise) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
+
     // Preparar os dados do exercício para passar como parâmetro
     const exerciseData = {
       id: exercise.id,
@@ -139,7 +142,7 @@ export default function WorkoutCard({
       cardioDuration: exercise.cardioDuration,
       cardioIntensity: exercise.cardioIntensity,
     };
-    
+
     // Navegar para a tela de detalhes do exercício como um modal
     router.push({
       pathname: "/(add-exercise)/exercise-details",
@@ -148,7 +151,7 @@ export default function WorkoutCard({
         workoutId: workout.id,
         workoutName: workout.name,
         workoutColor: workout.color,
-        mode: 'edit',
+        mode: "edit",
         exerciseData: JSON.stringify(exerciseData),
       },
     });
@@ -174,90 +177,15 @@ export default function WorkoutCard({
         styles.deleteAction,
         { backgroundColor: colors.danger || "#FF3B30" },
       ]}
-      onPress={async () => {
+      onPress={() => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        
-        // Confirmar exclusão
-        Alert.alert(
-          "Excluir Exercício",
-          "Tem certeza que deseja excluir este exercício?",
-          [
-            {
-              text: "Cancelar",
-              style: "cancel",
-            },
-            {
-              text: "Excluir",
-              style: "destructive",
-              onPress: async () => {
-                await onDeleteExercise(exerciseId);
-              },
-            },
-          ]
-        );
+        setSelectedExerciseId(exerciseId);
+        setShowDeleteExerciseModal(true);
       }}
     >
       <Ionicons name="trash-outline" size={24} color="white" />
     </TouchableOpacity>
   );
-
-  // Função para renderizar as ações de deslize à direita para o card de treino
-  const renderWorkoutRightActions = useCallback(() => {
-    console.log(
-      "renderWorkoutRightActions chamado, onDeleteWorkout existe:",
-      !!onDeleteWorkout
-    );
-
-    if (!onDeleteWorkout) return null;
-
-    return (
-      <View style={styles.swipeActionContainer}>
-        <TouchableOpacity
-          style={[
-            styles.swipeActionWorkout,
-            { backgroundColor: colors.danger + "CC" },
-          ]}
-          onPress={async () => {
-            console.log("Botão de excluir treino pressionado");
-            await handleHapticFeedback();
-
-            // Confirmar antes de excluir
-            Alert.alert(
-              "Excluir Treino",
-              `Tem certeza que deseja excluir o treino "${workout.name}"?`,
-              [
-                {
-                  text: "Cancelar",
-                  style: "cancel",
-                },
-                {
-                  text: "Excluir",
-                  style: "destructive",
-                  onPress: async () => {
-                    console.log(
-                      "Confirmação de exclusão aceita, chamando onDeleteWorkout com ID:",
-                      workout.id
-                    );
-                    if (onDeleteWorkout) {
-                      await onDeleteWorkout(workout.id);
-                    }
-                  },
-                },
-              ]
-            );
-          }}
-        >
-          <Ionicons name="trash-outline" size={24} color="white" />
-          <Text style={styles.swipeActionText}>Excluir</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }, [colors.danger, onDeleteWorkout, handleHapticFeedback, workout]);
-
-  // Cores para os indicadores de treino
-  const weightColor = colors.danger || "#FF3B30"; // Vermelho para carga
-  const repsColor = colors.primary || "#2196F3"; // Azul para repetições
-  const setsColor = colors.success || "#4CAF50"; // Verde para séries
 
   // Função para renderizar um exercício
   const renderExerciseItem = (exercise: Exercise, exerciseIndex: number) => (
@@ -268,6 +196,11 @@ export default function WorkoutCard({
       friction={2}
       overshootRight={false}
       overshootLeft={false}
+      onSwipeableOpen={(direction) => {
+        if (direction === "left") {
+          navigateToExerciseDetails(exercise);
+        }
+      }}
     >
       <Animated.View
         entering={FadeInRight.delay(exerciseIndex * 100).duration(300)}
@@ -347,7 +280,7 @@ export default function WorkoutCard({
                   <View
                     style={[
                       styles.indicatorBar,
-                      { backgroundColor: weightColor },
+                      { backgroundColor: colors.danger || "#FF3B30" },
                     ]}
                   />
                   <Text style={[styles.indicatorValue, { color: colors.text }]}>
@@ -370,7 +303,7 @@ export default function WorkoutCard({
                   <View
                     style={[
                       styles.indicatorBar,
-                      { backgroundColor: repsColor },
+                      { backgroundColor: colors.primary || "#2196F3" },
                     ]}
                   />
                   <Text style={[styles.indicatorValue, { color: colors.text }]}>
@@ -393,7 +326,7 @@ export default function WorkoutCard({
                   <View
                     style={[
                       styles.indicatorBar,
-                      { backgroundColor: setsColor },
+                      { backgroundColor: colors.success || "#4CAF50" },
                     ]}
                   />
                   <Text style={[styles.indicatorValue, { color: colors.text }]}>
@@ -564,136 +497,24 @@ export default function WorkoutCard({
   );
 
   return (
-    <Swipeable
-      renderRightActions={renderWorkoutRightActions}
-      friction={2}
-      overshootRight={false}
-      containerStyle={styles.swipeableContainer}
-    >
-      <MotiView
-        key={`workout-card-${workout.id}`}
-        style={[styles.workoutCard, { backgroundColor: colors.light }]}
-        from={{ opacity: 0, translateY: 20 }}
-        animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: "spring", delay: index * 100 }}
+    <>
+      <Swipeable
+        friction={2}
+        overshootRight={false}
+        containerStyle={styles.swipeableContainer}
       >
-        <View style={styles.workoutContent}>
-          <TouchableOpacity
-            style={styles.headerTouchable}
-            onPress={onPress}
-            activeOpacity={0.7}
-          >
-            <View style={styles.workoutHeader}>
-              <View style={styles.workoutTitleContainer}>
-                <View
-                  style={[
-                    styles.workoutIconContainer,
-                    { backgroundColor: workout.color + "30" },
-                  ]}
-                >
-                  {/* Determinar qual biblioteca de ícones usar com base no nome */}
-                  {workout.icon.includes("material-") ? (
-                    <MaterialCommunityIcons
-                      name={workout.icon.replace("material-", "") as any}
-                      size={18}
-                      color={workout.color}
-                    />
-                  ) : workout.icon.includes("fa5-") ? (
-                    <FontAwesome5
-                      name={workout.icon.replace("fa5-", "") as any}
-                      size={18}
-                      color={workout.color}
-                    />
-                  ) : (
-                    <Ionicons
-                      name={workout.icon as any}
-                      size={18}
-                      color={workout.color}
-                    />
-                  )}
-                </View>
-                <View>
-                  <Text style={[styles.workoutTitle, { color: colors.text }]}>
-                    {workout.name}
-                  </Text>
-                  {exercises.length > 0 && (
-                    <Text
-                      style={[
-                        styles.exerciseCount,
-                        { color: colors.text + "70" },
-                      ]}
-                    >
-                      {exercises.length}{" "}
-                      {exercises.length === 1 ? "exercício" : "exercícios"}
-                    </Text>
-                  )}
-                </View>
-              </View>
-              <View style={styles.workoutStatsContainer}>
-                <Text style={[styles.volumeValue, { color: workout.color }]}>
-                  {formatVolume(workoutTotals.totalVolume)}
-                </Text>
-                <Text
-                  style={[styles.volumeLabel, { color: colors.text + "70" }]}
-                >
-                  volume
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-
-          {exercises.length > 0 && (
-            <View
-              style={[
-                styles.progressContainer,
-                { backgroundColor: colors.border },
-              ]}
-            >
-              <View
-                style={[
-                  styles.progressBar,
-                  { backgroundColor: workout.color },
-                  { width: `100%` },
-                ]}
-              />
-            </View>
-          )}
-
-          <View style={styles.exercisesContainer}>
-            {exercises.length > 0 ? (
-              <View style={styles.exercisesList}>
-                {exercises.map((exercise, exerciseIndex) =>
-                  renderExerciseItem(exercise, exerciseIndex)
-                )}
-              </View>
-            ) : (
-              <MotiView
-                from={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ type: "timing", duration: 500 }}
-                style={styles.emptyContainer}
-              >
-                <LinearGradient
-                  colors={[colors.light, colors.background]}
-                  style={styles.emptyGradient}
-                >
-                  <Text
-                    style={[styles.emptyText, { color: colors.text + "50" }]}
-                  >
-                    Adicione seu primeiro exercício
-                  </Text>
-                </LinearGradient>
-              </MotiView>
-            )}
-          </View>
-
-          <View style={styles.addButtonContainer}>
+        <MotiView
+          key={`workout-card-${workout.id}`}
+          style={[styles.workoutCard, { backgroundColor: colors.light }]}
+          from={{ opacity: 0, translateY: 20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: "spring", delay: index * 100 }}
+        >
+          <View style={styles.workoutContent}>
             <TouchableOpacity
-              style={[styles.addButton, { borderColor: workout.color }]}
-              onPress={(e) => {
-                e.stopPropagation();
+              style={styles.headerTouchable}
+              onPress={() => {
                 handleHapticFeedback();
-                // Navegar para a tela de adicionar exercício
                 router.push({
                   pathname: "/(add-exercise)",
                   params: {
@@ -703,13 +524,158 @@ export default function WorkoutCard({
                   },
                 });
               }}
+              activeOpacity={0.7}
             >
-              <Ionicons name="add" size={20} color={workout.color} />
+              <View style={styles.workoutHeader}>
+                <View style={styles.workoutTitleContainer}>
+                  <View
+                    style={[
+                      styles.workoutIconContainer,
+                      { backgroundColor: workout.color + "30" },
+                    ]}
+                  >
+                    {/* Determinar qual biblioteca de ícones usar com base no nome */}
+                    {workout.icon.includes("material-") ? (
+                      <MaterialCommunityIcons
+                        name={workout.icon.replace("material-", "") as any}
+                        size={18}
+                        color={workout.color}
+                      />
+                    ) : workout.icon.includes("fa5-") ? (
+                      <FontAwesome5
+                        name={workout.icon.replace("fa5-", "") as any}
+                        size={18}
+                        color={workout.color}
+                      />
+                    ) : (
+                      <Ionicons
+                        name={workout.icon as any}
+                        size={18}
+                        color={workout.color}
+                      />
+                    )}
+                  </View>
+                  <View>
+                    <Text style={[styles.workoutTitle, { color: colors.text }]}>
+                      {workout.name}
+                    </Text>
+                    {exercises.length > 0 && (
+                      <Text
+                        style={[
+                          styles.exerciseCount,
+                          { color: colors.text + "70" },
+                        ]}
+                      >
+                        {exercises.length}{" "}
+                        {exercises.length === 1 ? "exercício" : "exercícios"}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+                <View style={styles.workoutStatsContainer}>
+                  <Text style={[styles.volumeValue, { color: workout.color }]}>
+                    {formatVolume(workoutTotals.totalVolume)}
+                  </Text>
+                  <Text
+                    style={[styles.volumeLabel, { color: colors.text + "70" }]}
+                  >
+                    volume
+                  </Text>
+                </View>
+              </View>
             </TouchableOpacity>
+
+            {exercises.length > 0 && (
+              <View
+                style={[
+                  styles.progressContainer,
+                  { backgroundColor: colors.border },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.progressBar,
+                    { backgroundColor: workout.color },
+                    { width: `100%` },
+                  ]}
+                />
+              </View>
+            )}
+
+            <View style={styles.exercisesContainer}>
+              {exercises.length > 0 ? (
+                <View style={styles.exercisesList}>
+                  {exercises.map((exercise, exerciseIndex) =>
+                    renderExerciseItem(exercise, exerciseIndex)
+                  )}
+                </View>
+              ) : (
+                <MotiView
+                  from={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ type: "timing", duration: 500 }}
+                  style={styles.emptyContainer}
+                >
+                  <LinearGradient
+                    colors={[colors.light, colors.background]}
+                    style={styles.emptyGradient}
+                  >
+                    <Text
+                      style={[styles.emptyText, { color: colors.text + "50" }]}
+                    >
+                      Adicione seu primeiro exercício
+                    </Text>
+                  </LinearGradient>
+                </MotiView>
+              )}
+            </View>
+
+            <View style={styles.addButtonContainer}>
+              <TouchableOpacity
+                style={[styles.addButton, { borderColor: workout.color }]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleHapticFeedback();
+                  // Navegar para a tela de adicionar exercício
+                  router.push({
+                    pathname: "/(add-exercise)",
+                    params: {
+                      workoutId: workout.id,
+                      workoutName: workout.name,
+                      workoutColor: workout.color,
+                    },
+                  });
+                }}
+              >
+                <Ionicons name="add" size={20} color={workout.color} />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </MotiView>
-    </Swipeable>
+        </MotiView>
+      </Swipeable>
+
+      {/* Modal de confirmação para excluir exercício */}
+      <ConfirmationModal
+        visible={showDeleteExerciseModal}
+        title="Excluir Exercício"
+        message="Tem certeza que deseja excluir este exercício? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        confirmType="danger"
+        icon="trash-outline"
+        onConfirm={async () => {
+          if (selectedExerciseId) {
+            await onDeleteExercise(selectedExerciseId);
+          }
+          setShowDeleteExerciseModal(false);
+          setSelectedExerciseId("");
+        }}
+        onCancel={() => {
+          setShowDeleteExerciseModal(false);
+          setSelectedExerciseId("");
+        }}
+      />
+    </>
   );
 }
 
@@ -997,27 +963,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: 70,
   },
-  swipeActionContainer: {
-    height: "100%",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  swipeActionWorkout: {
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-    width: 100,
-    backgroundColor: "rgba(255, 59, 48, 0.9)",
-    paddingHorizontal: 10,
-  },
-  swipeActionText: {
-    color: "white",
-    fontSize: 10,
-    marginTop: 4,
-  },
   deleteAction: {
     justifyContent: "center",
     alignItems: "center",
     width: 70,
+    height: "100%",
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
   },
 });

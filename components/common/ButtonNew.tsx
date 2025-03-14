@@ -14,13 +14,21 @@ import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
+import { FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { MotiView } from "moti";
 
 interface ButtonNewProps {
   title: string;
   onPress: () => void;
-  variant?: "primary" | "secondary" | "outline" | "gradient" | "danger" | "success" | "ghost";
+  variant?:
+    | "primary"
+    | "secondary"
+    | "outline"
+    | "gradient"
+    | "danger"
+    | "success"
+    | "ghost";
   size?: "small" | "medium" | "large";
   disabled?: boolean;
   loading?: boolean;
@@ -28,7 +36,8 @@ interface ButtonNewProps {
   textStyle?: TextStyle;
   hapticFeedback?: "selection" | "impact" | "notification" | "none";
   hapticIntensity?: "light" | "medium" | "heavy";
-  iconName?: keyof typeof Ionicons.glyphMap;
+  iconName?: string;
+  iconType?: "ionicons" | "fontawesome5";
   iconPosition?: "left" | "right";
   iconSize?: number;
   gradientColors?: string[];
@@ -51,6 +60,7 @@ export default function ButtonNew({
   hapticFeedback = "impact",
   hapticIntensity = "medium",
   iconName,
+  iconType = "ionicons",
   iconPosition = "left",
   iconSize,
   gradientColors,
@@ -62,19 +72,23 @@ export default function ButtonNew({
 }: ButtonNewProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
-  
+
   // Estado para animação de pressionar
   const [pressAnim] = useState(new Animated.Value(1));
-  
+
   // Determinar o tamanho do ícone com base no tamanho do botão
   const getIconSize = () => {
     if (iconSize) return iconSize;
-    
+
     switch (size) {
-      case "small": return 16;
-      case "medium": return 20;
-      case "large": return 24;
-      default: return 20;
+      case "small":
+        return 16;
+      case "medium":
+        return 20;
+      case "large":
+        return 24;
+      default:
+        return 20;
     }
   };
 
@@ -122,7 +136,7 @@ export default function ButtonNew({
     if (disabled) {
       return theme === "dark" ? "#333" : "#e0e0e0";
     }
-    
+
     switch (variant) {
       case "outline":
         return colors.primary;
@@ -158,7 +172,7 @@ export default function ButtonNew({
         return 48;
     }
   };
-  
+
   const getFontSize = () => {
     switch (size) {
       case "small":
@@ -174,7 +188,7 @@ export default function ButtonNew({
 
   const handlePressIn = () => {
     if (disabled || loading) return;
-    
+
     if (animated) {
       Animated.timing(pressAnim, {
         toValue: 0.95,
@@ -187,7 +201,7 @@ export default function ButtonNew({
 
   const handlePressOut = () => {
     if (disabled || loading) return;
-    
+
     if (animated) {
       Animated.timing(pressAnim, {
         toValue: 1,
@@ -228,17 +242,19 @@ export default function ButtonNew({
 
     onPress();
   };
-  
+
   // Renderizar o ícone
   const renderIcon = () => {
     if (!iconName) return null;
-    
+
+    const IconComponent = iconType === "fontawesome5" ? FontAwesome5 : Ionicons;
+
     return (
-      <Ionicons 
-        name={iconName} 
-        size={getIconSize()} 
-        color={getTextColor()} 
-        style={iconPosition === "left" ? styles.iconLeft : styles.iconRight} 
+      <IconComponent
+        name={iconName as any}
+        size={getIconSize()}
+        color={getTextColor()}
+        style={iconPosition === "left" ? styles.iconLeft : styles.iconRight}
       />
     );
   };
@@ -250,15 +266,15 @@ export default function ButtonNew({
       ) : (
         <View style={styles.contentContainer}>
           {iconName && iconPosition === "left" && renderIcon()}
-          <Text 
+          <Text
             style={[
-              styles.text, 
-              { 
+              styles.text,
+              {
                 color: getTextColor(),
                 fontSize: getFontSize(),
-                textTransform: uppercase ? 'uppercase' : 'none',
-              }, 
-              textStyle
+                textTransform: uppercase ? "uppercase" : "none",
+              },
+              textStyle,
             ]}
           >
             {title}
@@ -268,7 +284,7 @@ export default function ButtonNew({
       )}
     </>
   );
-  
+
   // Estilo base do botão
   const baseButtonStyle = [
     styles.button,
@@ -288,7 +304,7 @@ export default function ButtonNew({
     },
     style,
   ];
-  
+
   // Estilo de animação
   const animatedStyle = {
     transform: [{ scale: pressAnim }],
@@ -296,12 +312,16 @@ export default function ButtonNew({
 
   if (variant === "gradient") {
     // Definir cores padrão para o gradiente
-    const defaultGradientColors: [string, string] = [colors.primary, colors.secondary];
+    const defaultGradientColors: [string, string] = [
+      colors.primary,
+      colors.secondary,
+    ];
     // Garantir que gradientColors seja do tipo correto ou usar o padrão
-    const finalGradientColors = gradientColors && gradientColors.length >= 2 
-      ? [gradientColors[0], gradientColors[1]] as [string, string]
-      : defaultGradientColors;
-      
+    const finalGradientColors =
+      gradientColors && gradientColors.length >= 2
+        ? ([gradientColors[0], gradientColors[1]] as [string, string])
+        : defaultGradientColors;
+
     return (
       <Animated.View style={animated ? animatedStyle : undefined}>
         <TouchableOpacity
@@ -371,4 +391,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-}); 
+});

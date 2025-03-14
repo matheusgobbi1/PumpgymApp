@@ -17,7 +17,7 @@ import React, {
   useEffect,
   useMemo,
 } from "react";
-import Calendar from '../../components/shared/Calendar';
+import Calendar from "../../components/shared/Calendar";
 import { getLocalDate } from "../../utils/dateUtils";
 import { format } from "date-fns";
 import EmptyWorkoutState from "../../components/training/EmptyWorkoutState";
@@ -33,6 +33,7 @@ import { useRouter } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
 import { useRefresh } from "../../context/RefreshContext";
 import { Ionicons } from "@expo/vector-icons";
+import ConfirmationModal from "../../components/ui/ConfirmationModal";
 
 // Componente memoizado para o card de treino
 const MemoizedWorkoutGroup = React.memo(
@@ -112,6 +113,8 @@ export default function TrainingScreen() {
   const { refreshKey, triggerRefresh } = useRefresh();
   // Estado para forçar a recriação do WorkoutConfigSheet
   const [workoutConfigKey, setWorkoutConfigKey] = useState(Date.now());
+  // Estado para controlar a visibilidade do modal de confirmação
+  const [resetModalVisible, setResetModalVisible] = useState(false);
 
   // Usar o contexto de treinos
   const {
@@ -197,19 +200,23 @@ export default function TrainingScreen() {
           router.replace("/training");
         } else {
           // Se ainda não estiver montado, tentar novamente após um tempo maior
-          console.log("WorkoutConfigSheet ref ainda não está disponível, tentando novamente...");
+          console.log(
+            "WorkoutConfigSheet ref ainda não está disponível, tentando novamente..."
+          );
           setTimeout(() => {
             if (workoutConfigSheetRef.current) {
               workoutConfigSheetRef.current.present();
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               router.replace("/training");
             } else {
-              console.log("WorkoutConfigSheet ref ainda não disponível após segunda tentativa");
+              console.log(
+                "WorkoutConfigSheet ref ainda não disponível após segunda tentativa"
+              );
             }
           }, 1000);
         }
       }, 500);
-      
+
       return () => clearTimeout(timer);
     }
   }, [params, router]);
@@ -247,14 +254,14 @@ export default function TrainingScreen() {
     (configuredWorkouts: WorkoutType[]) => {
       // Aqui precisamos apenas atualizar os tipos de treino disponíveis
       // sem vinculá-los ao dia atual. Isso já é feito pelo template semanal.
-      
+
       // Desmarcar a seleção de todos os workoutTypes para que não sejam
       // adicionados automaticamente ao dia atual
-      const typesWithoutSelection = configuredWorkouts.map(workout => ({
+      const typesWithoutSelection = configuredWorkouts.map((workout) => ({
         ...workout,
-        selected: false
+        selected: false,
       }));
-      
+
       updateWorkoutTypes(typesWithoutSelection);
     },
     [updateWorkoutTypes]
@@ -326,7 +333,7 @@ export default function TrainingScreen() {
     // Usar o triggerRefresh do contexto para atualizar todos os componentes
     triggerRefresh();
     // Simular carregamento de dados
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
     setRefreshing(false);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
@@ -334,30 +341,23 @@ export default function TrainingScreen() {
   // Função para redefinir os tipos de treino
   const handleResetWorkoutTypes = useCallback(async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    // Mostrar o modal de confirmação
+    setResetModalVisible(true);
+  }, []);
 
-    // Confirmar a redefinição
-    Alert.alert(
-      "Redefinir Treinos",
-      "Tem certeza que deseja redefinir todos os tipos de treino? Esta ação não pode ser desfeita.",
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Redefinir",
-          style: "destructive",
-          onPress: async () => {
-            // Primeiro, redefinir os tipos de treino
-            await resetWorkoutTypes();
-            // Forçar a recriação do WorkoutConfigSheet
-            setWorkoutConfigKey(Date.now());
-            console.log("Treinos redefinidos");
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          },
-        },
-      ]
-    );
+  // Função para confirmar a redefinição dos tipos de treino
+  const confirmResetWorkoutTypes = useCallback(async () => {
+    try {
+      // Redefinir os tipos de treino
+      await resetWorkoutTypes();
+      // Forçar a recriação do WorkoutConfigSheet
+      setWorkoutConfigKey(Date.now());
+      console.log("Treinos redefinidos");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error("Erro ao redefinir treinos:", error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
   }, [resetWorkoutTypes]);
 
   // Obter os tipos de treino configurados
@@ -457,7 +457,7 @@ export default function TrainingScreen() {
             if (hasWorkouts) {
               return true;
             }
-            
+
             return false;
           } catch (error) {
             console.error("Erro ao verificar treinos para a data:", error);
@@ -466,7 +466,13 @@ export default function TrainingScreen() {
         }}
       />
     ),
-    [selectedDate, handleDateSelect, workouts, weeklyTemplate, getWorkoutsForDate]
+    [
+      selectedDate,
+      handleDateSelect,
+      workouts,
+      weeklyTemplate,
+      getWorkoutsForDate,
+    ]
   );
 
   return (
@@ -493,7 +499,7 @@ export default function TrainingScreen() {
               ? renderWorkoutCards()
               : emptyStateComponent
             : emptyStateComponent}
-            
+
           {/* Botões de redefinir e editar treinos (apenas mostrar se houver treinos configurados) */}
           {hasWorkoutTypesConfigured && (
             <>
@@ -503,7 +509,11 @@ export default function TrainingScreen() {
                 style={[styles.resetButton, { borderColor: colors.border }]}
                 onPress={handleResetWorkoutTypes}
               >
-                <Ionicons name="refresh-outline" size={20} color={colors.primary} />
+                <Ionicons
+                  name="refresh-outline"
+                  size={20}
+                  color={colors.primary}
+                />
                 <Text style={[styles.resetButtonText, { color: colors.text }]}>
                   Redefinir Treinos
                 </Text>
@@ -528,6 +538,19 @@ export default function TrainingScreen() {
         onWorkoutConfigured={handleWorkoutConfigured}
         selectedDate={getLocalDate(selectedDate)}
         key={`workout-config-${workoutConfigKey}-${theme}`}
+      />
+
+      {/* Modal de confirmação para redefinir treinos */}
+      <ConfirmationModal
+        visible={resetModalVisible}
+        title="Redefinir Treinos"
+        message="Tem certeza que deseja redefinir todos os tipos de treino? Esta ação não pode ser desfeita."
+        confirmText="Redefinir"
+        cancelText="Cancelar"
+        confirmType="danger"
+        icon="refresh-outline"
+        onConfirm={confirmResetWorkoutTypes}
+        onCancel={() => setResetModalVisible(false)}
       />
     </SafeAreaView>
   );

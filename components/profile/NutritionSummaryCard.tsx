@@ -500,7 +500,7 @@ export default function NutritionSummaryCard() {
         >
           <View style={styles.statCardContent}>
             <View style={[styles.statIconContainer, { backgroundColor: '#FF6B6B15' }]}>
-              <MaterialCommunityIcons name="fire" size={18} color="#FF6B6B" />
+              <MaterialCommunityIcons name="fire" size={18} color="#FF1F02" />
             </View>
             <View style={styles.statTextContainer}>
               <Text style={[styles.statLabel, { color: colors.text }]} numberOfLines={1}>Calorias</Text>

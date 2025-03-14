@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
-import Calendar from '../../components/shared/Calendar';
+import Calendar from "../../components/shared/Calendar";
 import { useNutrition } from "../../context/NutritionContext";
 import {
   useMeals,
@@ -36,6 +36,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useRefresh } from "../../context/RefreshContext";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import ConfirmationModal from "../../components/ui/ConfirmationModal";
 
 const { width } = Dimensions.get("window");
 
@@ -115,6 +116,9 @@ export default function NutritionScreen() {
   // Estado para forçar a recriação do MealConfigSheet
   const [mealConfigKey, setMealConfigKey] = useState(Date.now());
 
+  // Estado para controlar a visibilidade do modal de confirmação
+  const [resetModalVisible, setResetModalVisible] = useState(false);
+
   // Ref para o bottom sheet de configuração de refeições
   const mealConfigSheetRef = useRef<BottomSheetModal>(null);
 
@@ -166,7 +170,7 @@ export default function NutritionScreen() {
       }
     } else {
       console.error("Referência do bottom sheet é null em NutritionScreen");
-      
+
       // Tentar novamente após um pequeno atraso
       if (params?.openMealConfig === "true") {
         setTimeout(() => {
@@ -174,7 +178,9 @@ export default function NutritionScreen() {
             mealConfigSheetRef.current.present();
             router.replace("/nutrition");
           } else {
-            console.error("MealConfigSheet ref ainda não disponível após segunda tentativa");
+            console.error(
+              "MealConfigSheet ref ainda não disponível após segunda tentativa"
+            );
           }
         }, 500);
       }
@@ -208,7 +214,10 @@ export default function NutritionScreen() {
           id: meal.id,
           name: meal.name,
           icon: meal.icon,
-          color: meal.color || DEFAULT_MEAL_COLORS[meal.id] || DEFAULT_MEAL_COLORS.other,
+          color:
+            meal.color ||
+            DEFAULT_MEAL_COLORS[meal.id] ||
+            DEFAULT_MEAL_COLORS.other,
         })
       );
 
@@ -221,14 +230,25 @@ export default function NutritionScreen() {
   // Função para redefinir as refeições
   const handleResetMealTypes = useCallback(async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    // Mostrar o modal de confirmação
+    setResetModalVisible(true);
+  }, []);
 
-    // Primeiro, redefinir as refeições
-    await resetMealTypes();
+  // Função para confirmar a redefinição das refeições
+  const confirmResetMealTypes = useCallback(async () => {
+    try {
+      // Primeiro, redefinir as refeições
+      await resetMealTypes();
 
-    // Forçar a recriação do componente MealConfigSheet
-    setMealConfigKey(Date.now());
+      // Forçar a recriação do componente MealConfigSheet
+      setMealConfigKey(Date.now());
 
-    console.log("Refeições redefinidas");
+      console.log("Refeições redefinidas");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error("Erro ao redefinir refeições:", error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
   }, [resetMealTypes]);
 
   // Obter os tipos de refeições configuradas
@@ -237,7 +257,8 @@ export default function NutritionScreen() {
       id: type.id,
       name: type.name,
       icon: type.icon,
-      color: type.color || DEFAULT_MEAL_COLORS[type.id] || DEFAULT_MEAL_COLORS.other,
+      color:
+        type.color || DEFAULT_MEAL_COLORS[type.id] || DEFAULT_MEAL_COLORS.other,
       foods: [],
     }));
   }, [mealTypes]);
@@ -278,7 +299,7 @@ export default function NutritionScreen() {
     // Usar o triggerRefresh do contexto para atualizar todos os componentes
     triggerRefresh();
     // Simular carregamento de dados
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
     setRefreshing(false);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
@@ -319,6 +340,19 @@ export default function NutritionScreen() {
             key={`meal-config-empty-${mealConfigKey}-${theme}`}
           />
         </View>
+
+        {/* Modal de confirmação para redefinir refeições */}
+        <ConfirmationModal
+          visible={resetModalVisible}
+          title="Redefinir Refeições"
+          message="Tem certeza que deseja redefinir todos os tipos de refeição? Esta ação não pode ser desfeita."
+          confirmText="Redefinir"
+          cancelText="Cancelar"
+          confirmType="danger"
+          icon="refresh-outline"
+          onConfirm={confirmResetMealTypes}
+          onCancel={() => setResetModalVisible(false)}
+        />
       </SafeAreaView>
     );
   }
@@ -352,6 +386,19 @@ export default function NutritionScreen() {
             {emptyStateComponent}
           </ScrollView>
         </View>
+
+        {/* Modal de confirmação para redefinir refeições */}
+        <ConfirmationModal
+          visible={resetModalVisible}
+          title="Redefinir Refeições"
+          message="Tem certeza que deseja redefinir todos os tipos de refeição? Esta ação não pode ser desfeita."
+          confirmText="Redefinir"
+          cancelText="Cancelar"
+          confirmType="danger"
+          icon="refresh-outline"
+          onConfirm={confirmResetMealTypes}
+          onCancel={() => setResetModalVisible(false)}
+        />
       </SafeAreaView>
     );
   }
@@ -425,6 +472,19 @@ export default function NutritionScreen() {
           key={`meal-config-configured-${mealConfigKey}-${theme}`}
         />
       </View>
+
+      {/* Modal de confirmação para redefinir refeições */}
+      <ConfirmationModal
+        visible={resetModalVisible}
+        title="Redefinir Refeições"
+        message="Tem certeza que deseja redefinir todos os tipos de refeição? Esta ação não pode ser desfeita."
+        confirmText="Redefinir"
+        cancelText="Cancelar"
+        confirmType="danger"
+        icon="refresh-outline"
+        onConfirm={confirmResetMealTypes}
+        onCancel={() => setResetModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }

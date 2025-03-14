@@ -18,9 +18,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { MotiView } from "moti";
 import { searchFoods } from "../../services/food";
 import { FoodItem } from "../../types/food";
-import {
-  translateMeasure,
-} from "../../utils/translateUtils";
+import { translateMeasure } from "../../utils/translateUtils";
 import { debounce } from "lodash";
 import { useMeals, Food } from "../../context/MealContext";
 import * as Haptics from "expo-haptics";
@@ -138,7 +136,7 @@ const FoodItemSkeleton = ({ index }: { index: number }) => {
 // Componente de Skeleton para a lista de resultados
 const SearchResultsSkeleton = () => {
   const { theme } = useTheme();
-  
+
   return (
     <>
       {[...Array(5)].map((_, index) => (
@@ -157,14 +155,14 @@ export default function AddFoodScreen() {
   const [searchResults, setSearchResults] = useState<FoodItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { 
-    meals, 
-    selectedDate, 
-    addFoodToMeal, 
+  const {
+    meals,
+    selectedDate,
+    addFoodToMeal,
     saveMeals,
     searchHistory,
     addToSearchHistory,
-    clearSearchHistory 
+    clearSearchHistory,
   } = useMeals();
   const [recentlyAddedFoods, setRecentlyAddedFoods] = useState<
     {
@@ -181,7 +179,7 @@ export default function AddFoodScreen() {
 
   // Adicionar estado para forçar re-renderização quando o tema mudar
   const [, setForceUpdate] = useState({});
-  
+
   // Adicionar efeito para forçar re-renderização quando o tema mudar
   useEffect(() => {
     setForceUpdate({});
@@ -272,8 +270,6 @@ export default function AddFoodScreen() {
 
     try {
       const response = await searchFoods(query);
-      console.log(`Recebidos ${response.items?.length || 0} resultados da API`);
-      console.log("Primeiro resultado:", response.items && response.items.length > 0 ? JSON.stringify(response.items[0], null, 2) : "Nenhum");
       setSearchResults(response.items || []);
     } catch (err) {
       setError("Erro ao buscar alimentos. Tente novamente.");
@@ -323,12 +319,15 @@ export default function AddFoodScreen() {
   const handleQuickAddFromSearch = async (food: FoodItem) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    // Calcula os valores nutricionais baseado na porção padrão (100g)
+    // Encontrar a porção mais adequada para exibição
+    const preferredServing = getPreferredServing(food.servings);
+
+    // Calcula os valores nutricionais baseado na porção preferida
     const calculatedNutrients = {
-      calories: Math.round(food.servings[0].calories),
-      protein: Math.round(food.servings[0].protein * 10) / 10,
-      carbs: Math.round(food.servings[0].carbohydrate * 10) / 10,
-      fat: Math.round(food.servings[0].fat * 10) / 10,
+      calories: Math.round(preferredServing.calories),
+      protein: Math.round(preferredServing.protein * 10) / 10,
+      carbs: Math.round(preferredServing.carbohydrate * 10) / 10,
+      fat: Math.round(preferredServing.fat * 10) / 10,
     };
 
     const newFood: Food = {
@@ -338,7 +337,8 @@ export default function AddFoodScreen() {
       protein: calculatedNutrients.protein,
       carbs: calculatedNutrients.carbs,
       fat: calculatedNutrients.fat,
-      portion: 100, // Porção padrão de 100g
+      portion: preferredServing.metric_serving_amount || 100,
+      portionDescription: preferredServing.serving_description,
     };
 
     // Adicionar o alimento à refeição
@@ -349,6 +349,91 @@ export default function AddFoodScreen() {
 
     // Salvar as alterações
     await saveMeals();
+  };
+
+  // Função para obter a porção preferida para exibição
+  const getPreferredServing = (servings: FoodServing[]): FoodServing => {
+    if (!servings || servings.length === 0) {
+      // Fallback para uma porção padrão se não houver nenhuma
+      return {
+        serving_id: "default",
+        serving_description: "100g",
+        metric_serving_amount: 100,
+        metric_serving_unit: "g",
+        calories: 0,
+        protein: 0,
+        fat: 0,
+        carbohydrate: 0,
+      };
+    }
+
+    // Verificar se há uma porção de embalagem (como "1 unidade", "1 pacote", etc.)
+    const packageServing = servings.find(
+      (serving) =>
+        serving.serving_description.toLowerCase().includes("unidade") ||
+        serving.serving_description.toLowerCase().includes("pacote") ||
+        serving.serving_description.toLowerCase().includes("embalagem") ||
+        serving.serving_description.toLowerCase().includes("pote") ||
+        serving.serving_description.toLowerCase().includes("garrafa") ||
+        serving.serving_description.toLowerCase().includes("lata") ||
+        serving.serving_description.toLowerCase().includes("copo") ||
+        serving.serving_description.toLowerCase().includes("bar") ||
+        serving.serving_description.toLowerCase().includes("piece") ||
+        (serving.serving_description.toLowerCase().includes("g") &&
+          !serving.serving_description.toLowerCase().includes("100g"))
+    );
+
+    // Se encontrou uma porção de embalagem, use-a
+    if (packageServing) {
+      return packageServing;
+    }
+
+    // Caso contrário, use a primeira porção (geralmente 100g)
+    return servings[0];
+  };
+
+  // Função para exibir a descrição da porção de forma amigável
+  const getServingDescription = (food: FoodItem): string => {
+    if (!food.servings || food.servings.length === 0) {
+      return "100g";
+    }
+
+    const preferredServing = getPreferredServing(food.servings);
+
+    // Se for uma porção especial (não apenas gramas), mostrar a descrição e calorias
+    if (
+      preferredServing.serving_description &&
+      (preferredServing.serving_description.toLowerCase().includes("unidade") ||
+        preferredServing.serving_description.toLowerCase().includes("pacote") ||
+        preferredServing.serving_description
+          .toLowerCase()
+          .includes("embalagem") ||
+        preferredServing.serving_description.toLowerCase().includes("pote") ||
+        preferredServing.serving_description
+          .toLowerCase()
+          .includes("garrafa") ||
+        preferredServing.serving_description.toLowerCase().includes("lata") ||
+        preferredServing.serving_description.toLowerCase().includes("copo") ||
+        preferredServing.serving_description.toLowerCase().includes("bar") ||
+        preferredServing.serving_description.toLowerCase().includes("piece") ||
+        !preferredServing.serving_description.toLowerCase().includes("g"))
+    ) {
+      return `${preferredServing.serving_description} (${preferredServing.calories} kcal)`;
+    }
+
+    // Para porções em gramas que não são 100g, mostrar o peso
+    if (
+      preferredServing.metric_serving_amount &&
+      preferredServing.metric_serving_amount !== 100 &&
+      preferredServing.serving_description.toLowerCase().includes("g")
+    ) {
+      return `${preferredServing.serving_description} (${preferredServing.calories} kcal)`;
+    }
+
+    // Para 100g, mostrar apenas o peso
+    return `${Math.round(
+      preferredServing.metric_serving_amount || 100
+    )}g por porção`;
   };
 
   const handleFoodSelect = (food: FoodItem) => {
@@ -407,8 +492,6 @@ export default function AddFoodScreen() {
   };
 
   const renderSearchResults = () => {
-    console.log(`Renderizando ${searchResults.length} resultados`);
-    
     if (isLoading) {
       return <SearchResultsSkeleton />;
     }
@@ -435,7 +518,7 @@ export default function AddFoodScreen() {
 
     // Limitar a 10 resultados
     const limitedResults = searchResults.slice(0, 10);
-    
+
     return limitedResults.map((result, index) => {
       // Verificar se o resultado tem as propriedades necessárias
       if (!result.food_name) {
@@ -462,12 +545,7 @@ export default function AddFoodScreen() {
               <Text
                 style={[styles.foodCategory, { color: colors.text + "80" }]}
               >
-                {result.servings && result.servings[0] && 
-                  (result.servings[0].serving_description.includes("bar") || 
-                   result.servings[0].serving_description.includes("piece") || 
-                   result.servings[0].serving_description.includes("serving"))
-                  ? `${result.servings[0].serving_description} (${result.servings[0].calories} kcal)`
-                  : `${Math.round(result.servings[0].metric_serving_amount || 100)}g por porção`}
+                {getServingDescription(result)}
               </Text>
             </View>
             <TouchableOpacity
@@ -508,7 +586,10 @@ export default function AddFoodScreen() {
       </View>
 
       {/* Search Bar */}
-      <View key={`search-container-${theme}`} style={[styles.searchContainer, { backgroundColor: colors.light }]}>
+      <View
+        key={`search-container-${theme}`}
+        style={[styles.searchContainer, { backgroundColor: colors.light }]}
+      >
         <Ionicons
           name="search"
           size={20}
@@ -523,7 +604,7 @@ export default function AddFoodScreen() {
           onChangeText={setSearchQuery}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity 
+          <TouchableOpacity
             key={`clear-search-${theme}`}
             onPress={() => setSearchQuery("")}
           >
@@ -567,13 +648,18 @@ export default function AddFoodScreen() {
       >
         {/* Histórico de Adições Recentes */}
         {searchHistory.length > 0 && !searchQuery && (
-          <View key={`recent-history-${theme}`} style={styles.recentHistorySection}>
+          <View
+            key={`recent-history-${theme}`}
+            style={styles.recentHistorySection}
+          >
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
                 Adicionados Recentemente
               </Text>
               <TouchableOpacity onPress={clearSearchHistory}>
-                <Text style={[styles.clearHistoryText, { color: colors.danger }]}>
+                <Text
+                  style={[styles.clearHistoryText, { color: colors.danger }]}
+                >
                   Limpar Histórico
                 </Text>
               </TouchableOpacity>
@@ -606,7 +692,7 @@ export default function AddFoodScreen() {
                         { color: colors.text + "80" },
                       ]}
                     >
-                      {food.portionDescription 
+                      {food.portionDescription
                         ? `${food.portionDescription} • ${food.calories} kcal`
                         : `${food.portion}g • ${food.calories} kcal`}
                     </Text>
@@ -809,13 +895,13 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   clearHistoryText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });

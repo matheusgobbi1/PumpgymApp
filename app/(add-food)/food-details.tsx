@@ -61,7 +61,10 @@ const LoadingSkeleton = () => {
         {/* Macros Circles Skeleton */}
         <View style={styles.macrosContainer}>
           {[...Array(4)].map((_, index) => (
-            <View key={`macro-circle-${index}-${theme}`} style={styles.macroCircle}>
+            <View
+              key={`macro-circle-${index}-${theme}`}
+              style={styles.macroCircle}
+            >
               <MotiView
                 key={`skeleton-circle-${index}-${theme}`}
                 from={{ opacity: 0.5 }}
@@ -127,13 +130,13 @@ export default function FoodDetailsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isFromHistory, setIsFromHistory] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  
+
   // Estado para controlar se os gráficos devem ser renderizados
   const [shouldRenderCharts, setShouldRenderCharts] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
-  
+
   const [, setForceUpdate] = useState({});
-  
+
   useEffect(() => {
     setForceUpdate({});
   }, [theme]);
@@ -146,13 +149,13 @@ export default function FoodDetailsScreen() {
         setShouldRenderCharts(true);
         // Forçar atualização do componente
         setForceUpdate({});
-        
+
         // Adicionar requestAnimationFrame para garantir a renderização no próximo frame
         requestAnimationFrame(() => {
           setForceUpdate({});
         });
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
   }, [isLoading, food]);
@@ -184,40 +187,45 @@ export default function FoodDetailsScreen() {
 
   useEffect(() => {
     // Verificar se estamos no modo de edição
-    if (mode === 'edit') {
+    if (mode === "edit") {
       setIsEditMode(true);
     }
-    
+
     // Verificar se o alimento vem do histórico
     if (params.isFromHistory === "true") {
       setIsFromHistory(true);
-      
+
       // Se estamos no modo de edição, usar os valores passados
       if (isEditMode) {
         setPortion(foodPortion.toString());
       }
-      
+
       // Se temos uma descrição de porção personalizada, desabilitar o modo de porção customizada
-      if (foodPortionDescription && foodPortionDescription !== `${foodPortion}g`) {
+      if (
+        foodPortionDescription &&
+        foodPortionDescription !== `${foodPortion}g`
+      ) {
         setIsCustomPortion(false);
       }
-      
+
       // Criar um objeto de alimento com os dados passados via parâmetros
       const historyFood: FoodItem = {
         food_id: foodId,
         food_name: foodName,
         food_type: "Generic foods",
         food_url: "",
-        servings: [{
-          serving_id: "0",
-          serving_description: foodPortionDescription || `${foodPortion}g`,
-          metric_serving_amount: foodPortion,
-          metric_serving_unit: "g",
-          calories: foodCalories,
-          protein: foodProtein,
-          carbohydrate: foodCarbs,
-          fat: foodFat,
-        }],
+        servings: [
+          {
+            serving_id: "0",
+            serving_description: foodPortionDescription || `${foodPortion}g`,
+            metric_serving_amount: foodPortion,
+            metric_serving_unit: "g",
+            calories: foodCalories,
+            protein: foodProtein,
+            carbohydrate: foodCarbs,
+            fat: foodFat,
+          },
+        ],
       };
 
       setFood(historyFood);
@@ -228,29 +236,94 @@ export default function FoodDetailsScreen() {
     }
   }, [foodId, params.isFromHistory, isEditMode]);
 
+  // Função para obter a porção preferida para exibição
+  const getPreferredServing = (servings: FoodServing[]): FoodServing => {
+    if (!servings || servings.length === 0) {
+      // Fallback para uma porção padrão se não houver nenhuma
+      return {
+        serving_id: "default",
+        serving_description: "100g",
+        metric_serving_amount: 100,
+        metric_serving_unit: "g",
+        calories: 0,
+        protein: 0,
+        fat: 0,
+        carbohydrate: 0,
+      };
+    }
+
+    // Verificar se há uma porção de embalagem (como "1 unidade", "1 pacote", etc.)
+    const packageServing = servings.find(
+      (serving) =>
+        serving.serving_description.toLowerCase().includes("unidade") ||
+        serving.serving_description.toLowerCase().includes("pacote") ||
+        serving.serving_description.toLowerCase().includes("embalagem") ||
+        serving.serving_description.toLowerCase().includes("pote") ||
+        serving.serving_description.toLowerCase().includes("garrafa") ||
+        serving.serving_description.toLowerCase().includes("lata") ||
+        serving.serving_description.toLowerCase().includes("copo") ||
+        serving.serving_description.toLowerCase().includes("bar") ||
+        serving.serving_description.toLowerCase().includes("piece") ||
+        (serving.serving_description.toLowerCase().includes("g") &&
+          !serving.serving_description.toLowerCase().includes("100g"))
+    );
+
+    // Se encontrou uma porção de embalagem, use-a
+    if (packageServing) {
+      return packageServing;
+    }
+
+    // Caso contrário, use a primeira porção (geralmente 100g)
+    return servings[0];
+  };
+
   const loadFoodDetails = async () => {
     try {
       const response = await getFoodDetails(foodId);
       if (response.items && response.items.length > 0) {
         const foodItem = response.items[0];
         setFood(foodItem);
-        
+
         // Use a porção real do alimento em vez de forçar 100g
         if (foodItem.servings && foodItem.servings.length > 0) {
           // Determinar qual porção usar
-          const serving = foodItem.servings[0];
-          
+          const preferredServing = getPreferredServing(foodItem.servings);
+
           // Se temos uma descrição específica como "1 bar" e um peso real, use-o
-          if (serving.serving_description && 
-              (serving.serving_description.toLowerCase().includes("bar") || 
-              serving.serving_description.toLowerCase().includes("piece") ||
-              serving.serving_description.toLowerCase().includes("unit") ||
-              serving.serving_description.toLowerCase().includes("fun size") ||
-              serving.serving_description.toLowerCase().includes("mini"))) {
-              
+          if (
+            preferredServing.serving_description &&
+            (preferredServing.serving_description
+              .toLowerCase()
+              .includes("unidade") ||
+              preferredServing.serving_description
+                .toLowerCase()
+                .includes("pacote") ||
+              preferredServing.serving_description
+                .toLowerCase()
+                .includes("embalagem") ||
+              preferredServing.serving_description
+                .toLowerCase()
+                .includes("pote") ||
+              preferredServing.serving_description
+                .toLowerCase()
+                .includes("garrafa") ||
+              preferredServing.serving_description
+                .toLowerCase()
+                .includes("lata") ||
+              preferredServing.serving_description
+                .toLowerCase()
+                .includes("copo") ||
+              preferredServing.serving_description
+                .toLowerCase()
+                .includes("bar") ||
+              preferredServing.serving_description
+                .toLowerCase()
+                .includes("piece") ||
+              !preferredServing.serving_description.toLowerCase().includes("g"))
+          ) {
             // Se temos um peso real em gramas, use-o
-            if (serving.metric_serving_amount) {
-              setPortion(formatNumber(serving.metric_serving_amount));
+            if (preferredServing.metric_serving_amount) {
+              setPortion(formatNumber(preferredServing.metric_serving_amount));
               // Como é uma porção específica (ex: 1 barra), permitimos ajuste
               setIsCustomPortion(true);
             } else {
@@ -282,18 +355,18 @@ export default function FoodDetailsScreen() {
   // Função para formatar números eliminando zeros desnecessários
   const formatNumber = (value: number | string): string => {
     // Converter para número
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    
+    const num = typeof value === "string" ? parseFloat(value) : value;
+
     // Se for NaN ou indefinido, retornar 0
-    if (isNaN(num)) return '0';
-    
+    if (isNaN(num)) return "0";
+
     // Se o valor é inteiro, retorna sem casas decimais
     if (num === Math.floor(num)) {
       return num.toString();
     }
-    
+
     // Caso contrário, limita a 1 casa decimal e remove zeros à direita
-    return num.toFixed(1).replace(/\.0$/, '');
+    return num.toFixed(1).replace(/\.0$/, "");
   };
 
   const handleSliderChange = (value: number) => {
@@ -336,13 +409,25 @@ export default function FoodDetailsScreen() {
 
   const renderMacrosCircles = () => {
     // Sempre renderizar os gráficos com as porcentagens exatas
-    const proteinValue = shouldRenderCharts ? adjustedProteinPercentage : adjustedProteinPercentage;
-    const carbsValue = shouldRenderCharts ? adjustedCarbsPercentage : adjustedCarbsPercentage;
-    const fatValue = shouldRenderCharts ? adjustedFatPercentage : adjustedFatPercentage;
-    
+    const proteinValue = shouldRenderCharts
+      ? adjustedProteinPercentage
+      : adjustedProteinPercentage;
+    const carbsValue = shouldRenderCharts
+      ? adjustedCarbsPercentage
+      : adjustedCarbsPercentage;
+    const fatValue = shouldRenderCharts
+      ? adjustedFatPercentage
+      : adjustedFatPercentage;
+
     return (
-      <View key={`macros-container-${theme}-${portion}`} style={styles.macrosContainer}>
-        <View key={`protein-circle-${theme}-${portion}`} style={styles.macroCircle}>
+      <View
+        key={`macros-container-${theme}-${portion}`}
+        style={styles.macrosContainer}
+      >
+        <View
+          key={`protein-circle-${theme}-${portion}`}
+          style={styles.macroCircle}
+        >
           <CircularProgress
             key={`protein-progress-${theme}-${portion}-${proteinValue}`}
             value={proteinValue}
@@ -362,14 +447,15 @@ export default function FoodDetailsScreen() {
           <Text style={[styles.macroLabel, { color: colors.text }]}>
             Proteína
           </Text>
-          <Text
-            style={[styles.macroCalories, { color: colors.text + "80" }]}
-          >
+          <Text style={[styles.macroCalories, { color: colors.text + "80" }]}>
             {formatNumber(Math.round(proteinCalories))} kcal
           </Text>
         </View>
 
-        <View key={`carbs-circle-${theme}-${portion}`} style={styles.macroCircle}>
+        <View
+          key={`carbs-circle-${theme}-${portion}`}
+          style={styles.macroCircle}
+        >
           <CircularProgress
             key={`carbs-progress-${theme}-${portion}-${carbsValue}`}
             value={carbsValue}
@@ -389,9 +475,7 @@ export default function FoodDetailsScreen() {
           <Text style={[styles.macroLabel, { color: colors.text }]}>
             Carboidratos
           </Text>
-          <Text
-            style={[styles.macroCalories, { color: colors.text + "80" }]}
-          >
+          <Text style={[styles.macroCalories, { color: colors.text + "80" }]}>
             {formatNumber(Math.round(carbsCalories))} kcal
           </Text>
         </View>
@@ -416,9 +500,7 @@ export default function FoodDetailsScreen() {
           <Text style={[styles.macroLabel, { color: colors.text }]}>
             Gorduras
           </Text>
-          <Text
-            style={[styles.macroCalories, { color: colors.text + "80" }]}
-          >
+          <Text style={[styles.macroCalories, { color: colors.text + "80" }]}>
             {formatNumber(Math.round(fatCalories))} kcal
           </Text>
         </View>
@@ -486,18 +568,22 @@ export default function FoodDetailsScreen() {
         fiber: 0,
       };
     }
-    
+
     const selectedServing = food.servings[0]; // Sempre usar o primeiro serving
     const portionsMultiplier = parseFloat(numberOfPortions) || 1;
-    
+
     // Cálculo para porção personalizada em gramas * número de porções
     const baseAmount = selectedServing.metric_serving_amount || 100;
-    const weightMultiplier = (Number(portion) / baseAmount) * portionsMultiplier;
-    
+    const weightMultiplier =
+      (Number(portion) / baseAmount) * portionsMultiplier;
+
     return {
       calories: Math.round(selectedServing.calories * weightMultiplier) || 0,
-      protein: Math.round(selectedServing.protein * weightMultiplier * 10) / 10 || 0,
-      carbs: Math.round(selectedServing.carbohydrate * weightMultiplier * 10) / 10 || 0,
+      protein:
+        Math.round(selectedServing.protein * weightMultiplier * 10) / 10 || 0,
+      carbs:
+        Math.round(selectedServing.carbohydrate * weightMultiplier * 10) / 10 ||
+        0,
       fat: Math.round(selectedServing.fat * weightMultiplier * 10) / 10 || 0,
       fiber: selectedServing.fiber
         ? Math.round(selectedServing.fiber * weightMultiplier * 10) / 10
@@ -591,14 +677,26 @@ export default function FoodDetailsScreen() {
     // Obter a descrição da porção
     let portionDescription = `${portion}g`;
     const portionsMultiplier = parseFloat(numberOfPortions) || 1;
-    
+
     // Verificar se temos uma descrição especial de porção (como "1 bar")
-    const hasSpecialServing = food?.servings && 
-                            food.servings[0]?.serving_description && 
-                            (food.servings[0].serving_description.toLowerCase().includes("bar") || 
-                             food.servings[0].serving_description.toLowerCase().includes("piece") ||
-                             food.servings[0].serving_description.toLowerCase().includes("unit"));
-    
+    const hasSpecialServing =
+      food?.servings &&
+      food.servings[0]?.serving_description &&
+      (food.servings[0].serving_description.toLowerCase().includes("unidade") ||
+        food.servings[0].serving_description.toLowerCase().includes("pacote") ||
+        food.servings[0].serving_description
+          .toLowerCase()
+          .includes("embalagem") ||
+        food.servings[0].serving_description.toLowerCase().includes("pote") ||
+        food.servings[0].serving_description
+          .toLowerCase()
+          .includes("garrafa") ||
+        food.servings[0].serving_description.toLowerCase().includes("lata") ||
+        food.servings[0].serving_description.toLowerCase().includes("copo") ||
+        food.servings[0].serving_description.toLowerCase().includes("bar") ||
+        food.servings[0].serving_description.toLowerCase().includes("piece") ||
+        !food.servings[0].serving_description.toLowerCase().includes("g"));
+
     if (hasSpecialServing) {
       // Se temos uma porção especial (como "1 bar"), usar essa descrição
       if (portionsMultiplier === 1) {
@@ -618,8 +716,9 @@ export default function FoodDetailsScreen() {
       protein: calculatedNutrients.protein,
       carbs: calculatedNutrients.carbs,
       fat: calculatedNutrients.fat,
-      portion: hasSpecialServing 
-        ? Number(food.servings[0].metric_serving_amount || portion) * portionsMultiplier
+      portion: hasSpecialServing
+        ? Number(food.servings[0].metric_serving_amount || portion) *
+          portionsMultiplier
         : Number(portion) * portionsMultiplier,
       portionDescription: portionDescription,
     };
@@ -661,9 +760,9 @@ export default function FoodDetailsScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView 
+      <ScrollView
         ref={scrollViewRef}
-        showsVerticalScrollIndicator={false} 
+        showsVerticalScrollIndicator={false}
         onScroll={() => {
           // Forçar atualização apenas se os gráficos ainda não estiverem renderizados
           if (!shouldRenderCharts) {
@@ -694,35 +793,40 @@ export default function FoodDetailsScreen() {
                 { backgroundColor: colors.light },
               ]}
             >
-              <Text style={[styles.portionCounterLabel, { color: colors.text }]}>
+              <Text
+                style={[styles.portionCounterLabel, { color: colors.text }]}
+              >
                 Quantidade
               </Text>
               <View style={styles.portionCounter}>
                 <TouchableOpacity
-                  style={[styles.counterButton, { backgroundColor: colors.primary }]}
+                  style={[
+                    styles.counterButton,
+                    { backgroundColor: colors.primary },
+                  ]}
                   onPress={decrementPortions}
                 >
                   <Ionicons name="remove" size={20} color="#FFF" />
                 </TouchableOpacity>
-                
+
                 <TextInput
                   style={[styles.portionCounterInput, { color: colors.text }]}
                   value={numberOfPortions}
                   onChangeText={(text) => {
                     // Substituir vírgula por ponto
-                    const sanitizedText = text.replace(',', '.');
-                    
+                    const sanitizedText = text.replace(",", ".");
+
                     // Se o texto estiver vazio, definir como vazio
-                    if (sanitizedText === '') {
-                      setNumberOfPortions('');
+                    if (sanitizedText === "") {
+                      setNumberOfPortions("");
                       return;
                     }
-                    
+
                     // Verificar se é um número válido
                     if (!/^[0-9]*\.?[0-9]*$/.test(sanitizedText)) {
                       return; // Ignorar entradas que não são números
                     }
-                    
+
                     // Converter para número e verificar se está entre 0.5 e 99
                     const numValue = parseFloat(sanitizedText);
                     if (!isNaN(numValue) && numValue <= 99) {
@@ -732,41 +836,80 @@ export default function FoodDetailsScreen() {
                   }}
                   onBlur={() => {
                     // Ao perder o foco, formatar corretamente o número
-                    if (numberOfPortions === '') {
-                      setNumberOfPortions('1');
+                    if (numberOfPortions === "") {
+                      setNumberOfPortions("1");
                     } else {
                       // Garantir valor mínimo de 0.5
                       const numValue = parseFloat(numberOfPortions);
-                      const validValue = isNaN(numValue) ? 1 : Math.max(0.5, numValue);
+                      const validValue = isNaN(numValue)
+                        ? 1
+                        : Math.max(0.5, numValue);
                       setNumberOfPortions(formatNumber(validValue));
                     }
                   }}
                   keyboardType="numeric"
                   maxLength={4}
                 />
-                
+
                 <TouchableOpacity
-                  style={[styles.counterButton, { backgroundColor: colors.primary }]}
+                  style={[
+                    styles.counterButton,
+                    { backgroundColor: colors.primary },
+                  ]}
                   onPress={incrementPortions}
                 >
                   <Ionicons name="add" size={20} color="#FFF" />
                 </TouchableOpacity>
               </View>
-              <Text style={[styles.portionCounterHelper, { color: colors.text + "80" }]}>
-                {food.servings && food.servings[0]?.serving_description && 
-                 (food.servings[0].serving_description.toLowerCase().includes("bar") || 
-                  food.servings[0].serving_description.toLowerCase().includes("piece") ||
-                  food.servings[0].serving_description.toLowerCase().includes("unit")) ?
-                  
-                  // Se for uma porção especial como "1 bar", mostre essa informação
-                  `${numberOfPortions}x ${food.servings[0].serving_description} (${formatNumber(food.servings[0].calories)} kcal cada)` :
-                  
-                  // Para outros casos, mostre a equivalência em gramas
-                  `${numberOfPortions}x ${portion}g = ${formatNumber(Number(portion) * parseFloat(numberOfPortions || "0"))}g total`
-                }
+              <Text
+                style={[
+                  styles.portionCounterHelper,
+                  { color: colors.text + "80" },
+                ]}
+              >
+                {food.servings &&
+                food.servings[0]?.serving_description &&
+                (food.servings[0].serving_description
+                  .toLowerCase()
+                  .includes("bar") ||
+                  food.servings[0].serving_description
+                    .toLowerCase()
+                    .includes("piece") ||
+                  food.servings[0].serving_description
+                    .toLowerCase()
+                    .includes("unit") ||
+                  food.servings[0].serving_description
+                    .toLowerCase()
+                    .includes("unidade") ||
+                  food.servings[0].serving_description
+                    .toLowerCase()
+                    .includes("pacote") ||
+                  food.servings[0].serving_description
+                    .toLowerCase()
+                    .includes("embalagem") ||
+                  food.servings[0].serving_description
+                    .toLowerCase()
+                    .includes("pote") ||
+                  food.servings[0].serving_description
+                    .toLowerCase()
+                    .includes("garrafa") ||
+                  food.servings[0].serving_description
+                    .toLowerCase()
+                    .includes("lata") ||
+                  food.servings[0].serving_description
+                    .toLowerCase()
+                    .includes("copo"))
+                  ? // Se for uma porção especial como "1 bar", mostre essa informação
+                    `${numberOfPortions}x ${
+                      food.servings[0].serving_description
+                    } (${formatNumber(food.servings[0].calories)} kcal cada)`
+                  : // Para outros casos, mostre a equivalência em gramas
+                    `${numberOfPortions}x ${portion}g = ${formatNumber(
+                      Number(portion) * parseFloat(numberOfPortions || "0")
+                    )}g total`}
               </Text>
             </View>
-            
+
             {/* Portion Input para gramas */}
             <View
               key={`portion-container-${theme}`}
@@ -780,32 +923,32 @@ export default function FoodDetailsScreen() {
                 value={portion}
                 onChangeText={(text) => {
                   // Substituir vírgula por ponto
-                  const sanitizedText = text.replace(',', '.');
-                  
+                  const sanitizedText = text.replace(",", ".");
+
                   // Se o texto estiver vazio, definir como vazio
-                  if (sanitizedText === '') {
-                    setPortion('');
+                  if (sanitizedText === "") {
+                    setPortion("");
                     return;
                   }
-                  
+
                   // Verificar se é um número válido
                   if (!/^[0-9]*\.?[0-9]*$/.test(sanitizedText)) {
                     return; // Ignorar entradas que não são números
                   }
-                  
+
                   // Converter para número e verificar se está entre 1 e 9999
                   const numValue = parseFloat(sanitizedText);
                   if (!isNaN(numValue) && numValue <= 9999) {
                     // Não formatar enquanto o usuário está digitando
                     setPortion(sanitizedText);
                   }
-                  
+
                   setIsCustomPortion(true);
                 }}
                 onBlur={() => {
                   // Ao perder o foco, formatar corretamente o número
-                  if (portion === '') {
-                    setPortion('0');
+                  if (portion === "") {
+                    setPortion("0");
                   } else {
                     setPortion(formatNumber(portion));
                   }
@@ -819,7 +962,10 @@ export default function FoodDetailsScreen() {
             </View>
 
             {/* Slider para ajuste de porção */}
-            <View key={`slider-container-${theme}`} style={styles.sliderContainer}>
+            <View
+              key={`slider-container-${theme}`}
+              style={styles.sliderContainer}
+            >
               <Text style={[styles.sliderLabel, { color: colors.text + "80" }]}>
                 10g
               </Text>
@@ -840,7 +986,10 @@ export default function FoodDetailsScreen() {
             </View>
 
             {/* Calorias Totais */}
-            <View key={`calories-container-${theme}`} style={styles.caloriesContainer}>
+            <View
+              key={`calories-container-${theme}`}
+              style={styles.caloriesContainer}
+            >
               <Text style={[styles.caloriesTitle, { color: colors.text }]}>
                 Calorias Totais
               </Text>
@@ -877,7 +1026,9 @@ export default function FoodDetailsScreen() {
                   Distribuição Calórica
                 </Text>
                 <Text style={[styles.infoValue, { color: colors.text }]}>
-                  P: {formatNumber(adjustedProteinPercentage)}% | C: {formatNumber(adjustedCarbsPercentage)}% | G: {formatNumber(adjustedFatPercentage)}%
+                  P: {formatNumber(adjustedProteinPercentage)}% | C:{" "}
+                  {formatNumber(adjustedCarbsPercentage)}% | G:{" "}
+                  {formatNumber(adjustedFatPercentage)}%
                 </Text>
               </View>
             </View>

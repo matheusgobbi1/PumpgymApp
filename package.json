@@ -31,6 +31,7 @@
     "expo": "^52.0.37",
     "expo-blur": "^14.0.3",
     "expo-constants": "~17.0.7",
+    "expo-dev-client": "~5.0.12",
     "expo-file-system": "~18.0.11",
     "expo-font": "~13.0.4",
     "expo-haptics": "~14.0.1",
@@ -42,6 +43,7 @@
     "expo-splash-screen": "~0.29.22",
     "expo-status-bar": "~2.0.1",
     "expo-system-ui": "~4.0.8",
+    "expo-updates": "~0.27.1",
     "expo-web-browser": "~14.0.2",
     "firebase": "^9.23.0",
     "framer-motion": "^12.4.7",
@@ -67,12 +69,11 @@
     "react-native-swipeable-item": "^2.0.9",
     "react-native-web": "~0.19.13",
     "uuid": "^11.1.0",
-    "victory-native": "^41.16.1",
-    "expo-updates": "~0.27.1",
-    "expo-dev-client": "~5.0.12"
+    "victory-native": "^41.16.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@types/date-fns": "^2.5.3",
     "@types/firebase": "^2.4.32",
     "@types/jest": "^29.5.14",
     "@types/lodash": "^4.17.15",

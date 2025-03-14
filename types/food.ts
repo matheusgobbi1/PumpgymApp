@@ -12,6 +12,20 @@ export interface FoodNutrients {
   trans_fat?: number;
 }
 
+// Interface para o banco de dados local de alimentos
+export interface FoodData {
+  id: string;
+  name: string;
+  nutrients: FoodNutrients;
+  measures: {
+    id: string;
+    label: string;
+    weight: number;
+  }[];
+  brandName?: string;
+  category?: string;
+}
+
 // Interface para alimentos
 export interface Food {
   foodId: string;
@@ -135,7 +149,7 @@ export interface FatSecretFood {
 export function convertFatSecretToFoodItem(food: FatSecretFood): FoodItem {
   // Obter a primeira porção ou criar uma padrão
   let servings: FoodServing[] = [];
-  
+
   if (food.servings && food.servings.serving) {
     if (Array.isArray(food.servings.serving)) {
       servings = food.servings.serving;
@@ -146,17 +160,17 @@ export function convertFatSecretToFoodItem(food: FatSecretFood): FoodItem {
     // Para resultados de pesquisa que só têm descrição, extrair informações nutricionais
     // Formato típico: "Per 1 bar - Calories: 250kcal | Fat: 12.00g | Carbs: 32.00g | Protein: 4.00g"
     const description = food.food_description;
-    
+
     // Extrair porção (ex: "1 bar")
     const portionMatch = description.match(/Per\s+([^-]+)-/i);
     const portion = portionMatch ? portionMatch[1].trim() : "1 serving";
-    
+
     // Extrair valores nutricionais usando regex
     const caloriesMatch = description.match(/Calories:\s+(\d+)/i);
     const fatMatch = description.match(/Fat:\s+([\d.]+)g/i);
     const carbsMatch = description.match(/Carbs:\s+([\d.]+)g/i);
     const proteinMatch = description.match(/Protein:\s+([\d.]+)g/i);
-    
+
     // Extrair/estimar peso em gramas - se presente no nome do produto
     let weight = 0;
     // Procurar por padrão como "(1.86 oz)" no nome e converter para gramas
@@ -165,7 +179,7 @@ export function convertFatSecretToFoodItem(food: FatSecretFood): FoodItem {
       // Converter onças para gramas (1 oz ≈ 28.35g)
       weight = Math.round(parseFloat(weightOzMatch[1]) * 28.35);
     }
-    
+
     // Para produtos de dimensões conhecidas (Mini, Fun Size, etc.)
     if (food.food_name.includes("Fun Size")) {
       weight = weight || 20; // Aproximadamente 20g para Fun Size se não detectado
@@ -174,19 +188,21 @@ export function convertFatSecretToFoodItem(food: FatSecretFood): FoodItem {
     } else if (portion.includes("bar") && !weight) {
       weight = 50; // Valor padrão para barras se nenhum peso for detectado
     }
-    
+
     // Criar serving com dados extraídos
-    servings = [{
-      serving_id: "0",
-      serving_description: portion,
-      metric_serving_amount: weight,
-      metric_serving_unit: "g",
-      calories: caloriesMatch ? parseInt(caloriesMatch[1], 10) : 0,
-      protein: proteinMatch ? parseFloat(proteinMatch[1]) : 0,
-      fat: fatMatch ? parseFloat(fatMatch[1]) : 0,
-      carbohydrate: carbsMatch ? parseFloat(carbsMatch[1]) : 0,
-    }];
-    
+    servings = [
+      {
+        serving_id: "0",
+        serving_description: portion,
+        metric_serving_amount: weight,
+        metric_serving_unit: "g",
+        calories: caloriesMatch ? parseInt(caloriesMatch[1], 10) : 0,
+        protein: proteinMatch ? parseFloat(proteinMatch[1]) : 0,
+        fat: fatMatch ? parseFloat(fatMatch[1]) : 0,
+        carbohydrate: carbsMatch ? parseFloat(carbsMatch[1]) : 0,
+      },
+    ];
+
     // Adicionar uma porção de 100g para compatibilidade, se tivermos peso
     if (weight > 0) {
       const scaleFactor = 100 / weight;
@@ -198,21 +214,24 @@ export function convertFatSecretToFoodItem(food: FatSecretFood): FoodItem {
         calories: Math.round(servings[0].calories * scaleFactor),
         protein: Math.round(servings[0].protein * scaleFactor * 10) / 10,
         fat: Math.round(servings[0].fat * scaleFactor * 10) / 10,
-        carbohydrate: Math.round(servings[0].carbohydrate * scaleFactor * 10) / 10,
+        carbohydrate:
+          Math.round(servings[0].carbohydrate * scaleFactor * 10) / 10,
       });
     }
   } else {
     // Fallback para 100g se nenhuma informação nutricional estiver disponível
-    servings = [{
-      serving_id: "0",
-      serving_description: "100g",
-      metric_serving_amount: 100,
-      metric_serving_unit: "g",
-      calories: 0,
-      protein: 0,
-      fat: 0,
-      carbohydrate: 0,
-    }];
+    servings = [
+      {
+        serving_id: "0",
+        serving_description: "100g",
+        metric_serving_amount: 100,
+        metric_serving_unit: "g",
+        calories: 0,
+        protein: 0,
+        fat: 0,
+        carbohydrate: 0,
+      },
+    ];
   }
 
   // Converter para o formato FoodItem
