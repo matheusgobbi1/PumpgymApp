@@ -1,4 +1,4 @@
-import InitialRoute from "../components/auth/InitialRoute";
+import InitialRoute from "../components/InitialRoute";
 import { useAuthPersistence } from "../hooks/useAuthPersistence";
 
 export default function AppEntry() {

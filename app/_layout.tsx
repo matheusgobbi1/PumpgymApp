@@ -2,7 +2,7 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { useColorScheme } from "react-native";
 import { AuthProvider } from "../context/AuthContext";
 import { NutritionProvider } from "../context/NutritionContext";
@@ -39,6 +39,32 @@ export default function RootLayout() {
   useEffect(() => {
     if (error) throw error;
   }, [error]);
+
+  // Ocultar a splash screen quando as fontes estiverem carregadas
+  const onLayoutRootView = useCallback(async () => {
+    if (loaded) {
+      // Ocultar a splash screen nativa do Expo
+      await SplashScreen.hideAsync();
+    }
+  }, [loaded]);
+
+  // Garantir que a splash screen seja ocultada mesmo se houver problemas
+  useEffect(() => {
+    if (loaded) {
+      onLayoutRootView();
+
+      // Timeout de segurança para garantir que a splash screen seja ocultada
+      const timeoutId = setTimeout(async () => {
+        try {
+          await SplashScreen.hideAsync();
+        } catch (e) {
+          console.log("Erro ao ocultar splash screen:", e);
+        }
+      }, 3000);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [loaded, onLayoutRootView]);
 
   if (!loaded) {
     return null;
@@ -90,32 +116,32 @@ function StackNavigator() {
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="(add-food)" />
-      <Stack.Screen 
-        name="notifications-modal" 
+      <Stack.Screen
+        name="notifications-modal"
         options={{
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
+          presentation: "modal",
+          animation: "slide_from_bottom",
         }}
       />
-      <Stack.Screen 
-        name="privacy-modal" 
+      <Stack.Screen
+        name="privacy-modal"
         options={{
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
+          presentation: "modal",
+          animation: "slide_from_bottom",
         }}
       />
-      <Stack.Screen 
-        name="about-modal" 
+      <Stack.Screen
+        name="about-modal"
         options={{
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
+          presentation: "modal",
+          animation: "slide_from_bottom",
         }}
       />
-      <Stack.Screen 
-        name="help-modal" 
+      <Stack.Screen
+        name="help-modal"
         options={{
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
+          presentation: "modal",
+          animation: "slide_from_bottom",
         }}
       />
     </Stack>

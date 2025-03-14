@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Redirect } from "expo-router";
-import SplashScreen from "./common/SplashScreen";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { OfflineStorage } from "../services/OfflineStorage";
+import { View, ActivityIndicator } from "react-native";
+import Colors from "../constants/Colors";
+import { useTheme } from "../context/ThemeContext";
 
 export default function InitialRoute() {
   const { loading, authStateStable, isRestoringSession, appInitialized, user } =
@@ -13,8 +15,10 @@ export default function InitialRoute() {
   const [onboardingCompleted, setOnboardingCompleted] = useState<
     boolean | null
   >(null);
+  const { theme } = useTheme();
 
-  useEffect(() => {
+  // Verificar o status de onboarding quando o usuário estiver autenticado
+  React.useEffect(() => {
     let isMounted = true;
 
     // Resetar o estado quando o usuário mudar
@@ -80,7 +84,7 @@ export default function InitialRoute() {
     };
   }, [user, isCheckingOnboarding, onboardingCompleted]);
 
-  // Mostrar SplashScreen enquanto carrega ou verifica onboarding
+  // Mostrar indicador de carregamento enquanto verifica autenticação e onboarding
   if (
     loading ||
     !authStateStable ||
@@ -88,7 +92,18 @@ export default function InitialRoute() {
     !appInitialized ||
     (user && (isCheckingOnboarding || onboardingCompleted === null))
   ) {
-    return <SplashScreen />;
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: Colors[theme].background,
+        }}
+      >
+        <ActivityIndicator size="large" color={Colors[theme].primary} />
+      </View>
+    );
   }
 
   // Após o carregamento, redirecionar baseado no estado de autenticação e onboarding

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "fitfolio",
+    "name": "Fitfolio",
     "slug": "fitfolio",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -14,13 +14,20 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourcompany.fitfolio",
+      "buildNumber": "1",
+      "icon": "./assets/images/icon.png",
+      "requireFullScreen": true
     },
     "android": {
+      "package": "com.yourcompany.fitfolio",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "icon": "./assets/images/icon.png"
     },
     "web": {
       "bundler": "metro",
@@ -29,7 +36,6 @@
     },
     "plugins": [
       "expo-router"
-     
     ],
     "experiments": {
       "typedRoutes": true

@@ -13,7 +13,11 @@ export function useAuthPersistence() {
     const initializeAuth = async () => {
       if (!authStateStable && !isRestoringSession) {
         console.log("AuthPersistence: Iniciando restauração de sessão");
-        await restoreSession();
+        try {
+          await restoreSession();
+        } catch (error) {
+          console.error("Erro ao restaurar sessão:", error);
+        }
       }
     };
 

@@ -169,66 +169,88 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setAuthStateStable(false);
       console.log("Iniciando restauração de sessão...");
 
+      // Verificar se já existe um usuário autenticado no Firebase
       if (auth.currentUser) {
         console.log("Usuário já autenticado no Firebase");
         setUser(auth.currentUser);
         setIsAnonymous(auth.currentUser.isAnonymous);
-        setAuthStateStable(true);
         return true;
       }
 
-      const userData = await getUserData();
-      const authToken = await getAuthToken();
+      // Tentar restaurar a sessão a partir do armazenamento local
+      try {
+        const userData = await getUserData();
+        const authToken = await getAuthToken();
 
-      if (userData?.email && userData?.password) {
-        try {
-          console.log("Tentando restaurar sessão com credenciais armazenadas");
-          const userCredential = await signInWithEmailAndPassword(
-            firebaseAuth,
-            userData.email,
-            userData.password
-          );
+        if (userData?.email && userData?.password) {
+          try {
+            console.log(
+              "Tentando restaurar sessão com credenciais armazenadas"
+            );
+            const userCredential = await signInWithEmailAndPassword(
+              firebaseAuth,
+              userData.email,
+              userData.password
+            );
 
-          const newToken = await getIdToken(userCredential.user);
-          await saveAuthToken(newToken);
+            try {
+              const newToken = await getIdToken(userCredential.user);
+              await saveAuthToken(newToken);
+            } catch (error) {
+              console.error("Erro ao obter token:", error);
+            }
 
-          const userDoc = await getDoc(
-            doc(db, "users", userCredential.user.uid)
-          );
-          const onboardingCompleted =
-            userDoc.data()?.onboardingCompleted ?? false;
+            try {
+              const userDoc = await getDoc(
+                doc(db, "users", userCredential.user.uid)
+              );
+              const onboardingCompleted = userDoc.exists()
+                ? userDoc.data()?.onboardingCompleted ?? false
+                : false;
 
-          await saveUserData({
-            ...userData,
-            uid: userCredential.user.uid,
-            email: userCredential.user.email,
-            displayName: userCredential.user.displayName,
-            onboardingCompleted,
-            password: userData.password,
-            isAnonymous: userCredential.user.isAnonymous,
-          });
+              await saveUserData({
+                ...userData,
+                uid: userCredential.user.uid,
+                email: userCredential.user.email,
+                displayName: userCredential.user.displayName,
+                onboardingCompleted,
+                password: userData.password,
+                isAnonymous: userCredential.user.isAnonymous,
+              });
 
-          setUser(userCredential.user);
-          setIsAnonymous(userCredential.user.isAnonymous);
-          setIsNewUser(!onboardingCompleted);
-          setAuthStateStable(true);
-          return true;
-        } catch (error) {
-          console.error("Erro ao restaurar sessão:", error);
-          await removeUserData();
-          await removeAuthToken();
+              setUser(userCredential.user);
+              setIsAnonymous(userCredential.user.isAnonymous);
+              setIsNewUser(!onboardingCompleted);
+              return true;
+            } catch (error) {
+              console.error("Erro ao obter dados do usuário:", error);
+              setUser(userCredential.user);
+              setIsAnonymous(userCredential.user.isAnonymous);
+              setIsNewUser(true);
+              return true;
+            }
+          } catch (error) {
+            console.error("Erro ao restaurar sessão:", error);
+            // Remover dados inválidos
+            await removeUserData();
+            await removeAuthToken();
+          }
         }
+      } catch (error) {
+        console.error(
+          "Erro ao obter dados do usuário do armazenamento local:",
+          error
+        );
       }
 
-      setAuthStateStable(true);
       return false;
     } catch (error) {
       console.error("Erro ao restaurar sessão:", error);
-      setAuthStateStable(true);
       return false;
     } finally {
       setLoading(false);
       setIsRestoringSession(false);
+      setAuthStateStable(true);
     }
   }, []);
 
@@ -239,41 +261,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         setAuthStateStable(false);
         setNavigationAttempted(false);
-        await restoreSession();
 
+        // Tentar restaurar a sessão primeiro
+        try {
+          await restoreSession();
+        } catch (error) {
+          console.error("Erro ao restaurar sessão:", error);
+        }
+
+        // Configurar o listener de autenticação
         authUnsubscribe = onAuthStateChanged(
           firebaseAuth,
           async (currentUser) => {
+            try {
+              setAuthStateStable(false);
+              setIsRestoringSession(true);
+              setNavigationAttempted(false);
 
-            setAuthStateStable(false);
-            setIsRestoringSession(true);
-            setNavigationAttempted(false);
+              if (currentUser) {
+                if (currentUser.isAnonymous) {
+                  console.log("Usuário anônimo detectado");
+                  setUser(currentUser);
+                  setIsAnonymous(true);
+                  setIsNewUser(true);
+                } else {
+                  console.log("Usuário autenticado detectado");
+                  try {
+                    const idToken = await getIdToken(currentUser);
+                    await saveAuthToken(idToken);
+                  } catch (error) {
+                    console.error("Erro ao obter token:", error);
+                  }
 
-            if (currentUser) {
-              if (currentUser.isAnonymous) {
-                console.log("Usuário anônimo detectado");
-                setUser(currentUser);
-                setIsAnonymous(true);
-                setIsNewUser(true);
+                  try {
+                    const userDoc = await getDoc(
+                      doc(db, "users", currentUser.uid)
+                    );
+                    const onboardingCompleted =
+                      userDoc.data()?.onboardingCompleted ?? false;
+
+                    setUser(currentUser);
+                    setIsAnonymous(false);
+                    setIsNewUser(!onboardingCompleted);
+                  } catch (error) {
+                    console.error("Erro ao obter dados do usuário:", error);
+                    setUser(currentUser);
+                    setIsAnonymous(false);
+                    setIsNewUser(true);
+                  }
+                }
               } else {
-                console.log("Usuário autenticado detectado");
-                const idToken = await getIdToken(currentUser);
-                await saveAuthToken(idToken);
-
-                const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-                const onboardingCompleted =
-                  userDoc.data()?.onboardingCompleted ?? false;
-
-                setUser(currentUser);
+                console.log("Nenhum usuário detectado");
+                setUser(null);
                 setIsAnonymous(false);
-                setIsNewUser(!onboardingCompleted);
               }
-            } else {
-              console.log("Nenhum usuário detectado");
-              setUser(null);
-              setIsAnonymous(false);
+            } catch (error) {
+              console.error("Erro no listener de autenticação:", error);
+            } finally {
+              setAuthStateStable(true);
+              setLoading(false);
+              setAppInitialized(true);
+              setIsRestoringSession(false);
             }
-
+          },
+          (error) => {
+            console.error("Erro no listener de autenticação:", error);
             setAuthStateStable(true);
             setLoading(false);
             setAppInitialized(true);
@@ -282,10 +334,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         );
       } catch (error) {
         console.error("Erro na inicialização do app:", error);
-        setAuthStateStable(true);
-        setLoading(false);
-        setAppInitialized(true);
-        setIsRestoringSession(false);
+      } finally {
+        // Garantir que os estados sejam atualizados mesmo em caso de erro
+        setTimeout(() => {
+          setAuthStateStable(true);
+          setLoading(false);
+          setAppInitialized(true);
+          setIsRestoringSession(false);
+        }, 1000);
       }
     };
 

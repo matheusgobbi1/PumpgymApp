@@ -3,13 +3,13 @@ import { initializeApp } from "firebase/app";
 import {
   getAuth,
   setPersistence,
-  browserLocalPersistence,
-  initializeAuth,
+  indexedDBLocalPersistence,
+  inMemoryPersistence,
   type Auth as FirebaseAuth,
 } from "firebase/auth";
-import { getReactNativePersistence } from "firebase/auth/react-native";
 import { getFirestore } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
 // Configuração do Firebase usando variáveis de ambiente
 const firebaseConfig = {
@@ -22,30 +22,26 @@ const firebaseConfig = {
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
+// Log para verificar se as variáveis de ambiente estão sendo carregadas
+console.log(
+  "Firebase API Key:",
+  process.env.EXPO_PUBLIC_FIREBASE_API_KEY ? "Definida" : "Não definida"
+);
+console.log(
+  "Firebase Project ID:",
+  process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID ? "Definido" : "Não definido"
+);
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Inicializar Auth com persistência nativa
-let auth: FirebaseAuth;
-try {
-  // Tentar usar initializeAuth com persistência
-  auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage),
-  });
-  console.log("Auth inicializado com sucesso"); // Debug log
-} catch (error) {
-  // Se já inicializado, usar getAuth
-  console.log("Erro na inicialização do auth:", error); // Debug log
-  auth = getAuth(app);
+// Inicializar Auth
+let auth: FirebaseAuth = getAuth(app);
 
-  // Tentar definir persistência mesmo assim
-  try {
-    setPersistence(auth, browserLocalPersistence);
-  } catch (persistenceError) {
-    console.log("Erro ao definir persistência:", persistenceError);
-  }
-}
+// No React Native, não precisamos definir persistência explicitamente
+// O Firebase Web SDK no React Native usa uma persistência em memória por padrão
+// Vamos usar AsyncStorage para armazenar o token de autenticação manualmente
+console.log("Auth inicializado com sucesso");
 
 const db = getFirestore(app);
 
