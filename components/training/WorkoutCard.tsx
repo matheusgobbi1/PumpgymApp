@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef } from "react";
+import React, { useCallback, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -78,6 +78,7 @@ export default function WorkoutCard({
   const { user } = useAuth();
   const userId = user?.uid || "no-user";
   const { refreshKey: contextRefreshKey } = useRefresh();
+  const { workouts, selectedDate, copyWorkoutFromDate } = useWorkoutContext();
 
   // Combinar refreshKey da prop com o do contexto
   const combinedRefreshKey = refreshKey || contextRefreshKey;
@@ -91,19 +92,40 @@ export default function WorkoutCard({
   const [showDeleteExerciseModal, setShowDeleteExerciseModal] = useState(false);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>("");
 
-  // Efeito para forçar a re-renderização quando o tema ou usuário mudar
-  useEffect(() => {
-    // Não é necessário fazer nada aqui, o React já vai re-renderizar quando as props mudarem
-  }, [theme, user, exercises]);
+  // Estados para copiar treino
+  const [showCopyWorkoutModal, setShowCopyWorkoutModal] = useState(false);
+  const [selectedSourceDate, setSelectedSourceDate] = useState<string>("");
+  const [showCopySuccess, setShowCopySuccess] = useState(false);
 
-  // Efeito para atualizar o estado quando o refreshKey mudar
-  useEffect(() => {
-    // Atualizar o estado quando o refreshKey mudar
-    if (combinedRefreshKey) {
-      // Forçar re-renderização quando o refreshKey mudar
-      setExpandedExercises({});
-    }
-  }, [combinedRefreshKey]);
+  // Função para resetar os exercícios expandidos (substitui o useEffect)
+  const resetExpandedExercises = useCallback(() => {
+    setExpandedExercises({});
+  }, []);
+
+  // Função para obter as datas anteriores com este treino
+  const getPreviousDatesWithWorkout = useCallback(() => {
+    if (!workouts) return [];
+
+    // Filtrar datas anteriores à data selecionada
+    return Object.keys(workouts)
+      .filter((date) => {
+        // Verificar se a data é anterior à data selecionada
+        return (
+          date < selectedDate &&
+          // Verificar se o treino existe nesta data
+          workouts[date]?.[workout.id] &&
+          // Verificar se o treino tem exercícios
+          workouts[date][workout.id].length > 0
+        );
+      })
+      .sort((a, b) => b.localeCompare(a)); // Ordenar por data decrescente (mais recente primeiro)
+  }, [workouts, selectedDate, workout.id]);
+
+  // Função para obter a data mais recente com este treino
+  const getMostRecentWorkoutDate = useCallback(() => {
+    const dates = getPreviousDatesWithWorkout();
+    return dates.length > 0 ? dates[0] : "";
+  }, [getPreviousDatesWithWorkout]);
 
   // Função para lidar com o feedback tátil
   const handleHapticFeedback = async () => {
@@ -126,6 +148,72 @@ export default function WorkoutCard({
       return `${(volume / 1000).toFixed(1)}k`;
     }
     return volume.toString();
+  };
+
+  // Função para verificar se uma data é ontem
+  const isYesterday = useCallback((dateString: string) => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return dateString === yesterday.toISOString().split("T")[0];
+  }, []);
+
+  // Função para formatar a data para exibição
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+
+    // Verificar se é ontem
+    if (isYesterday(dateString)) {
+      return `Ontem (${date.toLocaleDateString("pt-BR", {
+        weekday: "long",
+        day: "2-digit",
+        month: "2-digit",
+      })})`;
+    }
+
+    // Formatar a data normalmente
+    return date.toLocaleDateString("pt-BR", {
+      weekday: "long",
+      day: "2-digit",
+      month: "2-digit",
+    });
+  };
+
+  // Função para abrir o modal de cópia
+  const openCopyModal = useCallback(() => {
+    handleHapticFeedback();
+
+    // Obter a data mais recente
+    const mostRecentDate = getMostRecentWorkoutDate();
+
+    // Se houver uma data disponível, selecionar e abrir o modal
+    if (mostRecentDate) {
+      setSelectedSourceDate(mostRecentDate);
+      setShowCopyWorkoutModal(true);
+    } else {
+      // Se não houver data disponível, mostrar mensagem de erro
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  }, [getMostRecentWorkoutDate, handleHapticFeedback]);
+
+  // Função para copiar treino de uma data anterior
+  const handleCopyWorkout = async () => {
+    if (!selectedSourceDate) return;
+
+    try {
+      await copyWorkoutFromDate(selectedSourceDate, workout.id, workout.id);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowCopyWorkoutModal(false);
+      setShowCopySuccess(true);
+
+      // Esconder a mensagem após 3 segundos
+      setTimeout(() => {
+        setShowCopySuccess(false);
+      }, 3000);
+    } catch (error) {
+      console.error("Erro ao copiar treino:", error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
   };
 
   // Função para navegar para os detalhes do exercício
@@ -496,6 +584,11 @@ export default function WorkoutCard({
     </Swipeable>
   );
 
+  // Se o combinedRefreshKey mudar, resetar os exercícios expandidos
+  if (combinedRefreshKey) {
+    resetExpandedExercises();
+  }
+
   return (
     <>
       <Swipeable
@@ -628,15 +721,59 @@ export default function WorkoutCard({
                   </LinearGradient>
                 </MotiView>
               )}
+
+              {/* Mensagem de sucesso após copiar treino */}
+              {showCopySuccess && (
+                <MotiView
+                  from={{ opacity: 0, translateY: 10 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  exit={{ opacity: 0, translateY: 10 }}
+                  style={[
+                    styles.successMessage,
+                    { backgroundColor: workout.color + "20" },
+                  ]}
+                >
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={16}
+                    color={workout.color}
+                  />
+                  <Text
+                    style={[
+                      styles.successMessageText,
+                      { color: workout.color },
+                    ]}
+                  >
+                    Treino copiado com sucesso!
+                  </Text>
+                </MotiView>
+              )}
             </View>
 
             <View style={styles.addButtonContainer}>
+              {getMostRecentWorkoutDate() && (
+                <TouchableOpacity
+                  style={[
+                    styles.copyButton,
+                    {
+                      borderColor: workout.color,
+                      backgroundColor: workout.color + "10",
+                    },
+                  ]}
+                  onPress={openCopyModal}
+                >
+                  <Ionicons
+                    name="copy-outline"
+                    size={20}
+                    color={workout.color}
+                  />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={[styles.addButton, { borderColor: workout.color }]}
                 onPress={(e) => {
                   e.stopPropagation();
                   handleHapticFeedback();
-                  // Navegar para a tela de adicionar exercício
                   router.push({
                     pathname: "/(add-exercise)",
                     params: {
@@ -674,6 +811,19 @@ export default function WorkoutCard({
           setShowDeleteExerciseModal(false);
           setSelectedExerciseId("");
         }}
+      />
+
+      {/* Modal para copiar treino de data anterior */}
+      <ConfirmationModal
+        visible={showCopyWorkoutModal}
+        title={`Copiar treino ${workout.name}`}
+        message={`Deseja copiar o treino de ${formatDate(selectedSourceDate)}?`}
+        confirmText="Copiar"
+        cancelText="Cancelar"
+        confirmType="primary"
+        icon="copy-outline"
+        onConfirm={handleCopyWorkout}
+        onCancel={() => setShowCopyWorkoutModal(false)}
       />
     </>
   );
@@ -948,6 +1098,33 @@ const styles = StyleSheet.create({
     bottom: 16,
     right: 16,
     zIndex: 1,
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+  },
+  copyButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    backgroundColor: "transparent",
+    borderColor: "transparent",
+  },
+  successMessage: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 10,
+    marginBottom: 10,
+    alignSelf: "center",
+  },
+  successMessageText: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginLeft: 6,
   },
   addButton: {
     width: 38,

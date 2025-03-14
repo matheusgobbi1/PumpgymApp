@@ -7,11 +7,11 @@ export const brandedFoods: FoodData[] = [
     id: "brand_pao_wickbold_integral",
     name: "Pão Integral Wickbold",
     nutrients: {
-      calories: 122,
-      protein: 6.3,
-      fat: 1.7,
-      carbs: 20.0,
-      fiber: 3.5,
+      calories: 236,
+      protein: 12.6,
+      fat: 3.4,
+      carbs: 40.0,
+      fiber: 7.0,
     },
     measures: [
       {
@@ -35,11 +35,11 @@ export const brandedFoods: FoodData[] = [
     id: "brand_pao_pullman_tradicional",
     name: "Pão de Forma Tradicional Pullman",
     nutrients: {
-      calories: 130,
-      protein: 4.5,
-      fat: 2.5,
-      carbs: 24.0,
-      fiber: 1.8,
+      calories: 260,
+      protein: 9.0,
+      fat: 5.0,
+      carbs: 48.0,
+      fiber: 3.6,
     },
     measures: [
       {
@@ -58,11 +58,11 @@ export const brandedFoods: FoodData[] = [
     id: "brand_pao_visconti_7graos",
     name: "Pão 7 Grãos Visconti",
     nutrients: {
-      calories: 125,
-      protein: 7.0,
-      fat: 2.2,
-      carbs: 21.0,
-      fiber: 4.5,
+      calories: 250,
+      protein: 14.0,
+      fat: 4.4,
+      carbs: 42.0,
+      fiber: 9.0,
     },
     measures: [
       {
@@ -81,11 +81,11 @@ export const brandedFoods: FoodData[] = [
     id: "brand_pao_nutrella_12graos",
     name: "Pão 12 Grãos Nutrella",
     nutrients: {
-      calories: 128,
-      protein: 7.2,
-      fat: 2.5,
-      carbs: 20.5,
-      fiber: 5.0,
+      calories: 256,
+      protein: 14.4,
+      fat: 5.0,
+      carbs: 41.0,
+      fiber: 10.0,
     },
     measures: [
       {
@@ -150,11 +150,11 @@ export const brandedFoods: FoodData[] = [
     id: "brand_pao_wickbold_12graos",
     name: "Pão 12 Grãos Wickbold",
     nutrients: {
-      calories: 124,
-      protein: 6.8,
-      fat: 2.0,
-      carbs: 21.0,
-      fiber: 4.2,
+      calories: 248,
+      protein: 13.6,
+      fat: 4.0,
+      carbs: 42.0,
+      fiber: 8.4,
     },
     measures: [
       {
@@ -173,11 +173,11 @@ export const brandedFoods: FoodData[] = [
     id: "brand_pao_pullman_centeio",
     name: "Pão de Centeio Pullman",
     nutrients: {
-      calories: 120,
-      protein: 4.8,
-      fat: 1.5,
-      carbs: 23.0,
-      fiber: 2.5,
+      calories: 240,
+      protein: 9.6,
+      fat: 3.0,
+      carbs: 46.0,
+      fiber: 5.0,
     },
     measures: [
       {
@@ -196,11 +196,11 @@ export const brandedFoods: FoodData[] = [
     id: "brand_pao_panco_integral_light",
     name: "Pão Integral Light Panco",
     nutrients: {
-      calories: 110,
-      protein: 5.2,
-      fat: 1.2,
-      carbs: 20.0,
-      fiber: 3.0,
+      calories: 220,
+      protein: 10.4,
+      fat: 2.4,
+      carbs: 40.0,
+      fiber: 6.0,
     },
     measures: [
       {
@@ -305,11 +305,11 @@ export const brandedFoods: FoodData[] = [
     id: "brand_pao_forma_integral_plusvita",
     name: "Pão de Forma Integral PlusVita",
     nutrients: {
-      calories: 118,
-      protein: 6.0,
-      fat: 1.8,
-      carbs: 21.0,
-      fiber: 3.8,
+      calories: 236,
+      protein: 12.0,
+      fat: 3.6,
+      carbs: 42.0,
+      fiber: 7.6,
     },
     measures: [
       {
@@ -503,10 +503,10 @@ export const brandedFoods: FoodData[] = [
     id: "brand_whey_growth_chocolate",
     name: "Whey Protein Growth Chocolate",
     nutrients: {
-      calories: 112,
-      protein: 24.0,
-      fat: 1.5,
-      carbs: 3.0,
+      calories: 373,
+      protein: 80.0,
+      fat: 5.0,
+      carbs: 10.0,
       fiber: 0.0,
     },
     measures: [
@@ -526,10 +526,10 @@ export const brandedFoods: FoodData[] = [
     id: "brand_whey_integralmedica_baunilha",
     name: "Whey Protein Integral Médica Baunilha",
     nutrients: {
-      calories: 114,
-      protein: 25.0,
-      fat: 1.0,
-      carbs: 2.0,
+      calories: 380,
+      protein: 80.0,
+      fat: 6.0,
+      carbs: 8.0,
       fiber: 0.0,
     },
     measures: [
@@ -549,10 +549,10 @@ export const brandedFoods: FoodData[] = [
     id: "brand_whey_maxTitanium_morango",
     name: "Whey Protein Max Titanium Morango",
     nutrients: {
-      calories: 135,
-      protein: 25.5,
-      fat: 1.2,
-      carbs: 2.5,
+      calories: 370,
+      protein: 75.0,
+      fat: 7.0,
+      carbs: 9.0,
       fiber: 0.0,
     },
     measures: [
@@ -577,10 +577,10 @@ export const brandedFoods: FoodData[] = [
     id: "brand_whey_blackSkull_cookies",
     name: "Whey Protein Black Skull Cookies",
     nutrients: {
-      calories: 122,
-      protein: 24.0,
-      fat: 1.8,
-      carbs: 3.5,
+      calories: 375,
+      protein: 78.0,
+      fat: 6.5,
+      carbs: 8.5,
       fiber: 0.0,
     },
     measures: [
@@ -600,10 +600,10 @@ export const brandedFoods: FoodData[] = [
     id: "brand_whey_darkness_chocolate",
     name: "Whey Protein Darkness Chocolate",
     nutrients: {
-      calories: 125,
-      protein: 23.0,
-      fat: 2.0,
-      carbs: 4.0,
+      calories: 378,
+      protein: 80.0,
+      fat: 5.5,
+      carbs: 9.0,
       fiber: 0.0,
     },
     measures: [
@@ -623,10 +623,10 @@ export const brandedFoods: FoodData[] = [
     id: "brand_whey_max_titanium_chocolate",
     name: "Whey Protein Max Titanium Chocolate",
     nutrients: {
-      calories: 120,
-      protein: 25.0,
-      fat: 1.5,
-      carbs: 3.0,
+      calories: 370,
+      protein: 75.0,
+      fat: 7.0,
+      carbs: 9.0,
       fiber: 0.0,
     },
     measures: [
@@ -651,10 +651,10 @@ export const brandedFoods: FoodData[] = [
     id: "brand_whey_probiotica_baunilha",
     name: "Whey Protein Probiótica Baunilha",
     nutrients: {
-      calories: 120,
-      protein: 24.0,
-      fat: 1.8,
-      carbs: 3.2,
+      calories: 372,
+      protein: 79.0,
+      fat: 5.0,
+      carbs: 8.0,
       fiber: 0.0,
     },
     measures: [
@@ -674,10 +674,10 @@ export const brandedFoods: FoodData[] = [
     id: "brand_whey_dymatize_iso100_chocolate",
     name: "Whey Protein Dymatize ISO-100 Chocolate",
     nutrients: {
-      calories: 116,
-      protein: 25.0,
-      fat: 0.5,
-      carbs: 2.0,
+      calories: 365,
+      protein: 85.0,
+      fat: 2.0,
+      carbs: 4.0,
       fiber: 0.0,
     },
     measures: [
@@ -688,8 +688,8 @@ export const brandedFoods: FoodData[] = [
       },
       {
         id: "measure_whey_dymatize_iso100_chocolate_scoop",
-        label: "scoop (32g)",
-        weight: 32,
+        label: "scoop (30g)",
+        weight: 30,
       },
     ],
   },
@@ -699,10 +699,10 @@ export const brandedFoods: FoodData[] = [
     id: "brand_whey_optimum_nutrition_gold_standard",
     name: "Whey Protein Optimum Nutrition Gold Standard",
     nutrients: {
-      calories: 120,
-      protein: 24.0,
-      fat: 1.5,
-      carbs: 3.0,
+      calories: 370,
+      protein: 82.0,
+      fat: 3.0,
+      carbs: 6.0,
       fiber: 0.0,
     },
     measures: [
@@ -727,10 +727,10 @@ export const brandedFoods: FoodData[] = [
     id: "brand_whey_essential_nutrition_chocolate",
     name: "Whey Protein Essential Nutrition Chocolate",
     nutrients: {
-      calories: 118,
-      protein: 25.0,
-      fat: 1.2,
-      carbs: 2.5,
+      calories: 375,
+      protein: 80.0,
+      fat: 4.5,
+      carbs: 7.5,
       fiber: 0.0,
     },
     measures: [
@@ -755,10 +755,10 @@ export const brandedFoods: FoodData[] = [
     id: "brand_whey_dux_nutrition_baunilha",
     name: "Whey Protein Dux Nutrition Baunilha",
     nutrients: {
-      calories: 115,
-      protein: 24.5,
-      fat: 1.0,
-      carbs: 2.8,
+      calories: 368,
+      protein: 78.0,
+      fat: 5.0,
+      carbs: 8.0,
       fiber: 0.0,
     },
     measures: [

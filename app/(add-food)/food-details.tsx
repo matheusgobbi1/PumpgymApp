@@ -264,6 +264,8 @@ export default function FoodDetailsScreen() {
         serving.serving_description.toLowerCase().includes("copo") ||
         serving.serving_description.toLowerCase().includes("bar") ||
         serving.serving_description.toLowerCase().includes("piece") ||
+        serving.serving_description.toLowerCase().includes("scoop") ||
+        serving.serving_description.toLowerCase().includes("fatia") ||
         (serving.serving_description.toLowerCase().includes("g") &&
           !serving.serving_description.toLowerCase().includes("100g"))
     );
@@ -319,6 +321,12 @@ export default function FoodDetailsScreen() {
               preferredServing.serving_description
                 .toLowerCase()
                 .includes("piece") ||
+              preferredServing.serving_description
+                .toLowerCase()
+                .includes("scoop") ||
+              preferredServing.serving_description
+                .toLowerCase()
+                .includes("fatia") ||
               !preferredServing.serving_description.toLowerCase().includes("g"))
           ) {
             // Se temos um peso real em gramas, use-o

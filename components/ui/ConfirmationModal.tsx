@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useCallback } from "react";
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import Colors from "../../constants/Colors";
 import { MotiView } from "moti";
 import * as Haptics from "expo-haptics";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 interface ConfirmationModalProps {
   visible: boolean;
@@ -27,9 +27,10 @@ interface ConfirmationModalProps {
   icon?: string;
   onConfirm: () => void;
   onCancel: () => void;
+  customContent?: React.ReactNode;
 }
 
-export default function ConfirmationModal({
+const ConfirmationModalComponent = ({
   visible,
   title,
   message,
@@ -39,12 +40,13 @@ export default function ConfirmationModal({
   icon,
   onConfirm,
   onCancel,
-}: ConfirmationModalProps) {
+  customContent,
+}: ConfirmationModalProps) => {
   const { theme } = useTheme();
   const colors = Colors[theme];
 
   // Definir cores com base no tipo de confirmação
-  const getTypeColor = () => {
+  const getTypeColor = useCallback(() => {
     switch (confirmType) {
       case "danger":
         return "#EF476F";
@@ -54,41 +56,45 @@ export default function ConfirmationModal({
       default:
         return colors.primary;
     }
-  };
+  }, [confirmType, colors.primary]);
 
   const typeColor = getTypeColor();
 
   // Função para lidar com a confirmação
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onConfirm();
-  };
+  }, [onConfirm]);
 
   // Função para lidar com o cancelamento
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onCancel();
-  };
+  }, [onCancel]);
+
+  if (!visible) return null;
 
   return (
     <Modal
       visible={visible}
       transparent={true}
-      animationType="fade"
+      animationType="none"
       onRequestClose={onCancel}
       statusBarTranslucent={true}
     >
       <View style={[styles.overlay, { backgroundColor: "rgba(0,0,0,0.5)" }]}>
-        <TouchableWithoutFeedback onPress={onCancel}>
+        <TouchableWithoutFeedback onPress={handleCancel}>
           <View style={styles.modalWrapper}>
             <TouchableWithoutFeedback>
               <MotiView
                 from={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: "timing", duration: 250 }}
+                transition={{ type: "timing", duration: 200 }}
                 style={[
                   styles.modalContainer,
-                  { backgroundColor: theme === "dark" ? "#1E1E1E" : "#F8F9FA" },
+                  {
+                    backgroundColor: theme === "dark" ? "#1E1E1E" : "#F8F9FA",
+                  },
                 ]}
               >
                 {/* Ícone */}
@@ -109,9 +115,14 @@ export default function ConfirmationModal({
                 </Text>
 
                 {/* Mensagem */}
-                <Text style={[styles.message, { color: colors.text + "CC" }]}>
-                  {message}
-                </Text>
+                {message ? (
+                  <Text style={[styles.message, { color: colors.text + "CC" }]}>
+                    {message}
+                  </Text>
+                ) : null}
+
+                {/* Conteúdo Customizado */}
+                {customContent}
 
                 {/* Botões */}
                 <View style={styles.buttonsContainer}>
@@ -150,7 +161,7 @@ export default function ConfirmationModal({
       </View>
     </Modal>
   );
-}
+};
 
 const styles = StyleSheet.create({
   overlay: {
@@ -230,3 +241,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
+// Aplicar memo após definir o componente
+const ConfirmationModal = memo(ConfirmationModalComponent);
+
+export default ConfirmationModal;

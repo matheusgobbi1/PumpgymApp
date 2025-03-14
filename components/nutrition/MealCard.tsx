@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback, memo } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MotiView } from "moti";
 import { useRouter } from "expo-router";
-import { Food } from "../../context/MealContext";
+import { Food, useMeals } from "../../context/MealContext";
 import * as Haptics from "expo-haptics";
 import { Swipeable } from "react-native-gesture-handler";
 import { LinearGradient } from "expo-linear-gradient";
@@ -38,11 +39,12 @@ interface MealCardProps {
   onDeleteFood: (foodId: string) => Promise<void>;
   onDeleteMeal?: (mealId: string) => Promise<void>;
   refreshKey?: number;
+  showCopyOption?: boolean;
 }
 
 const { width } = Dimensions.get("window");
 
-export default function MealCard({
+const MealCardComponent = ({
   meal,
   foods,
   mealTotals,
@@ -51,32 +53,60 @@ export default function MealCard({
   onDeleteFood,
   onDeleteMeal,
   refreshKey,
-}: MealCardProps) {
+  showCopyOption = false,
+}: MealCardProps) => {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { user } = useAuth();
+  const { meals, selectedDate, copyMealFromDate } = useMeals();
   const userId = user?.uid || "no-user";
 
   // Estados para controlar os modais de confirmação
   const [showDeleteMealModal, setShowDeleteMealModal] = useState(false);
   const [showDeleteFoodModal, setShowDeleteFoodModal] = useState(false);
+  const [showCopyMealModal, setShowCopyMealModal] = useState(false);
   const [selectedFoodId, setSelectedFoodId] = useState<string>("");
+  const [selectedSourceDate, setSelectedSourceDate] = useState<string>("");
+  const [showCopySuccess, setShowCopySuccess] = useState(false);
 
-  // Efeito para forçar a re-renderização quando o tema mudar ou o usuário mudar
-  useEffect(() => {
-    // Não é necessário fazer nada aqui, o React já vai re-renderizar quando as props mudarem
-  }, [theme, userId, foods]);
+  // Função para obter datas anteriores que têm esta refeição
+  const getPreviousDatesWithMeal = useCallback(() => {
+    if (!meals) return [];
 
-  const handleHapticFeedback = async () => {
+    // Filtrar datas anteriores à data selecionada
+    return Object.keys(meals)
+      .filter((date) => {
+        // Verificar se a data é anterior à data selecionada
+        return (
+          date < selectedDate &&
+          // Verificar se a refeição existe nesta data
+          meals[date]?.[meal.id] &&
+          // Verificar se a refeição tem alimentos
+          meals[date][meal.id].length > 0
+        );
+      })
+      .sort((a, b) => b.localeCompare(a)); // Ordenar por data decrescente (mais recente primeiro)
+  }, [meals, selectedDate, meal.id]);
+
+  // Função para obter a data mais recente com esta refeição
+  const getMostRecentMealDate = useCallback(() => {
+    const dates = getPreviousDatesWithMeal();
+    return dates.length > 0 ? dates[0] : "";
+  }, [getPreviousDatesWithMeal]);
+
+  const handleHapticFeedback = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
+  }, []);
 
   // Função para calcular a porcentagem de cada macronutriente
-  const calculateMacroPercentage = (macro: number, total: number) => {
-    if (!total) return 0;
-    return (macro / total) * 100;
-  };
+  const calculateMacroPercentage = useCallback(
+    (macro: number, total: number) => {
+      if (!total) return 0;
+      return (macro / total) * 100;
+    },
+    []
+  );
 
   // Calcular calorias de cada macronutriente
   const proteinCalories = mealTotals.protein * 4;
@@ -99,47 +129,52 @@ export default function MealCard({
 
   // Cores dos macronutrientes usando as cores do tema
   const proteinColor = colors.success || "#4CAF50"; // Verde
-
   const carbsColor = colors.primary || "#2196F3"; // Azul
   const fatColor = colors.danger || "#FF3B30"; // Vermelho
 
   // Função para navegar para a tela de detalhes do alimento para edição
-  const navigateToFoodDetails = (food: Food) => {
-    handleHapticFeedback();
+  const navigateToFoodDetails = useCallback(
+    (food: Food) => {
+      handleHapticFeedback();
 
-    // Navegar para a tela de detalhes do alimento com os dados do alimento
-    router.push({
-      pathname: "/(add-food)/food-details",
-      params: {
-        mealId: meal.id,
-        mealName: meal.name,
-        isFromHistory: "true",
-        foodName: food.name,
-        calories: food.calories.toString(),
-        protein: food.protein.toString(),
-        carbs: food.carbs.toString(),
-        fat: food.fat.toString(),
-        portion: food.portion.toString(),
-        foodId: food.id,
-        mode: "edit",
-      },
-    });
-  };
+      // Navegar para a tela de detalhes do alimento com os dados do alimento
+      router.push({
+        pathname: "/(add-food)/food-details",
+        params: {
+          mealId: meal.id,
+          mealName: meal.name,
+          isFromHistory: "true",
+          foodName: food.name,
+          calories: food.calories.toString(),
+          protein: food.protein.toString(),
+          carbs: food.carbs.toString(),
+          fat: food.fat.toString(),
+          portion: food.portion.toString(),
+          foodId: food.id,
+          mode: "edit",
+        },
+      });
+    },
+    [router, meal.id, meal.name, handleHapticFeedback]
+  );
 
   // Função para renderizar as ações de deslize à esquerda (editar)
-  const renderLeftActions = (food: Food) => (
-    <View style={styles.swipeActionContainer}>
-      <TouchableOpacity
-        style={[styles.swipeAction, { backgroundColor: meal.color + "CC" }]}
-        onPress={() => navigateToFoodDetails(food)}
-      >
-        <Ionicons name="create-outline" size={20} color="white" />
-      </TouchableOpacity>
-    </View>
+  const renderLeftActions = useCallback(
+    (food: Food) => (
+      <View style={styles.swipeActionContainer}>
+        <TouchableOpacity
+          style={[styles.swipeAction, { backgroundColor: meal.color + "CC" }]}
+          onPress={() => navigateToFoodDetails(food)}
+        >
+          <Ionicons name="create-outline" size={20} color="white" />
+        </TouchableOpacity>
+      </View>
+    ),
+    [meal.color, navigateToFoodDetails]
   );
 
   // Função para renderizar as ações de deslize à direita para o card de refeição
-  const renderMealRightActions = () => {
+  const renderMealRightActions = useCallback(() => {
     if (!onDeleteMeal) return null;
 
     return (
@@ -149,9 +184,12 @@ export default function MealCard({
             styles.swipeActionMeal,
             { backgroundColor: colors.danger + "E6" },
           ]}
-          onPress={async () => {
+          onPress={() => {
             handleHapticFeedback();
-            setShowDeleteMealModal(true);
+            // Pequeno timeout para melhorar a responsividade
+            setTimeout(() => {
+              setShowDeleteMealModal(true);
+            }, 10);
           }}
         >
           <Ionicons name="trash-outline" size={22} color="white" />
@@ -159,107 +197,224 @@ export default function MealCard({
         </TouchableOpacity>
       </View>
     );
-  };
+  }, [colors.danger, handleHapticFeedback, onDeleteMeal]);
 
   // Função para renderizar as ações de deslize à direita (excluir)
-  const renderRightActions = (foodId: string) => (
-    <View style={styles.swipeActionContainer}>
-      <TouchableOpacity
-        style={[styles.swipeAction, { backgroundColor: colors.danger + "CC" }]}
-        onPress={() => {
-          handleHapticFeedback();
-          setSelectedFoodId(foodId);
-          setShowDeleteFoodModal(true);
-        }}
-      >
-        <Ionicons name="trash-outline" size={20} color="white" />
-      </TouchableOpacity>
-    </View>
+  const renderRightActions = useCallback(
+    (foodId: string) => (
+      <View style={styles.swipeActionContainer}>
+        <TouchableOpacity
+          style={[
+            styles.swipeAction,
+            { backgroundColor: colors.danger + "CC" },
+          ]}
+          onPress={() => {
+            handleHapticFeedback();
+            // Definir o ID do alimento selecionado primeiro e depois mostrar o modal
+            setSelectedFoodId(foodId);
+            // Pequeno timeout para garantir que o ID foi definido antes de mostrar o modal
+            setTimeout(() => {
+              setShowDeleteFoodModal(true);
+            }, 10);
+          }}
+        >
+          <Ionicons name="trash-outline" size={20} color="white" />
+        </TouchableOpacity>
+      </View>
+    ),
+    [colors.danger, handleHapticFeedback]
   );
 
-  const renderFoodItem = (food: Food, foodIndex: number) => (
-    <Swipeable
-      key={`food-${food.id}-${foodIndex}`}
-      renderRightActions={() => renderRightActions(food.id)}
-      renderLeftActions={() => renderLeftActions(food)}
-      friction={2}
-      overshootRight={false}
-      overshootLeft={false}
-    >
-      <Animated.View
-        entering={FadeInRight.delay(foodIndex * 100).duration(300)}
-        style={[
-          styles.foodItemContainer,
-          { backgroundColor: colors.light },
-          foodIndex === 0 && styles.firstFoodItem,
-          foodIndex === foods.length - 1 && styles.lastFoodItem,
-        ]}
+  const renderFoodItem = useCallback(
+    (food: Food, foodIndex: number) => (
+      <Swipeable
+        key={`food-${food.id}-${foodIndex}`}
+        renderRightActions={() => renderRightActions(food.id)}
+        renderLeftActions={() => renderLeftActions(food)}
+        friction={2}
+        overshootRight={false}
+        overshootLeft={false}
       >
-        <View style={styles.foodItemContent}>
-          <View style={styles.foodItemLeft}>
-            <View style={styles.foodTextContainer}>
-              <Text style={[styles.foodName, { color: colors.text }]}>
-                {food.name}
-              </Text>
-              <Text style={[styles.foodPortion, { color: colors.text + "80" }]}>
-                {food.portion}g • {food.calories} kcal
-              </Text>
+        <Animated.View
+          entering={FadeInRight.delay(foodIndex * 100).duration(300)}
+          style={[
+            styles.foodItemContainer,
+            { backgroundColor: colors.light },
+            foodIndex === 0 && styles.firstFoodItem,
+            foodIndex === foods.length - 1 && styles.lastFoodItem,
+          ]}
+        >
+          <View style={styles.foodItemContent}>
+            <View style={styles.foodItemLeft}>
+              <View style={styles.foodTextContainer}>
+                <Text style={[styles.foodName, { color: colors.text }]}>
+                  {food.name}
+                </Text>
+                <Text
+                  style={[styles.foodPortion, { color: colors.text + "80" }]}
+                >
+                  {food.portion}g • {food.calories} kcal
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.macroIndicators}>
+              {/* Proteína */}
+              <View style={styles.macroIndicator}>
+                <View
+                  style={[styles.macroBar, { backgroundColor: proteinColor }]}
+                />
+                <Text style={[styles.macroValue, { color: colors.text }]}>
+                  <Text
+                    style={[styles.macroLabel, { color: colors.text + "99" }]}
+                  >
+                    P{" "}
+                  </Text>
+                  {food.protein}
+                </Text>
+              </View>
+
+              {/* Carboidratos */}
+              <View style={styles.macroIndicator}>
+                <View
+                  style={[styles.macroBar, { backgroundColor: carbsColor }]}
+                />
+                <Text style={[styles.macroValue, { color: colors.text }]}>
+                  <Text
+                    style={[styles.macroLabel, { color: colors.text + "99" }]}
+                  >
+                    C{" "}
+                  </Text>
+                  {food.carbs}
+                </Text>
+              </View>
+
+              {/* Gorduras */}
+              <View style={styles.macroIndicator}>
+                <View
+                  style={[styles.macroBar, { backgroundColor: fatColor }]}
+                />
+                <Text style={[styles.macroValue, { color: colors.text }]}>
+                  <Text
+                    style={[styles.macroLabel, { color: colors.text + "99" }]}
+                  >
+                    G{" "}
+                  </Text>
+                  {food.fat}
+                </Text>
+              </View>
             </View>
           </View>
-
-          <View style={styles.macroIndicators}>
-            {/* Proteína */}
-            <View style={styles.macroIndicator}>
-              <View
-                style={[styles.macroBar, { backgroundColor: proteinColor }]}
-              />
-              <Text style={[styles.macroValue, { color: colors.text }]}>
-                <Text
-                  style={[styles.macroLabel, { color: colors.text + "99" }]}
-                >
-                  P{" "}
-                </Text>
-                {food.protein}
-              </Text>
-            </View>
-
-            {/* Carboidratos */}
-            <View style={styles.macroIndicator}>
-              <View
-                style={[styles.macroBar, { backgroundColor: carbsColor }]}
-              />
-              <Text style={[styles.macroValue, { color: colors.text }]}>
-                <Text
-                  style={[styles.macroLabel, { color: colors.text + "99" }]}
-                >
-                  C{" "}
-                </Text>
-                {food.carbs}
-              </Text>
-            </View>
-
-            {/* Gorduras */}
-            <View style={styles.macroIndicator}>
-              <View style={[styles.macroBar, { backgroundColor: fatColor }]} />
-              <Text style={[styles.macroValue, { color: colors.text }]}>
-                <Text
-                  style={[styles.macroLabel, { color: colors.text + "99" }]}
-                >
-                  G{" "}
-                </Text>
-                {food.fat}
-              </Text>
-            </View>
-          </View>
-        </View>
-        {foodIndex < foods.length - 1 && (
-          <View
-            style={[styles.separator, { backgroundColor: colors.border }]}
-          />
-        )}
-      </Animated.View>
-    </Swipeable>
+          {foodIndex < foods.length - 1 && (
+            <View
+              style={[styles.separator, { backgroundColor: colors.border }]}
+            />
+          )}
+        </Animated.View>
+      </Swipeable>
+    ),
+    [
+      colors,
+      foods.length,
+      renderLeftActions,
+      renderRightActions,
+      proteinColor,
+      carbsColor,
+      fatColor,
+    ]
   );
+
+  const handleAddFood = useCallback(
+    (e: any) => {
+      e.stopPropagation();
+      handleHapticFeedback();
+      router.push({
+        pathname: "/(add-food)",
+        params: {
+          mealId: meal.id,
+          mealName: meal.name,
+        },
+      });
+    },
+    [handleHapticFeedback, meal.id, meal.name, router]
+  );
+
+  const handleDeleteMeal = useCallback(async () => {
+    if (onDeleteMeal) {
+      try {
+        await onDeleteMeal(meal.id);
+      } catch (error) {
+        console.error("Erro ao excluir refeição:", error);
+      }
+    }
+    setShowDeleteMealModal(false);
+  }, [meal.id, onDeleteMeal]);
+
+  const handleDeleteFood = useCallback(async () => {
+    if (selectedFoodId) {
+      try {
+        await onDeleteFood(selectedFoodId);
+      } catch (error) {
+        console.error("Erro ao excluir alimento:", error);
+      }
+    }
+    setShowDeleteFoodModal(false);
+    setSelectedFoodId("");
+  }, [selectedFoodId, onDeleteFood]);
+
+  // Função para abrir o modal de cópia
+  const openCopyModal = useCallback(() => {
+    handleHapticFeedback();
+
+    // Obter a data mais recente com esta refeição
+    const mostRecentDate = getMostRecentMealDate();
+
+    // Se houver uma data disponível, selecionar e abrir o modal
+    if (mostRecentDate) {
+      setSelectedSourceDate(mostRecentDate);
+      setShowCopyMealModal(true);
+    } else {
+      // Notificar o usuário se não houver refeições anteriores
+      Alert.alert(
+        "Nenhuma refeição anterior",
+        "Não há refeições anteriores para copiar."
+      );
+    }
+  }, [getMostRecentMealDate, handleHapticFeedback]);
+
+  // Função para copiar refeição de uma data anterior
+  const handleCopyMeal = useCallback(async () => {
+    if (!selectedSourceDate) return;
+
+    try {
+      await copyMealFromDate(selectedSourceDate, meal.id, meal.id);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowCopyMealModal(false);
+
+      // Mostrar mensagem de sucesso
+      setShowCopySuccess(true);
+
+      // Esconder a mensagem após 3 segundos
+      setTimeout(() => {
+        setShowCopySuccess(false);
+      }, 3000);
+    } catch (error) {
+      console.error("Erro ao copiar refeição:", error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  }, [selectedSourceDate, meal.id, copyMealFromDate]);
+
+  // Função para formatar a data para exibição
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+
+    // Formatar a data normalmente
+    return date.toLocaleDateString("pt-BR", {
+      weekday: "long",
+      day: "2-digit",
+      month: "2-digit",
+    });
+  };
 
   return (
     <>
@@ -394,9 +549,47 @@ export default function MealCard({
                   </LinearGradient>
                 </MotiView>
               )}
+
+              {/* Mensagem de sucesso após copiar refeição */}
+              {showCopySuccess && (
+                <MotiView
+                  from={{ opacity: 0, translateY: 10 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  exit={{ opacity: 0, translateY: 10 }}
+                  style={[
+                    styles.successMessage,
+                    { backgroundColor: meal.color + "20" },
+                  ]}
+                >
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={16}
+                    color={meal.color}
+                  />
+                  <Text
+                    style={[styles.successMessageText, { color: meal.color }]}
+                  >
+                    Refeição copiada com sucesso!
+                  </Text>
+                </MotiView>
+              )}
             </View>
 
             <View style={styles.addButtonContainer}>
+              {getMostRecentMealDate() && showCopyOption && (
+                <TouchableOpacity
+                  style={[
+                    styles.copyButton,
+                    {
+                      borderColor: meal.color,
+                      backgroundColor: meal.color + "10",
+                    },
+                  ]}
+                  onPress={openCopyModal}
+                >
+                  <Ionicons name="copy-outline" size={20} color={meal.color} />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={[
                   styles.addButton,
@@ -405,17 +598,7 @@ export default function MealCard({
                     backgroundColor: meal.color + "10",
                   },
                 ]}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  handleHapticFeedback();
-                  router.push({
-                    pathname: "/(add-food)",
-                    params: {
-                      mealId: meal.id,
-                      mealName: meal.name,
-                    },
-                  });
-                }}
+                onPress={handleAddFood}
               >
                 <Ionicons name="add" size={20} color={meal.color} />
               </TouchableOpacity>
@@ -433,12 +616,7 @@ export default function MealCard({
         cancelText="Cancelar"
         confirmType="danger"
         icon="trash-outline"
-        onConfirm={async () => {
-          if (onDeleteMeal) {
-            await onDeleteMeal(meal.id);
-          }
-          setShowDeleteMealModal(false);
-        }}
+        onConfirm={handleDeleteMeal}
         onCancel={() => setShowDeleteMealModal(false)}
       />
 
@@ -451,21 +629,37 @@ export default function MealCard({
         cancelText="Cancelar"
         confirmType="danger"
         icon="trash-outline"
-        onConfirm={async () => {
-          if (selectedFoodId) {
-            await onDeleteFood(selectedFoodId);
-          }
-          setShowDeleteFoodModal(false);
-          setSelectedFoodId("");
-        }}
+        onConfirm={handleDeleteFood}
         onCancel={() => {
           setShowDeleteFoodModal(false);
           setSelectedFoodId("");
         }}
       />
+
+      {/* Modal para copiar refeição de data anterior */}
+      <ConfirmationModal
+        visible={showCopyMealModal}
+        title={`Copiar ${meal.name} do dia anterior`}
+        message={
+          selectedSourceDate
+            ? `Deseja copiar a refeição de ${formatDate(selectedSourceDate)}?`
+            : "Não há refeições anteriores para copiar."
+        }
+        confirmText="Copiar"
+        cancelText="Cancelar"
+        confirmType="primary"
+        icon="copy-outline"
+        onConfirm={handleCopyMeal}
+        onCancel={() => setShowCopyMealModal(false)}
+      />
     </>
   );
-}
+};
+
+// Aplicar memo após definir o componente
+const MealCard = memo(MealCardComponent);
+
+export default MealCard;
 
 const styles = StyleSheet.create({
   mealCard: {
@@ -625,6 +819,19 @@ const styles = StyleSheet.create({
     bottom: 16,
     right: 16,
     zIndex: 1,
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+  },
+  copyButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    backgroundColor: "transparent",
+    borderColor: "transparent",
   },
   addButton: {
     width: 38,
@@ -666,5 +873,18 @@ const styles = StyleSheet.create({
     height: 1,
     opacity: 0.3,
     marginHorizontal: 16,
+  },
+  successMessage: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 10,
+    alignSelf: "center",
+  },
+  successMessageText: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginLeft: 6,
   },
 });

@@ -121,6 +121,12 @@ interface WorkoutContextType {
     workoutId: string
   ) => Promise<void>;
   hasWeeklyTemplateConfigured: boolean;
+  // Nova função para copiar treino de uma data anterior
+  copyWorkoutFromDate: (
+    sourceDate: string,
+    sourceWorkoutId: string,
+    targetWorkoutId: string
+  ) => Promise<void>;
 }
 
 // Criação do contexto
@@ -907,6 +913,55 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [workouts]);
 
+  // Função para copiar treino de uma data anterior
+  const copyWorkoutFromDate = async (
+    sourceDate: string,
+    sourceWorkoutId: string,
+    targetWorkoutId: string
+  ) => {
+    try {
+      // Verificar se existe o treino na data de origem
+      if (!workouts[sourceDate] || !workouts[sourceDate][sourceWorkoutId]) {
+        throw new Error("Treino não encontrado na data de origem");
+      }
+
+      // Obter os exercícios do treino de origem
+      const sourceExercises = workouts[sourceDate][sourceWorkoutId];
+
+      // Criar uma cópia profunda dos exercícios
+      const copiedExercises = sourceExercises.map((exercise) => ({
+        ...exercise,
+        id: `${exercise.id}-${Date.now()}`, // Gerar novo ID para cada exercício
+        sets: exercise.sets?.map((set) => ({
+          ...set,
+          id: `${set.id}-${Date.now()}`, // Gerar novo ID para cada série
+          completed: false, // Resetar o status de completado
+        })),
+      }));
+
+      // Atualizar os treinos com os exercícios copiados
+      setWorkouts((prev) => {
+        const updatedWorkouts = { ...prev };
+
+        // Verificar se existe uma entrada para a data selecionada
+        if (!updatedWorkouts[selectedDate]) {
+          updatedWorkouts[selectedDate] = {};
+        }
+
+        // Adicionar os exercícios copiados
+        updatedWorkouts[selectedDate][targetWorkoutId] = copiedExercises;
+
+        return updatedWorkouts;
+      });
+
+      // Salvar os treinos
+      await saveWorkouts();
+    } catch (error) {
+      console.error("Erro ao copiar treino:", error);
+      throw error;
+    }
+  };
+
   // Valor do contexto
   const contextValue: WorkoutContextType = {
     workouts,
@@ -938,6 +993,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     addWorkoutToWeeklyTemplate,
     removeWorkoutFromWeeklyTemplate,
     hasWeeklyTemplateConfigured,
+    // Nova função para copiar treino
+    copyWorkoutFromDate,
   };
 
   return (

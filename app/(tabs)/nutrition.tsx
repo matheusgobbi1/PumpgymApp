@@ -124,7 +124,6 @@ export default function NutritionScreen() {
 
   // Verificar se a referência do bottom sheet está sendo inicializada
   useEffect(() => {
-
     return () => {};
   }, [hasMealTypesConfigured]);
 
@@ -422,9 +421,9 @@ export default function NutritionScreen() {
               index={index}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
               }}
               onDeleteFood={(foodId) => handleDeleteFood(meal.id, foodId)}
+              showCopyOption={true}
             />
           ))}
 

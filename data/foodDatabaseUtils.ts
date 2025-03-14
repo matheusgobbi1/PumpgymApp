@@ -76,11 +76,17 @@ export const searchFoodsMockup = (query: string): FoodResponse => {
   }
 
   const normalizedQuery = query.toLowerCase().trim();
+  // Dividir a consulta em palavras-chave individuais
+  const keywords = normalizedQuery
+    .split(/\s+/)
+    .filter((keyword) => keyword.length > 1);
 
-  // Buscar alimentos que contenham a query no nome
-  const results = combinedFoodDatabase.filter((food) =>
-    food.name.toLowerCase().includes(normalizedQuery)
-  );
+  // Buscar alimentos que contenham todas as palavras-chave no nome, em qualquer ordem
+  const results = combinedFoodDatabase.filter((food) => {
+    const normalizedName = food.name.toLowerCase();
+    // Verificar se todas as palavras-chave estão presentes no nome do alimento
+    return keywords.every((keyword) => normalizedName.includes(keyword));
+  });
 
   // Converter para o formato FoodItem
   const items = results.map((food) => convertFoodDataToFoodItem(food));

@@ -70,6 +70,11 @@ interface MealContextType {
   searchHistory: Food[];
   addToSearchHistory: (food: Food) => Promise<void>;
   clearSearchHistory: () => Promise<void>;
+  copyMealFromDate: (
+    sourceDate: string,
+    sourceMealId: string,
+    targetMealId: string
+  ) => Promise<void>;
 }
 
 const MealContext = createContext<MealContextType | undefined>(undefined);
@@ -83,7 +88,8 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     [date: string]: { [mealId: string]: Food[] };
   }>({});
   const [mealTypes, setMealTypes] = useState<MealType[]>([]);
-  const [hasMealTypesConfigured, setHasMealTypesConfigured] = useState<boolean>(false);
+  const [hasMealTypesConfigured, setHasMealTypesConfigured] =
+    useState<boolean>(false);
   const [searchHistory, setSearchHistory] = useState<Food[]>([]);
 
   // Resetar o estado quando o usuário mudar
@@ -138,7 +144,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       mealsSnap.forEach((doc) => {
         mealsData[doc.id] = doc.data() as { [mealId: string]: Food[] };
       });
-      
+
       setMeals(mealsData);
     } catch (error) {
       console.error("Erro ao carregar refeições:", error);
@@ -156,9 +162,15 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       setHasMealTypesConfigured(false);
 
       // Buscar os tipos de refeições do usuário
-      const mealTypesDoc = await getDoc(doc(db, "users", user.uid, "config", "mealTypes"));
+      const mealTypesDoc = await getDoc(
+        doc(db, "users", user.uid, "config", "mealTypes")
+      );
 
-      if (mealTypesDoc.exists() && mealTypesDoc.data().types && mealTypesDoc.data().types.length > 0) {
+      if (
+        mealTypesDoc.exists() &&
+        mealTypesDoc.data().types &&
+        mealTypesDoc.data().types.length > 0
+      ) {
         const mealTypesData = mealTypesDoc.data().types as MealType[];
         setMealTypes(mealTypesData);
         setHasMealTypesConfigured(true);
@@ -176,16 +188,16 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   const addMealType = async (id: string, name: string, icon: string) => {
     try {
       // Verificar se o tipo de refeição já existe
-      const existingType = mealTypes.find(type => type.id === id);
-      
+      const existingType = mealTypes.find((type) => type.id === id);
+
       if (existingType) return;
-      
+
       const newMealType: MealType = { id, name, icon };
-      
+
       // Adicionar ao estado
       const updatedTypes = [...mealTypes, newMealType];
       setMealTypes(updatedTypes);
-      
+
       // Salvar no Firestore se o usuário estiver autenticado
       if (user) {
         await setDoc(
@@ -205,7 +217,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     try {
       setMealTypes([]);
       setHasMealTypesConfigured(false);
-      
+
       if (user) {
         await setDoc(
           doc(db, "users", user.uid, "config", "mealTypes"),
@@ -221,15 +233,14 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   // Função para atualizar todos os tipos de refeições de uma vez
   const updateMealTypes = async (newMealTypes: MealType[]) => {
     try {
-      
       setMealTypes(newMealTypes);
-      
+
       if (newMealTypes.length > 0) {
         setHasMealTypesConfigured(true);
       } else {
         setHasMealTypesConfigured(false);
       }
-      
+
       if (user) {
         await setDoc(
           doc(db, "users", user.uid, "config", "mealTypes"),
@@ -270,13 +281,13 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
         // Adicionar novo alimento
         updatedMeals[selectedDate][mealId] = [
           ...updatedMeals[selectedDate][mealId],
-          food
+          food,
         ];
       }
 
       return updatedMeals;
     });
-    
+
     // Salvar as alterações imediatamente
     saveMeals();
   };
@@ -335,10 +346,11 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   const getDayTotals = (): MealTotals => {
     // Usar os IDs de refeição do dia atual ou os tipos de refeição configurados
     const currentDayMeals = meals[selectedDate] || {};
-    const mealIds = Object.keys(currentDayMeals).length > 0 
-      ? Object.keys(currentDayMeals) 
-      : mealTypes.map(type => type.id);
-    
+    const mealIds =
+      Object.keys(currentDayMeals).length > 0
+        ? Object.keys(currentDayMeals)
+        : mealTypes.map((type) => type.id);
+
     return mealIds.reduce(
       (acc, mealId) => {
         const mealTotals = getMealTotals(mealId);
@@ -358,15 +370,17 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
 
     try {
       // Preservar a porção exata do alimento adicionado
-      // Remover duplicatas pelo ID e manter apenas os 10 itens mais recentes
+      // Remover duplicatas pelo nome e manter apenas os 10 itens mais recentes
       const updatedHistory = [
-        food, 
-        ...searchHistory.filter(item => item.id !== food.id)
+        food,
+        ...searchHistory.filter(
+          (item) => item.name.toLowerCase() !== food.name.toLowerCase()
+        ),
       ].slice(0, 10);
-      
+
       // Atualizar estado imediatamente para refletir a mudança na UI
       setSearchHistory(updatedHistory);
-      
+
       // Persistir o histórico entre sessões
       await OfflineStorage.saveSearchHistory(user.uid, updatedHistory);
     } catch (error) {
@@ -382,6 +396,60 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       await OfflineStorage.clearSearchHistory(user.uid);
     } catch (error) {
       console.error("Erro ao limpar histórico de busca:", error);
+    }
+  };
+
+  // Função para copiar uma refeição de uma data para outra
+  const copyMealFromDate = async (
+    sourceDate: string,
+    sourceMealId: string,
+    targetMealId: string
+  ) => {
+    try {
+      if (!user) return;
+
+      // Verificar se a refeição de origem existe
+      if (!meals[sourceDate]?.[sourceMealId]) {
+        throw new Error("Refeição de origem não encontrada");
+      }
+
+      // Obter os alimentos da refeição de origem
+      const sourceFoods = [...meals[sourceDate][sourceMealId]];
+
+      // Gerar novos IDs para os alimentos copiados para evitar conflitos
+      const copiedFoods = sourceFoods.map((food) => ({
+        ...food,
+        id: uuidv4(), // Gerar novo ID para cada alimento
+      }));
+
+      // Atualizar o estado
+      setMeals((prevMeals) => {
+        const updatedMeals = { ...prevMeals };
+
+        // Inicializar a data de destino se não existir
+        if (!updatedMeals[selectedDate]) {
+          updatedMeals[selectedDate] = {};
+        }
+
+        // Inicializar a refeição de destino se não existir
+        if (!updatedMeals[selectedDate][targetMealId]) {
+          updatedMeals[selectedDate][targetMealId] = [];
+        }
+
+        // Adicionar os alimentos copiados à refeição de destino
+        updatedMeals[selectedDate][targetMealId] = [
+          ...updatedMeals[selectedDate][targetMealId],
+          ...copiedFoods,
+        ];
+
+        return updatedMeals;
+      });
+
+      // Salvar as alterações
+      await saveMeals();
+    } catch (error) {
+      console.error("Erro ao copiar refeição:", error);
+      throw error;
     }
   };
 
@@ -405,6 +473,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
         searchHistory,
         addToSearchHistory,
         clearSearchHistory,
+        copyMealFromDate,
       }}
     >
       {children}

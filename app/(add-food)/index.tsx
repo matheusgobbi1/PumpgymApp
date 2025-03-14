@@ -139,7 +139,7 @@ const SearchResultsSkeleton = () => {
 
   return (
     <>
-      {[...Array(5)].map((_, index) => (
+      {[...Array(8)].map((_, index) => (
         <FoodItemSkeleton key={`skeleton_${index}_${theme}`} index={index} />
       ))}
     </>
@@ -378,6 +378,8 @@ export default function AddFoodScreen() {
         serving.serving_description.toLowerCase().includes("copo") ||
         serving.serving_description.toLowerCase().includes("bar") ||
         serving.serving_description.toLowerCase().includes("piece") ||
+        serving.serving_description.toLowerCase().includes("scoop") ||
+        serving.serving_description.toLowerCase().includes("fatia") ||
         (serving.serving_description.toLowerCase().includes("g") &&
           !serving.serving_description.toLowerCase().includes("100g"))
     );
@@ -415,6 +417,8 @@ export default function AddFoodScreen() {
         preferredServing.serving_description.toLowerCase().includes("copo") ||
         preferredServing.serving_description.toLowerCase().includes("bar") ||
         preferredServing.serving_description.toLowerCase().includes("piece") ||
+        preferredServing.serving_description.toLowerCase().includes("scoop") ||
+        preferredServing.serving_description.toLowerCase().includes("fatia") ||
         !preferredServing.serving_description.toLowerCase().includes("g"))
     ) {
       return `${preferredServing.serving_description} (${preferredServing.calories} kcal)`;
@@ -515,8 +519,8 @@ export default function AddFoodScreen() {
       );
     }
 
-    // Limitar a 10 resultados
-    const limitedResults = searchResults.slice(0, 10);
+    // Limitar a 15 resultados
+    const limitedResults = searchResults.slice(0, 15);
 
     return limitedResults.map((result, index) => {
       // Verificar se o resultado tem as propriedades necessárias
