@@ -134,8 +134,6 @@ export default function CompleteRegistrationScreen() {
 
   const handleSocialLogin = (provider: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Implementação futura de login social
-    console.log(`Login com ${provider}`);
   };
 
   const nextStep = () => {

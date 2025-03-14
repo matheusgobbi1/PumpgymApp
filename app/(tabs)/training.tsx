@@ -47,7 +47,6 @@ const MemoizedWorkoutGroup = React.memo(
     previousExercises,
     onNavigate,
     onDeleteExercise,
-    onDeleteWorkout,
     refreshKey,
   }: {
     workoutId: string;
@@ -59,7 +58,6 @@ const MemoizedWorkoutGroup = React.memo(
     previousExercises: Exercise[];
     onNavigate: (id: string) => void;
     onDeleteExercise: (workoutId: string, exerciseId: string) => Promise<void>;
-    onDeleteWorkout: (workoutId: string) => Promise<void>;
     refreshKey?: number;
   }) => {
     return (
@@ -96,7 +94,6 @@ const MemoizedWorkoutGroup = React.memo(
           onDeleteExercise={(exerciseId) =>
             onDeleteExercise(workoutId, exerciseId)
           }
-          onDeleteWorkout={() => onDeleteWorkout(workoutId)}
           refreshKey={refreshKey}
         />
       </View>
@@ -133,7 +130,6 @@ export default function TrainingScreen() {
     getPreviousWorkoutTotals,
     getDayTotals,
     trainingGoals,
-    removeWorkout,
     // Novas propriedades do template semanal
     weeklyTemplate,
     hasWeeklyTemplateConfigured,
@@ -199,19 +195,12 @@ export default function TrainingScreen() {
           // Limpar o parâmetro após abrir
           router.replace("/training");
         } else {
-          // Se ainda não estiver montado, tentar novamente após um tempo maior
-          console.log(
-            "WorkoutConfigSheet ref ainda não está disponível, tentando novamente..."
-          );
           setTimeout(() => {
             if (workoutConfigSheetRef.current) {
               workoutConfigSheetRef.current.present();
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               router.replace("/training");
             } else {
-              console.log(
-                "WorkoutConfigSheet ref ainda não disponível após segunda tentativa"
-              );
             }
           }, 1000);
         }
@@ -299,20 +288,6 @@ export default function TrainingScreen() {
     [removeExerciseFromWorkout]
   );
 
-  // Função para excluir um treino inteiro
-  const handleDeleteWorkout = useCallback(
-    async (workoutId: string) => {
-      try {
-        await removeWorkout(workoutId);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } catch (error) {
-        console.error("Erro ao deletar treino:", error);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      }
-    },
-    [removeWorkout]
-  );
-
   // Obter os treinos para a data selecionada (específicos ou do template)
   const workoutsForSelectedDate = useMemo(
     () => (getWorkoutsForDate ? getWorkoutsForDate(selectedDate) : {}),
@@ -352,11 +327,14 @@ export default function TrainingScreen() {
       await resetWorkoutTypes();
       // Forçar a recriação do WorkoutConfigSheet
       setWorkoutConfigKey(Date.now());
-      console.log("Treinos redefinidos");
+      // Fechar o modal
+      setResetModalVisible(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       console.error("Erro ao redefinir treinos:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      // Fechar o modal mesmo em caso de erro
+      setResetModalVisible(false);
     }
   }, [resetWorkoutTypes]);
 
@@ -367,6 +345,31 @@ export default function TrainingScreen() {
       exercises: [],
     }));
   }, [workoutTypes]);
+
+  // Verificar se é um dia de descanso
+  const isRestDay = useMemo(() => {
+    if (!hasWorkoutTypesConfigured || !hasWeeklyTemplateConfigured)
+      return false;
+
+    // Pegar o dia da semana da data selecionada (0-6, onde 0 é domingo)
+    const selectedDayOfWeek = new Date(selectedDate).getDay();
+
+    // Verificar se há treinos configurados para este dia no template
+    const workoutsForDay = weeklyTemplate[selectedDayOfWeek];
+
+    // Se não houver workoutsForDay OU se for um objeto vazio, é dia de descanso
+    const hasNoWorkouts =
+      !workoutsForDay || Object.keys(workoutsForDay).length === 0;
+
+    return (
+      hasWorkoutTypesConfigured && hasWeeklyTemplateConfigured && hasNoWorkouts
+    );
+  }, [
+    hasWorkoutTypesConfigured,
+    hasWeeklyTemplateConfigured,
+    weeklyTemplate,
+    selectedDate,
+  ]);
 
   // Renderizar os cards de treino
   const renderWorkoutCards = useCallback(() => {
@@ -409,7 +412,6 @@ export default function TrainingScreen() {
           onDeleteExercise={(workoutId, exerciseId) =>
             handleDeleteExercise(workoutId, exerciseId)
           }
-          onDeleteWorkout={handleDeleteWorkout}
           refreshKey={refreshKey}
         />
       );
@@ -423,7 +425,6 @@ export default function TrainingScreen() {
     getWorkoutsForDate,
     navigateToWorkoutDetails,
     handleDeleteExercise,
-    handleDeleteWorkout,
     refreshKey,
   ]);
 
@@ -433,9 +434,10 @@ export default function TrainingScreen() {
       <EmptyWorkoutState
         onWorkoutConfigured={handleWorkoutConfigured}
         onOpenWorkoutConfig={openWorkoutConfigSheet}
+        isRestDay={isRestDay}
       />
     ),
-    [handleWorkoutConfigured, openWorkoutConfigSheet]
+    [handleWorkoutConfigured, openWorkoutConfigSheet, isRestDay]
   );
 
   // Memoizar o componente Calendar para evitar re-renderizações desnecessárias

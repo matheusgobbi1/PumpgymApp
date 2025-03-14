@@ -402,7 +402,6 @@ export default function ExerciseDetailsScreen() {
             setIsLoading(false);
             return;
           } catch (error) {
-            console.error('Erro ao processar dados do exercício:', error);
           }
         }
         
@@ -423,7 +422,6 @@ export default function ExerciseDetailsScreen() {
           addNewSet();
         }
       } catch (error) {
-        console.error('Erro ao carregar detalhes do exercício:', error);
       } finally {
         setIsLoading(false);
       }

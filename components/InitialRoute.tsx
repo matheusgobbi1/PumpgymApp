@@ -53,10 +53,6 @@ export default function InitialRoute() {
                   }
                 }
               } catch (error) {
-                console.log(
-                  "Erro ao verificar Firestore, usando dados locais:",
-                  error
-                );
               }
             }
           }

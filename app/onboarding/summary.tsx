@@ -103,11 +103,19 @@ export default function SummaryScreen() {
 
   const formatTargetDate = () => {
     if (!nutritionInfo.targetDate) return "";
-    return nutritionInfo.targetDate.toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
+    return nutritionInfo.targetDate instanceof Date
+      ? nutritionInfo.targetDate.toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        })
+      : typeof nutritionInfo.targetDate === "string"
+      ? new Date(nutritionInfo.targetDate).toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        })
+      : "";
   };
 
   const getGoalText = () => {

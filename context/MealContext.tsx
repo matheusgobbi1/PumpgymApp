@@ -126,8 +126,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     try {
       if (!user) return;
 
-      console.log("Carregando refeições para o usuário:", user.uid);
-
       // Limpar dados existentes antes de carregar
       setMeals({});
 
@@ -223,8 +221,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   // Função para atualizar todos os tipos de refeições de uma vez
   const updateMealTypes = async (newMealTypes: MealType[]) => {
     try {
-      // Log para depuração
-      console.log('Atualizando tipos de refeições:', newMealTypes.map(m => m.name).join(', '));
       
       setMealTypes(newMealTypes);
       

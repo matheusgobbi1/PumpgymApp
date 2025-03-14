@@ -12,7 +12,6 @@ export function useAuthPersistence() {
   useEffect(() => {
     const initializeAuth = async () => {
       if (!authStateStable && !isRestoringSession) {
-        console.log("AuthPersistence: Iniciando restauração de sessão");
         try {
           await restoreSession();
         } catch (error) {

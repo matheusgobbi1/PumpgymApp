@@ -216,24 +216,16 @@ const WorkoutIcon = ({
 }) => {
   // Verificação de segurança para evitar erros quando iconType for undefined
   if (!iconType) {
-    console.log("WorkoutIcon: iconType é undefined, usando fallback");
     // Renderizar um ícone padrão como fallback
     return <Ionicons name="barbell-outline" size={size} color={color} />;
   }
 
   // Verificar se o tipo e o nome são válidos
   if (!iconType.type || !iconType.name) {
-    console.log(
-      "WorkoutIcon: iconType incompleto, usando fallback",
-      JSON.stringify(iconType)
-    );
     return <Ionicons name="barbell-outline" size={size} color={color} />;
   }
 
-  console.log("WorkoutIcon:", JSON.stringify(iconType));
-
   if (iconType.type === "material") {
-    console.log("Renderizando MaterialCommunityIcon:", iconType.name);
     return (
       <MaterialCommunityIcons
         name={iconType.name as MaterialIconNames}
@@ -242,7 +234,6 @@ const WorkoutIcon = ({
       />
     );
   } else if (iconType.type === "fontawesome") {
-    console.log("Renderizando FontAwesome5:", iconType.name);
     return (
       <FontAwesome5
         name={iconType.name as FontAwesome5Names}
@@ -251,7 +242,6 @@ const WorkoutIcon = ({
       />
     );
   } else {
-    console.log("Renderizando Ionicons:", iconType.name);
     return (
       <Ionicons
         name={iconType.name as IoniconsNames}
@@ -277,23 +267,15 @@ const WorkoutItem = React.memo(
     onRenderRightActions: (id: string, isDefault?: boolean) => React.ReactNode;
     colors: any;
   }) => {
-    console.log(
-      `WorkoutItem para ${workout.name}:`,
-      JSON.stringify(workout.iconType)
-    );
 
     // Verificar se o iconType está definido corretamente
     if (!workout.iconType) {
-      console.log(
-        `ALERTA: WorkoutItem sem iconType para ${workout.name}, definindo padrão`
-      );
 
       // Procurar o tipo padrão correspondente para obter o iconType correto
       const defaultType = DEFAULT_WORKOUT_TYPES.find(
         (type) => type.id === workout.id
       );
       if (defaultType && defaultType.iconType) {
-        console.log(`Usando iconType do tipo padrão para ${workout.name}`);
         workout.iconType = { ...defaultType.iconType };
       } else {
         // Definir um iconType padrão se não encontrar
@@ -720,15 +702,11 @@ export function convertToIconType(icon: string): WorkoutIconType {
     "type" in icon &&
     "name" in icon
   ) {
-    console.log("Ícone já está no formato novo:", JSON.stringify(icon));
     return icon as WorkoutIconType;
   }
 
-  console.log("Convertendo ícone:", icon);
-
   // Determinar o tipo de ícone com base no nome
   if (!icon) {
-    console.log("Ícone indefinido, usando padrão");
     return {
       type: "ionicons" as const,
       name: "barbell-outline" as IoniconsNames,
@@ -762,33 +740,27 @@ export function convertToIconType(icon: string): WorkoutIconType {
   let result: WorkoutIconType;
 
   if (materialIcons.includes(icon)) {
-    console.log("Convertendo para MaterialCommunityIcons:", icon);
     result = {
       type: "material" as const,
       name: icon as MaterialIconNames,
     };
   } else if (fontAwesomeIcons.includes(icon)) {
-    console.log("Convertendo para FontAwesome5:", icon);
     result = {
       type: "fontawesome" as const,
       name: icon as FontAwesome5Names,
     };
   } else if (icon.includes("outline") || icon.includes("sharp")) {
-    console.log("Convertendo para Ionicons:", icon);
     result = {
       type: "ionicons" as const,
       name: icon as IoniconsNames,
     };
   } else {
-    console.log("Tipo de ícone não reconhecido, usando padrão:", icon);
     // Padrão para Ionicons se não conseguir determinar
     result = {
       type: "ionicons" as const,
       name: "barbell-outline" as IoniconsNames,
     };
   }
-
-  console.log("Resultado final da conversão:", JSON.stringify(result));
   return result;
 }
 

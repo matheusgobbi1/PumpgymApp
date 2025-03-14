@@ -4,39 +4,40 @@
     "slug": "fitfolio",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#FFFFFF",
+      "dark": {
+        "backgroundColor": "#121212"
+      }
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.fitfolio",
-      "buildNumber": "1",
-      "icon": "./assets/images/icon.png",
-      "requireFullScreen": true
+      "bundleIdentifier": "com.fitfolio.app"
     },
     "android": {
-      "package": "com.yourcompany.fitfolio",
-      "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF",
+        "dark": {
+          "backgroundColor": "#121212"
+        }
       },
-      "icon": "./assets/images/icon.png"
+      "package": "com.fitfolio.app"
     },
     "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router"
     ],
+    "scheme": "fitfolio",
     "experiments": {
       "typedRoutes": true
     }

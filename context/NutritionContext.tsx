@@ -130,7 +130,6 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
   // Efeito para recarregar dados quando o registro é concluído
   useEffect(() => {
     if (registrationCompleted && user) {
-      console.log("Registro concluído, recarregando dados de nutrição...");
       loadUserData();
     }
   }, [registrationCompleted, user]);
@@ -171,28 +170,20 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
     if (!user) return;
 
     try {
-      console.log("Carregando dados do usuário...");
       const isDeviceOnline = await OfflineStorage.isOnline();
       setIsOnline(isDeviceOnline);
-      
+
       let userData = null;
       let useLocalData = false;
 
       // Primeiro, tentar carregar dados locais
       const offlineData = await OfflineStorage.loadNutritionData(user.uid);
-      
+
       if (offlineData) {
-        console.log("Dados carregados do armazenamento local:", {
-          calories: offlineData.calories,
-          protein: offlineData.protein,
-          carbs: offlineData.carbs,
-          fat: offlineData.fat
-        });
         userData = offlineData;
-        
+
         // Se os dados foram modificados localmente, usá-los independentemente dos dados do Firestore
         if (offlineData._isModifiedLocally) {
-          console.log("Usando dados modificados localmente");
           useLocalData = true;
         }
       }
@@ -201,31 +192,31 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
       if (isDeviceOnline && !useLocalData) {
         try {
           const nutritionDoc = await getDoc(doc(db, "nutrition", user.uid));
-          
+
           if (nutritionDoc.exists()) {
             const firestoreData = nutritionDoc.data() as NutritionInfo;
-            console.log("Dados carregados do Firestore:", {
-              calories: firestoreData.calories,
-              protein: firestoreData.protein,
-              carbs: firestoreData.carbs,
-              fat: firestoreData.fat
-            });
-            
+
             // Verificar qual dado é mais recente
-            if (!userData || 
-                (firestoreData.updatedAt && (!userData.updatedAt || 
-                new Date(firestoreData.updatedAt) > new Date(userData.updatedAt)))) {
+            if (
+              !userData ||
+              (firestoreData.updatedAt &&
+                (!userData.updatedAt ||
+                  new Date(firestoreData.updatedAt) >
+                    new Date(userData.updatedAt)))
+            ) {
               userData = firestoreData;
-              
+
               // Salvar os dados mais recentes localmente
               await OfflineStorage.saveNutritionData(user.uid, firestoreData);
-              
+
               // Limpar a flag de modificação local
-              await AsyncStorage.removeItem(`${KEYS.NUTRITION_DATA}_${user.uid}_modified`);
+              await AsyncStorage.removeItem(
+                `${KEYS.NUTRITION_DATA}_${user.uid}_modified`
+              );
             }
           }
         } catch (firestoreError) {
-          console.error("Erro ao carregar dados do Firestore:", firestoreError);
+          // Erro ao carregar dados do Firestore
           // Continuar usando os dados locais se houver erro no Firestore
         }
       }
@@ -233,24 +224,24 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
       // Se temos dados, processar e atualizar o estado
       if (userData) {
         // Converter timestamps para Date
-        if (userData.birthDate && typeof userData.birthDate === 'string') {
+        if (userData.birthDate && typeof userData.birthDate === "string") {
           userData.birthDate = new Date(userData.birthDate);
         }
-        if (userData.targetDate && typeof userData.targetDate === 'string') {
+        if (userData.targetDate && typeof userData.targetDate === "string") {
           userData.targetDate = new Date(userData.targetDate);
         }
 
         setNutritionInfo(userData);
       }
     } catch (error) {
-      console.error("Erro ao carregar dados do usuário:", error);
+      // Erro ao carregar dados do usuário
     }
   };
 
   const updateNutritionInfo = async (info: Partial<NutritionInfo>) => {
     // Criar uma cópia do estado atual para evitar problemas de referência
     const updatedInfo = { ...nutritionInfo, ...info };
-    
+
     // Atualizar o estado com os novos valores
     setNutritionInfo(updatedInfo);
 
@@ -258,24 +249,16 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
       try {
         if (user.isAnonymous) {
           // Para usuários anônimos, salvar temporariamente
-          console.log("Salvando dados temporários para usuário anônimo");
           await OfflineStorage.saveTemporaryNutritionData(updatedInfo);
         } else {
           // Para usuários autenticados, salvar localmente
-          console.log("Salvando dados localmente para usuário autenticado", {
-            calories: updatedInfo.calories,
-            protein: updatedInfo.protein,
-            carbs: updatedInfo.carbs,
-            fat: updatedInfo.fat
-          });
           await OfflineStorage.saveNutritionData(user.uid, updatedInfo);
         }
       } catch (error) {
-        console.error("Erro ao salvar dados de nutrição:", error);
         throw error;
       }
     }
-    
+
     return updatedInfo;
   };
 
@@ -290,7 +273,8 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
 
   // Função para calcular idade precisa em anos (incluindo meses)
   const calculatePreciseAge = (birthDate: Date | string): number => {
-    const birthDateObj = birthDate instanceof Date ? birthDate : new Date(birthDate);
+    const birthDateObj =
+      birthDate instanceof Date ? birthDate : new Date(birthDate);
     const today = new Date();
     const monthsDiff =
       (today.getFullYear() - birthDateObj.getFullYear()) * 12 +
@@ -560,42 +544,35 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
   // Função para salvar as informações de nutrição no Firebase
   const saveNutritionInfo = async (): Promise<void> => {
     if (!user) {
-      console.error("Usuário não autenticado");
       return;
     }
 
     try {
       // Verificar se está online
       const online = await OfflineStorage.isOnline();
-      
+
       // Carregar os dados mais recentes do armazenamento local
       let currentData = { ...nutritionInfo };
-      
+
       try {
         const localData = await OfflineStorage.loadNutritionData(user.uid);
         if (localData && localData._isModifiedLocally) {
-          console.log("Usando dados locais modificados para salvar no Firestore", {
-            calories: localData.calories,
-            protein: localData.protein,
-            carbs: localData.carbs,
-            fat: localData.fat
-          });
           // Remover a flag interna antes de salvar
           delete localData._isModifiedLocally;
           currentData = localData;
         }
       } catch (localError) {
-        console.error("Erro ao carregar dados locais:", localError);
+        // Erro ao carregar dados locais
       }
 
       // Preparar os dados para salvar, tratando as datas com segurança
       const preparedData = { ...currentData };
-      
+
       // Tratar birthDate com segurança
       if (preparedData.birthDate) {
         if (preparedData.birthDate instanceof Date) {
           preparedData.birthDate = preparedData.birthDate.toISOString();
-        } else if (typeof preparedData.birthDate === 'string') {
+        } else if (typeof preparedData.birthDate === "string") {
           // Já é uma string, manter como está
         } else {
           // Tipo desconhecido, converter para null
@@ -604,12 +581,12 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
       } else {
         preparedData.birthDate = null;
       }
-      
+
       // Tratar targetDate com segurança
       if (preparedData.targetDate) {
         if (preparedData.targetDate instanceof Date) {
           preparedData.targetDate = preparedData.targetDate.toISOString();
-        } else if (typeof preparedData.targetDate === 'string') {
+        } else if (typeof preparedData.targetDate === "string") {
           // Já é uma string, manter como está
         } else {
           // Tipo desconhecido, converter para null
@@ -618,40 +595,32 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
       } else {
         preparedData.targetDate = null;
       }
-      
+
       // Adicionar timestamp de atualização
       preparedData.updatedAt = new Date().toISOString();
 
       // Remover campos undefined
-      const nutritionData = Object.entries(preparedData).reduce<Record<string, any>>(
-        (acc, [key, value]) => {
-          // Não incluir campos com valor undefined
-          if (value !== undefined) {
-            acc[key] = value;
-          }
-          return acc;
-        }, 
-        {}
-      );
-
-      console.log("Salvando informações de nutrição:", {
-        calories: nutritionData.calories,
-        protein: nutritionData.protein,
-        carbs: nutritionData.carbs,
-        fat: nutritionData.fat,
-        online
-      });
+      const nutritionData = Object.entries(preparedData).reduce<
+        Record<string, any>
+      >((acc, [key, value]) => {
+        // Não incluir campos com valor undefined
+        if (value !== undefined) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {});
 
       if (online) {
         // Salvar no Firestore se estiver online
         await setDoc(doc(db, "nutrition", user.uid), nutritionData);
-        console.log("Informações de nutrição salvas no Firestore com sucesso!");
-        
+
         // Também salvar localmente para acesso offline
         await OfflineStorage.saveNutritionData(user.uid, nutritionData);
-        
+
         // Limpar a flag de modificação local após salvar no Firestore
-        await AsyncStorage.removeItem(`${KEYS.NUTRITION_DATA}_${user.uid}_modified`);
+        await AsyncStorage.removeItem(
+          `${KEYS.NUTRITION_DATA}_${user.uid}_modified`
+        );
       } else {
         // Se estiver offline, salvar localmente e adicionar à fila de operações pendentes
         await OfflineStorage.saveNutritionData(user.uid, nutritionData);
@@ -666,33 +635,35 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         };
 
         await OfflineStorage.addPendingOperation(pendingOp);
-        console.log("Informações de nutrição salvas localmente (offline)");
       }
-      
+
       // Atualizar o estado com os dados salvos
-      setNutritionInfo(prev => {
+      setNutritionInfo((prev) => {
         // Converter as datas de volta para objetos Date
         const updatedData = { ...nutritionData };
-        if (updatedData.birthDate && typeof updatedData.birthDate === 'string') {
+        if (
+          updatedData.birthDate &&
+          typeof updatedData.birthDate === "string"
+        ) {
           try {
             updatedData.birthDate = new Date(updatedData.birthDate);
           } catch (e) {
-            console.error("Erro ao converter birthDate:", e);
             updatedData.birthDate = undefined;
           }
         }
-        if (updatedData.targetDate && typeof updatedData.targetDate === 'string') {
+        if (
+          updatedData.targetDate &&
+          typeof updatedData.targetDate === "string"
+        ) {
           try {
             updatedData.targetDate = new Date(updatedData.targetDate);
           } catch (e) {
-            console.error("Erro ao converter targetDate:", e);
             updatedData.targetDate = undefined;
           }
         }
         return updatedData;
       });
     } catch (error) {
-      console.error("Erro ao salvar informações de nutrição:", error);
       throw error;
     }
   };
@@ -700,7 +671,6 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
   // Função para marcar o onboarding como concluído
   const completeOnboarding = async () => {
     if (!user) {
-      console.error("Usuário não autenticado");
       return;
     }
 
@@ -724,8 +694,6 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
 
         // Salvar status localmente também
         await OfflineStorage.saveOnboardingStatus(user.uid, true);
-
-        console.log("Onboarding concluído com sucesso!");
       } else {
         // Se estiver offline, marcar localmente que o onboarding foi concluído
         await OfflineStorage.saveOnboardingStatus(user.uid, true);
@@ -744,10 +712,8 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         };
 
         await OfflineStorage.addPendingOperation(pendingOp);
-        console.log("Onboarding concluído localmente (offline)");
       }
     } catch (error) {
-      console.error("Erro ao concluir onboarding:", error);
       throw error;
     }
   };
@@ -761,17 +727,12 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
 
       if (!isDeviceOnline) return;
 
-      console.log("Verificando operações pendentes para sincronização...");
-
       // Obter todas as operações pendentes
       const pendingOps = await OfflineStorage.getPendingOperations();
 
       if (pendingOps.length === 0) {
-        console.log("Não há operações pendentes para sincronizar");
         return;
       }
-
-      console.log(`Sincronizando ${pendingOps.length} operações pendentes...`);
 
       // Processar cada operação pendente
       for (const op of pendingOps) {
@@ -784,15 +745,12 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
 
           // Remover operação processada
           await OfflineStorage.removePendingOperation(op.id);
-          console.log(`Operação ${op.id} sincronizada com sucesso`);
         } catch (opError) {
-          console.error(`Erro ao sincronizar operação ${op.id}:`, opError);
+          // Erro ao sincronizar operação
         }
       }
-
-      console.log("Sincronização concluída");
     } catch (error) {
-      console.error("Erro ao sincronizar dados:", error);
+      // Erro ao sincronizar dados
     }
   };
 

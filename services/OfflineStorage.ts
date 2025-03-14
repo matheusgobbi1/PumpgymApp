@@ -29,7 +29,6 @@ export const OfflineStorage = {
       if (userData) {
         const parsedUserData = JSON.parse(userData);
         if (parsedUserData.isAnonymous) {
-          console.log("Usuário anônimo: dados do onboarding não serão salvos");
           return;
         }
       }
@@ -47,7 +46,7 @@ export const OfflineStorage = {
         JSON.stringify(mergedData)
       );
     } catch (error) {
-      console.error("Erro ao salvar dados do onboarding:", error);
+      // Erro ao salvar dados do onboarding
     }
   },
 
@@ -61,14 +60,13 @@ export const OfflineStorage = {
       if (userData) {
         const parsedUserData = JSON.parse(userData);
         if (parsedUserData.isAnonymous) {
-          console.log("Usuário anônimo: passo do onboarding não será salvo");
           return;
         }
       }
 
       await AsyncStorage.setItem(KEYS.ONBOARDING_STEP, step);
     } catch (error) {
-      console.error("Erro ao salvar passo do onboarding:", error);
+      // Erro ao salvar passo do onboarding
     }
   },
 
@@ -82,9 +80,6 @@ export const OfflineStorage = {
       if (userData) {
         const parsedUserData = JSON.parse(userData);
         if (parsedUserData.isAnonymous) {
-          console.log(
-            "Usuário anônimo: não há dados do onboarding para recuperar"
-          );
           return null;
         }
       }
@@ -113,7 +108,7 @@ export const OfflineStorage = {
 
       return processedData as Partial<NutritionInfo>;
     } catch (error) {
-      console.error("Erro ao recuperar dados do onboarding:", error);
+      // Erro ao recuperar dados do onboarding
       return null;
     }
   },
@@ -125,7 +120,7 @@ export const OfflineStorage = {
     try {
       return await AsyncStorage.getItem(KEYS.ONBOARDING_STEP);
     } catch (error) {
-      console.error("Erro ao recuperar passo do onboarding:", error);
+      // Erro ao recuperar passo do onboarding
       return null;
     }
   },
@@ -138,7 +133,7 @@ export const OfflineStorage = {
       const pendingSync = await AsyncStorage.getItem(KEYS.PENDING_SYNC);
       return pendingSync === "true";
     } catch (error) {
-      console.error("Erro ao verificar sincronização pendente:", error);
+      // Erro ao verificar sincronização pendente
       return false;
     }
   },
@@ -150,7 +145,7 @@ export const OfflineStorage = {
     try {
       await AsyncStorage.removeItem(KEYS.PENDING_SYNC);
     } catch (error) {
-      console.error("Erro ao limpar sincronização pendente:", error);
+      // Erro ao limpar sincronização pendente
     }
   },
 
@@ -165,7 +160,7 @@ export const OfflineStorage = {
         KEYS.PENDING_SYNC,
       ]);
     } catch (error) {
-      console.error("Erro ao limpar dados do onboarding:", error);
+      // Erro ao limpar dados do onboarding
     }
   },
 
@@ -181,52 +176,29 @@ export const OfflineStorage = {
   saveNutritionData: async (userId: string, data: any): Promise<void> => {
     try {
       const key = `${KEYS.NUTRITION_DATA}_${userId}`;
-      console.log(`OfflineStorage - Salvando dados de nutrição para usuário ${userId}`, {
-        dietType: data.dietType,
-        goal: data.goal,
-        calories: data.calories,
-        protein: data.protein,
-        carbs: data.carbs,
-        fat: data.fat
-      });
-      
+
       // Garantir que os dados são serializáveis e criar uma cópia profunda
       const dataToSave = JSON.stringify(data);
-      
+
       // Verificar se os dados são válidos antes de salvar
       try {
         JSON.parse(dataToSave);
       } catch (parseError) {
-        console.error(`OfflineStorage - Erro ao serializar dados para usuário ${userId}:`, parseError);
-        throw new Error('Dados inválidos para serialização');
+        throw new Error("Dados inválidos para serialização");
       }
-      
+
       // Salvar os dados
       await AsyncStorage.setItem(key, dataToSave);
-      
+
       // Verificar se os dados foram salvos corretamente
       const savedData = await AsyncStorage.getItem(key);
       if (!savedData) {
-        console.error(`OfflineStorage - Falha ao verificar dados salvos para usuário ${userId}`);
-        throw new Error('Falha ao verificar dados salvos');
+        throw new Error("Falha ao verificar dados salvos");
       }
-      
-      // Verificar se os dados salvos são iguais aos dados originais
-      const parsedSavedData = JSON.parse(savedData);
-      console.log(`OfflineStorage - Dados salvos com sucesso para usuário ${userId}`, {
-        dietType: parsedSavedData.dietType,
-        goal: parsedSavedData.goal,
-        calories: parsedSavedData.calories,
-        protein: parsedSavedData.protein,
-        carbs: parsedSavedData.carbs,
-        fat: parsedSavedData.fat
-      });
-      
+
       // Adicionar flag para indicar que os dados foram modificados
-      await AsyncStorage.setItem(`${key}_modified`, 'true');
-      
+      await AsyncStorage.setItem(`${key}_modified`, "true");
     } catch (error) {
-      console.error(`OfflineStorage - Erro ao salvar dados de nutrição para usuário ${userId}:`, error);
       throw error;
     }
   },
@@ -235,57 +207,36 @@ export const OfflineStorage = {
   loadNutritionData: async (userId: string): Promise<any | null> => {
     try {
       const key = `${KEYS.NUTRITION_DATA}_${userId}`;
-      console.log(`OfflineStorage - Carregando dados de nutrição para usuário ${userId}`);
-      
+
       const data = await AsyncStorage.getItem(key);
       if (!data) {
-        console.log(`OfflineStorage - Nenhum dado encontrado para usuário ${userId}`);
         return null;
       }
-      
+
       try {
         const parsedData = JSON.parse(data);
-        console.log(`OfflineStorage - Dados carregados com sucesso para usuário ${userId}`, {
-          dietType: parsedData.dietType,
-          goal: parsedData.goal,
-          calories: parsedData.calories,
-          protein: parsedData.protein,
-          carbs: parsedData.carbs,
-          fat: parsedData.fat
-        });
-        
+
         // Verificar se os dados carregados são válidos
         if (!parsedData) {
-          console.error(`OfflineStorage - Dados carregados inválidos para usuário ${userId}`);
           return null;
         }
-        
-        // Verificar se os campos críticos estão presentes
-        if (parsedData.dietType === undefined || parsedData.goal === undefined || parsedData.calories === undefined) {
-          console.warn(`OfflineStorage - Dados carregados incompletos para usuário ${userId}`);
-        }
-        
+
         // Verificar se há uma versão mais recente dos dados
         const isModified = await AsyncStorage.getItem(`${key}_modified`);
-        if (isModified === 'true') {
-          console.log(`OfflineStorage - Dados modificados localmente para usuário ${userId}`);
+        if (isModified === "true") {
           parsedData._isModifiedLocally = true;
         }
-        
+
         return parsedData;
       } catch (parseError) {
-        console.error(`OfflineStorage - Erro ao analisar dados para usuário ${userId}:`, parseError);
-        
         // Tentar recuperar os dados brutos em caso de erro de parsing
-        console.log(`OfflineStorage - Tentando recuperar dados brutos para usuário ${userId}`);
-        return { 
+        return {
           _rawData: data,
           _parseError: true,
-          error: parseError.message
+          error: (parseError as Error).message,
         };
       }
     } catch (error) {
-      console.error("OfflineStorage - Erro ao carregar dados de nutrição offline:", error);
       return null;
     }
   },
@@ -300,7 +251,7 @@ export const OfflineStorage = {
         JSON.stringify(pendingOps)
       );
     } catch (error) {
-      console.error("Erro ao adicionar operação pendente:", error);
+      // Erro ao adicionar operação pendente
     }
   },
 
@@ -310,7 +261,7 @@ export const OfflineStorage = {
       const data = await AsyncStorage.getItem(KEYS.PENDING_OPERATIONS);
       return data ? JSON.parse(data) : [];
     } catch (error) {
-      console.error("Erro ao obter operações pendentes:", error);
+      // Erro ao obter operações pendentes
       return [];
     }
   },
@@ -325,7 +276,7 @@ export const OfflineStorage = {
         JSON.stringify(updatedOps)
       );
     } catch (error) {
-      console.error("Erro ao remover operação pendente:", error);
+      // Erro ao remover operação pendente
     }
   },
 
@@ -334,7 +285,7 @@ export const OfflineStorage = {
     try {
       await AsyncStorage.removeItem(KEYS.PENDING_OPERATIONS);
     } catch (error) {
-      console.error("Erro ao limpar operações pendentes:", error);
+      // Erro ao limpar operações pendentes
     }
   },
 
@@ -347,7 +298,7 @@ export const OfflineStorage = {
       const key = `${KEYS.ONBOARDING_COMPLETED}_${userId}`;
       await AsyncStorage.setItem(key, JSON.stringify(completed));
     } catch (error) {
-      console.error("Erro ao salvar status de onboarding:", error);
+      // Erro ao salvar status de onboarding
     }
   },
 
@@ -358,7 +309,7 @@ export const OfflineStorage = {
       const data = await AsyncStorage.getItem(key);
       return data ? JSON.parse(data) : false;
     } catch (error) {
-      console.error("Erro ao carregar status de onboarding:", error);
+      // Erro ao carregar status de onboarding
       return false;
     }
   },
@@ -369,7 +320,7 @@ export const OfflineStorage = {
       const key = `${KEYS.USER_DATA}_${userId}`;
       await AsyncStorage.setItem(key, JSON.stringify(userData));
     } catch (error) {
-      console.error("Erro ao salvar dados do usuário:", error);
+      // Erro ao salvar dados do usuário
     }
   },
 
@@ -380,7 +331,7 @@ export const OfflineStorage = {
       const data = await AsyncStorage.getItem(key);
       return data ? JSON.parse(data) : null;
     } catch (error) {
-      console.error("Erro ao carregar dados do usuário:", error);
+      // Erro ao carregar dados do usuário
       return null;
     }
   },
@@ -396,7 +347,7 @@ export const OfflineStorage = {
 
       await AsyncStorage.multiRemove(keys);
     } catch (error) {
-      console.error("Erro ao limpar dados do usuário:", error);
+      // Erro ao limpar dados do usuário
     }
   },
 
@@ -407,9 +358,7 @@ export const OfflineStorage = {
         KEYS.TEMP_NUTRITION_DATA,
         JSON.stringify(data)
       );
-      console.log("Dados temporários salvos com sucesso");
     } catch (error) {
-      console.error("Erro ao salvar dados temporários:", error);
       throw error;
     }
   },
@@ -419,7 +368,7 @@ export const OfflineStorage = {
       const data = await AsyncStorage.getItem(KEYS.TEMP_NUTRITION_DATA);
       return data ? JSON.parse(data) : null;
     } catch (error) {
-      console.error("Erro ao recuperar dados temporários:", error);
+      // Erro ao recuperar dados temporários
       return null;
     }
   },
@@ -427,9 +376,7 @@ export const OfflineStorage = {
   clearTemporaryNutritionData: async () => {
     try {
       await AsyncStorage.removeItem(KEYS.TEMP_NUTRITION_DATA);
-      console.log("Dados temporários limpos com sucesso");
     } catch (error) {
-      console.error("Erro ao limpar dados temporários:", error);
       throw error;
     }
   },
@@ -444,7 +391,7 @@ export const OfflineStorage = {
       const key = `${KEYS.MEALS_KEY}${userId}:${date}`;
       await AsyncStorage.setItem(key, JSON.stringify(data));
     } catch (error) {
-      console.error("Erro ao salvar dados de refeições:", error);
+      // Erro ao salvar dados de refeições
       throw error;
     }
   },
@@ -456,7 +403,7 @@ export const OfflineStorage = {
       const data = await AsyncStorage.getItem(key);
       return data ? JSON.parse(data) : null;
     } catch (error) {
-      console.error("Erro ao carregar dados de refeições:", error);
+      // Erro ao carregar dados de refeições
       return null;
     }
   },
@@ -475,30 +422,52 @@ export const OfflineStorage = {
         return parts[parts.length - 1];
       });
     } catch (error) {
-      console.error("Erro ao buscar datas com refeições:", error);
+      // Erro ao buscar datas com refeições
       return [];
     }
   },
 
   // Funções para gerenciar o histórico de busca
-  saveSearchHistory: async (userId: string, searchHistory: { id: string; name: string; portion: number; calories: number; protein: number; carbs: number; fat: number }[]): Promise<void> => {
+  saveSearchHistory: async (
+    userId: string,
+    searchHistory: {
+      id: string;
+      name: string;
+      portion: number;
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+    }[]
+  ): Promise<void> => {
     try {
       const key = `${KEYS.SEARCH_HISTORY}_${userId}`;
       await AsyncStorage.setItem(key, JSON.stringify(searchHistory));
-      console.log("Histórico de busca salvo com sucesso");
     } catch (error) {
-      console.error("Erro ao salvar histórico de busca:", error);
+      // Erro ao salvar histórico de busca
       throw error;
     }
   },
 
-  loadSearchHistory: async (userId: string): Promise<{ id: string; name: string; portion: number; calories: number; protein: number; carbs: number; fat: number }[]> => {
+  loadSearchHistory: async (
+    userId: string
+  ): Promise<
+    {
+      id: string;
+      name: string;
+      portion: number;
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+    }[]
+  > => {
     try {
       const key = `${KEYS.SEARCH_HISTORY}_${userId}`;
       const data = await AsyncStorage.getItem(key);
       return data ? JSON.parse(data) : [];
     } catch (error) {
-      console.error("Erro ao carregar histórico de busca:", error);
+      // Erro ao carregar histórico de busca
       return [];
     }
   },
@@ -507,9 +476,8 @@ export const OfflineStorage = {
     try {
       const key = `${KEYS.SEARCH_HISTORY}_${userId}`;
       await AsyncStorage.removeItem(key);
-      console.log("Histórico de busca limpo com sucesso");
     } catch (error) {
-      console.error("Erro ao limpar histórico de busca:", error);
+      // Erro ao limpar histórico de busca
       throw error;
     }
   },

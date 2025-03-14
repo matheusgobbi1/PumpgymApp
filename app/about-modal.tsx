@@ -68,7 +68,7 @@ export default function AboutModal() {
             <View
               style={[
                 styles.logoContainer,
-                { backgroundColor: colors.primary + "15" },
+                { backgroundColor: colors.text},
               ]}
             >
               <Image
@@ -78,7 +78,7 @@ export default function AboutModal() {
               />
             </View>
             <Text style={[styles.appName, { color: colors.text }]}>
-              Fitfolio
+              FitFolio
             </Text>
             <Text style={[styles.appVersion, { color: colors.text + "70" }]}>
               Versão {appVersion}
@@ -235,7 +235,7 @@ export default function AboutModal() {
 
           {/* Copyright */}
           <Text style={[styles.copyright, { color: colors.text + "60" }]}>
-            © {new Date().getFullYear()} Fitfolio. Todos os direitos reservados.
+            © {new Date().getFullYear()} FitFolio. Todos os direitos reservados.
           </Text>
         </ScrollView>
       </MotiView>

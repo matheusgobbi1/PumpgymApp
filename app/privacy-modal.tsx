@@ -45,15 +45,12 @@ export default function PrivacyModal() {
   // Função para navegar para a tela de alteração de senha
   const handleChangePassword = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Implementar navegação para tela de alteração de senha
-    console.log("Navegar para alteração de senha");
   };
 
   // Função para navegar para a tela de exclusão de conta
   const handleDeleteAccount = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     // Implementar navegação para tela de exclusão de conta
-    console.log("Navegar para exclusão de conta");
   };
 
   return (

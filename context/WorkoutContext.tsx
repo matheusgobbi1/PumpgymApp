@@ -163,7 +163,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         setWorkouts(parsedWorkouts);
       }
     } catch (error) {
-      console.error("Erro ao carregar treinos:", error);
+      // Erro ao carregar treinos
     }
   };
 
@@ -184,7 +184,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         setHasWeeklyTemplateConfigured(false);
       }
     } catch (error) {
-      console.error("Erro ao carregar template semanal:", error);
+      // Erro ao carregar template semanal
       setHasWeeklyTemplateConfigured(false);
     }
   };
@@ -203,7 +203,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         setHasWorkoutTypesConfigured(false);
       }
     } catch (error) {
-      console.error("Erro ao carregar tipos de treinos:", error);
+      // Erro ao carregar tipos de treinos
       setHasWorkoutTypesConfigured(false);
     }
   };
@@ -219,7 +219,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         setTrainingGoals(parsedGoals);
       }
     } catch (error) {
-      console.error("Erro ao carregar metas de treino:", error);
+      // Erro ao carregar metas de treino
     }
   };
 
@@ -282,7 +282,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      console.error("Erro ao atualizar template semanal:", error);
+      // Erro ao atualizar template semanal
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
@@ -314,7 +314,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      console.error("Erro ao adicionar treino ao template semanal:", error);
+      // Erro ao adicionar treino ao template semanal
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
@@ -351,7 +351,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      console.error("Erro ao remover treino do template semanal:", error);
+      // Erro ao remover treino do template semanal
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
@@ -364,7 +364,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         JSON.stringify(weeklyTemplate)
       );
     } catch (error) {
-      console.error("Erro ao salvar template semanal:", error);
+      // Erro ao salvar template semanal
     }
   };
 
@@ -382,36 +382,22 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       const dateObj = new Date(year, month - 1, day);
       const dayOfWeek = dateObj.getDay();
 
-      console.log(
-        `Data: ${date}, Dia da semana: ${dayOfWeek}, Nome do dia: ${
-          [
-            "Domingo",
-            "Segunda",
-            "Terça",
-            "Quarta",
-            "Quinta",
-            "Sexta",
-            "Sábado",
-          ][dayOfWeek]
-        }`
-      );
-
       // Verificar se há treinos configurados para este dia da semana
       const templateWorkouts = weeklyTemplate[dayOfWeek] || {};
-      
+
       // Combinar os treinos do template com os treinos específicos
       const combinedWorkouts: { [workoutId: string]: Exercise[] } = {};
-      
+
       // Adicionar todos os treinos do template para este dia da semana
-      Object.keys(templateWorkouts).forEach(workoutId => {
+      Object.keys(templateWorkouts).forEach((workoutId) => {
         // Se não houver exercícios específicos para este treino nesta data,
         // usar um array vazio (o usuário pode adicionar exercícios depois)
         combinedWorkouts[workoutId] = specificWorkouts[workoutId] || [];
       });
-      
+
       return combinedWorkouts;
     } catch (error) {
-      console.error("Erro ao obter treinos para a data:", error);
+      // Erro ao obter treinos para a data
       return {};
     }
   };
@@ -449,7 +435,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      console.error("Erro ao adicionar tipo de treino:", error);
+      // Erro ao adicionar tipo de treino
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
@@ -459,7 +445,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     try {
       setWorkoutTypes([]);
       setHasWorkoutTypesConfigured(false);
-      
+
       // Também limpar o template semanal
       setWeeklyTemplate({});
       setHasWeeklyTemplateConfigured(false);
@@ -470,7 +456,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      console.error("Erro ao resetar tipos de treinos:", error);
+      // Erro ao resetar tipos de treinos
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
@@ -497,7 +483,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      console.error("Erro ao atualizar tipos de treinos:", error);
+      // Erro ao atualizar tipos de treinos
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
@@ -512,9 +498,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       );
 
       if (exerciseExists) {
-        console.log(
-          `Exercício ${exercise.id} já existe no treino ${workoutId}`
-        );
         return;
       }
 
@@ -535,7 +518,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         // Adicionar o exercício ao treino
         updatedWorkouts[selectedDate][workoutId] = [
           ...updatedWorkouts[selectedDate][workoutId],
-          exercise
+          exercise,
         ];
 
         return updatedWorkouts;
@@ -546,7 +529,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      console.error("Erro ao adicionar exercício ao treino:", error);
+      // Erro ao adicionar exercício ao treino
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
@@ -570,9 +553,9 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         }
 
         // Remover o exercício do treino
-        updatedWorkouts[selectedDate][workoutId] = updatedWorkouts[selectedDate][
-          workoutId
-        ].filter((exercise) => exercise.id !== exerciseId);
+        updatedWorkouts[selectedDate][workoutId] = updatedWorkouts[
+          selectedDate
+        ][workoutId].filter((exercise) => exercise.id !== exerciseId);
 
         return updatedWorkouts;
       });
@@ -582,7 +565,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      console.error("Erro ao remover exercício:", error);
+      // Erro ao remover exercício
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
@@ -606,9 +589,9 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         }
 
         // Atualizar o exercício no treino
-        updatedWorkouts[selectedDate][workoutId] = updatedWorkouts[selectedDate][
-          workoutId
-        ].map((exercise) =>
+        updatedWorkouts[selectedDate][workoutId] = updatedWorkouts[
+          selectedDate
+        ][workoutId].map((exercise) =>
           exercise.id === updatedExercise.id ? updatedExercise : exercise
         );
 
@@ -620,7 +603,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      console.error("Erro ao atualizar exercício no treino:", error);
+      // Erro ao atualizar exercício no treino
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
@@ -634,7 +617,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         JSON.stringify(workouts)
       );
     } catch (error) {
-      console.error("Erro ao salvar treinos:", error);
+      // Erro ao salvar treinos
     }
   };
 
@@ -651,17 +634,13 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
       return workoutsForDate[workoutId];
     } catch (error) {
-      console.error("Erro ao obter exercícios para o treino:", error);
+      // Erro ao obter exercícios para o treino
       return [];
     }
   };
 
   // Obter totais de um treino específico
   const getWorkoutTotals = (workoutId: string): WorkoutTotals => {
-    console.log(
-      `Calculando totais para o treino ${workoutId} na data ${selectedDate}`
-    );
-
     // Inicializar com valores padrão
     const totals: WorkoutTotals = {
       totalExercises: 0,
@@ -679,9 +658,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
     // Verificar se existe o treino para esta data
     if (!workoutsForDate[workoutId]) {
-      console.log(
-        `Nenhum treino encontrado para ${workoutId} na data ${selectedDate}`
-      );
       return totals;
     }
 
@@ -737,14 +713,11 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       totalRepsCount > 0 ? Math.round(totalRepsSum / totalRepsCount) : 0;
     totals.maxWeight = maxWeightFound;
 
-    console.log(`Totais calculados para o treino ${workoutId}:`, totals);
     return totals;
   };
 
   // Obter totais do dia
   const getDayTotals = (): WorkoutTotals => {
-    console.log(`Calculando totais para o dia ${selectedDate}`);
-
     // Inicializar com valores padrão
     const totals: WorkoutTotals = {
       totalExercises: 0,
@@ -762,14 +735,10 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
     // Verificar se existem treinos para a data selecionada
     if (Object.keys(workoutsForDate).length === 0) {
-      console.log(`Nenhum treino encontrado para o dia ${selectedDate}`);
       return totals;
     }
 
     const workoutIds = Object.keys(workoutsForDate);
-    console.log(
-      `Encontrados ${workoutIds.length} treinos para o dia ${selectedDate}`
-    );
 
     // Calcular os totais para cada treino na data selecionada
     workoutIds.forEach((workoutId) => {
@@ -784,30 +753,18 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       totals.totalReps += workoutTotals.totalReps;
     });
 
-    console.log(`Totais calculados para o dia ${selectedDate}:`, totals);
     return totals;
   };
 
   // Obter tipo de treino por ID
   const getWorkoutTypeById = (id: string): WorkoutType | undefined => {
-    console.log(`Buscando tipo de treino com ID: ${id}`);
-
     if (!workoutTypes || workoutTypes.length === 0) {
-      console.log("Nenhum tipo de treino configurado");
       return undefined;
     }
 
     const workoutType = workoutTypes.find(
       (workoutType) => workoutType.id === id
     );
-
-    if (workoutType) {
-      console.log(
-        `Tipo de treino encontrado: ${workoutType.name} (${workoutType.id})`
-      );
-    } else {
-      console.log(`Tipo de treino não encontrado para o ID: ${id}`);
-    }
 
     return workoutType;
   };
@@ -821,7 +778,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         JSON.stringify(goals)
       );
     } catch (error) {
-      console.error("Erro ao salvar metas de treino:", error);
+      // Erro ao salvar metas de treino
     }
   };
 
@@ -829,10 +786,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const getPreviousWorkoutTotals = (
     workoutId: string
   ): { totals: WorkoutTotals | null; date: string | null } => {
-    console.log(
-      `Buscando treino anterior para ${workoutId} antes de ${selectedDate}`
-    );
-
     // Ordenar todas as datas em ordem decrescente
     const dates = Object.keys(workouts)
       .filter((date) => date < selectedDate) // Apenas datas anteriores à selecionada
@@ -841,8 +794,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     // Procurar o treino mais recente do mesmo tipo
     for (const date of dates) {
       if (workouts[date] && workouts[date][workoutId]) {
-        console.log(`Treino anterior encontrado em ${date}`);
-
         // Calcular os totais para o treino anterior
         const previousExercises = workouts[date][workoutId];
 
@@ -913,7 +864,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     }
 
     // Se não encontrar nenhum treino anterior
-    console.log(`Nenhum treino anterior encontrado para ${workoutId}`);
     return { totals: null, date: null };
   };
 
@@ -945,7 +895,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      console.error("Erro ao remover treino:", error);
+      // Erro ao remover treino
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
@@ -1001,7 +951,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 export const useWorkout = () => {
   const context = useContext(WorkoutContext);
   if (!context) {
-    throw new Error('useWorkout must be used within a WorkoutProvider');
+    throw new Error("useWorkout must be used within a WorkoutProvider");
   }
   return context;
 };
@@ -1013,86 +963,92 @@ export const useWorkoutContext = () => {
 
 // Dados de exemplo para demonstração
 const SAMPLE_WORKOUTS: { [id: string]: Workout } = {
-  'chest': {
-    id: 'chest',
-    name: 'Treino de Peito',
-    iconType: { type: 'ionicons', name: 'body-outline' },
-    color: '#FF5252',
-    exercises: []
+  chest: {
+    id: "chest",
+    name: "Treino de Peito",
+    iconType: { type: "ionicons", name: "body-outline" },
+    color: "#FF5252",
+    exercises: [],
   },
-  'back': {
-    id: 'back',
-    name: 'Treino de Costas',
-    iconType: { type: 'material', name: 'human-handsup' },
-    color: '#448AFF',
-    exercises: []
+  back: {
+    id: "back",
+    name: "Treino de Costas",
+    iconType: { type: "material", name: "human-handsup" },
+    color: "#448AFF",
+    exercises: [],
   },
-  'legs': {
-    id: 'legs',
-    name: 'Treino de Pernas',
-    iconType: { type: 'material', name: 'human-legs' },
-    color: '#66BB6A',
-    exercises: []
-  }
+  legs: {
+    id: "legs",
+    name: "Treino de Pernas",
+    iconType: { type: "material", name: "human-legs" },
+    color: "#66BB6A",
+    exercises: [],
+  },
 };
 
 const SAMPLE_EXERCISES: { [id: string]: Exercise } = {
-  'bench_press': {
-    id: 'bench_press',
-    name: 'Supino Reto',
+  bench_press: {
+    id: "bench_press",
+    name: "Supino Reto",
     sets: [
-      { id: '1', weight: 60, reps: 12, completed: true },
-      { id: '2', weight: 70, reps: 10, completed: true },
-      { id: '3', weight: 80, reps: 8, completed: true }
-    ]
+      { id: "1", weight: 60, reps: 12, completed: true },
+      { id: "2", weight: 70, reps: 10, completed: true },
+      { id: "3", weight: 80, reps: 8, completed: true },
+    ],
   },
-  'incline_press': {
-    id: 'incline_press',
-    name: 'Supino Inclinado',
+  incline_press: {
+    id: "incline_press",
+    name: "Supino Inclinado",
     sets: [
-      { id: '1', weight: 50, reps: 12, completed: true },
-      { id: '2', weight: 60, reps: 10, completed: true },
-      { id: '3', weight: 70, reps: 8, completed: true }
-    ]
+      { id: "1", weight: 50, reps: 12, completed: true },
+      { id: "2", weight: 60, reps: 10, completed: true },
+      { id: "3", weight: 70, reps: 8, completed: true },
+    ],
   },
-  'chest_fly': {
-    id: 'chest_fly',
-    name: 'Crucifixo',
+  chest_fly: {
+    id: "chest_fly",
+    name: "Crucifixo",
     sets: [
-      { id: '1', weight: 15, reps: 15, completed: true },
-      { id: '2', weight: 17.5, reps: 12, completed: true },
-      { id: '3', weight: 20, reps: 10, completed: true }
-    ]
+      { id: "1", weight: 15, reps: 15, completed: true },
+      { id: "2", weight: 17.5, reps: 12, completed: true },
+      { id: "3", weight: 20, reps: 10, completed: true },
+    ],
   },
-  'lat_pulldown': {
-    id: 'lat_pulldown',
-    name: 'Puxada Frontal',
+  lat_pulldown: {
+    id: "lat_pulldown",
+    name: "Puxada Frontal",
     sets: [
-      { id: '1', weight: 60, reps: 12, completed: true },
-      { id: '2', weight: 70, reps: 10, completed: true },
-      { id: '3', weight: 80, reps: 8, completed: true }
-    ]
+      { id: "1", weight: 60, reps: 12, completed: true },
+      { id: "2", weight: 70, reps: 10, completed: true },
+      { id: "3", weight: 80, reps: 8, completed: true },
+    ],
   },
-  'squat': {
-    id: 'squat',
-    name: 'Agachamento',
+  squat: {
+    id: "squat",
+    name: "Agachamento",
     sets: [
-      { id: '1', weight: 80, reps: 12, completed: true },
-      { id: '2', weight: 100, reps: 10, completed: true },
-      { id: '3', weight: 120, reps: 8, completed: true }
-    ]
-  }
+      { id: "1", weight: 80, reps: 12, completed: true },
+      { id: "2", weight: 100, reps: 10, completed: true },
+      { id: "3", weight: 120, reps: 8, completed: true },
+    ],
+  },
 };
 
 // Dados de exemplo para demonstração
-const SAMPLE_WORKOUT_DATA: { [date: string]: { [workoutId: string]: Exercise[] } } = {
-  [format(new Date(), 'yyyy-MM-dd')]: {
-    'chest': [SAMPLE_EXERCISES.bench_press, SAMPLE_EXERCISES.incline_press, SAMPLE_EXERCISES.chest_fly]
+const SAMPLE_WORKOUT_DATA: {
+  [date: string]: { [workoutId: string]: Exercise[] };
+} = {
+  [format(new Date(), "yyyy-MM-dd")]: {
+    chest: [
+      SAMPLE_EXERCISES.bench_press,
+      SAMPLE_EXERCISES.incline_press,
+      SAMPLE_EXERCISES.chest_fly,
+    ],
   },
-  [format(new Date(Date.now() - 86400000), 'yyyy-MM-dd')]: {
-    'back': [SAMPLE_EXERCISES.lat_pulldown]
+  [format(new Date(Date.now() - 86400000), "yyyy-MM-dd")]: {
+    back: [SAMPLE_EXERCISES.lat_pulldown],
   },
-  [format(new Date(Date.now() - 172800000), 'yyyy-MM-dd')]: {
-    'legs': [SAMPLE_EXERCISES.squat]
-  }
+  [format(new Date(Date.now() - 172800000), "yyyy-MM-dd")]: {
+    legs: [SAMPLE_EXERCISES.squat],
+  },
 };

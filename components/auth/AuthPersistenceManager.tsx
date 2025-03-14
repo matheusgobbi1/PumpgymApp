@@ -11,11 +11,6 @@ export function AuthPersistenceManager() {
 
   useEffect(() => {
     if (!loading && appInitialized && authStateStable && !isRestoringSession) {
-      console.log(
-        "AuthPersistenceManager: Estado de autenticação estabilizado",
-        user ? "Usuário autenticado" : "Usuário não autenticado",
-        "Restauração de sessão concluída"
-      );
     }
   }, [loading, appInitialized, authStateStable, isRestoringSession, user]);
 

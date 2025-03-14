@@ -17,7 +17,7 @@ import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
 import { MotiView } from "moti";
 import { searchFoods } from "../../services/food";
-import { FoodItem } from "../../types/food";
+import { FoodItem, FoodServing } from "../../types/food";
 import { translateMeasure } from "../../utils/translateUtils";
 import { debounce } from "lodash";
 import { useMeals, Food } from "../../context/MealContext";
@@ -273,7 +273,6 @@ export default function AddFoodScreen() {
       setSearchResults(response.items || []);
     } catch (err) {
       setError("Erro ao buscar alimentos. Tente novamente.");
-      console.error(err);
     } finally {
       setIsLoading(false);
     }
@@ -522,7 +521,6 @@ export default function AddFoodScreen() {
     return limitedResults.map((result, index) => {
       // Verificar se o resultado tem as propriedades necessárias
       if (!result.food_name) {
-        console.warn(`Resultado ${index} inválido:`, JSON.stringify(result));
         return null;
       }
 

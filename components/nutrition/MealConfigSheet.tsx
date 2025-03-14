@@ -152,7 +152,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
     // Pontos de ancoragem do bottom sheet
     // Definimos dois snap points: 70% e 90% da altura da tela
     // O índice 0 corresponde a 70% (padrão) e o índice 1 corresponde a 90% (expandido)
-    const snapPoints = useMemo(() => ["70%", "90%"], []);
+    const snapPoints = useMemo(() => ["90%"], []);
 
     // Inicializar os tipos de refeições com os existentes ou os padrões
     useEffect(() => {
@@ -283,12 +283,6 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
       setIsAddingCustomMeal(true);
     }, []);
 
-    // Função para selecionar todas as refeições
-    const selectAllMeals = useCallback(() => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      setMealTypes((prev) => prev.map((meal) => ({ ...meal, selected: true })));
-    }, []);
-
     // Função para confirmar a configuração
     const confirmMealConfig = useCallback(() => {
       const selectedMeals = mealTypes.filter((meal) => meal.selected);
@@ -297,12 +291,6 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         return;
       }
-
-      // Log para depuração
-      console.log(
-        "Refeições selecionadas:",
-        selectedMeals.map((m) => m.name).join(", ")
-      );
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onMealConfigured(selectedMeals);
@@ -441,9 +429,9 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                           styles.mealCard,
                           { backgroundColor: colors.card },
                           meal.selected && {
-                            backgroundColor: meal.color + '08',
+                            backgroundColor: meal.color + "08",
                             borderWidth: 1,
-                            borderColor: meal.color + '30'
+                            borderColor: meal.color + "30",
                           },
                         ]}
                         onPress={() => toggleMealSelection(meal.id)}
@@ -452,7 +440,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                         <View
                           style={[
                             styles.mealCardContent,
-                            meal.selected && { backgroundColor: 'transparent' },
+                            meal.selected && { backgroundColor: "transparent" },
                           ]}
                         >
                           <View
@@ -468,7 +456,9 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                             <Ionicons
                               name={meal.icon as any}
                               size={24}
-                              color={meal.selected ? meal.color : colors.primary}
+                              color={
+                                meal.selected ? meal.color : colors.primary
+                              }
                             />
                           </View>
                           <View style={styles.mealInfo}>
@@ -580,7 +570,12 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                       ]}
                       onPress={() => setShowIconSelector(!showIconSelector)}
                     >
-                      <View style={[styles.customIconContainer, { backgroundColor: customMealColor + '20' }]}>
+                      <View
+                        style={[
+                          styles.customIconContainer,
+                          { backgroundColor: customMealColor + "20" },
+                        ]}
+                      >
                         <Ionicons
                           name={customMealIcon as any}
                           size={24}
@@ -690,23 +685,6 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                 { backgroundColor: colors.background },
               ]}
             >
-              <TouchableOpacity
-                style={[
-                  styles.selectAllButton,
-                  {
-                    borderColor: colors.border,
-                    backgroundColor: colors.card,
-                  },
-                ]}
-                onPress={selectAllMeals}
-              >
-                <Text
-                  style={[styles.selectAllText, { color: colors.text }]}
-                >
-                  Selecionar Todos
-                </Text>
-              </TouchableOpacity>
-
               <ButtonNew
                 title="Confirmar"
                 onPress={confirmMealConfig}
@@ -899,7 +877,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   footer: {
-    flexDirection: "row",
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 16,
@@ -907,21 +884,7 @@ const styles = StyleSheet.create({
     borderTopColor: "rgba(0, 0, 0, 0.1)",
     backgroundColor: Colors.light.background,
   },
-  selectAllButton: {
-    flex: 1,
-    height: 50,
-    borderRadius: 12,
-    borderWidth: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  selectAllText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
   confirmButton: {
-    flex: 2,
     height: 50,
     borderRadius: 12,
     justifyContent: "center",

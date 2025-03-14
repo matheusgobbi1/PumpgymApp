@@ -22,15 +22,6 @@ const firebaseConfig = {
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Log para verificar se as variáveis de ambiente estão sendo carregadas
-console.log(
-  "Firebase API Key:",
-  process.env.EXPO_PUBLIC_FIREBASE_API_KEY ? "Definida" : "Não definida"
-);
-console.log(
-  "Firebase Project ID:",
-  process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID ? "Definido" : "Não definido"
-);
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -38,10 +29,6 @@ const app = initializeApp(firebaseConfig);
 // Inicializar Auth
 let auth: FirebaseAuth = getAuth(app);
 
-// No React Native, não precisamos definir persistência explicitamente
-// O Firebase Web SDK no React Native usa uma persistência em memória por padrão
-// Vamos usar AsyncStorage para armazenar o token de autenticação manualmente
-console.log("Auth inicializado com sucesso");
 
 const db = getFirestore(app);
 

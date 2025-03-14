@@ -1,4 +1,10 @@
-import React, { useCallback, useMemo, useEffect, useState, useRef } from "react";
+import React, {
+  useCallback,
+  useMemo,
+  useEffect,
+  useState,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -43,7 +49,7 @@ export default function Calendar({
   const { meals } = useMeals();
   const scrollViewRef = useRef<ScrollView>(null);
   const initialScrollDone = useRef(false);
-  
+
   // Estado para forçar re-renderização quando o tema mudar
   const [, setForceUpdate] = useState({});
 
@@ -52,30 +58,30 @@ export default function Calendar({
     setSeconds(setMinutes(setHours(new Date(), 0), 0), 0),
     0
   );
-  const startDate = startOfWeek(today, { locale: ptBR });
+  const startDate = startOfWeek(today, { weekStartsOn: 0 });
 
   // Cores do gradiente baseadas no tema
   const gradientColors = useMemo(() => {
-    if (theme === 'light') {
+    if (theme === "light") {
       // No modo light, usamos cores muito sutis
       return {
-        start: 'rgba(250, 250, 250, 1)',  // Quase branco
-        middle: 'rgba(250, 250, 250, 0.6)', // Com transparência
-        end: 'rgba(250, 250, 250, 0)'  // Totalmente transparente
+        start: "rgba(250, 250, 250, 1)", // Quase branco
+        middle: "rgba(250, 250, 250, 0.6)", // Com transparência
+        end: "rgba(250, 250, 250, 0)", // Totalmente transparente
       };
     } else {
       // No modo dark, mantemos o comportamento original
       return {
         start: colors.background,
         middle: colors.background,
-        end: 'transparent'
+        end: "transparent",
       };
     }
   }, [theme, colors.background]);
 
   // Configurações do gradiente baseadas no tema
   const gradientConfig = useMemo(() => {
-    if (theme === 'light') {
+    if (theme === "light") {
       return {
         leftStart: { x: 0, y: 0.5 },
         leftEnd: { x: 1, y: 0.5 },
@@ -93,52 +99,55 @@ export default function Calendar({
   }, [theme]);
 
   // Estilos dinâmicos baseados no tema
-  const dynamicStyles = useMemo(() => ({
-    leftGradient: {
-      position: "absolute" as const,
-      left: 0,
-      top: 0,
-      bottom: 0,
-      width: theme === 'light' ? 80 : 60,
-      zIndex: 1,
-      opacity: theme === 'light' ? 0.7 : 1, // Reduz a opacidade no modo light
-    },
-    rightGradient: {
-      position: "absolute" as const,
-      right: 0,
-      top: 0,
-      bottom: 0,
-      width: theme === 'light' ? 80 : 60,
-      zIndex: 1,
-      opacity: theme === 'light' ? 0.7 : 1, // Reduz a opacidade no modo light
-    },
-    calendarContainer: {
-      position: "relative" as const,
-      width: '100%' as any,
-      backgroundColor: 'transparent' as const,
-      ...(theme === 'light' && {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.03,
-        shadowRadius: 8,
-        elevation: 1,
-        borderRadius: 12,
-        borderWidth: 0,
-      })
-    },
-    scrollView: {
-      backgroundColor: 'transparent' as const,
-      ...(theme === 'light' && {
-        borderRadius: 12,
-      })
-    },
-    outerContainer: {
-      overflow: 'hidden' as const,
-      ...(theme === 'light' && {
-        borderRadius: 12,
-      })
-    }
-  }), [theme]);
+  const dynamicStyles = useMemo(
+    () => ({
+      leftGradient: {
+        position: "absolute" as const,
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: theme === "light" ? 80 : 60,
+        zIndex: 1,
+        opacity: theme === "light" ? 0.7 : 1, // Reduz a opacidade no modo light
+      },
+      rightGradient: {
+        position: "absolute" as const,
+        right: 0,
+        top: 0,
+        bottom: 0,
+        width: theme === "light" ? 80 : 60,
+        zIndex: 1,
+        opacity: theme === "light" ? 0.7 : 1, // Reduz a opacidade no modo light
+      },
+      calendarContainer: {
+        position: "relative" as const,
+        width: "100%" as any,
+        backgroundColor: "transparent" as const,
+        ...(theme === "light" && {
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.03,
+          shadowRadius: 8,
+          elevation: 1,
+          borderRadius: 12,
+          borderWidth: 0,
+        }),
+      },
+      scrollView: {
+        backgroundColor: "transparent" as const,
+        ...(theme === "light" && {
+          borderRadius: 12,
+        }),
+      },
+      outerContainer: {
+        overflow: "hidden" as const,
+        ...(theme === "light" && {
+          borderRadius: 12,
+        }),
+      },
+    }),
+    [theme]
+  );
 
   // Gera as datas do calendário
   const dates = useMemo(() => {
@@ -153,13 +162,21 @@ export default function Calendar({
   }, [startDate]);
 
   // Função para centralizar uma data específica no ScrollView
-  const scrollToDate = useCallback((date: Date) => {
-    const dateIndex = dates.findIndex((d) => isSameDay(d, date));
-    if (dateIndex !== -1 && scrollViewRef.current) {
-      const xOffset = dateIndex * DAY_ITEM_WIDTH - (width / 2) + (DAY_ITEM_WIDTH / 2);
-      scrollViewRef.current.scrollTo({ x: Math.max(0, xOffset), y: 0, animated: true });
-    }
-  }, [dates]);
+  const scrollToDate = useCallback(
+    (date: Date) => {
+      const dateIndex = dates.findIndex((d) => isSameDay(d, date));
+      if (dateIndex !== -1 && scrollViewRef.current) {
+        const xOffset =
+          dateIndex * DAY_ITEM_WIDTH - width / 2 + DAY_ITEM_WIDTH / 2;
+        scrollViewRef.current.scrollTo({
+          x: Math.max(0, xOffset),
+          y: 0,
+          animated: true,
+        });
+      }
+    },
+    [dates]
+  );
 
   // Verifica se uma data tem refeições registradas
   const hasRegisteredMeals = useCallback(
@@ -204,7 +221,7 @@ export default function Calendar({
   useEffect(() => {
     initializeScroll();
   }, [initializeScroll]);
-  
+
   // Efeito para forçar a re-renderização quando o tema mudar
   useEffect(() => {
     // Forçar re-renderização quando o tema mudar
@@ -213,40 +230,37 @@ export default function Calendar({
 
   return (
     <View style={[styles.outerContainer, dynamicStyles.outerContainer]}>
-      <View 
+      <View
         key={`calendar-container-${theme}`}
         style={[
-          styles.container, 
-          { 
-            backgroundColor: 'transparent',
-          }
+          styles.container,
+          {
+            backgroundColor: "transparent",
+          },
         ]}
       >
-        <View 
-          style={[
-            styles.calendarContainer, 
-            dynamicStyles.calendarContainer
-          ]}
+        <View
+          style={[styles.calendarContainer, dynamicStyles.calendarContainer]}
         >
           {/* Gradiente esquerdo - cobre toda a altura */}
           <LinearGradient
             colors={[
-              gradientColors.start, 
+              gradientColors.start,
               gradientColors.middle,
-              gradientColors.end
+              gradientColors.end,
             ]}
             start={gradientConfig.leftStart}
             end={gradientConfig.leftEnd}
             style={dynamicStyles.leftGradient}
             pointerEvents="none"
           />
-          
+
           {/* Gradiente direito - cobre toda a altura */}
           <LinearGradient
             colors={[
               gradientColors.end,
               gradientColors.middle,
-              gradientColors.start
+              gradientColors.start,
             ]}
             start={gradientConfig.rightStart}
             end={gradientConfig.rightEnd}
@@ -268,22 +282,23 @@ export default function Calendar({
               const hasMeals = hasRegisteredMeals(date);
 
               // Determinar a cor de fundo do dia atual com base no tema
-              const todayBackgroundColor = theme === 'light' ? colors.light : '#333333';
+              const todayBackgroundColor =
+                theme === "light" ? colors.light : "#333333";
 
               return (
-                <View 
-                  key={`${date.toISOString()}-${theme}`} 
-                  style={[
-                    styles.dayColumn, 
-                    { backgroundColor: 'transparent' }
-                  ]}
+                <View
+                  key={`${date.toISOString()}-${theme}`}
+                  style={[styles.dayColumn, { backgroundColor: "transparent" }]}
                 >
                   <Text style={[styles.weekDayText, { color: colors.text }]}>
-                    {format(date, "EEE", { locale: ptBR }).slice(0, 3)}
+                    {format(date, "EEE").slice(0, 3)}
                   </Text>
                   <TouchableOpacity
                     onPress={() => handleDatePress(date)}
-                    style={[styles.dayButton, { backgroundColor: 'transparent' }]}
+                    style={[
+                      styles.dayButton,
+                      { backgroundColor: "transparent" },
+                    ]}
                   >
                     <MotiView
                       key={`day-${date.toISOString()}-${theme}`}
@@ -297,12 +312,14 @@ export default function Calendar({
                           shadowRadius: 10,
                           elevation: 5,
                         },
-                        !isSelected && isToday && {
-                          backgroundColor: todayBackgroundColor,
-                        },
-                        !isSelected && !isToday && {
-                          backgroundColor: "transparent",
-                        },
+                        !isSelected &&
+                          isToday && {
+                            backgroundColor: todayBackgroundColor,
+                          },
+                        !isSelected &&
+                          !isToday && {
+                            backgroundColor: "transparent",
+                          },
                       ]}
                     >
                       <Text
@@ -338,14 +355,14 @@ export default function Calendar({
 
 const styles = StyleSheet.create({
   outerContainer: {
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   container: {
-    width: '100%',
+    width: "100%",
   },
   calendarContainer: {
     position: "relative",
-    width: '100%',
+    width: "100%",
   },
   scrollContent: {
     paddingHorizontal: 20,

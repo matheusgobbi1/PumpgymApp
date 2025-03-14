@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Platform, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Platform,
+  TouchableOpacity,
+} from "react-native";
 import { MotiView } from "moti";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
@@ -35,8 +41,10 @@ export default function HomeHeader({ onProfilePress }: HomeHeaderProps) {
 
     // Formatar a data atual
     const today = new Date();
-    const formattedDate = format(today, "EEEE, d 'de' MMMM", { locale: ptBR });
-    setCurrentDate(formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1));
+    const formattedDate = format(today, "EEEE, d 'de' MMMM");
+    setCurrentDate(
+      formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1)
+    );
 
     // Calcular o streak de treinos
     calculateStreak();
@@ -49,40 +57,50 @@ export default function HomeHeader({ onProfilePress }: HomeHeaderProps) {
     let currentStreak = 0;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     // Verificar se há treino hoje
-    const todayFormatted = format(today, 'yyyy-MM-dd');
-    const hasTodayWorkout = workouts[todayFormatted] && Object.keys(workouts[todayFormatted]).length > 0;
-    
+    const todayFormatted = format(today, "yyyy-MM-dd");
+    const hasTodayWorkout =
+      workouts[todayFormatted] &&
+      Object.keys(workouts[todayFormatted]).length > 0;
+
     // Se não houver treino hoje, verificar ontem
     if (!hasTodayWorkout) {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayFormatted = format(yesterday, 'yyyy-MM-dd');
-      
-      if (!(workouts[yesterdayFormatted] && Object.keys(workouts[yesterdayFormatted]).length > 0)) {
+      const yesterdayFormatted = format(yesterday, "yyyy-MM-dd");
+
+      if (
+        !(
+          workouts[yesterdayFormatted] &&
+          Object.keys(workouts[yesterdayFormatted]).length > 0
+        )
+      ) {
         setStreak(0);
         return;
       }
     }
-    
+
     // Contar dias consecutivos com treinos
     let checkDate = new Date(today);
     if (!hasTodayWorkout) {
       checkDate.setDate(checkDate.getDate() - 1);
     }
-    
+
     let keepCounting = true;
     while (keepCounting) {
-      const dateFormatted = format(checkDate, 'yyyy-MM-dd');
-      if (workouts[dateFormatted] && Object.keys(workouts[dateFormatted]).length > 0) {
+      const dateFormatted = format(checkDate, "yyyy-MM-dd");
+      if (
+        workouts[dateFormatted] &&
+        Object.keys(workouts[dateFormatted]).length > 0
+      ) {
         currentStreak++;
         checkDate.setDate(checkDate.getDate() - 1);
       } else {
         keepCounting = false;
       }
     }
-    
+
     setStreak(currentStreak);
   };
 
@@ -112,11 +130,14 @@ export default function HomeHeader({ onProfilePress }: HomeHeaderProps) {
               from={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", delay: 200 }}
-              style={[styles.streakContainer, { backgroundColor: colors.primary + '20' }]}
+              style={[
+                styles.streakContainer,
+                { backgroundColor: colors.primary + "20" },
+              ]}
             >
               <Ionicons name="flame" size={16} color={colors.warning} />
               <Text style={[styles.streakText, { color: colors.text }]}>
-                {streak} {streak === 1 ? 'dia' : 'dias'}
+                {streak} {streak === 1 ? "dia" : "dias"}
               </Text>
             </MotiView>
           )}
@@ -178,12 +199,12 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   rightContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   streakContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
@@ -191,10 +212,10 @@ const styles = StyleSheet.create({
   },
   streakText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
     marginLeft: 4,
   },
   profileButton: {
     padding: 4,
   },
-}); 
+});

@@ -49,10 +49,6 @@ export interface FatSecretFoodDetails {
 // Função para obter token de acesso
 export async function getFatSecretToken(): Promise<string> {
   try {
-    console.log("Iniciando obtenção de token FatSecret...");
-    console.log("URL de autenticação:", FATSECRET_CONFIG.AUTH_URL);
-    console.log("CLIENT_ID:", FATSECRET_CONFIG.CLIENT_ID ? "Definido (não exibindo por segurança)" : "Não definido");
-    console.log("CLIENT_SECRET:", FATSECRET_CONFIG.CLIENT_SECRET ? "Definido (não exibindo por segurança)" : "Não definido");
     
     // Criar credenciais Basic Auth usando btoa (Base64) em vez de Buffer
     const credentialsString = `${FATSECRET_CONFIG.CLIENT_ID}:${FATSECRET_CONFIG.CLIENT_SECRET}`;
@@ -63,8 +59,6 @@ export async function getFatSecretToken(): Promise<string> {
       scope: "basic",
     });
     
-    console.log("Usando autenticação Basic");
-    
     const response = await fetch(FATSECRET_CONFIG.AUTH_URL, {
       method: "POST",
       headers: {
@@ -74,8 +68,6 @@ export async function getFatSecretToken(): Promise<string> {
       body: params.toString(),
     });
 
-    console.log("Status da resposta:", response.status);
-    console.log("Headers da resposta:", Object.fromEntries([...response.headers.entries()]));
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -84,7 +76,6 @@ export async function getFatSecretToken(): Promise<string> {
     }
 
     const data = await response.json();
-    console.log("Token obtido com sucesso!");
     return data.access_token;
   } catch (error) {
     console.error("Erro detalhado ao obter token de acesso:", error);

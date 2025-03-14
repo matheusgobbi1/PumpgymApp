@@ -295,7 +295,7 @@ export default function ButtonNew({
       height: getHeight(),
       borderRadius: rounded ? getHeight() / 2 : 8,
       opacity: disabled ? 0.7 : 1,
-      width: fullWidth ? "100%" : "auto",
+      width: fullWidth ? ("100%" as any) : ("auto" as any),
       ...getPadding(),
       elevation: elevation,
       shadowOpacity: elevation > 0 ? 0.2 : 0,

@@ -78,7 +78,7 @@ export default function Calendar({
     setSeconds(setMinutes(setHours(new Date(), 0), 0), 0),
     0
   );
-  const startDate = startOfWeek(today, { locale: ptBR });
+  const startDate = startOfWeek(today, { weekStartsOn: 0 });
 
   // Cores do gradiente baseadas no tema
   const gradientColors = useMemo(() => {
@@ -200,7 +200,9 @@ export default function Calendar({
       try {
         // Verificar treinos para a data usando getWorkoutsForDate
         const dateString = format(date, "yyyy-MM-dd");
-        const workoutsForDate = getWorkoutsForDate ? getWorkoutsForDate(dateString) : {};
+        const workoutsForDate = getWorkoutsForDate
+          ? getWorkoutsForDate(dateString)
+          : {};
         const hasWorkouts = Object.keys(workoutsForDate).length > 0;
 
         if (hasWorkouts) {
@@ -211,7 +213,9 @@ export default function Calendar({
         if (Object.keys(meals).length > 0) {
           return (
             meals[dateString] &&
-            Object.values(meals[dateString]).some((foods: any) => foods.length > 0)
+            Object.values(meals[dateString]).some(
+              (foods: any) => foods.length > 0
+            )
           );
         }
 
@@ -294,12 +298,19 @@ export default function Calendar({
           <MotiView
             key={`left-gradient-${theme}`}
             state={gradientAnimationState}
-            transition={{ 
-              type: 'timing', 
+            transition={{
+              type: "timing",
               duration: 2000,
-              delay: 0 
+              delay: 0,
             }}
-            style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 150, zIndex: 1 }}
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 150,
+              zIndex: 1,
+            }}
             pointerEvents="none"
           >
             <LinearGradient
@@ -310,7 +321,7 @@ export default function Calendar({
               ]}
               start={gradientConfig.leftStart}
               end={gradientConfig.leftEnd}
-              style={{ width: '100%', height: '100%' }}
+              style={{ width: "100%", height: "100%" }}
               pointerEvents="none"
             />
           </MotiView>
@@ -319,12 +330,19 @@ export default function Calendar({
           <MotiView
             key={`right-gradient-${theme}`}
             state={gradientAnimationState}
-            transition={{ 
-              type: 'timing', 
+            transition={{
+              type: "timing",
               duration: 2000,
-              delay: 0 
+              delay: 0,
             }}
-            style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 150, zIndex: 1 }}
+            style={{
+              position: "absolute",
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: 150,
+              zIndex: 1,
+            }}
             pointerEvents="none"
           >
             <LinearGradient
@@ -335,7 +353,7 @@ export default function Calendar({
               ]}
               start={gradientConfig.rightStart}
               end={gradientConfig.rightEnd}
-              style={{ width: '100%', height: '100%' }}
+              style={{ width: "100%", height: "100%" }}
               pointerEvents="none"
             />
           </MotiView>
@@ -363,7 +381,7 @@ export default function Calendar({
                   style={[styles.dayColumn, { backgroundColor: "transparent" }]}
                 >
                   <Text style={[styles.weekDayText, { color: colors.text }]}>
-                    {format(date, "EEE", { locale: ptBR }).slice(0, 3)}
+                    {format(date, "EEE").slice(0, 3)}
                   </Text>
                   <TouchableOpacity
                     onPress={() => handleDatePress(date)}
@@ -488,4 +506,4 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 10,
   },
-}); 
+});

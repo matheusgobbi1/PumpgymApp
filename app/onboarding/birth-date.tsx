@@ -26,19 +26,25 @@ export default function BirthDateScreen() {
 
   // Definir estados iniciais como null para indicar que nenhuma opção está selecionada
   const [selectedMonth, setSelectedMonth] = useState<number | null>(
-    nutritionInfo.birthDate ? nutritionInfo.birthDate.getMonth() : null
+    nutritionInfo.birthDate && nutritionInfo.birthDate instanceof Date
+      ? nutritionInfo.birthDate.getMonth()
+      : null
   );
   const [selectedDay, setSelectedDay] = useState<number | null>(
-    nutritionInfo.birthDate ? nutritionInfo.birthDate.getDate() : null
+    nutritionInfo.birthDate && nutritionInfo.birthDate instanceof Date
+      ? nutritionInfo.birthDate.getDate()
+      : null
   );
   const [selectedYear, setSelectedYear] = useState<number | null>(
-    nutritionInfo.birthDate ? nutritionInfo.birthDate.getFullYear() : null
+    nutritionInfo.birthDate && nutritionInfo.birthDate instanceof Date
+      ? nutritionInfo.birthDate.getFullYear()
+      : null
   );
   const [error, setError] = useState("");
-  
+
   // Estado para forçar re-renderização quando o tema mudar
   const [, setForceUpdate] = useState({});
-  
+
   // Efeito para forçar a re-renderização quando o tema mudar
   useEffect(() => {
     setForceUpdate({});
@@ -136,9 +142,17 @@ export default function BirthDateScreen() {
       nextButtonDisabled={!isNextEnabled}
       error={error}
     >
-      <View key={`date-selection-container-${theme}`} style={styles.dateSelectionContainer}>
+      <View
+        key={`date-selection-container-${theme}`}
+        style={styles.dateSelectionContainer}
+      >
         <View key={`month-column-${theme}`} style={styles.dateColumn}>
-          <Text key={`month-label-${theme}`} style={[styles.dateLabel, { color: colors.text }]}>Mês</Text>
+          <Text
+            key={`month-label-${theme}`}
+            style={[styles.dateLabel, { color: colors.text }]}
+          >
+            Mês
+          </Text>
           <View
             key={`month-picker-container-${theme}`}
             style={[
@@ -168,11 +182,17 @@ export default function BirthDateScreen() {
                   style={[
                     styles.dateItem,
                     {
-                      backgroundColor: selectedMonth === index 
-                        ? (theme === 'dark' ? 'rgba(28, 154, 190, 0.1)' : 'rgba(28, 154, 190, 0.05)')
-                        : "transparent",
+                      backgroundColor:
+                        selectedMonth === index
+                          ? theme === "dark"
+                            ? "rgba(28, 154, 190, 0.1)"
+                            : "rgba(28, 154, 190, 0.05)"
+                          : "transparent",
                       borderWidth: selectedMonth === index ? 2 : 0,
-                      borderColor: selectedMonth === index ? colors.primary : "transparent",
+                      borderColor:
+                        selectedMonth === index
+                          ? colors.primary
+                          : "transparent",
                     },
                   ]}
                   onPress={() => setSelectedMonth(index)}
@@ -183,7 +203,10 @@ export default function BirthDateScreen() {
                     style={[
                       styles.dateItemText,
                       {
-                        color: selectedMonth === index ? colors.primary : colors.text,
+                        color:
+                          selectedMonth === index
+                            ? colors.primary
+                            : colors.text,
                         fontWeight: selectedMonth === index ? "600" : "500",
                       },
                     ]}
@@ -197,7 +220,12 @@ export default function BirthDateScreen() {
         </View>
 
         <View key={`day-column-${theme}`} style={styles.dateColumn}>
-          <Text key={`day-label-${theme}`} style={[styles.dateLabel, { color: colors.text }]}>Dia</Text>
+          <Text
+            key={`day-label-${theme}`}
+            style={[styles.dateLabel, { color: colors.text }]}
+          >
+            Dia
+          </Text>
           <View
             key={`day-picker-container-${theme}`}
             style={[
@@ -227,11 +255,15 @@ export default function BirthDateScreen() {
                   style={[
                     styles.dateItem,
                     {
-                      backgroundColor: selectedDay === day 
-                        ? (theme === 'dark' ? 'rgba(28, 154, 190, 0.1)' : 'rgba(28, 154, 190, 0.05)')
-                        : "transparent",
+                      backgroundColor:
+                        selectedDay === day
+                          ? theme === "dark"
+                            ? "rgba(28, 154, 190, 0.1)"
+                            : "rgba(28, 154, 190, 0.05)"
+                          : "transparent",
                       borderWidth: selectedDay === day ? 2 : 0,
-                      borderColor: selectedDay === day ? colors.primary : "transparent",
+                      borderColor:
+                        selectedDay === day ? colors.primary : "transparent",
                     },
                   ]}
                   onPress={() => setSelectedDay(day)}
@@ -242,7 +274,8 @@ export default function BirthDateScreen() {
                     style={[
                       styles.dateItemText,
                       {
-                        color: selectedDay === day ? colors.primary : colors.text,
+                        color:
+                          selectedDay === day ? colors.primary : colors.text,
                         fontWeight: selectedDay === day ? "600" : "500",
                       },
                     ]}
@@ -256,7 +289,12 @@ export default function BirthDateScreen() {
         </View>
 
         <View key={`year-column-${theme}`} style={styles.dateColumn}>
-          <Text key={`year-label-${theme}`} style={[styles.dateLabel, { color: colors.text }]}>Ano</Text>
+          <Text
+            key={`year-label-${theme}`}
+            style={[styles.dateLabel, { color: colors.text }]}
+          >
+            Ano
+          </Text>
           <View
             key={`year-picker-container-${theme}`}
             style={[
@@ -286,11 +324,15 @@ export default function BirthDateScreen() {
                   style={[
                     styles.dateItem,
                     {
-                      backgroundColor: selectedYear === year 
-                        ? (theme === 'dark' ? 'rgba(28, 154, 190, 0.1)' : 'rgba(28, 154, 190, 0.05)')
-                        : "transparent",
+                      backgroundColor:
+                        selectedYear === year
+                          ? theme === "dark"
+                            ? "rgba(28, 154, 190, 0.1)"
+                            : "rgba(28, 154, 190, 0.05)"
+                          : "transparent",
                       borderWidth: selectedYear === year ? 2 : 0,
-                      borderColor: selectedYear === year ? colors.primary : "transparent",
+                      borderColor:
+                        selectedYear === year ? colors.primary : "transparent",
                     },
                   ]}
                   onPress={() => setSelectedYear(year)}
@@ -301,7 +343,8 @@ export default function BirthDateScreen() {
                     style={[
                       styles.dateItemText,
                       {
-                        color: selectedYear === year ? colors.primary : colors.text,
+                        color:
+                          selectedYear === year ? colors.primary : colors.text,
                         fontWeight: selectedYear === year ? "600" : "500",
                       },
                     ]}

@@ -89,12 +89,6 @@ export default function Profile() {
   // Efeito para atualizar a tela quando os dados de nutrição mudarem
   useEffect(() => {
     try {
-      console.log("Dados de nutrição atualizados:", {
-        calories: nutritionInfo.calories,
-        protein: nutritionInfo.protein,
-        carbs: nutritionInfo.carbs,
-        fat: nutritionInfo.fat
-      });
       setRefreshKey(prev => prev + 1);
     } catch (error) {
       console.error("Erro ao atualizar interface:", error);
@@ -105,7 +99,6 @@ export default function Profile() {
   useFocusEffect(
     useCallback(() => {
       try {
-        console.log("Tela de perfil recebeu foco");
       } catch (error) {
         console.error("Erro ao atualizar tela:", error);
       }

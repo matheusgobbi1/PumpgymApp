@@ -90,7 +90,7 @@ export default function LoginScreen() {
 
         {/* Background Image */}
         <ImageBackground
-          source={require("../../assets/images/fitness-background.jpg")}
+          source={require("../../assets/images/fitness-background.jpeg")}
           style={styles.backgroundImage}
           resizeMode="cover"
         >

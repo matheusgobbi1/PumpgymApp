@@ -124,10 +124,6 @@ export default function NutritionScreen() {
 
   // Verificar se a referência do bottom sheet está sendo inicializada
   useEffect(() => {
-    console.log(
-      "MealConfigSheet ref inicializado:",
-      !!mealConfigSheetRef.current
-    );
 
     return () => {};
   }, [hasMealTypesConfigured]);
@@ -144,7 +140,6 @@ export default function NutritionScreen() {
         // Atualizar o gráfico de progresso após remover o alimento
         triggerRefresh();
       } catch (error) {
-        console.error("Erro ao deletar alimento:", error);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     },
@@ -158,7 +153,6 @@ export default function NutritionScreen() {
   // Função para abrir o bottom sheet de configuração de refeições
   const openMealConfigSheet = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    console.log("Tentando abrir o bottom sheet");
 
     // Verificar se a referência existe antes de chamar o método present
     if (mealConfigSheetRef.current) {
@@ -202,12 +196,6 @@ export default function NutritionScreen() {
   // Função para lidar com a configuração de refeições
   const handleMealConfigured = useCallback(
     (configuredMeals: MealTypeContext[]) => {
-      // Log para depuração
-      console.log(
-        "Refeições recebidas para configuração:",
-        configuredMeals.map((m: MealTypeContext) => m.name).join(", ")
-      );
-
       // Converter as refeições configuradas para o formato esperado pelo contexto
       const mealTypesToUpdate = configuredMeals.map(
         (meal: MealTypeContext) => ({
@@ -242,8 +230,6 @@ export default function NutritionScreen() {
 
       // Forçar a recriação do componente MealConfigSheet
       setMealConfigKey(Date.now());
-
-      console.log("Refeições redefinidas");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       console.error("Erro ao redefinir refeições:", error);
@@ -436,7 +422,7 @@ export default function NutritionScreen() {
               index={index}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                console.log(`Meal ${meal.name} pressed`);
+
               }}
               onDeleteFood={(foodId) => handleDeleteFood(meal.id, foodId)}
             />

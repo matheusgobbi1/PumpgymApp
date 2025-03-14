@@ -58,7 +58,6 @@ export default function RootLayout() {
         try {
           await SplashScreen.hideAsync();
         } catch (e) {
-          console.log("Erro ao ocultar splash screen:", e);
         }
       }, 3000);
 

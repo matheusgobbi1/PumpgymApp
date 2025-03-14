@@ -21,7 +21,8 @@ const { width } = Dimensions.get("window");
 
 interface EmptyWorkoutStateProps {
   onWorkoutConfigured: (workouts: WorkoutType[]) => void;
-  onOpenWorkoutConfig: () => void; // Prop para abrir o bottom sheet
+  onOpenWorkoutConfig: () => void;
+  isRestDay?: boolean; // Nova prop para indicar se é dia de descanso
 }
 
 // Tipo para os ícones do Ionicons
@@ -48,6 +49,7 @@ const TipItem = memo(
 function EmptyWorkoutState({
   onWorkoutConfigured,
   onOpenWorkoutConfig,
+  isRestDay = false,
 }: EmptyWorkoutStateProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
@@ -78,53 +80,82 @@ function EmptyWorkoutState({
       transition={{ type: "timing", duration: 300 }}
     >
       <View style={styles.illustrationContainer}>
-        <Ionicons name="barbell-outline" size={80} color={colors.primary} />
+        <Ionicons
+          name={isRestDay ? "bed-outline" : "barbell-outline"}
+          size={80}
+          color={colors.primary}
+        />
       </View>
 
       <Text style={[styles.title, { color: colors.text }]}>
-        Configure seus Treinos
+        {isRestDay ? "Dia de Descanso" : "Configure seus Treinos"}
       </Text>
 
       <Text style={[styles.description, { color: colors.text + "80" }]}>
-        Personalize seus treinos para acompanhar seu progresso de forma
-        eficiente.
+        {isRestDay
+          ? "O descanso é tão importante quanto o treino. Aproveite para recuperar sua energia e voltar mais forte amanhã!"
+          : "Personalize seus treinos para acompanhar seu progresso de forma eficiente."}
       </Text>
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={openWorkoutConfig}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={[colors.primary, colors.accent]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.buttonGradient}
-          >
-            <Text style={styles.buttonText}>Configurar Treinos</Text>
-            <Ionicons name="arrow-forward" size={20} color="white" />
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
+      {!isRestDay && (
+        <>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={openWorkoutConfig}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={[colors.primary, colors.accent]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.buttonGradient}
+              >
+                <Text style={styles.buttonText}>Configurar Treinos</Text>
+                <Ionicons name="arrow-forward" size={20} color="white" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
 
-      <View style={styles.tipsContainer}>
-        <TipItem
-          icon="checkmark-circle-outline"
-          text="Organize seus treinos por grupos musculares"
-          color={colors.primary}
-        />
-        <TipItem
-          icon="checkmark-circle-outline"
-          text="Registre exercícios, séries e repetições"
-          color={colors.primary}
-        />
-        <TipItem
-          icon="checkmark-circle-outline"
-          text="Acompanhe sua evolução ao longo do tempo"
-          color={colors.primary}
-        />
-      </View>
+          <View style={styles.tipsContainer}>
+            <TipItem
+              icon="checkmark-circle-outline"
+              text="Organize seus treinos por grupos musculares"
+              color={colors.primary}
+            />
+            <TipItem
+              icon="checkmark-circle-outline"
+              text="Registre exercícios, séries e repetições"
+              color={colors.primary}
+            />
+            <TipItem
+              icon="checkmark-circle-outline"
+              text="Acompanhe sua evolução ao longo do tempo"
+              color={colors.primary}
+            />
+          </View>
+        </>
+      )}
+
+      {isRestDay && (
+        <View style={styles.tipsContainer}>
+          <TipItem
+            icon="bed-outline"
+            text="Recuperação muscular"
+            color={colors.primary}
+          />
+          <TipItem
+            icon="battery-charging-outline"
+            text="Reposição de energia"
+            color={colors.primary}
+          />
+          <TipItem
+            icon="trending-up-outline"
+            text="Melhora do desempenho"
+            color={colors.primary}
+          />
+        </View>
+      )}
     </MotiView>
   );
 }

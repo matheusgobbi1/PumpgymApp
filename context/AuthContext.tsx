@@ -105,34 +105,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         isRestoringSession ||
         navigationAttempted
       ) {
-        console.log(
-          "Navegação bloqueada:",
-          navigationLocked
-            ? "Navegação em andamento"
-            : !authStateStable
-            ? "Estado não estável"
-            : isRestoringSession
-            ? "Restaurando sessão"
-            : "Navegação já realizada"
-        );
         return;
       }
 
       try {
         setNavigationLocked(true);
         setNavigationAttempted(true);
-        console.log("Iniciando navegação com estado estável...");
 
         if (!currentUser) {
-          console.log(
-            "Nenhum usuário autenticado, redirecionando para login..."
-          );
           await router.replace("/auth/login");
           return;
         }
 
         if (currentUser.isAnonymous) {
-          console.log("Usuário anônimo, redirecionando para onboarding...");
           await router.replace("/onboarding/gender");
           return;
         }
@@ -151,7 +136,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           await router.replace("/auth/login");
         }
       } catch (error) {
-        console.error("Erro ao decidir navegação:", error);
         setNavigationAttempted(false); // Permite nova tentativa em caso de erro
         await router.replace("/auth/login");
       } finally {
@@ -167,11 +151,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setNavigationAttempted(false);
       setSessionRestoreAttempted(true);
       setAuthStateStable(false);
-      console.log("Iniciando restauração de sessão...");
 
       // Verificar se já existe um usuário autenticado no Firebase
       if (auth.currentUser) {
-        console.log("Usuário já autenticado no Firebase");
         setUser(auth.currentUser);
         setIsAnonymous(auth.currentUser.isAnonymous);
         return true;
@@ -184,9 +166,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (userData?.email && userData?.password) {
           try {
-            console.log(
-              "Tentando restaurar sessão com credenciais armazenadas"
-            );
             const userCredential = await signInWithEmailAndPassword(
               firebaseAuth,
               userData.email,
@@ -197,7 +176,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               const newToken = await getIdToken(userCredential.user);
               await saveAuthToken(newToken);
             } catch (error) {
-              console.error("Erro ao obter token:", error);
+              // Erro ao obter token
             }
 
             try {
@@ -223,29 +202,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               setIsNewUser(!onboardingCompleted);
               return true;
             } catch (error) {
-              console.error("Erro ao obter dados do usuário:", error);
+              // Erro ao obter dados do usuário
               setUser(userCredential.user);
               setIsAnonymous(userCredential.user.isAnonymous);
               setIsNewUser(true);
               return true;
             }
           } catch (error) {
-            console.error("Erro ao restaurar sessão:", error);
+            // Erro ao restaurar sessão
             // Remover dados inválidos
             await removeUserData();
             await removeAuthToken();
           }
         }
       } catch (error) {
-        console.error(
-          "Erro ao obter dados do usuário do armazenamento local:",
-          error
-        );
+        // Erro ao obter dados do usuário do armazenamento local
       }
 
       return false;
     } catch (error) {
-      console.error("Erro ao restaurar sessão:", error);
+      // Erro ao restaurar sessão
       return false;
     } finally {
       setLoading(false);
@@ -266,7 +242,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         try {
           await restoreSession();
         } catch (error) {
-          console.error("Erro ao restaurar sessão:", error);
+          // Erro ao restaurar sessão
         }
 
         // Configurar o listener de autenticação
@@ -280,17 +256,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
               if (currentUser) {
                 if (currentUser.isAnonymous) {
-                  console.log("Usuário anônimo detectado");
                   setUser(currentUser);
                   setIsAnonymous(true);
                   setIsNewUser(true);
                 } else {
-                  console.log("Usuário autenticado detectado");
                   try {
                     const idToken = await getIdToken(currentUser);
                     await saveAuthToken(idToken);
                   } catch (error) {
-                    console.error("Erro ao obter token:", error);
+                    // Erro ao obter token
                   }
 
                   try {
@@ -304,19 +278,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                     setIsAnonymous(false);
                     setIsNewUser(!onboardingCompleted);
                   } catch (error) {
-                    console.error("Erro ao obter dados do usuário:", error);
+                    // Erro ao obter dados do usuário
                     setUser(currentUser);
                     setIsAnonymous(false);
                     setIsNewUser(true);
                   }
                 }
               } else {
-                console.log("Nenhum usuário detectado");
                 setUser(null);
                 setIsAnonymous(false);
               }
             } catch (error) {
-              console.error("Erro no listener de autenticação:", error);
+              // Erro no listener de autenticação
             } finally {
               setAuthStateStable(true);
               setLoading(false);
@@ -325,7 +298,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             }
           },
           (error) => {
-            console.error("Erro no listener de autenticação:", error);
+            // Erro no listener de autenticação
             setAuthStateStable(true);
             setLoading(false);
             setAppInitialized(true);
@@ -333,7 +306,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         );
       } catch (error) {
-        console.error("Erro na inicialização do app:", error);
+        // Erro na inicialização do app
       } finally {
         // Garantir que os estados sejam atualizados mesmo em caso de erro
         setTimeout(() => {
@@ -364,7 +337,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         !isRestoringSession &&
         !navigationAttempted
       ) {
-        console.log("Estado estável detectado, tentando navegação...");
         await handleNavigation(user);
       }
     };
@@ -394,14 +366,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           // então retornamos apenas a informação de que a conta existe
           return { exists: true, onboardingCompleted: false };
         } catch (error) {
-          console.error("Erro ao verificar status do onboarding:", error);
+          // Erro ao verificar status do onboarding
           return { exists: true, onboardingCompleted: false };
         }
       }
 
       return { exists: false, onboardingCompleted: false };
     } catch (error) {
-      console.error("Erro ao verificar email:", error);
       throw error;
     }
   };
@@ -450,7 +421,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         router.replace("/(tabs)");
       }
     } catch (error) {
-      console.error("Erro ao fazer login:", error);
       throw error;
     }
   };
@@ -514,20 +484,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsAnonymous(false);
 
       // Redirecionar explicitamente para o onboarding
-      console.log("Redirecionando para onboarding após registro...");
       router.replace("/onboarding/gender");
     } catch (error) {
-      console.error("Erro ao registrar:", error);
       throw error;
     }
   };
 
   const signInAnonymously = async () => {
     try {
-      console.log("Iniciando login anônimo...");
       const userCredential = await signInAnonymouslyFirebase(firebaseAuth);
-
-      console.log("Login anônimo bem-sucedido");
 
       // Definir o usuário e o estado
       setUser(userCredential.user);
@@ -535,11 +500,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsNewUser(true);
 
       // Não salvar dados do usuário anônimo
-      console.log("Usuário anônimo: dados não serão persistidos");
 
       return userCredential.user;
     } catch (error) {
-      console.error("Erro ao fazer login anônimo:", error);
       throw error;
     }
   };
@@ -550,12 +513,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     password: string
   ): Promise<FirebaseUser> => {
     try {
-      console.log("Iniciando registro permanente...");
-
       // Recuperar dados temporários de nutrição antes de criar o usuário
       const tempNutritionData =
         await OfflineStorage.getTemporaryNutritionData();
-      console.log("Dados temporários recuperados:", tempNutritionData);
 
       // Criar novo usuário
       const userCredential = await createUserWithEmailAndPassword(
@@ -578,7 +538,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Se tiver dados de nutrição temporários, salvá-los no Firestore
       if (tempNutritionData) {
-        console.log("Salvando dados de nutrição no Firestore...");
         await setDoc(doc(db, "nutrition", newUser.uid), {
           ...tempNutritionData,
           updatedAt: serverTimestamp(),
@@ -609,7 +568,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       router.replace("/(tabs)");
       return newUser;
     } catch (error) {
-      console.error("Erro ao completar registro:", error);
       throw error;
     }
   };
@@ -617,26 +575,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signOut = async () => {
     try {
       setNavigationAttempted(false);
-      console.log("Iniciando processo de logout...");
 
       // Primeiro limpar os dados locais
       try {
         await removeUserData();
-        console.log("Dados do usuário removidos com sucesso");
       } catch (e) {
-        console.error("Erro ao remover dados do usuário:", e);
+        // Erro ao remover dados do usuário
       }
 
       try {
         await removeAuthToken();
-        console.log("Token de autenticação removido com sucesso");
       } catch (e) {
-        console.error("Erro ao remover token de autenticação:", e);
+        // Erro ao remover token de autenticação
       }
 
       // Depois fazer logout no Firebase
       await firebaseSignOut(firebaseAuth);
-      console.log("Logout do Firebase realizado com sucesso");
 
       // Limpar estados locais
       setUser(null);
@@ -646,7 +600,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Redirecionar para login
       router.replace("/auth/login");
     } catch (error) {
-      console.error("Erro ao fazer logout:", error);
       throw error;
     }
   };

@@ -62,7 +62,7 @@ export default function Calendar({
     setSeconds(setMinutes(setHours(new Date(), 0), 0), 0),
     0
   );
-  const startDate = startOfWeek(today, { locale: ptBR });
+  const startDate = startOfWeek(today, { weekStartsOn: 0 });
 
   // Cores do gradiente baseadas no tema
   const gradientColors = useMemo(() => {
@@ -323,7 +323,7 @@ export default function Calendar({
                   style={[styles.dayColumn, { backgroundColor: "transparent" }]}
                 >
                   <Text style={[styles.weekDayText, { color: colors.text }]}>
-                    {format(date, "EEE", { locale: ptBR }).slice(0, 3)}
+                    {format(date, "EEE").slice(0, 3)}
                   </Text>
                   <TouchableOpacity
                     onPress={() => handleDatePress(date)}

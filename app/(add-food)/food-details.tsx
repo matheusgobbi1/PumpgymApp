@@ -20,7 +20,7 @@ import { useMeals } from "../../context/MealContext";
 import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
 import { getFoodDetails } from "../../services/food";
-import { FoodItem } from "../../types/food";
+import { FoodItem, FoodServing } from "../../types/food";
 import Slider from "@react-native-community/slider";
 
 const { width } = Dimensions.get("window");
@@ -346,7 +346,6 @@ export default function FoodDetailsScreen() {
       }
     } catch (err) {
       setError("Erro ao carregar detalhes do alimento");
-      console.error(err);
     } finally {
       setIsLoading(false);
     }
@@ -867,8 +866,7 @@ export default function FoodDetailsScreen() {
                   { color: colors.text + "80" },
                 ]}
               >
-                {food.servings &&
-                food.servings[0]?.serving_description &&
+                {food.servings[0].serving_description &&
                 (food.servings[0].serving_description
                   .toLowerCase()
                   .includes("bar") ||

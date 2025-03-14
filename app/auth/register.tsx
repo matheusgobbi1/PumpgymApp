@@ -121,7 +121,7 @@ export default function RegisterScreen() {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={[styles.title, { color: colors.primary }]}>Fitfolio</Text>
+          <Text style={[styles.title, { color: colors.primary }]}>FitFolio</Text>
         </View>
 
         <View style={styles.formContainer}>

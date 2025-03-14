@@ -77,7 +77,6 @@ export default function MacrosDetailsScreen() {
 
       return totals;
     } catch (error) {
-      console.error("Erro ao calcular totais:", error);
       return {};
     }
   }, [meals]);
@@ -113,7 +112,6 @@ export default function MacrosDetailsScreen() {
           legendFontSize: 12,
         }));
     } catch (error) {
-      console.error("Erro ao gerar dados do gráfico:", error);
       return [];
     }
   }, [mealTotals, colors.text]);
@@ -158,7 +156,6 @@ export default function MacrosDetailsScreen() {
         },
       ];
     } catch (error) {
-      console.error("Erro ao calcular macros:", error);
       return [];
     }
   }, [mealTotals, nutritionInfo]);

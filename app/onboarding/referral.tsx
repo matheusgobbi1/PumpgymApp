@@ -41,7 +41,6 @@ export default function ReferralScreen() {
     { id: "tiktok", name: "TikTok", icon: "logo-tiktok" },
     { id: "youtube", name: "Youtube", icon: "logo-youtube" },
     { id: "google", name: "Google", icon: "logo-google" },
-    { id: "tv", name: "TV", icon: "tv-outline" },
   ];
 
   return (
