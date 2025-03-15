@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef } from "react";
+import React, { useCallback, useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -97,10 +97,17 @@ export default function WorkoutCard({
   const [selectedSourceDate, setSelectedSourceDate] = useState<string>("");
   const [showCopySuccess, setShowCopySuccess] = useState(false);
 
-  // Função para resetar os exercícios expandidos (substitui o useEffect)
+  // Função para resetar os exercícios expandidos
   const resetExpandedExercises = useCallback(() => {
     setExpandedExercises({});
   }, []);
+
+  // Usar useEffect para observar mudanças em combinedRefreshKey
+  useEffect(() => {
+    if (combinedRefreshKey) {
+      resetExpandedExercises();
+    }
+  }, [combinedRefreshKey, resetExpandedExercises]);
 
   // Função para obter as datas anteriores com este treino
   const getPreviousDatesWithWorkout = useCallback(() => {
@@ -583,11 +590,6 @@ export default function WorkoutCard({
       </Animated.View>
     </Swipeable>
   );
-
-  // Se o combinedRefreshKey mudar, resetar os exercícios expandidos
-  if (combinedRefreshKey) {
-    resetExpandedExercises();
-  }
 
   return (
     <>

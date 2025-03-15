@@ -70,7 +70,7 @@ export default function SelectionOption({
           style={[
             styles.iconContainer,
             isSelected && {
-              backgroundColor: theme === 'dark' ? 'rgba(28, 154, 190, 0.2)' : 'rgba(28, 154, 190, 0.1)',
+              backgroundColor: theme === 'dark' ? colors.primary + "20" : colors.primary + "20",
               borderRadius: 20,
             }
           ]}

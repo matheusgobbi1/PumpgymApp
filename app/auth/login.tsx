@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.65)", // Overlay mais leve para destacar a imagem
+    backgroundColor: "rgba(0, 0, 0, 0.55)", // Overlay mais leve para destacar a imagem
   },
   content: {
     flex: 1,
@@ -261,18 +261,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
   },
   primaryButton: {
-    backgroundColor: "#000000",
+    backgroundColor: "#FF4500",
+    borderWidth: 1,
+    borderColor: "#FF6347",
   },
   buttonText: {
     color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: "300",
+    fontWeight: "600",
     letterSpacing: 1,
   },
   buttonIcon: {

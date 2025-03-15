@@ -19,10 +19,16 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   Dimensions,
+  LayoutAnimation,
+  UIManager,
+  ScrollView,
 } from "react-native";
 import Colors from "../../constants/Colors";
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
-import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import BottomSheet, {
+  BottomSheetBackdrop,
+  BottomSheetScrollView,
+} from "@gorhom/bottom-sheet";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { validateLogin } from "../../utils/validations";
@@ -31,7 +37,15 @@ import { useTheme } from "../../context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MotiView } from "moti";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
+
+// Habilitar LayoutAnimation para Android
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 interface LoginBottomSheetProps {
   bottomSheetIndex: number;
@@ -56,43 +70,131 @@ const LoginBottomSheet = ({
   // Bottom sheet reference
   const bottomSheetRef = useRef<BottomSheet>(null);
   const passwordInputRef = useRef<TextInput>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   // Snap points for bottom sheet
-  const snapPoints = useMemo(() => ["85%", "75%"], []);
+  // Usamos snapPoints dinâmicos baseados no estado do teclado
+  const snapPoints = useMemo(() => {
+    // Se o teclado estiver visível, só permitimos o snapPoint maior
+    if (keyboardVisible) {
+      return ["85%"];
+    }
+    // Caso contrário, permitimos ambos os snapPoints
+    return ["65%", "85%"];
+  }, [keyboardVisible]);
+
+  // Referência para controlar se estamos no meio de uma animação
+  const isAnimatingRef = useRef(false);
+  // Referência para controlar o último snapPoint
+  const lastSnapPointRef = useRef(0);
 
   // Efeito para controlar a abertura e fechamento do bottom sheet
   useEffect(() => {
     if (bottomSheetIndex >= 0 && bottomSheetRef.current) {
-      bottomSheetRef.current.expand();
+      // Abrir no primeiro snapPoint (65% ou 85% dependendo do estado do teclado)
+      bottomSheetRef.current.snapToIndex(0);
+      lastSnapPointRef.current = 0;
     } else if (bottomSheetIndex === -1 && bottomSheetRef.current) {
       bottomSheetRef.current.close();
     }
   }, [bottomSheetIndex]);
 
+  // Função para expandir o BottomSheet de forma segura
+  const safelyExpandBottomSheet = useCallback(() => {
+    if (isAnimatingRef.current) return;
+
+    if (bottomSheetRef.current) {
+      isAnimatingRef.current = true;
+      // Se o teclado estiver visível, só temos um snapPoint (0)
+      // Se não, vamos para o snapPoint 1 (85%)
+      const targetIndex = keyboardVisible ? 0 : 1;
+      bottomSheetRef.current.snapToIndex(targetIndex);
+      lastSnapPointRef.current = targetIndex;
+
+      // Resetar o flag de animação após um tempo
+      setTimeout(() => {
+        isAnimatingRef.current = false;
+      }, 300);
+    }
+  }, [keyboardVisible]);
+
   // Monitorar o teclado
   useEffect(() => {
+    const keyboardWillShowListener =
+      Platform.OS === "ios"
+        ? Keyboard.addListener("keyboardWillShow", (event) => {
+            configureLayoutAnimation();
+            setKeyboardVisible(true);
+            // Não precisamos chamar safelyExpandBottomSheet aqui, pois o snapPoints
+            // será atualizado automaticamente e o BottomSheet se ajustará
+
+            // Rolar para o botão quando o teclado aparecer no iOS
+            setTimeout(() => {
+              scrollViewRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+          })
+        : null;
+
     const keyboardDidShowListener = Keyboard.addListener(
       "keyboardDidShow",
-      () => {
-        setKeyboardVisible(true);
+      (event) => {
+        if (Platform.OS === "android") {
+          configureLayoutAnimation();
+          setKeyboardVisible(true);
+          // Não precisamos chamar safelyExpandBottomSheet aqui, pois o snapPoints
+          // será atualizado automaticamente e o BottomSheet se ajustará
+
+          // Rolar para o botão quando o teclado aparecer no Android
+          setTimeout(() => {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+          }, 100);
+        }
       }
     );
+
+    const keyboardWillHideListener =
+      Platform.OS === "ios"
+        ? Keyboard.addListener("keyboardWillHide", () => {
+            configureLayoutAnimation();
+            setKeyboardVisible(false);
+            // Não alteramos o snapPoint aqui, pois o snapPoints
+            // será atualizado automaticamente e o BottomSheet se ajustará
+          })
+        : null;
+
     const keyboardDidHideListener = Keyboard.addListener(
       "keyboardDidHide",
       () => {
+        if (Platform.OS === "android") {
+          configureLayoutAnimation();
+        }
         setKeyboardVisible(false);
+        // Não alteramos o snapPoint aqui, pois o snapPoints
+        // será atualizado automaticamente e o BottomSheet se ajustará
       }
     );
 
     return () => {
-      keyboardDidHideListener.remove();
       keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+      keyboardWillShowListener?.remove();
+      keyboardWillHideListener?.remove();
     };
   }, []);
 
   // Função para fechar o teclado
   const dismissKeyboard = () => {
     Keyboard.dismiss();
+  };
+
+  // Configurar animação de layout
+  const configureLayoutAnimation = () => {
+    LayoutAnimation.configureNext({
+      duration: 300,
+      update: {
+        type: LayoutAnimation.Types.easeInEaseOut,
+      },
+    });
   };
 
   const handleCloseBottomSheet = useCallback(() => {
@@ -103,8 +205,13 @@ const LoginBottomSheet = ({
   const handleSheetChanges = useCallback(
     (index: number) => {
       if (index === -1) {
+        // Fechar o teclado quando o bottom sheet for fechado
+        Keyboard.dismiss();
         setBottomSheetIndex(-1);
       }
+
+      // Atualizar a referência do último snapPoint
+      lastSnapPointRef.current = index;
     },
     [setBottomSheetIndex]
   );
@@ -116,9 +223,15 @@ const LoginBottomSheet = ({
         disappearsOnIndex={-1}
         appearsOnIndex={0}
         opacity={0.7}
+        onPress={() => {
+          // Fechar o teclado quando o backdrop for tocado
+          if (keyboardVisible) {
+            Keyboard.dismiss();
+          }
+        }}
       />
     ),
-    []
+    [keyboardVisible]
   );
 
   const handleLogin = async () => {
@@ -166,17 +279,38 @@ const LoginBottomSheet = ({
   // Função para atualizar o email sem causar o aviso do Reanimated
   const handleEmailChange = useCallback((text: string) => {
     setEmail(text);
+    // Não chamamos mais snapToIndex aqui
   }, []);
 
   // Função para atualizar a senha sem causar o aviso do Reanimated
   const handlePasswordChange = useCallback((text: string) => {
     setPassword(text);
+    // Não chamamos mais snapToIndex aqui
   }, []);
+
+  // Função para lidar com o foco dos inputs e expandir o BottomSheet
+  const handleInputFocus = useCallback(() => {
+    // Expandir para o snapPoint maior (85%) de forma segura
+    safelyExpandBottomSheet();
+
+    // Garantir que o estado de teclado visível seja atualizado
+    setKeyboardVisible(true);
+  }, [safelyExpandBottomSheet]);
+
+  // Verificar se os campos estão preenchidos
+  const fieldsAreFilled = email.trim() !== "" && password.trim() !== "";
+
+  // Efeito para aplicar animação quando os campos forem preenchidos
+  useEffect(() => {
+    if (fieldsAreFilled || !fieldsAreFilled) {
+      configureLayoutAnimation();
+    }
+  }, [fieldsAreFilled]);
 
   return (
     <BottomSheet
       ref={bottomSheetRef}
-      index={bottomSheetIndex}
+      index={bottomSheetIndex >= 0 ? 0 : -1}
       snapPoints={snapPoints}
       enablePanDownToClose
       backdropComponent={renderBackdrop}
@@ -190,26 +324,26 @@ const LoginBottomSheet = ({
       ]}
       onChange={handleSheetChanges}
       keyboardBehavior="interactive"
+      keyboardBlurBehavior="none"
       android_keyboardInputMode="adjustResize"
       animateOnMount={false}
-      enableContentPanningGesture={true}
-      enableHandlePanningGesture={true}
+      enableContentPanningGesture={!keyboardVisible}
+      enableHandlePanningGesture={!keyboardVisible}
       handleHeight={24}
+      onClose={() => {
+        // Garantir que o teclado seja fechado quando o bottom sheet for fechado
+        Keyboard.dismiss();
+      }}
     >
-      <TouchableWithoutFeedback onPress={dismissKeyboard}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={{ flex: 1 }}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 30 : 0}
-        >
-          <View style={[styles.container, { paddingBottom: insets.bottom }]}>
-            {/* Cabeçalho */}
-            <MotiView
-              from={{ opacity: 0, translateY: -20 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: "timing", duration: 300 }}
-              style={styles.header}
-            >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 30 : 0}
+        enabled
+      >
+        <View style={{ flex: 1 }}>
+          <TouchableWithoutFeedback onPress={dismissKeyboard}>
+            <View style={styles.headerContainer}>
               <Text
                 style={[
                   styles.title,
@@ -230,37 +364,42 @@ const LoginBottomSheet = ({
                   color={colors.primary}
                 />
               </TouchableOpacity>
-            </MotiView>
+            </View>
+          </TouchableWithoutFeedback>
 
-            <Text style={styles.subtitle}>
-              Faça login para continuar sua jornada fitness
-            </Text>
+          <TouchableWithoutFeedback onPress={dismissKeyboard}>
+            <View>
+              {/* Mensagem de erro */}
+              {error ? (
+                <MotiView
+                  from={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "timing", duration: 300 }}
+                  style={styles.errorContainer}
+                >
+                  <Ionicons
+                    name="alert-circle"
+                    size={20}
+                    color="#FF3B30"
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text style={styles.errorText}>{error}</Text>
+                </MotiView>
+              ) : null}
+            </View>
+          </TouchableWithoutFeedback>
 
-            {/* Mensagem de erro */}
-            {error ? (
-              <MotiView
-                from={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: "timing", duration: 300 }}
-                style={styles.errorContainer}
-              >
-                <Ionicons
-                  name="alert-circle"
-                  size={20}
-                  color="#FF3B30"
-                  style={{ marginRight: 8 }}
-                />
-                <Text style={styles.errorText}>{error}</Text>
-              </MotiView>
-            ) : null}
-
-            {/* Formulário de login */}
-            <MotiView
-              from={{ opacity: 0, translateY: 20 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: "timing", duration: 300, delay: 100 }}
-              style={styles.form}
-            >
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollViewContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={true}
+            overScrollMode="always"
+            scrollEnabled={true}
+          >
+            <View style={styles.form}>
               {/* Campo de email */}
               <View style={styles.inputWrapper}>
                 <Text style={styles.inputLabel}>Email</Text>
@@ -297,6 +436,7 @@ const LoginBottomSheet = ({
                     returnKeyType="next"
                     onSubmitEditing={() => passwordInputRef.current?.focus()}
                     blurOnSubmit={false}
+                    onFocus={handleInputFocus}
                   />
                 </View>
               </View>
@@ -336,6 +476,7 @@ const LoginBottomSheet = ({
                     secureTextEntry
                     returnKeyType="done"
                     onSubmitEditing={handleLogin}
+                    onFocus={handleInputFocus}
                   />
                 </View>
               </View>
@@ -355,111 +496,109 @@ const LoginBottomSheet = ({
               </TouchableOpacity>
 
               {/* Botão de login */}
-              <TouchableOpacity
-                style={[
-                  styles.loginButton,
-                  { backgroundColor: colors.primary },
-                ]}
-                onPress={handleLogin}
-                disabled={loading}
-                activeOpacity={0.8}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.loginButtonText}>ENTRAR</Text>
-                )}
-              </TouchableOpacity>
-            </MotiView>
-
-            {/* Separador */}
-            <MotiView
-              from={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ type: "timing", duration: 300, delay: 200 }}
-              style={styles.dividerContainer}
-            >
               <View
                 style={[
-                  styles.divider,
-                  { backgroundColor: theme === "dark" ? "#444" : "#e0e0e0" },
-                ]}
-              />
-              <Text
-                style={[
-                  styles.dividerText,
-                  { color: theme === "dark" ? "#999" : "#666" },
+                  styles.loginButtonContainer,
+                  keyboardVisible && styles.loginButtonContainerKeyboardVisible,
                 ]}
               >
-                ou continue com
-              </Text>
-              <View
-                style={[
-                  styles.divider,
-                  { backgroundColor: theme === "dark" ? "#444" : "#e0e0e0" },
-                ]}
-              />
-            </MotiView>
+                <TouchableOpacity
+                  style={[
+                    styles.loginButton,
+                    fieldsAreFilled
+                      ? keyboardVisible
+                        ? styles.loginButtonKeyboardVisible
+                        : { backgroundColor: colors.primary }
+                      : {
+                          backgroundColor:
+                            theme === "dark" ? "#3a3a3c" : "#e0e0e0",
+                        },
+                  ]}
+                  onPress={handleLogin}
+                  disabled={loading || !fieldsAreFilled}
+                  activeOpacity={0.8}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.loginButtonText,
+                        !fieldsAreFilled && {
+                          color: theme === "dark" ? "#8e8e93" : "#a0a0a0",
+                        },
+                      ]}
+                    >
+                      ENTRAR
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
 
-            {/* Botões de login social */}
-            <MotiView
-              from={{ opacity: 0, translateY: 20 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: "timing", duration: 300, delay: 300 }}
-              style={styles.socialButtonsContainer}
-            >
-              <TouchableOpacity
-                style={[styles.socialButton, styles.appleButton]}
-                onPress={handleAppleLogin}
-                activeOpacity={0.8}
-              >
-                <FontAwesome name="apple" size={20} color="#FFFFFF" />
-                <Text style={styles.socialButtonText}>Apple</Text>
-              </TouchableOpacity>
+              {/* Separador */}
+              <View style={styles.dividerContainer}>
+                <View
+                  style={[
+                    styles.divider,
+                    {
+                      backgroundColor: theme === "dark" ? "#444" : "#e0e0e0",
+                    },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.dividerText,
+                    { color: theme === "dark" ? "#999" : "#666" },
+                  ]}
+                >
+                  ou continue com
+                </Text>
+                <View
+                  style={[
+                    styles.divider,
+                    {
+                      backgroundColor: theme === "dark" ? "#444" : "#e0e0e0",
+                    },
+                  ]}
+                />
+              </View>
 
-              <TouchableOpacity
-                style={[styles.socialButton, styles.googleButton]}
-                onPress={handleGoogleLogin}
-                activeOpacity={0.8}
-              >
-                <FontAwesome name="google" size={20} color="#FFFFFF" />
-                <Text style={styles.socialButtonText}>Google</Text>
-              </TouchableOpacity>
-            </MotiView>
-          </View>
+              {/* Botões de login social */}
+              <View style={styles.socialButtonsContainer}>
+                <TouchableOpacity
+                  style={[styles.socialButton, styles.appleButton]}
+                  onPress={handleAppleLogin}
+                  activeOpacity={0.8}
+                >
+                  <FontAwesome name="apple" size={20} color="#FFFFFF" />
+                  <Text style={styles.socialButtonText}>Apple</Text>
+                </TouchableOpacity>
 
-          {/* Botão para fechar o teclado */}
-          {keyboardVisible && (
-            <Animated.View
-              entering={FadeIn.duration(200)}
-              exiting={FadeOut.duration(200)}
-              style={[
-                styles.keyboardDismissButton,
-                { bottom: 10 + insets.bottom },
-              ]}
-            >
-              <TouchableOpacity
-                onPress={dismissKeyboard}
-                style={[
-                  styles.keyboardDismissButtonInner,
-                  { backgroundColor: colors.primary },
-                ]}
-              >
-                <Ionicons name="chevron-down" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-            </Animated.View>
-          )}
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+                <TouchableOpacity
+                  style={[styles.socialButton, styles.googleButton]}
+                  onPress={handleGoogleLogin}
+                  activeOpacity={0.8}
+                >
+                  <FontAwesome name="google" size={20} color="#FFFFFF" />
+                  <Text style={styles.socialButtonText}>Google</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Espaço extra para garantir que o conteúdo possa ser rolado para cima quando o teclado estiver visível */}
+              {keyboardVisible ? (
+                <View style={{ height: Platform.OS === "ios" ? 100 : 150 }} />
+              ) : (
+                <View style={{ height: 5 }} />
+              )}
+            </View>
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
     </BottomSheet>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-  },
   bottomSheetBackground: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -468,20 +607,23 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
   },
-  header: {
+  headerContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 4,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "bold",
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: "#888",
-    marginBottom: 24,
+    marginBottom: 6,
+    paddingHorizontal: 24,
   },
   closeButton: {
     padding: 4,
@@ -492,28 +634,39 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 59, 48, 0.1)",
     borderRadius: 12,
     padding: 12,
+    marginHorizontal: 24,
     marginBottom: 16,
   },
   errorText: {
     color: "#FF3B30",
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+    width: "100%",
+  },
+  scrollViewContent: {
+    paddingBottom: 24,
+    flexGrow: 1,
+    justifyContent: "flex-start",
+  },
   form: {
-    marginBottom: 24,
+    paddingHorizontal: 24,
+    paddingTop: 4,
   },
   inputWrapper: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   inputLabel: {
     fontSize: 14,
     fontWeight: "500",
-    marginBottom: 8,
+    marginBottom: 6,
     color: "#888",
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    height: 56,
+    height: 52,
     borderRadius: 12,
     paddingHorizontal: 16,
     borderWidth: 2,
@@ -528,23 +681,37 @@ const styles = StyleSheet.create({
   },
   forgotPasswordContainer: {
     alignSelf: "flex-end",
-    marginBottom: 24,
+    marginBottom: 16,
     paddingVertical: 4,
   },
   forgotPasswordText: {
     fontSize: 14,
     fontWeight: "500",
   },
+  loginButtonContainer: {
+    marginBottom: 20,
+  },
+  loginButtonContainerKeyboardVisible: {
+    marginBottom: 12,
+    marginTop: 4,
+  },
   loginButton: {
-    height: 56,
-    borderRadius: 28,
+    height: 52,
+    width: "100%",
+    borderRadius: 26,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  loginButtonKeyboardVisible: {
+    height: 52,
+    backgroundColor: "#FF4500", // Cor mais chamativa quando o teclado está visível
+    borderWidth: 1,
+    borderColor: "#FF6347",
   },
   loginButtonText: {
     color: "#FFFFFF",
@@ -555,7 +722,7 @@ const styles = StyleSheet.create({
   dividerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 16,
   },
   divider: {
     flex: 1,
@@ -568,14 +735,14 @@ const styles = StyleSheet.create({
   socialButtonsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 24,
+    marginBottom: 16,
   },
   socialButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    height: 56,
-    borderRadius: 28,
+    height: 48,
+    borderRadius: 24,
     width: "48%",
   },
   appleButton: {
@@ -589,24 +756,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 12,
-  },
-  keyboardDismissButton: {
-    position: "absolute",
-    bottom: 20,
-    right: 20,
-    zIndex: 1000,
-  },
-  keyboardDismissButtonInner: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
   },
 });
 

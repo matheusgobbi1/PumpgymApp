@@ -107,7 +107,7 @@ export default function TrainingScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [refreshing, setRefreshing] = useState(false);
-  const { refreshKey, triggerRefresh } = useRefresh();
+  const { refreshKey, triggerRefresh, isRefreshing } = useRefresh();
   // Estado para forçar a recriação do WorkoutConfigSheet
   const [workoutConfigKey, setWorkoutConfigKey] = useState(Date.now());
   // Estado para controlar a visibilidade do modal de confirmação
@@ -304,6 +304,8 @@ export default function TrainingScreen() {
 
   // Função para lidar com o pull to refresh
   const handleRefresh = async () => {
+    if (isRefreshing) return; // Evitar múltiplos refreshes simultâneos
+
     setRefreshing(true);
     // Usar o triggerRefresh do contexto para atualizar todos os componentes
     triggerRefresh();

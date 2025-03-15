@@ -94,7 +94,7 @@ export default function NutritionScreen() {
   const colors = Colors[theme];
   const { nutritionInfo } = useNutrition();
   const { user } = useAuth();
-  const { refreshKey, triggerRefresh } = useRefresh();
+  const { refreshKey, triggerRefresh, isRefreshing } = useRefresh();
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -229,10 +229,14 @@ export default function NutritionScreen() {
 
       // Forçar a recriação do componente MealConfigSheet
       setMealConfigKey(Date.now());
+      // Fechar o modal
+      setResetModalVisible(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       console.error("Erro ao redefinir refeições:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      // Fechar o modal mesmo em caso de erro
+      setResetModalVisible(false);
     }
   }, [resetMealTypes]);
 
@@ -280,6 +284,8 @@ export default function NutritionScreen() {
 
   // Função para lidar com o pull to refresh
   const handleRefresh = async () => {
+    if (isRefreshing) return; // Evitar múltiplos refreshes simultâneos
+
     setRefreshing(true);
     // Usar o triggerRefresh do contexto para atualizar todos os componentes
     triggerRefresh();

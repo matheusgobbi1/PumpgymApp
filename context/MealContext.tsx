@@ -12,6 +12,7 @@ import {
   collection,
   query,
   getDocs,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "./AuthContext";
@@ -215,15 +216,33 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   // Função para redefinir os tipos de refeições
   const resetMealTypes = async () => {
     try {
+      // Limpar tipos de refeições
       setMealTypes([]);
       setHasMealTypesConfigured(false);
 
+      // Limpar também os dados de refeições
+      setMeals({});
+
       if (user) {
+        // Atualizar tipos de refeições no Firestore
         await setDoc(
           doc(db, "users", user.uid, "config", "mealTypes"),
           { types: [] },
           { merge: true }
         );
+
+        // Também limpar as refeições no Firestore se necessário
+        // Isso pode ser opcional dependendo do seu caso de uso
+        const mealsRef = collection(db, "users", user.uid, "meals");
+        const mealsSnap = await getDocs(mealsRef);
+
+        // Excluir cada documento de refeição
+        const batch = writeBatch(db);
+        mealsSnap.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+
+        await batch.commit();
       }
     } catch (error) {
       console.error("Erro ao redefinir tipos de refeições:", error);
