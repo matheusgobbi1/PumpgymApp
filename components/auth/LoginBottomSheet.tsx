@@ -22,6 +22,8 @@ import {
   LayoutAnimation,
   UIManager,
   ScrollView,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from "react-native";
 import Colors from "../../constants/Colors";
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
@@ -77,10 +79,10 @@ const LoginBottomSheet = ({
   const snapPoints = useMemo(() => {
     // Se o teclado estiver visível, só permitimos o snapPoint maior
     if (keyboardVisible) {
-      return ["85%"];
+      return ["85%"]; // Aumentei para 90% para garantir mais espaço visível
     }
     // Caso contrário, permitimos ambos os snapPoints
-    return ["65%", "85%"];
+    return ["65%", "85%"]; // Aumentei ambos os snapPoints para garantir mais espaço
   }, [keyboardVisible]);
 
   // Referência para controlar se estamos no meio de uma animação
@@ -91,7 +93,7 @@ const LoginBottomSheet = ({
   // Efeito para controlar a abertura e fechamento do bottom sheet
   useEffect(() => {
     if (bottomSheetIndex >= 0 && bottomSheetRef.current) {
-      // Abrir no primeiro snapPoint (65% ou 85% dependendo do estado do teclado)
+      // Abrir no primeiro snapPoint (70% ou 90% dependendo do estado do teclado)
       bottomSheetRef.current.snapToIndex(0);
       lastSnapPointRef.current = 0;
     } else if (bottomSheetIndex === -1 && bottomSheetRef.current) {
@@ -125,13 +127,11 @@ const LoginBottomSheet = ({
         ? Keyboard.addListener("keyboardWillShow", (event) => {
             configureLayoutAnimation();
             setKeyboardVisible(true);
-            // Não precisamos chamar safelyExpandBottomSheet aqui, pois o snapPoints
-            // será atualizado automaticamente e o BottomSheet se ajustará
 
-            // Rolar para o botão quando o teclado aparecer no iOS
-            setTimeout(() => {
-              scrollViewRef.current?.scrollToEnd({ animated: true });
-            }, 100);
+            // Forçar o BottomSheet a ir para o snapPoint maior
+            if (bottomSheetRef.current) {
+              bottomSheetRef.current.snapToIndex(0);
+            }
           })
         : null;
 
@@ -141,13 +141,11 @@ const LoginBottomSheet = ({
         if (Platform.OS === "android") {
           configureLayoutAnimation();
           setKeyboardVisible(true);
-          // Não precisamos chamar safelyExpandBottomSheet aqui, pois o snapPoints
-          // será atualizado automaticamente e o BottomSheet se ajustará
 
-          // Rolar para o botão quando o teclado aparecer no Android
-          setTimeout(() => {
-            scrollViewRef.current?.scrollToEnd({ animated: true });
-          }, 100);
+          // Forçar o BottomSheet a ir para o snapPoint maior
+          if (bottomSheetRef.current) {
+            bottomSheetRef.current.snapToIndex(0);
+          }
         }
       }
     );
@@ -157,8 +155,6 @@ const LoginBottomSheet = ({
         ? Keyboard.addListener("keyboardWillHide", () => {
             configureLayoutAnimation();
             setKeyboardVisible(false);
-            // Não alteramos o snapPoint aqui, pois o snapPoints
-            // será atualizado automaticamente e o BottomSheet se ajustará
           })
         : null;
 
@@ -169,8 +165,6 @@ const LoginBottomSheet = ({
           configureLayoutAnimation();
         }
         setKeyboardVisible(false);
-        // Não alteramos o snapPoint aqui, pois o snapPoints
-        // será atualizado automaticamente e o BottomSheet se ajustará
       }
     );
 
@@ -289,13 +283,16 @@ const LoginBottomSheet = ({
   }, []);
 
   // Função para lidar com o foco dos inputs e expandir o BottomSheet
-  const handleInputFocus = useCallback(() => {
-    // Expandir para o snapPoint maior (85%) de forma segura
-    safelyExpandBottomSheet();
+  const handleInputFocus = useCallback(
+    (inputType: "email" | "password") => {
+      // Expandir para o snapPoint maior (90%) de forma segura
+      safelyExpandBottomSheet();
 
-    // Garantir que o estado de teclado visível seja atualizado
-    setKeyboardVisible(true);
-  }, [safelyExpandBottomSheet]);
+      // Garantir que o estado de teclado visível seja atualizado
+      setKeyboardVisible(true);
+    },
+    [safelyExpandBottomSheet]
+  );
 
   // Verificar se os campos estão preenchidos
   const fieldsAreFilled = email.trim() !== "" && password.trim() !== "";
@@ -307,12 +304,54 @@ const LoginBottomSheet = ({
     }
   }, [fieldsAreFilled]);
 
+  // Função para lidar com o scroll da ScrollView
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      // Armazenar a posição de rolagem atual
+      scrollPositionRef.current = event.nativeEvent.contentOffset.y;
+    },
+    []
+  );
+
+  // Função para restaurar a posição de rolagem
+  const handleMomentumScrollEnd = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      // Armazenar a posição final de rolagem
+      scrollPositionRef.current = event.nativeEvent.contentOffset.y;
+    },
+    []
+  );
+
+  // Função para salvar a posição de rolagem
+  const handleScrollEndDrag = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollPositionRef.current = event.nativeEvent.contentOffset.y;
+    },
+    []
+  );
+
+  // Função para rolar para o final da ScrollView
+  const scrollToEnd = useCallback(() => {
+    // Não rolamos automaticamente para o final
+    // Isso permite que o usuário veja o campo que está sendo editado
+  }, []);
+
+  // Efeito para rolar para o final quando o teclado estiver visível
+  useEffect(() => {
+    if (keyboardVisible) {
+      scrollToEnd();
+    }
+  }, [keyboardVisible, scrollToEnd]);
+
+  // Referência para a posição de rolagem atual
+  const scrollPositionRef = useRef(0);
+
   return (
     <BottomSheet
       ref={bottomSheetRef}
       index={bottomSheetIndex >= 0 ? 0 : -1}
       snapPoints={snapPoints}
-      enablePanDownToClose
+      enablePanDownToClose={!keyboardVisible}
       backdropComponent={renderBackdrop}
       handleIndicatorStyle={[
         styles.bottomSheetIndicator,
@@ -326,274 +365,268 @@ const LoginBottomSheet = ({
       keyboardBehavior="interactive"
       keyboardBlurBehavior="none"
       android_keyboardInputMode="adjustResize"
-      animateOnMount={false}
-      enableContentPanningGesture={!keyboardVisible}
-      enableHandlePanningGesture={!keyboardVisible}
+      animateOnMount={true}
+      enableContentPanningGesture={false}
+      enableHandlePanningGesture={true}
       handleHeight={24}
+      enableOverDrag={false}
+      style={{ flex: 1 }}
       onClose={() => {
-        // Garantir que o teclado seja fechado quando o bottom sheet for fechado
         Keyboard.dismiss();
       }}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 30 : 0}
-        enabled
-      >
-        <View style={{ flex: 1 }}>
-          <TouchableWithoutFeedback onPress={dismissKeyboard}>
-            <View style={styles.headerContainer}>
-              <Text
+      <View style={{ flex: 1, minHeight: height * 0.6 }}>
+        <TouchableWithoutFeedback onPress={dismissKeyboard}>
+          <View style={styles.headerContainer}>
+            <Text
+              style={[
+                styles.title,
+                {
+                  color: theme === "dark" ? "#ffffff" : "#000000",
+                },
+              ]}
+            >
+              Bem-vindo de volta
+            </Text>
+            <TouchableOpacity
+              onPress={handleCloseBottomSheet}
+              style={styles.closeButton}
+            >
+              <Ionicons name="close-outline" size={28} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+        </TouchableWithoutFeedback>
+
+        <TouchableWithoutFeedback onPress={dismissKeyboard}>
+          <View>
+            {/* Mensagem de erro */}
+            {error ? (
+              <MotiView
+                from={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "timing", duration: 300 }}
+                style={styles.errorContainer}
+              >
+                <Ionicons
+                  name="alert-circle"
+                  size={20}
+                  color="#FF3B30"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.errorText}>{error}</Text>
+              </MotiView>
+            ) : null}
+          </View>
+        </TouchableWithoutFeedback>
+
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollViewContent,
+            { paddingBottom: keyboardVisible ? 200 : 80 },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={true}
+          bounces={true}
+          scrollEventThrottle={16}
+          keyboardDismissMode="interactive"
+          nestedScrollEnabled={true}
+          onScroll={handleScroll}
+          onScrollEndDrag={handleScrollEndDrag}
+          onMomentumScrollEnd={handleMomentumScrollEnd}
+          scrollsToTop={false}
+          alwaysBounceVertical={false}
+          directionalLockEnabled={true}
+          disableScrollViewPanResponder={true}
+          removeClippedSubviews={false}
+        >
+          <View style={[styles.form, keyboardVisible && { paddingBottom: 30 }]}>
+            {/* Campo de email */}
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>Email</Text>
+              <View
                 style={[
-                  styles.title,
+                  styles.inputContainer,
                   {
-                    color: theme === "dark" ? "#ffffff" : "#000000",
+                    backgroundColor: theme === "dark" ? "#2c2c2e" : "#f5f5f5",
+                    borderColor: email ? colors.primary : "transparent",
                   },
                 ]}
               >
-                Bem-vindo de volta
-              </Text>
-              <TouchableOpacity
-                onPress={handleCloseBottomSheet}
-                style={styles.closeButton}
-              >
                 <Ionicons
-                  name="close-outline"
-                  size={28}
+                  name="mail-outline"
+                  size={20}
                   color={colors.primary}
+                  style={styles.inputIcon}
                 />
-              </TouchableOpacity>
-            </View>
-          </TouchableWithoutFeedback>
-
-          <TouchableWithoutFeedback onPress={dismissKeyboard}>
-            <View>
-              {/* Mensagem de erro */}
-              {error ? (
-                <MotiView
-                  from={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ type: "timing", duration: 300 }}
-                  style={styles.errorContainer}
-                >
-                  <Ionicons
-                    name="alert-circle"
-                    size={20}
-                    color="#FF3B30"
-                    style={{ marginRight: 8 }}
-                  />
-                  <Text style={styles.errorText}>{error}</Text>
-                </MotiView>
-              ) : null}
-            </View>
-          </TouchableWithoutFeedback>
-
-          <ScrollView
-            ref={scrollViewRef}
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollViewContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            bounces={true}
-            overScrollMode="always"
-            scrollEnabled={true}
-          >
-            <View style={styles.form}>
-              {/* Campo de email */}
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>Email</Text>
-                <View
+                <TextInput
                   style={[
-                    styles.inputContainer,
+                    styles.input,
                     {
-                      backgroundColor: theme === "dark" ? "#2c2c2e" : "#f5f5f5",
-                      borderColor: email ? colors.primary : "transparent",
+                      color: theme === "dark" ? "#ffffff" : "#000000",
                     },
                   ]}
-                >
-                  <Ionicons
-                    name="mail-outline"
-                    size={20}
-                    color={colors.primary}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        color: theme === "dark" ? "#ffffff" : "#000000",
-                      },
-                    ]}
-                    placeholder="Seu endereço de email"
-                    placeholderTextColor={
-                      theme === "dark" ? "#999999" : "#999999"
-                    }
-                    value={email}
-                    onChangeText={handleEmailChange}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    returnKeyType="next"
-                    onSubmitEditing={() => passwordInputRef.current?.focus()}
-                    blurOnSubmit={false}
-                    onFocus={handleInputFocus}
-                  />
-                </View>
+                  placeholder="Seu endereço de email"
+                  placeholderTextColor={
+                    theme === "dark" ? "#999999" : "#999999"
+                  }
+                  value={email}
+                  onChangeText={handleEmailChange}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordInputRef.current?.focus()}
+                  blurOnSubmit={false}
+                  onFocus={() => handleInputFocus("email")}
+                />
               </View>
+            </View>
 
-              {/* Campo de senha */}
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>Senha</Text>
-                <View
-                  style={[
-                    styles.inputContainer,
-                    {
-                      backgroundColor: theme === "dark" ? "#2c2c2e" : "#f5f5f5",
-                      borderColor: password ? colors.primary : "transparent",
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name="lock-closed-outline"
-                    size={20}
-                    color={colors.primary}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    ref={passwordInputRef}
-                    style={[
-                      styles.input,
-                      {
-                        color: theme === "dark" ? "#ffffff" : "#000000",
-                      },
-                    ]}
-                    placeholder="Sua senha"
-                    placeholderTextColor={
-                      theme === "dark" ? "#999999" : "#999999"
-                    }
-                    value={password}
-                    onChangeText={handlePasswordChange}
-                    secureTextEntry
-                    returnKeyType="done"
-                    onSubmitEditing={handleLogin}
-                    onFocus={handleInputFocus}
-                  />
-                </View>
-              </View>
-
-              {/* Link para recuperação de senha */}
-              <TouchableOpacity
-                style={styles.forgotPasswordContainer}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-              >
-                <Text
-                  style={[styles.forgotPasswordText, { color: colors.primary }]}
-                >
-                  Esqueceu sua senha?
-                </Text>
-              </TouchableOpacity>
-
-              {/* Botão de login */}
+            {/* Campo de senha */}
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>Senha</Text>
               <View
                 style={[
-                  styles.loginButtonContainer,
-                  keyboardVisible && styles.loginButtonContainerKeyboardVisible,
+                  styles.inputContainer,
+                  {
+                    backgroundColor: theme === "dark" ? "#2c2c2e" : "#f5f5f5",
+                    borderColor: password ? colors.primary : "transparent",
+                  },
                 ]}
               >
-                <TouchableOpacity
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color={colors.primary}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  ref={passwordInputRef}
                   style={[
-                    styles.loginButton,
-                    fieldsAreFilled
-                      ? keyboardVisible
-                        ? styles.loginButtonKeyboardVisible
-                        : { backgroundColor: colors.primary }
-                      : {
-                          backgroundColor:
-                            theme === "dark" ? "#3a3a3c" : "#e0e0e0",
-                        },
-                  ]}
-                  onPress={handleLogin}
-                  disabled={loading || !fieldsAreFilled}
-                  activeOpacity={0.8}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                  ) : (
-                    <Text
-                      style={[
-                        styles.loginButtonText,
-                        !fieldsAreFilled && {
-                          color: theme === "dark" ? "#8e8e93" : "#a0a0a0",
-                        },
-                      ]}
-                    >
-                      ENTRAR
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-
-              {/* Separador */}
-              <View style={styles.dividerContainer}>
-                <View
-                  style={[
-                    styles.divider,
+                    styles.input,
                     {
-                      backgroundColor: theme === "dark" ? "#444" : "#e0e0e0",
+                      color: theme === "dark" ? "#ffffff" : "#000000",
                     },
                   ]}
-                />
-                <Text
-                  style={[
-                    styles.dividerText,
-                    { color: theme === "dark" ? "#999" : "#666" },
-                  ]}
-                >
-                  ou continue com
-                </Text>
-                <View
-                  style={[
-                    styles.divider,
-                    {
-                      backgroundColor: theme === "dark" ? "#444" : "#e0e0e0",
-                    },
-                  ]}
+                  placeholder="Sua senha"
+                  placeholderTextColor={
+                    theme === "dark" ? "#999999" : "#999999"
+                  }
+                  value={password}
+                  onChangeText={handlePasswordChange}
+                  secureTextEntry
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
+                  onFocus={() => handleInputFocus("password")}
                 />
               </View>
-
-              {/* Botões de login social */}
-              <View style={styles.socialButtonsContainer}>
-                <TouchableOpacity
-                  style={[styles.socialButton, styles.appleButton]}
-                  onPress={handleAppleLogin}
-                  activeOpacity={0.8}
-                >
-                  <FontAwesome name="apple" size={20} color="#FFFFFF" />
-                  <Text style={styles.socialButtonText}>Apple</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.socialButton, styles.googleButton]}
-                  onPress={handleGoogleLogin}
-                  activeOpacity={0.8}
-                >
-                  <FontAwesome name="google" size={20} color="#FFFFFF" />
-                  <Text style={styles.socialButtonText}>Google</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Espaço extra para garantir que o conteúdo possa ser rolado para cima quando o teclado estiver visível */}
-              {keyboardVisible ? (
-                <View style={{ height: Platform.OS === "ios" ? 100 : 150 }} />
-              ) : (
-                <View style={{ height: 5 }} />
-              )}
             </View>
-          </ScrollView>
-        </View>
-      </KeyboardAvoidingView>
+
+            {/* Link para recuperação de senha */}
+            <TouchableOpacity
+              style={styles.forgotPasswordContainer}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+            >
+              <Text
+                style={[styles.forgotPasswordText, { color: colors.primary }]}
+              >
+                Esqueceu sua senha?
+              </Text>
+            </TouchableOpacity>
+
+            {/* Botão de login */}
+            <View
+              style={[
+                styles.loginButtonContainer,
+                keyboardVisible && styles.loginButtonContainerKeyboardVisible,
+              ]}
+            >
+              <TouchableOpacity
+                style={[
+                  styles.loginButton,
+                  fieldsAreFilled
+                    ? keyboardVisible
+                      ? styles.loginButtonKeyboardVisible
+                      : { backgroundColor: colors.primary }
+                    : {
+                        backgroundColor:
+                          theme === "dark" ? "#3a3a3c" : "#e0e0e0",
+                      },
+                ]}
+                onPress={handleLogin}
+                disabled={loading || !fieldsAreFilled}
+                activeOpacity={0.8}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text
+                    style={[
+                      styles.loginButtonText,
+                      !fieldsAreFilled && {
+                        color: theme === "dark" ? "#8e8e93" : "#a0a0a0",
+                      },
+                    ]}
+                  >
+                    ENTRAR
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Separador */}
+            <View style={styles.dividerContainer}>
+              <View
+                style={[
+                  styles.divider,
+                  {
+                    backgroundColor: theme === "dark" ? "#444" : "#e0e0e0",
+                  },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.dividerText,
+                  { color: theme === "dark" ? "#999" : "#666" },
+                ]}
+              >
+                ou continue com
+              </Text>
+              <View
+                style={[
+                  styles.divider,
+                  {
+                    backgroundColor: theme === "dark" ? "#444" : "#e0e0e0",
+                  },
+                ]}
+              />
+            </View>
+
+            {/* Botões de login social */}
+            <View style={styles.socialButtonsContainer}>
+              <TouchableOpacity
+                style={[styles.socialButton, styles.appleButton]}
+                onPress={handleAppleLogin}
+                activeOpacity={0.8}
+              >
+                <FontAwesome name="apple" size={20} color="#FFFFFF" />
+                <Text style={styles.socialButtonText}>Apple</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.socialButton, styles.googleButton]}
+                onPress={handleGoogleLogin}
+                activeOpacity={0.8}
+              >
+                <FontAwesome name="google" size={20} color="#FFFFFF" />
+                <Text style={styles.socialButtonText}>Google</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
     </BottomSheet>
   );
 };
@@ -614,6 +647,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 4,
+    height: 60,
   },
   title: {
     fontSize: 22,
@@ -646,13 +680,15 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   scrollViewContent: {
-    paddingBottom: 24,
     flexGrow: 1,
     justifyContent: "flex-start",
+    paddingTop: 8,
   },
   form: {
     paddingHorizontal: 24,
     paddingTop: 4,
+    paddingBottom: 24,
+    minHeight: height * 0.5,
   },
   inputWrapper: {
     marginBottom: 12,
