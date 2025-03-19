@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   StyleSheet,
   View,
@@ -40,25 +40,6 @@ export default function CompleteRegistrationScreen() {
   const colors = Colors[theme];
   const { completeAnonymousRegistration, isAnonymous } = useAuth();
 
-  // Estado para forçar re-renderização quando o tema mudar
-  const [, setForceUpdate] = useState({});
-
-  // Efeito para forçar a re-renderização quando o tema mudar
-  useEffect(() => {
-    setForceUpdate({});
-  }, [theme]);
-
-  useEffect(() => {
-    if (!isAnonymous) {
-      // Adicionar um pequeno atraso para garantir que todos os estados sejam atualizados
-      const timer = setTimeout(() => {
-        router.replace("/(tabs)");
-      }, 500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [isAnonymous, router]);
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,31 +47,10 @@ export default function CompleteRegistrationScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeField, setActiveField] = useState("");
-  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formStep, setFormStep] = useState(1);
-
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      "keyboardDidShow",
-      () => {
-        setKeyboardVisible(true);
-      }
-    );
-    const keyboardDidHideListener = Keyboard.addListener(
-      "keyboardDidHide",
-      () => {
-        setKeyboardVisible(false);
-      }
-    );
-
-    return () => {
-      keyboardDidHideListener.remove();
-      keyboardDidShowListener.remove();
-    };
-  }, []);
+  const [passwordStrength, setPasswordStrength] = useState(0);
 
   const handlePasswordChange = (text: string) => {
     setPassword(text);
@@ -171,6 +131,10 @@ export default function CompleteRegistrationScreen() {
     }
   };
 
+  const dismissKeyboard = () => {
+    Keyboard.dismiss();
+  };
+
   return (
     <SafeAreaView
       key={`registration-container-${theme}`}
@@ -181,55 +145,72 @@ export default function CompleteRegistrationScreen() {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
         <ScrollView
           contentContainerStyle={[
             styles.scrollContent,
             { backgroundColor: colors.background },
           ]}
+          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Header */}
-          <MotiView
-            key={`header-${theme}`}
-            from={{ opacity: 0, translateY: -20 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: "spring", damping: 18 }}
-            style={styles.header}
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={dismissKeyboard}
+            style={{ flex: 1 }}
           >
-            <MotiText
-              key={`title-${theme}`}
-              from={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: "spring", delay: 300 }}
-              style={[styles.title, { color: colors.text }]}
-            >
-              {formStep === 1 ? "Quase lá!" : "Crie sua senha"}
-            </MotiText>
-
-            <MotiText
-              key={`subtitle-${theme}`}
-              from={{ opacity: 0 }}
-              animate={{ opacity: 0.7 }}
-              transition={{ type: "timing", delay: 500, duration: 800 }}
-              style={[styles.subtitle, { color: colors.text }]}
-            >
-              {formStep === 1
-                ? "Complete seu cadastro para salvar seu plano nutricional personalizado"
-                : "Escolha uma senha segura para proteger sua conta"}
-            </MotiText>
-          </MotiView>
-
-          {/* Indicador de progresso */}
-          <MotiView
-            key={`progress-indicator-${theme}`}
-            style={styles.progressContainer}
-          >
+            {/* Header */}
             <MotiView
-              key={`step-1-${theme}`}
-              style={[
-                styles.progressStep,
-                {
+              key={`header-${theme}`}
+              from={{ opacity: 0, translateY: -20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "spring", damping: 18 }}
+              style={styles.header}
+            >
+              <MotiText
+                key={`title-${theme}`}
+                from={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", delay: 300 }}
+                style={[styles.title, { color: colors.text }]}
+              >
+                {formStep === 1 ? "Quase lá!" : "Crie sua senha"}
+              </MotiText>
+
+              <MotiText
+                key={`subtitle-${theme}`}
+                from={{ opacity: 0 }}
+                animate={{ opacity: 0.7 }}
+                transition={{ type: "timing", delay: 500, duration: 800 }}
+                style={[styles.subtitle, { color: colors.text }]}
+              >
+                {formStep === 1
+                  ? "Complete seu cadastro para salvar seu plano nutricional personalizado"
+                  : "Escolha uma senha segura para proteger sua conta"}
+              </MotiText>
+            </MotiView>
+
+            {/* Indicador de progresso */}
+            <MotiView
+              key={`progress-indicator-${theme}`}
+              style={styles.progressContainer}
+            >
+              <MotiView
+                key={`step-1-${theme}`}
+                style={[
+                  styles.progressStep,
+                  {
+                    backgroundColor:
+                      formStep >= 1
+                        ? colors.primary
+                        : theme === "dark"
+                        ? "#333"
+                        : "#e0e0e0",
+                    width: formStep === 1 ? 24 : 12,
+                  },
+                ]}
+                animate={{
                   backgroundColor:
                     formStep >= 1
                       ? colors.primary
@@ -237,24 +218,24 @@ export default function CompleteRegistrationScreen() {
                       ? "#333"
                       : "#e0e0e0",
                   width: formStep === 1 ? 24 : 12,
-                },
-              ]}
-              animate={{
-                backgroundColor:
-                  formStep >= 1
-                    ? colors.primary
-                    : theme === "dark"
-                    ? "#333"
-                    : "#e0e0e0",
-                width: formStep === 1 ? 24 : 12,
-              }}
-              transition={{ type: "timing", duration: 300 }}
-            />
-            <MotiView
-              key={`step-2-${theme}`}
-              style={[
-                styles.progressStep,
-                {
+                }}
+                transition={{ type: "timing", duration: 300 }}
+              />
+              <MotiView
+                key={`step-2-${theme}`}
+                style={[
+                  styles.progressStep,
+                  {
+                    backgroundColor:
+                      formStep >= 2
+                        ? colors.primary
+                        : theme === "dark"
+                        ? "#333"
+                        : "#e0e0e0",
+                    width: formStep === 2 ? 24 : 12,
+                  },
+                ]}
+                animate={{
                   backgroundColor:
                     formStep >= 2
                       ? colors.primary
@@ -262,329 +243,329 @@ export default function CompleteRegistrationScreen() {
                       ? "#333"
                       : "#e0e0e0",
                   width: formStep === 2 ? 24 : 12,
-                },
-              ]}
-              animate={{
-                backgroundColor:
-                  formStep >= 2
-                    ? colors.primary
-                    : theme === "dark"
-                    ? "#333"
-                    : "#e0e0e0",
-                width: formStep === 2 ? 24 : 12,
-              }}
-              transition={{ type: "timing", duration: 300 }}
-            />
-          </MotiView>
+                }}
+                transition={{ type: "timing", duration: 300 }}
+              />
+            </MotiView>
 
-          {/* Formulário */}
-          <View style={styles.formContainer}>
-            <AnimatePresence>
-              {formStep === 1 && (
-                <MotiView
-                  key={`form-step-1-${theme}`}
-                  from={{ opacity: 0, transform: [{ translateX: -width }] }}
-                  animate={{ opacity: 1, transform: [{ translateX: 0 }] }}
-                  exit={{ opacity: 0, transform: [{ translateX: -width }] }}
-                  transition={{
-                    type: "timing",
-                    duration: 350,
-                    delay: 0,
-                  }}
-                  style={[
-                    styles.formCard,
-                    {
-                      backgroundColor:
-                        theme === "dark" ? colors.dark : colors.light,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  {error ? <ErrorMessage message={error} /> : null}
+            {/* Formulário */}
+            <View style={styles.formContainer}>
+              <AnimatePresence>
+                {formStep === 1 && (
+                  <MotiView
+                    key={`form-step-1-${theme}`}
+                    from={{ opacity: 0, transform: [{ translateX: -width }] }}
+                    animate={{ opacity: 1, transform: [{ translateX: 0 }] }}
+                    exit={{ opacity: 0, transform: [{ translateX: -width }] }}
+                    transition={{
+                      type: "timing",
+                      duration: 350,
+                      delay: 0,
+                    }}
+                    style={[
+                      styles.formCard,
+                      {
+                        backgroundColor:
+                          theme === "dark" ? colors.dark : colors.light,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                  >
+                    {error ? <ErrorMessage message={error} /> : null}
 
-                  <View style={styles.formInnerContainer}>
-                    <View style={styles.inputWrapper}>
-                      <Input
-                        label="Nome"
-                        placeholder="Seu nome completo"
-                        value={name}
-                        onChangeText={setName}
-                        autoCapitalize="words"
-                        onFocus={() => setActiveField("name")}
-                        onBlur={() => setActiveField("")}
-                        leftIcon="person-outline"
-                        isActive={activeField === "name"}
-                      />
-                    </View>
+                    <View style={styles.formInnerContainer}>
+                      <View style={styles.inputWrapper}>
+                        <Input
+                          label="Nome"
+                          placeholder="Seu nome completo"
+                          value={name}
+                          onChangeText={setName}
+                          autoCapitalize="words"
+                          onFocus={() => setActiveField("name")}
+                          onBlur={() => setActiveField("")}
+                          leftIcon="person-outline"
+                          isActive={activeField === "name"}
+                        />
+                      </View>
 
-                    <View style={styles.inputWrapper}>
-                      <Input
-                        label="Email"
-                        placeholder="Seu email"
-                        value={email}
-                        onChangeText={setEmail}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        onFocus={() => setActiveField("email")}
-                        onBlur={() => setActiveField("")}
-                        leftIcon="mail-outline"
-                        isActive={activeField === "email"}
-                      />
-                    </View>
+                      <View style={styles.inputWrapper}>
+                        <Input
+                          label="Email"
+                          placeholder="Seu email"
+                          value={email}
+                          onChangeText={setEmail}
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                          onFocus={() => setActiveField("email")}
+                          onBlur={() => setActiveField("")}
+                          leftIcon="mail-outline"
+                          isActive={activeField === "email"}
+                        />
+                      </View>
 
-                    <TouchableOpacity
-                      key={`next-button-${theme}`}
-                      style={[
-                        styles.nextButton,
-                        { backgroundColor: colors.primary },
-                      ]}
-                      onPress={nextStep}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={styles.nextButtonText}>Continuar</Text>
-                      <Ionicons name="arrow-forward" size={20} color="white" />
-                    </TouchableOpacity>
-
-                    <View style={styles.dividerContainer}>
-                      <View
-                        style={[
-                          styles.divider,
-                          {
-                            backgroundColor:
-                              theme === "dark" ? "#444" : "#e0e0e0",
-                          },
-                        ]}
-                      />
-                      <Text
-                        style={[
-                          styles.dividerText,
-                          { color: theme === "dark" ? "#aaa" : "#888" },
-                        ]}
-                      >
-                        ou continue com
-                      </Text>
-                      <View
-                        style={[
-                          styles.divider,
-                          {
-                            backgroundColor:
-                              theme === "dark" ? "#444" : "#e0e0e0",
-                          },
-                        ]}
-                      />
-                    </View>
-
-                    <View style={styles.socialButtonsContainer}>
                       <TouchableOpacity
-                        key={`google-button-${theme}`}
+                        key={`next-button-${theme}`}
                         style={[
-                          styles.socialButton,
-                          {
-                            backgroundColor:
-                              theme === "dark" ? "#333" : "#f5f5f5",
-                            borderColor: theme === "dark" ? "#444" : "#e0e0e0",
-                          },
+                          styles.nextButton,
+                          { backgroundColor: colors.primary },
                         ]}
-                        onPress={() => handleSocialLogin("Google")}
+                        onPress={nextStep}
+                        activeOpacity={0.8}
                       >
+                        <Text style={styles.nextButtonText}>Continuar</Text>
                         <Ionicons
-                          name="logo-google"
+                          name="arrow-forward"
                           size={20}
-                          color="#DB4437"
+                          color="white"
                         />
                       </TouchableOpacity>
 
-                      <TouchableOpacity
-                        key={`apple-button-${theme}`}
-                        style={[
-                          styles.socialButton,
-                          {
-                            backgroundColor:
-                              theme === "dark" ? "#333" : "#f5f5f5",
-                            borderColor: theme === "dark" ? "#444" : "#e0e0e0",
-                          },
-                        ]}
-                        onPress={() => handleSocialLogin("Apple")}
-                      >
-                        <Ionicons
-                          name="logo-apple"
-                          size={20}
-                          color={theme === "dark" ? "#fff" : "#000"}
+                      <View style={styles.dividerContainer}>
+                        <View
+                          style={[
+                            styles.divider,
+                            {
+                              backgroundColor:
+                                theme === "dark" ? "#444" : "#e0e0e0",
+                            },
+                          ]}
                         />
-                      </TouchableOpacity>
+                        <Text
+                          style={[
+                            styles.dividerText,
+                            { color: theme === "dark" ? "#aaa" : "#888" },
+                          ]}
+                        >
+                          ou continue com
+                        </Text>
+                        <View
+                          style={[
+                            styles.divider,
+                            {
+                              backgroundColor:
+                                theme === "dark" ? "#444" : "#e0e0e0",
+                            },
+                          ]}
+                        />
+                      </View>
+
+                      <View style={styles.socialButtonsContainer}>
+                        <TouchableOpacity
+                          key={`google-button-${theme}`}
+                          style={[
+                            styles.socialButton,
+                            {
+                              backgroundColor:
+                                theme === "dark" ? "#333" : "#f5f5f5",
+                              borderColor:
+                                theme === "dark" ? "#444" : "#e0e0e0",
+                            },
+                          ]}
+                          onPress={() => handleSocialLogin("Google")}
+                        >
+                          <Ionicons
+                            name="logo-google"
+                            size={20}
+                            color="#DB4437"
+                          />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          key={`apple-button-${theme}`}
+                          style={[
+                            styles.socialButton,
+                            {
+                              backgroundColor:
+                                theme === "dark" ? "#333" : "#f5f5f5",
+                              borderColor:
+                                theme === "dark" ? "#444" : "#e0e0e0",
+                            },
+                          ]}
+                          onPress={() => handleSocialLogin("Apple")}
+                        >
+                          <Ionicons
+                            name="logo-apple"
+                            size={20}
+                            color={theme === "dark" ? "#fff" : "#000"}
+                          />
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
-                </MotiView>
-              )}
+                  </MotiView>
+                )}
 
-              {formStep === 2 && (
-                <MotiView
-                  key={`form-step-2-${theme}`}
-                  from={{ opacity: 0, transform: [{ translateX: width }] }}
-                  animate={{ opacity: 1, transform: [{ translateX: 0 }] }}
-                  exit={{ opacity: 0, transform: [{ translateX: width }] }}
-                  transition={{
-                    type: "timing",
-                    duration: 350,
-                    delay: 0,
-                  }}
-                  style={[
-                    styles.formCard,
-                    {
-                      backgroundColor:
-                        theme === "dark" ? colors.dark : colors.light,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  {error ? <ErrorMessage message={error} /> : null}
+                {formStep === 2 && (
+                  <MotiView
+                    key={`form-step-2-${theme}`}
+                    from={{ opacity: 0, transform: [{ translateX: width }] }}
+                    animate={{ opacity: 1, transform: [{ translateX: 0 }] }}
+                    exit={{ opacity: 0, transform: [{ translateX: width }] }}
+                    transition={{
+                      type: "timing",
+                      duration: 350,
+                      delay: 0,
+                    }}
+                    style={[
+                      styles.formCard,
+                      {
+                        backgroundColor:
+                          theme === "dark" ? colors.dark : colors.light,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                  >
+                    {error ? <ErrorMessage message={error} /> : null}
 
-                  <View style={styles.formInnerContainer}>
-                    <View style={styles.inputWrapper}>
-                      <Input
-                        label="Senha"
-                        placeholder="Sua senha"
-                        value={password}
-                        onChangeText={handlePasswordChange}
-                        secureTextEntry={!showPassword}
-                        onFocus={() => setActiveField("password")}
-                        onBlur={() => setActiveField("")}
-                        leftIcon="lock-closed-outline"
-                        rightIcon={
-                          showPassword ? "eye-off-outline" : "eye-outline"
-                        }
-                        onRightIconPress={() => setShowPassword(!showPassword)}
-                        isActive={activeField === "password"}
-                      />
-                    </View>
+                    <View style={styles.formInnerContainer}>
+                      <View style={styles.inputWrapper}>
+                        <Input
+                          label="Senha"
+                          placeholder="Sua senha"
+                          value={password}
+                          onChangeText={handlePasswordChange}
+                          secureTextEntry={!showPassword}
+                          onFocus={() => setActiveField("password")}
+                          onBlur={() => setActiveField("")}
+                          leftIcon="lock-closed-outline"
+                          rightIcon={
+                            showPassword ? "eye-off-outline" : "eye-outline"
+                          }
+                          onRightIconPress={() =>
+                            setShowPassword(!showPassword)
+                          }
+                          isActive={activeField === "password"}
+                        />
+                      </View>
 
-                    {password.length > 0 && (
-                      <MotiView
-                        key={`password-strength-${theme}`}
-                        from={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        style={styles.passwordStrengthContainer}
-                      >
-                        <View style={styles.strengthBarContainer}>
-                          <View
+                      {password.length > 0 && (
+                        <MotiView
+                          key={`password-strength-${theme}`}
+                          from={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          style={styles.passwordStrengthContainer}
+                        >
+                          <View style={styles.strengthBarContainer}>
+                            <View
+                              style={[
+                                styles.strengthBar,
+                                {
+                                  width: `${passwordStrength * 100}%`,
+                                  backgroundColor:
+                                    getPasswordStrengthColor(passwordStrength),
+                                },
+                              ]}
+                            />
+                          </View>
+                          <Text
                             style={[
-                              styles.strengthBar,
+                              styles.strengthText,
                               {
-                                width: `${passwordStrength * 100}%`,
-                                backgroundColor:
+                                color:
                                   getPasswordStrengthColor(passwordStrength),
                               },
                             ]}
-                          />
-                        </View>
-                        <Text
+                          >
+                            {getPasswordStrengthText(passwordStrength)}
+                          </Text>
+                        </MotiView>
+                      )}
+
+                      <View style={styles.inputWrapper}>
+                        <Input
+                          label="Confirmar Senha"
+                          placeholder="Confirme sua senha"
+                          value={confirmPassword}
+                          onChangeText={setConfirmPassword}
+                          secureTextEntry={!showConfirmPassword}
+                          onFocus={() => setActiveField("confirmPassword")}
+                          onBlur={() => setActiveField("")}
+                          leftIcon="shield-checkmark-outline"
+                          rightIcon={
+                            showConfirmPassword
+                              ? "eye-off-outline"
+                              : "eye-outline"
+                          }
+                          onRightIconPress={() =>
+                            setShowConfirmPassword(!showConfirmPassword)
+                          }
+                          isActive={activeField === "confirmPassword"}
+                        />
+                      </View>
+
+                      <View style={styles.buttonRow}>
+                        <TouchableOpacity
+                          key={`back-button-${theme}`}
                           style={[
-                            styles.strengthText,
+                            styles.backButton,
                             {
-                              color: getPasswordStrengthColor(passwordStrength),
+                              backgroundColor: "transparent",
+                              borderColor: colors.border,
                             },
                           ]}
+                          onPress={prevStep}
+                          activeOpacity={0.8}
                         >
-                          {getPasswordStrengthText(passwordStrength)}
-                        </Text>
-                      </MotiView>
-                    )}
+                          <Ionicons
+                            name="arrow-back"
+                            size={20}
+                            color={colors.text}
+                          />
+                        </TouchableOpacity>
 
-                    <View style={styles.inputWrapper}>
-                      <Input
-                        label="Confirmar Senha"
-                        placeholder="Confirme sua senha"
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
-                        secureTextEntry={!showConfirmPassword}
-                        onFocus={() => setActiveField("confirmPassword")}
-                        onBlur={() => setActiveField("")}
-                        leftIcon="shield-checkmark-outline"
-                        rightIcon={
-                          showConfirmPassword
-                            ? "eye-off-outline"
-                            : "eye-outline"
-                        }
-                        onRightIconPress={() =>
-                          setShowConfirmPassword(!showConfirmPassword)
-                        }
-                        isActive={activeField === "confirmPassword"}
-                      />
+                        <TouchableOpacity
+                          key={`create-account-button-${theme}`}
+                          style={[
+                            styles.createAccountButton,
+                            { backgroundColor: colors.primary },
+                          ]}
+                          onPress={handleCompleteRegistration}
+                          disabled={loading}
+                          activeOpacity={0.8}
+                        >
+                          {loading ? (
+                            <MotiView
+                              from={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ type: "timing", duration: 200 }}
+                            >
+                              <Ionicons
+                                name="sync"
+                                size={24}
+                                color="white"
+                                style={styles.loadingIcon}
+                              />
+                            </MotiView>
+                          ) : (
+                            <Text style={styles.createAccountButtonText}>
+                              Criar Conta
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      </View>
                     </View>
+                  </MotiView>
+                )}
+              </AnimatePresence>
+            </View>
 
-                    <View style={styles.buttonRow}>
-                      <TouchableOpacity
-                        key={`back-button-${theme}`}
-                        style={[
-                          styles.backButton,
-                          {
-                            backgroundColor: "transparent",
-                            borderColor: colors.border,
-                          },
-                        ]}
-                        onPress={prevStep}
-                        activeOpacity={0.8}
-                      >
-                        <Ionicons
-                          name="arrow-back"
-                          size={20}
-                          color={colors.text}
-                        />
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        key={`create-account-button-${theme}`}
-                        style={[
-                          styles.createAccountButton,
-                          { backgroundColor: colors.primary },
-                        ]}
-                        onPress={handleCompleteRegistration}
-                        disabled={loading}
-                        activeOpacity={0.8}
-                      >
-                        {loading ? (
-                          <MotiView
-                            from={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ type: "timing", duration: 200 }}
-                          >
-                            <Ionicons
-                              name="sync"
-                              size={24}
-                              color="white"
-                              style={styles.loadingIcon}
-                            />
-                          </MotiView>
-                        ) : (
-                          <Text style={styles.createAccountButtonText}>
-                            Criar Conta
-                          </Text>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </MotiView>
-              )}
-            </AnimatePresence>
-          </View>
-
-          <View style={styles.termsContainer}>
-            <Text
-              style={[
-                styles.termsText,
-                { color: theme === "dark" ? "#aaa" : "#888" },
-              ]}
-            >
-              Ao criar uma conta, você concorda com nossos{" "}
-              <Text style={[styles.termsLink, { color: colors.primary }]}>
-                Termos de Serviço
-              </Text>{" "}
-              e{" "}
-              <Text style={[styles.termsLink, { color: colors.primary }]}>
-                Política de Privacidade
+            <View style={styles.termsContainer}>
+              <Text
+                style={[
+                  styles.termsText,
+                  { color: theme === "dark" ? "#aaa" : "#888" },
+                ]}
+              >
+                Ao criar uma conta, você concorda com nossos{" "}
+                <Text style={[styles.termsLink, { color: colors.primary }]}>
+                  Termos de Serviço
+                </Text>{" "}
+                e{" "}
+                <Text style={[styles.termsLink, { color: colors.primary }]}>
+                  Política de Privacidade
+                </Text>
               </Text>
-            </Text>
-          </View>
+            </View>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

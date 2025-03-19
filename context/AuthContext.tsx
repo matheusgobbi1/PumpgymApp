@@ -33,6 +33,8 @@ import {
 } from "../firebase/storage";
 import { OfflineStorage } from "../services/OfflineStorage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getFirestore } from "firebase/firestore";
+import { KEYS } from "../constants/keys";
 
 // Garantir que auth é do tipo FirebaseAuth
 const firebaseAuth: FirebaseAuth = auth;
@@ -379,6 +381,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const login = async (email: string, password: string) => {
     try {
+      // Limpar dados de treino de outros usuários
+      try {
+        // Obter todas as chaves do AsyncStorage
+        const keys = await AsyncStorage.getAllKeys();
+
+        // Filtrar chaves relacionadas a treinos
+        const workoutKeys = keys.filter(
+          (key) =>
+            key.includes("@pumpgym:workouts:") ||
+            key.includes("@pumpgym:workoutTypes:") ||
+            key.includes("@pumpgym:trainingGoals:")
+        );
+
+        // Remover todas as chaves de treino
+        if (workoutKeys.length > 0) {
+          await AsyncStorage.multiRemove(workoutKeys);
+        }
+
+        // Limpar os lembretes (tanto a chave antiga quanto as novas com userId)
+        await AsyncStorage.removeItem("@fitfolio_reminders");
+
+        // Limpar todas as chaves de lembretes
+        const reminderKeys = keys.filter((key) =>
+          key.startsWith("@fitfolio_reminders:")
+        );
+
+        if (reminderKeys.length > 0) {
+          await AsyncStorage.multiRemove(reminderKeys);
+        }
+      } catch (error) {
+        // Erro ao limpar dados de treino
+      }
+
       const userCredential = await signInWithEmailAndPassword(
         firebaseAuth,
         email,
@@ -434,6 +469,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         throw new Error(
           "Este email já está cadastrado. Por favor, faça login."
         );
+      }
+
+      // Limpar dados de treino de contas anteriores
+      try {
+        // Obter todas as chaves do AsyncStorage
+        const keys = await AsyncStorage.getAllKeys();
+
+        // Filtrar todas as chaves relacionadas a treinos
+        const workoutKeys = keys.filter(
+          (key) =>
+            key.includes("@pumpgym:workouts:") ||
+            key.includes("@pumpgym:workoutTypes:") ||
+            key.includes("@pumpgym:trainingGoals:")
+        );
+
+        // Remover todas as chaves de treino
+        if (workoutKeys.length > 0) {
+          await AsyncStorage.multiRemove(workoutKeys);
+        }
+
+        // Limpar os lembretes (tanto a chave antiga quanto as novas com userId)
+        await AsyncStorage.removeItem("@fitfolio_reminders");
+
+        // Limpar todas as chaves de lembretes
+        const reminderKeys = keys.filter((key) =>
+          key.startsWith("@fitfolio_reminders:")
+        );
+
+        if (reminderKeys.length > 0) {
+          await AsyncStorage.multiRemove(reminderKeys);
+        }
+      } catch (e) {
+        // Erro ao limpar dados de treino
       }
 
       const userCredential = await createUserWithEmailAndPassword(
@@ -513,9 +581,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     password: string
   ): Promise<FirebaseUser> => {
     try {
+      // Bloquear navegação e sinalizações de mudança de estado imediatamente
+      setNavigationLocked(true);
+
       // Recuperar dados temporários de nutrição antes de criar o usuário
       const tempNutritionData =
         await OfflineStorage.getTemporaryNutritionData();
+
+      // Salvar temporariamente os dados de treino do usuário anônimo
+      let anonymousWorkouts = null;
+      let anonymousWorkoutTypes = null;
+      let anonymousTrainingGoals = null;
+
+      try {
+        const workoutsData = await AsyncStorage.getItem(
+          `@pumpgym:workouts:anonymous`
+        );
+        if (workoutsData) anonymousWorkouts = JSON.parse(workoutsData);
+
+        const workoutTypesData = await AsyncStorage.getItem(
+          `@pumpgym:workoutTypes:anonymous`
+        );
+        if (workoutTypesData)
+          anonymousWorkoutTypes = JSON.parse(workoutTypesData);
+
+        const trainingGoalsData = await AsyncStorage.getItem(
+          `@pumpgym:trainingGoals:anonymous`
+        );
+        if (trainingGoalsData)
+          anonymousTrainingGoals = JSON.parse(trainingGoalsData);
+      } catch (e) {
+        // Erro ao obter dados de treino do usuário anônimo
+        console.error("Erro ao obter dados do usuário anônimo:", e);
+      }
 
       // Criar novo usuário
       const userCredential = await createUserWithEmailAndPassword(
@@ -528,7 +626,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Atualizar perfil
       await updateProfile(newUser, { displayName: name });
 
-      // Salvar dados do usuário no Firestore
+      // Salvar dados do usuário no Firestore com onboardingCompleted = true
+      // para garantir que não será redirecionado para a tela de gênero
       await setDoc(doc(db, "users", newUser.uid), {
         name,
         email,
@@ -544,6 +643,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         });
       }
 
+      // Transferir dados de treino do usuário anônimo para o novo usuário
+      try {
+        if (anonymousWorkouts) {
+          await AsyncStorage.setItem(
+            `@pumpgym:workouts:${newUser.uid}`,
+            JSON.stringify(anonymousWorkouts)
+          );
+        }
+
+        if (anonymousWorkoutTypes) {
+          await AsyncStorage.setItem(
+            `@pumpgym:workoutTypes:${newUser.uid}`,
+            JSON.stringify(anonymousWorkoutTypes)
+          );
+        }
+
+        if (anonymousTrainingGoals) {
+          await AsyncStorage.setItem(
+            `@pumpgym:trainingGoals:${newUser.uid}`,
+            JSON.stringify(anonymousTrainingGoals)
+          );
+        }
+
+        // Limpar dados do usuário anônimo
+        await AsyncStorage.removeItem(`@pumpgym:workouts:anonymous`);
+        await AsyncStorage.removeItem(`@pumpgym:workoutTypes:anonymous`);
+        await AsyncStorage.removeItem(`@pumpgym:trainingGoals:anonymous`);
+      } catch (e) {
+        // Erro ao transferir dados de treino
+        console.error("Erro ao transferir dados de treino:", e);
+      }
+
       // Salvar dados do usuário localmente
       await saveUserData({
         uid: newUser.uid,
@@ -557,25 +688,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Salvar status de onboarding localmente
       await OfflineStorage.saveOnboardingStatus(newUser.uid, true);
 
-      // Atualizar estado
+      // Limpar dados temporários após salvar
+      await OfflineStorage.clearTemporaryNutritionData();
+
+      // Atualizar estados DEPOIS de todas as operações de banco de dados
       setUser(newUser);
       setIsAnonymous(false);
       setIsNewUser(false);
 
-      // Notificar que o registro foi concluído
+      // Navegar diretamente para a tela principal antes de desbloquear a navegação
+      await router.replace("/(tabs)");
+
+      // Notificar que o registro foi concluído após a navegação
       notifyRegistrationCompleted();
 
-      // Limpar dados temporários após salvar
-      await OfflineStorage.clearTemporaryNutritionData();
+      // Aguardar um momento para garantir que a navegação iniciou
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Aguardar um momento para garantir que os estados sejam atualizados
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      // Usar replace para evitar problemas de navegação
-      router.replace("/(tabs)");
+      // Só agora desbloquear a navegação e permitir tentativas futuras
+      setTimeout(() => {
+        setNavigationLocked(false);
+        setNavigationAttempted(true);
+      }, 500);
 
       return newUser;
     } catch (error) {
+      // Em caso de erro, desbloquear a navegação
+      setNavigationLocked(false);
+      console.error("Erro ao completar registro anônimo:", error);
       throw error;
     }
   };
@@ -583,6 +723,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signOut = async () => {
     try {
       setNavigationAttempted(false);
+
+      // Identificar o usuário atual antes de fazer logout
+      const currentUserId = user?.uid;
+
+      // Tentar salvar os dados de treino antes de fazer logout sem usar hooks
+      if (currentUserId) {
+        try {
+          // Obter os dados diretamente do AsyncStorage
+          const workoutsKey = `${KEYS.WORKOUTS}:${currentUserId}`;
+          const workoutTypesKey = `${KEYS.AVAILABLE_WORKOUT_TYPES}:${currentUserId}`;
+
+          const storedWorkouts = await AsyncStorage.getItem(workoutsKey);
+          const storedWorkoutTypes = await AsyncStorage.getItem(
+            workoutTypesKey
+          );
+
+          if (
+            storedWorkouts &&
+            storedWorkoutTypes &&
+            currentUserId !== "anonymous"
+          ) {
+            try {
+              // Salvar diretamente no Firestore
+              const db = getFirestore();
+              const workoutsRef = doc(
+                db,
+                "users",
+                currentUserId,
+                "workouts",
+                "data"
+              );
+
+              await setDoc(
+                workoutsRef,
+                {
+                  workouts: JSON.parse(storedWorkouts),
+                  availableWorkoutTypes: JSON.parse(storedWorkoutTypes),
+                  lastUpdated: serverTimestamp(),
+                },
+                { merge: true }
+              );
+
+              console.log("Treinos sincronizados com Firebase ao fazer logout");
+            } catch (firebaseError) {
+              console.error(
+                "Erro ao salvar treinos no Firebase durante logout:",
+                firebaseError
+              );
+            }
+          }
+        } catch (e) {
+          console.error("Erro ao processar dados de treino durante logout:", e);
+        }
+      }
 
       // Primeiro limpar os dados locais
       try {
@@ -595,6 +789,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         await removeAuthToken();
       } catch (e) {
         // Erro ao remover token de autenticação
+      }
+
+      // Limpar dados de treino
+      try {
+        await AsyncStorage.removeItem(`@pumpgym:workouts:${user?.uid}`);
+        await AsyncStorage.removeItem(`@pumpgym:workoutTypes:${user?.uid}`);
+        await AsyncStorage.removeItem(`@pumpgym:trainingGoals:${user?.uid}`);
+
+        // Limpar também dados sem userId específico (para compatibilidade)
+        await AsyncStorage.removeItem(`@pumpgym:workouts:anonymous`);
+        await AsyncStorage.removeItem(`@pumpgym:workoutTypes:anonymous`);
+        await AsyncStorage.removeItem(`@pumpgym:trainingGoals:anonymous`);
+
+        // Limpar os lembretes (tanto a chave antiga quanto as novas com userId)
+        await AsyncStorage.removeItem("@fitfolio_reminders");
+
+        // Limpar todas as chaves de lembretes
+        const allKeys = await AsyncStorage.getAllKeys();
+        const reminderKeys = allKeys.filter((key) =>
+          key.startsWith("@fitfolio_reminders:")
+        );
+
+        if (reminderKeys.length > 0) {
+          await AsyncStorage.multiRemove(reminderKeys);
+        }
+      } catch (e) {
+        // Erro ao limpar dados de treino
       }
 
       // Depois fazer logout no Firebase

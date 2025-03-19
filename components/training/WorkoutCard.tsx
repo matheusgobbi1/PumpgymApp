@@ -1,4 +1,10 @@
-import React, { useCallback, useState, useRef, useEffect } from "react";
+import React, {
+  useCallback,
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+} from "react";
 import {
   View,
   Text,
@@ -33,6 +39,7 @@ import Animated, {
 import { useAuth } from "../../context/AuthContext";
 import { useRefresh } from "../../context/RefreshContext";
 import ConfirmationModal from "../ui/ConfirmationModal";
+import Toast from "../common/Toast";
 
 const { width } = Dimensions.get("window");
 
@@ -61,6 +68,7 @@ interface WorkoutCardProps {
   onPress: () => void;
   onDeleteExercise: (exerciseId: string) => Promise<void>;
   refreshKey?: number;
+  notificationsEnabled?: boolean;
 }
 
 export default function WorkoutCard({
@@ -71,6 +79,7 @@ export default function WorkoutCard({
   onPress,
   onDeleteExercise,
   refreshKey,
+  notificationsEnabled = true,
 }: WorkoutCardProps) {
   const router = useRouter();
   const { theme } = useTheme();
@@ -78,10 +87,23 @@ export default function WorkoutCard({
   const { user } = useAuth();
   const userId = user?.uid || "no-user";
   const { refreshKey: contextRefreshKey } = useRefresh();
-  const { workouts, selectedDate, copyWorkoutFromDate } = useWorkoutContext();
+  const { selectedDate, copyWorkoutFromDate } = useWorkoutContext();
 
-  // Combinar refreshKey da prop com o do contexto
-  const combinedRefreshKey = refreshKey || contextRefreshKey;
+  // Usar useRef para armazenar os workouts em vez de extraí-los do contexto
+  // e causar rerenderizações em cascata
+  const workoutsRef = useRef<any>(null);
+  const { workouts } = useWorkoutContext();
+
+  // Atualizar a referência apenas quando necessário
+  useEffect(() => {
+    workoutsRef.current = workouts;
+  }, [workouts]);
+
+  // Memoizar o combinedRefreshKey para evitar cálculos desnecessários
+  const combinedRefreshKey = useMemo(
+    () => refreshKey || contextRefreshKey,
+    [refreshKey, contextRefreshKey]
+  );
 
   // Estado para controlar quais exercícios estão expandidos
   const [expandedExercises, setExpandedExercises] = useState<{
@@ -97,57 +119,82 @@ export default function WorkoutCard({
   const [selectedSourceDate, setSelectedSourceDate] = useState<string>("");
   const [showCopySuccess, setShowCopySuccess] = useState(false);
 
+  // Estado para notificações de progresso
+  const [progressNotification, setProgressNotification] = useState<{
+    visible: boolean;
+    message: string;
+    type: "success" | "info";
+  }>({
+    visible: false,
+    message: "",
+    type: "success",
+  });
+
+  // Estado para notificações de recorde pessoal (PR)
+  const [showPersonalRecordToast, setShowPersonalRecordToast] = useState(false);
+  const [personalRecordToastMessage, setPersonalRecordToastMessage] =
+    useState("");
+
   // Função para resetar os exercícios expandidos
   const resetExpandedExercises = useCallback(() => {
     setExpandedExercises({});
   }, []);
 
-  // Usar useEffect para observar mudanças em combinedRefreshKey
+  // Otimizar useEffect para ter menos dependências e executar menos vezes
   useEffect(() => {
+    // Apenas redefinir quando o refreshKey realmente mudar e não for o valor inicial
     if (combinedRefreshKey) {
       resetExpandedExercises();
     }
   }, [combinedRefreshKey, resetExpandedExercises]);
 
-  // Função para obter as datas anteriores com este treino
+  // Função para obter as datas anteriores com este treino - memoizada
   const getPreviousDatesWithWorkout = useCallback(() => {
-    if (!workouts) return [];
+    if (!workoutsRef.current) return [];
 
     // Filtrar datas anteriores à data selecionada
-    return Object.keys(workouts)
+    return Object.keys(workoutsRef.current)
       .filter((date) => {
         // Verificar se a data é anterior à data selecionada
         return (
           date < selectedDate &&
-          // Verificar se o treino existe nesta data
-          workouts[date]?.[workout.id] &&
-          // Verificar se o treino tem exercícios
-          workouts[date][workout.id].length > 0
+          // Verificar se o treino existe nesta data e tem exercícios
+          workoutsRef.current[date]?.[workout.id]?.length > 0
         );
       })
-      .sort((a, b) => b.localeCompare(a)); // Ordenar por data decrescente (mais recente primeiro)
-  }, [workouts, selectedDate, workout.id]);
+      .sort((a, b) => b.localeCompare(a)); // Ordenar por data decrescente
+  }, [selectedDate, workout.id, workouts]);
 
-  // Função para obter a data mais recente com este treino
+  // Memoizar o resultado para evitar recálculos
+  const previousDatesWithWorkout = useMemo(
+    () => getPreviousDatesWithWorkout(),
+    [getPreviousDatesWithWorkout]
+  );
+
+  // Função para obter a data mais recente - memoizada também
   const getMostRecentWorkoutDate = useCallback(() => {
-    const dates = getPreviousDatesWithWorkout();
-    return dates.length > 0 ? dates[0] : "";
-  }, [getPreviousDatesWithWorkout]);
+    return previousDatesWithWorkout.length > 0
+      ? previousDatesWithWorkout[0]
+      : "";
+  }, [previousDatesWithWorkout]);
 
   // Função para lidar com o feedback tátil
-  const handleHapticFeedback = async () => {
+  const handleHapticFeedback = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
+  }, []);
 
   // Função para alternar o estado de expansão de um exercício
-  const toggleExerciseExpand = (exerciseId: string) => {
-    handleHapticFeedback();
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedExercises((prev) => ({
-      ...prev,
-      [exerciseId]: !prev[exerciseId],
-    }));
-  };
+  const toggleExerciseExpand = useCallback(
+    (exerciseId: string) => {
+      handleHapticFeedback();
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setExpandedExercises((prev) => ({
+        ...prev,
+        [exerciseId]: !prev[exerciseId],
+      }));
+    },
+    [handleHapticFeedback]
+  );
 
   // Função para formatar o volume total
   const formatVolume = (volume: number) => {
@@ -159,15 +206,36 @@ export default function WorkoutCard({
 
   // Função para verificar se uma data é ontem
   const isYesterday = useCallback((dateString: string) => {
+    // Obter a data atual no fuso horário local
     const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    return dateString === yesterday.toISOString().split("T")[0];
+
+    // Criar o objeto de data de ontem
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    // Extrair componentes de data de ontem
+    const yesterdayYear = yesterday.getFullYear();
+    const yesterdayMonth = yesterday.getMonth() + 1;
+    const yesterdayDay = yesterday.getDate();
+
+    // Formatar a data de ontem como string no formato YYYY-MM-DD
+    const yesterdayString = `${yesterdayYear}-${String(yesterdayMonth).padStart(
+      2,
+      "0"
+    )}-${String(yesterdayDay).padStart(2, "0")}`;
+
+    // Comparar as strings de data
+    return dateString === yesterdayString;
   }, []);
 
   // Função para formatar a data para exibição
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+    // Criar uma data no fuso horário local do Brasil (UTC-3)
+    // Formato da string de data: YYYY-MM-DD
+    const [year, month, day] = dateString.split("-").map(Number);
+
+    // Criar a data com o horário definido como meio-dia para evitar problemas de fuso horário
+    const date = new Date(year, month - 1, day, 12, 0, 0);
 
     // Verificar se é ontem
     if (isYesterday(dateString)) {
@@ -190,6 +258,9 @@ export default function WorkoutCard({
   const openCopyModal = useCallback(() => {
     handleHapticFeedback();
 
+    // Atualizar a referência de workouts para garantir dados atualizados
+    workoutsRef.current = workouts;
+
     // Obter a data mais recente
     const mostRecentDate = getMostRecentWorkoutDate();
 
@@ -201,14 +272,22 @@ export default function WorkoutCard({
       // Se não houver data disponível, mostrar mensagem de erro
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
-  }, [getMostRecentWorkoutDate, handleHapticFeedback]);
+  }, [getMostRecentWorkoutDate, handleHapticFeedback, workouts]);
 
   // Função para copiar treino de uma data anterior
   const handleCopyWorkout = async () => {
-    if (!selectedSourceDate) return;
+    if (!selectedSourceDate) {
+      return;
+    }
 
     try {
-      await copyWorkoutFromDate(selectedSourceDate, workout.id, workout.id);
+      await copyWorkoutFromDate(
+        selectedSourceDate,
+        selectedDate,
+        workout.id,
+        workout.id
+      );
+
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowCopyWorkoutModal(false);
       setShowCopySuccess(true);
@@ -217,6 +296,11 @@ export default function WorkoutCard({
       setTimeout(() => {
         setShowCopySuccess(false);
       }, 3000);
+
+      // Recarregar a página atual
+      setTimeout(() => {
+        router.push("/training");
+      }, 1000);
     } catch (error) {
       console.error("Erro ao copiar treino:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -282,6 +366,162 @@ export default function WorkoutCard({
     </TouchableOpacity>
   );
 
+  // Função para verificar e notificar progresso
+  const checkForProgress = useCallback(
+    (currentExercise: Exercise, previousExercise: Exercise) => {
+      // Desativamos essa funcionalidade para manter apenas as notificações de PR
+      return false;
+    },
+    [notificationsEnabled]
+  );
+
+  // Função que verifica se um exercício atingiu um novo recorde pessoal (PR)
+  const checkForPersonalRecord = useCallback(
+    (currentExercise: Exercise, previousExercise: Exercise) => {
+      // Se as notificações estiverem desativadas, não mostrar toast de PR
+      if (!notificationsEnabled) return false;
+
+      if (!previousExercise || !currentExercise) return false;
+
+      // Verificar apenas para exercícios de força (não cardio)
+      if (
+        currentExercise.category !== "cardio" &&
+        currentExercise.sets &&
+        previousExercise.sets
+      ) {
+        // Para verificar PRs, precisamos encontrar a carga máxima por repetição
+        // Um PR legítimo é quando a pessoa levanta mais peso para o mesmo número de repetições,
+        // ou faz mais repetições com o mesmo peso
+
+        // Mapear cargas e repetições do treino atual
+        const currentSets = currentExercise.sets.map((set) => ({
+          weight: set.weight,
+          reps: set.reps,
+        }));
+
+        // Mapear cargas e repetições do treino anterior
+        const previousSets = previousExercise.sets.map((set) => ({
+          weight: set.weight,
+          reps: set.reps,
+        }));
+
+        // Verificar PR de força: mais peso nas mesmas reps
+        for (const currentSet of currentSets) {
+          // Procurar um set no treino anterior com as mesmas repetições
+          const matchingPrevSet = previousSets.find(
+            (prevSet) => prevSet.reps === currentSet.reps
+          );
+
+          if (matchingPrevSet && currentSet.weight > matchingPrevSet.weight) {
+            // Novo PR detectado - mais peso nas mesmas repetições!
+            const increase = currentSet.weight - matchingPrevSet.weight;
+            const percentIncrease = Math.round(
+              (increase / matchingPrevSet.weight) * 100
+            );
+
+            // Usar o formato título + detalhes para o novo Toast
+            setPersonalRecordToastMessage(
+              `NOVO RECORDE PESSOAL\n${currentExercise.name}: +${increase}kg em ${currentSet.reps} repetições (${percentIncrease}%)`
+            );
+            setShowPersonalRecordToast(true);
+
+            // Feedback tátil mais forte para PRs
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+            // Esconder a notificação após 4 segundos (reduzido de 7 segundos)
+            setTimeout(() => {
+              setShowPersonalRecordToast(false);
+            }, 4000);
+
+            return true;
+          }
+        }
+
+        // Verificar PR de resistência: mais repetições com o mesmo peso
+        for (const currentSet of currentSets) {
+          // Procurar um set no treino anterior com o mesmo peso
+          const matchingPrevSets = previousSets.filter(
+            (prevSet) => prevSet.weight === currentSet.weight
+          );
+
+          if (matchingPrevSets.length > 0) {
+            // Encontrar o maior número de repetições feito com este peso no treino anterior
+            const maxPrevReps = Math.max(
+              ...matchingPrevSets.map((set) => set.reps)
+            );
+
+            if (currentSet.reps > maxPrevReps) {
+              // Novo PR detectado - mais repetições no mesmo peso!
+              const increase = currentSet.reps - maxPrevReps;
+
+              // Usar o formato título + detalhes para o novo Toast
+              setPersonalRecordToastMessage(
+                `NOVO RECORDE PESSOAL\n${currentExercise.name}: +${increase} repetições com ${currentSet.weight}kg`
+              );
+              setShowPersonalRecordToast(true);
+
+              // Feedback tátil mais forte para PRs
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success
+              );
+
+              // Esconder a notificação após 4 segundos (reduzido de 7 segundos)
+              setTimeout(() => {
+                setShowPersonalRecordToast(false);
+              }, 4000);
+
+              return true;
+            }
+          }
+        }
+      }
+
+      return false;
+    },
+    [notificationsEnabled]
+  );
+
+  // Modificar o useEffect existente para verificar PRs
+  useEffect(() => {
+    // Se as notificações estiverem desativadas, não verificar PRs nem progresso
+    if (!notificationsEnabled) return;
+
+    if (!workoutsRef.current || !previousDatesWithWorkout.length) return;
+
+    const mostRecentDate = getMostRecentWorkoutDate();
+    if (!mostRecentDate) return;
+
+    // Obter exercícios do treino mais recente
+    const previousWorkoutExercises =
+      workoutsRef.current[mostRecentDate]?.[workout.id] || [];
+
+    // Verificar cada exercício atual em relação ao anterior
+    for (const currentExercise of exercises) {
+      // Encontrar o exercício correspondente no treino anterior
+      const previousExercise = previousWorkoutExercises.find(
+        (ex: Exercise) =>
+          ex.name.toLowerCase() === currentExercise.name.toLowerCase()
+      );
+
+      if (previousExercise) {
+        // Primeiro verificar PRs, que são mais importantes
+        const hasPR = checkForPersonalRecord(currentExercise, previousExercise);
+        if (hasPR) break; // Mostrar apenas uma notificação por vez
+
+        // Se não houver PR, verificar progresso geral
+        const hasProgress = checkForProgress(currentExercise, previousExercise);
+        if (hasProgress) break; // Mostrar apenas uma notificação por vez
+      }
+    }
+  }, [
+    exercises,
+    previousDatesWithWorkout,
+    getMostRecentWorkoutDate,
+    checkForProgress,
+    checkForPersonalRecord,
+    notificationsEnabled,
+  ]);
+
   // Função para renderizar um exercício
   const renderExerciseItem = (exercise: Exercise, exerciseIndex: number) => (
     <Swipeable
@@ -291,11 +531,6 @@ export default function WorkoutCard({
       friction={2}
       overshootRight={false}
       overshootLeft={false}
-      onSwipeableOpen={(direction) => {
-        if (direction === "left") {
-          navigateToExerciseDetails(exercise);
-        }
-      }}
     >
       <Animated.View
         entering={FadeInRight.delay(exerciseIndex * 100).duration(300)}
@@ -654,28 +889,63 @@ export default function WorkoutCard({
                     <Text style={[styles.workoutTitle, { color: colors.text }]}>
                       {workout.name}
                     </Text>
-                    {exercises.length > 0 && (
+                    <Text
+                      style={[styles.volumeValue, { color: workout.color }]}
+                    >
+                      {formatVolume(workoutTotals.totalVolume)}{" "}
                       <Text
                         style={[
-                          styles.exerciseCount,
+                          styles.volumeLabel,
                           { color: colors.text + "70" },
                         ]}
                       >
-                        {exercises.length}{" "}
-                        {exercises.length === 1 ? "exercício" : "exercícios"}
+                        volume
                       </Text>
-                    )}
+                    </Text>
                   </View>
                 </View>
-                <View style={styles.workoutStatsContainer}>
-                  <Text style={[styles.volumeValue, { color: workout.color }]}>
-                    {formatVolume(workoutTotals.totalVolume)}
-                  </Text>
-                  <Text
-                    style={[styles.volumeLabel, { color: colors.text + "70" }]}
+                <View style={styles.actionButtonsContainer}>
+                  {getMostRecentWorkoutDate() && (
+                    <TouchableOpacity
+                      style={[
+                        styles.headerActionButton,
+                        {
+                          borderColor: workout.color,
+                          backgroundColor: workout.color + "10",
+                        },
+                      ]}
+                      onPress={openCopyModal}
+                    >
+                      <Ionicons
+                        name="copy-outline"
+                        size={20}
+                        color={workout.color}
+                      />
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={[
+                      styles.headerActionButton,
+                      {
+                        borderColor: workout.color,
+                        backgroundColor: workout.color + "10",
+                      },
+                    ]}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleHapticFeedback();
+                      router.push({
+                        pathname: "/(add-exercise)",
+                        params: {
+                          workoutId: workout.id,
+                          workoutName: workout.name,
+                          workoutColor: workout.color,
+                        },
+                      });
+                    }}
                   >
-                    volume
-                  </Text>
+                    <Ionicons name="add" size={20} color={workout.color} />
+                  </TouchableOpacity>
                 </View>
               </View>
             </TouchableOpacity>
@@ -751,44 +1021,19 @@ export default function WorkoutCard({
                 </MotiView>
               )}
             </View>
+          </View>
 
-            <View style={styles.addButtonContainer}>
-              {getMostRecentWorkoutDate() && (
-                <TouchableOpacity
-                  style={[
-                    styles.copyButton,
-                    {
-                      borderColor: workout.color,
-                      backgroundColor: workout.color + "10",
-                    },
-                  ]}
-                  onPress={openCopyModal}
-                >
-                  <Ionicons
-                    name="copy-outline"
-                    size={20}
-                    color={workout.color}
-                  />
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={[styles.addButton, { borderColor: workout.color }]}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  handleHapticFeedback();
-                  router.push({
-                    pathname: "/(add-exercise)",
-                    params: {
-                      workoutId: workout.id,
-                      workoutName: workout.name,
-                      workoutColor: workout.color,
-                    },
-                  });
-                }}
-              >
-                <Ionicons name="add" size={20} color={workout.color} />
-              </TouchableOpacity>
-            </View>
+          {/* Toast para recordes pessoais, posicionado na parte inferior do card */}
+          <View style={styles.toastContainer}>
+            {showPersonalRecordToast && (
+              <Toast
+                message={personalRecordToastMessage}
+                type="success"
+                color="#FFD700"
+                duration={4000}
+                onDismiss={() => setShowPersonalRecordToast(false)}
+              />
+            )}
           </View>
         </MotiView>
       </Swipeable>
@@ -898,7 +1143,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   indicatorValue: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "500",
     textAlign: "center",
   },
@@ -1052,16 +1297,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
-  workoutStatsContainer: {
-    alignItems: "flex-end",
-  },
   volumeValue: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "600",
+    marginTop: 2,
   },
   volumeLabel: {
     fontSize: 11,
-    marginTop: 2,
+    fontWeight: "normal",
+  },
+  actionButtonsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerActionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    backgroundColor: "transparent",
+    borderColor: "transparent",
   },
   progressContainer: {
     height: 3,
@@ -1075,7 +1333,6 @@ const styles = StyleSheet.create({
   },
   exercisesContainer: {
     minHeight: 50,
-    marginBottom: 50, // Espaço para o botão
   },
   exercisesList: {
     marginVertical: 0,
@@ -1095,25 +1352,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: "center",
   },
-  addButtonContainer: {
-    position: "absolute",
-    bottom: 16,
-    right: 16,
-    zIndex: 1,
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-  },
-  copyButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    backgroundColor: "transparent",
-    borderColor: "transparent",
-  },
   successMessage: {
     flexDirection: "row",
     alignItems: "center",
@@ -1128,26 +1366,26 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginLeft: 6,
   },
-  addButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
   swipeAction: {
     justifyContent: "center",
     alignItems: "center",
     width: 70,
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
   },
   deleteAction: {
     justifyContent: "center",
     alignItems: "center",
     width: 70,
     height: "100%",
-    borderTopRightRadius: 0,
-    borderBottomRightRadius: 0,
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+  },
+  toastContainer: {
+    position: "absolute",
+    bottom: 80,
+    left: 16,
+    right: 16,
+    zIndex: 5,
   },
 });

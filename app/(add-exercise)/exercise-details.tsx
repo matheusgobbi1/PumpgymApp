@@ -13,7 +13,7 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useLocalSearchParams, Stack } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { MotiView } from "moti";
 import * as Haptics from "expo-haptics";
@@ -436,85 +436,81 @@ export default function ExerciseDetailsScreen() {
   const [notes, setNotes] = useState("");
   const [sets, setSets] = useState<ExerciseSet[]>([]);
 
-  // Animações
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-
   // Estados adicionais para cardio
   const [cardioDuration, setCardioDuration] = useState(30);
   const [cardioIntensity, setCardioIntensity] = useState(5);
 
-  // Efeito para carregar os detalhes do exercício
-  useEffect(() => {
-    const loadExerciseDetails = async () => {
-      setIsLoading(true);
+  // Verificar se é um exercício personalizado
+  const isCustomExercise = !exercise && customName;
 
-      try {
-        // Verificar se estamos no modo de edição com dados passados
-        if (mode === "edit" && exerciseDataParam) {
-          try {
-            const exerciseData = JSON.parse(exerciseDataParam);
+  // Função para carregar os dados do exercício
+  const loadExerciseDetails = () => {
+    setIsLoading(true);
 
-            // Configurar os estados com os dados do exercício
-            if (exerciseData.name) {
-              setCustomExerciseName(exerciseData.name);
-            }
+    try {
+      // Verificar se estamos no modo de edição com dados passados
+      if (mode === "edit" && exerciseDataParam) {
+        try {
+          const exerciseData = JSON.parse(exerciseDataParam);
 
-            if (exerciseData.notes) {
-              setNotes(exerciseData.notes);
-            }
+          // Configurar os estados com os dados do exercício
+          if (exerciseData.name) {
+            setCustomExerciseName(exerciseData.name);
+          }
 
-            if (exerciseData.sets && exerciseData.sets.length > 0) {
-              setSets(exerciseData.sets);
-            } else if (exerciseData.category !== "cardio") {
-              // Adicionar uma série inicial se não for cardio
-              addNewSet();
-            }
+          if (exerciseData.notes) {
+            setNotes(exerciseData.notes);
+          }
 
-            if (exerciseData.category === "cardio") {
-              setCardioDuration(exerciseData.cardioDuration || 30);
-              setCardioIntensity(exerciseData.cardioIntensity || 5);
-            }
-
-            // Buscar dados adicionais do exercício se tivermos um ID
-            if (exerciseId) {
-              const dbExercise = getExerciseById(exerciseId);
-              if (dbExercise) {
-                setExercise(dbExercise);
-              }
-            }
-
-            setIsLoading(false);
-            return;
-          } catch (error) {}
-        }
-
-        // Fluxo normal se não estivermos editando
-        if (exerciseId) {
-          // Buscar exercício pelo ID
-          const exerciseData = getExerciseById(exerciseId);
-
-          if (exerciseData) {
-            setExercise(exerciseData);
-            setNotes(`${exerciseData.muscle} - ${exerciseData.equipment}`);
-
-            // Adicionar uma série inicial
+          if (exerciseData.sets && exerciseData.sets.length > 0) {
+            setSets(exerciseData.sets);
+          } else if (exerciseData.category !== "cardio") {
+            // Adicionar uma série inicial se não for cardio
             addNewSet();
           }
-        } else {
-          // Para exercícios personalizados, adicionar uma série inicial
+
+          if (exerciseData.category === "cardio") {
+            setCardioDuration(exerciseData.cardioDuration || 30);
+            setCardioIntensity(exerciseData.cardioIntensity || 5);
+          }
+
+          // Buscar dados adicionais do exercício se tivermos um ID
+          if (exerciseId) {
+            const dbExercise = getExerciseById(exerciseId);
+            if (dbExercise) {
+              setExercise(dbExercise);
+            }
+          }
+
+          setIsLoading(false);
+          return;
+        } catch (error) {}
+      }
+
+      // Fluxo normal se não estivermos editando
+      if (exerciseId) {
+        // Buscar exercício pelo ID
+        const exerciseData = getExerciseById(exerciseId);
+
+        if (exerciseData) {
+          setExercise(exerciseData);
+          setNotes(`${exerciseData.muscle} - ${exerciseData.equipment}`);
+
+          // Adicionar uma série inicial
           addNewSet();
         }
-      } catch (error) {
-      } finally {
-        setIsLoading(false);
+      } else {
+        // Para exercícios personalizados, adicionar uma série inicial
+        addNewSet();
       }
-    };
+    } catch (error) {
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  // Carregar os detalhes do exercício ao montar o componente
+  React.useEffect(() => {
     loadExerciseDetails();
   }, [exerciseId, exerciseDataParam, mode]);
 
@@ -564,6 +560,12 @@ export default function ExerciseDetailsScreen() {
     setCardioIntensity(intensity);
   };
 
+  // Função para fechar o modal
+  const handleClose = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.back();
+  };
+
   // Função para adicionar o exercício ao treino
   const handleAddExercise = () => {
     // Feedback tátil
@@ -584,7 +586,7 @@ export default function ExerciseDetailsScreen() {
 
     // Se estamos editando, atualizar o exercício existente
     if (mode === "edit" && exerciseId) {
-      updateExerciseInWorkout(workoutId, newExercise);
+      updateExerciseInWorkout(workoutId, exerciseId, newExercise);
     } else {
       // Caso contrário, adicionar um novo exercício
       addExerciseToWorkout(workoutId, newExercise);
@@ -599,322 +601,303 @@ export default function ExerciseDetailsScreen() {
     }
   };
 
-  // Verificar se é um exercício personalizado
-  const isCustomExercise = !exercise && customName;
-
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: exercise ? exercise.name : "Novo Exercício",
-          headerStyle: {
-            backgroundColor: colors.background,
-          },
-          headerTintColor: colors.text,
-          headerShadowVisible: false,
-          headerTransparent: true,
-          presentation: "modal",
-          animation: "slide_from_bottom",
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={{ marginLeft: 10 }}
-            >
-              <Ionicons name="close" size={24} color={colors.text} />
-            </TouchableOpacity>
-          ),
-          headerBackground: () => (
-            <Animated.View
-              style={[
-                styles.headerBackground,
-                { backgroundColor: colors.background, opacity: headerOpacity },
-              ]}
-            />
-          ),
-        }}
-      />
-
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={["bottom"]}
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["bottom"]}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboardAvoidingView}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.keyboardAvoidingView}
+        <View
+          style={[
+            styles.header,
+            {
+              borderBottomColor:
+                theme === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+            },
+          ]}
         >
-          <Animated.ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollViewContent}
-            showsVerticalScrollIndicator={false}
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-              { useNativeDriver: false }
-            )}
-            scrollEventThrottle={16}
-          >
-            {isLoading ? (
-              <LoadingSkeleton />
-            ) : (
-              <>
-                <MotiView
-                  from={{ opacity: 0, translateY: 20 }}
-                  animate={{ opacity: 1, translateY: 0 }}
-                  transition={{ type: "spring" }}
-                  style={styles.exerciseHeader}
+          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+            <Ionicons name="close" size={24} color={colors.text} />
+          </TouchableOpacity>
+
+          <Text style={[styles.title, { color: colors.text }]}>
+            {mode === "edit" ? "Editar Exercício" : "Novo Exercício"}
+          </Text>
+
+          <View style={styles.rightButtonPlaceholder} />
+        </View>
+
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.scrollViewContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {isLoading ? (
+            <LoadingSkeleton />
+          ) : (
+            <>
+              <MotiView
+                from={{ opacity: 0, translateY: 20 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: "spring" }}
+                style={styles.exerciseHeader}
+              >
+                <View
+                  style={[
+                    styles.exerciseIconContainer,
+                    { backgroundColor: workoutColor + "20" },
+                  ]}
                 >
-                  <View
-                    style={[
-                      styles.exerciseIconContainer,
-                      { backgroundColor: workoutColor + "20" },
-                    ]}
-                  >
-                    <Ionicons
-                      name={
-                        exercise?.muscle === "Peito"
-                          ? "fitness-outline"
-                          : exercise?.muscle === "Costas"
-                          ? "body-outline"
-                          : exercise?.muscle === "Pernas"
-                          ? "walk-outline"
-                          : exercise?.muscle === "Ombros"
-                          ? "barbell-outline"
-                          : exercise?.muscle === "Bíceps" ||
-                            exercise?.muscle === "Tríceps"
-                          ? "bicycle-outline"
-                          : exercise?.muscle === "Abdômen"
-                          ? "body-outline"
-                          : exercise?.muscle === "Cardio"
-                          ? "heart-outline"
-                          : "barbell-outline"
-                      }
-                      size={48}
-                      color={workoutColor}
+                  <Ionicons
+                    name={
+                      exercise?.muscle === "Peito"
+                        ? "fitness-outline"
+                        : exercise?.muscle === "Costas"
+                        ? "body-outline"
+                        : exercise?.muscle === "Pernas"
+                        ? "walk-outline"
+                        : exercise?.muscle === "Ombros"
+                        ? "barbell-outline"
+                        : exercise?.muscle === "Bíceps" ||
+                          exercise?.muscle === "Tríceps"
+                        ? "bicycle-outline"
+                        : exercise?.muscle === "Abdômen"
+                        ? "body-outline"
+                        : exercise?.muscle === "Cardio"
+                        ? "heart-outline"
+                        : "barbell-outline"
+                    }
+                    size={48}
+                    color={workoutColor}
+                  />
+                </View>
+
+                {isCustomExercise ? (
+                  <View style={styles.customNameContainer}>
+                    <TextInput
+                      style={[
+                        styles.customNameInput,
+                        { color: colors.text, borderColor: colors.border },
+                      ]}
+                      placeholder="Nome do exercício"
+                      placeholderTextColor={colors.text + "60"}
+                      value={customExerciseName}
+                      onChangeText={setCustomExerciseName}
+                      autoFocus
                     />
                   </View>
+                ) : (
+                  <Text style={[styles.exerciseName, { color: colors.text }]}>
+                    {exercise?.name}
+                  </Text>
+                )}
 
-                  {isCustomExercise ? (
-                    <View style={styles.customNameContainer}>
-                      <TextInput
+                {exercise && (
+                  <View style={styles.exerciseDetails}>
+                    <View
+                      style={[
+                        styles.exerciseDetailTag,
+                        { backgroundColor: workoutColor + "20" },
+                      ]}
+                    >
+                      <Text
                         style={[
-                          styles.customNameInput,
-                          { color: colors.text, borderColor: colors.border },
+                          styles.exerciseDetailTagText,
+                          { color: workoutColor },
                         ]}
-                        placeholder="Nome do exercício"
-                        placeholderTextColor={colors.text + "60"}
-                        value={customExerciseName}
-                        onChangeText={setCustomExerciseName}
-                        autoFocus
-                      />
+                      >
+                        {exercise.muscle}
+                      </Text>
                     </View>
-                  ) : (
-                    <Text style={[styles.exerciseName, { color: colors.text }]}>
-                      {exercise?.name}
-                    </Text>
-                  )}
 
-                  {exercise && (
-                    <View style={styles.exerciseDetails}>
-                      <View
+                    <View
+                      style={[
+                        styles.exerciseDetailTag,
+                        { backgroundColor: workoutColor + "20" },
+                      ]}
+                    >
+                      <Text
                         style={[
-                          styles.exerciseDetailTag,
-                          { backgroundColor: workoutColor + "20" },
+                          styles.exerciseDetailTagText,
+                          { color: workoutColor },
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.exerciseDetailTagText,
-                            { color: workoutColor },
-                          ]}
-                        >
-                          {exercise.muscle}
-                        </Text>
-                      </View>
+                        {exercise.equipment}
+                      </Text>
+                    </View>
 
-                      <View
+                    <View
+                      style={[
+                        styles.exerciseDetailTag,
+                        {
+                          backgroundColor:
+                            exercise.difficulty === "iniciante"
+                              ? "#4CAF50" + "20"
+                              : exercise.difficulty === "intermediário"
+                              ? "#FFC107" + "20"
+                              : "#F44336" + "20",
+                        },
+                      ]}
+                    >
+                      <Text
                         style={[
-                          styles.exerciseDetailTag,
-                          { backgroundColor: workoutColor + "20" },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.exerciseDetailTagText,
-                            { color: workoutColor },
-                          ]}
-                        >
-                          {exercise.equipment}
-                        </Text>
-                      </View>
-
-                      <View
-                        style={[
-                          styles.exerciseDetailTag,
+                          styles.exerciseDetailTagText,
                           {
-                            backgroundColor:
+                            color:
                               exercise.difficulty === "iniciante"
-                                ? "#4CAF50" + "20"
+                                ? "#4CAF50"
                                 : exercise.difficulty === "intermediário"
-                                ? "#FFC107" + "20"
-                                : "#F44336" + "20",
+                                ? "#FFC107"
+                                : "#F44336",
                           },
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.exerciseDetailTagText,
-                            {
-                              color:
-                                exercise.difficulty === "iniciante"
-                                  ? "#4CAF50"
-                                  : exercise.difficulty === "intermediário"
-                                  ? "#FFC107"
-                                  : "#F44336",
-                            },
-                          ]}
-                        >
-                          {exercise.difficulty}
-                        </Text>
-                      </View>
+                        {exercise.difficulty}
+                      </Text>
                     </View>
-                  )}
-                </MotiView>
-
-                {exercise && (
-                  <MotiView
-                    from={{ opacity: 0, translateY: 20 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    transition={{ type: "spring", delay: 100 }}
-                    style={[
-                      styles.descriptionContainer,
-                      { backgroundColor: colors.card },
-                    ]}
-                  >
-                    <Text
-                      style={[styles.descriptionTitle, { color: colors.text }]}
-                    >
-                      Como fazer
-                    </Text>
-                    <Text
-                      style={[
-                        styles.descriptionText,
-                        { color: colors.text + "E6" },
-                      ]}
-                    >
-                      {exercise.description}
-                    </Text>
-                  </MotiView>
+                  </View>
                 )}
+              </MotiView>
 
+              {exercise && (
                 <MotiView
                   from={{ opacity: 0, translateY: 20 }}
                   animate={{ opacity: 1, translateY: 0 }}
-                  transition={{ type: "spring", delay: 200 }}
+                  transition={{ type: "spring", delay: 100 }}
                   style={[
-                    styles.configContainer,
+                    styles.descriptionContainer,
                     { backgroundColor: colors.card },
                   ]}
                 >
-                  <Text style={[styles.configTitle, { color: colors.text }]}>
-                    {exercise?.category === "cardio"
-                      ? "Configuração"
-                      : "Séries"}
+                  <Text
+                    style={[styles.descriptionTitle, { color: colors.text }]}
+                  >
+                    Como fazer
                   </Text>
+                  <Text
+                    style={[
+                      styles.descriptionText,
+                      { color: colors.text + "E6" },
+                    ]}
+                  >
+                    {exercise.description}
+                  </Text>
+                </MotiView>
+              )}
 
-                  {exercise?.category === "cardio" ? (
-                    <CardioCard
-                      duration={cardioDuration}
-                      intensity={cardioIntensity}
-                      onUpdate={updateCardioSettings}
-                      color={workoutColor}
-                    />
-                  ) : (
-                    <View style={styles.setsContainer}>
-                      {sets.map((set, index) => (
-                        <SetCard
-                          key={set.id}
-                          set={set}
-                          index={index}
-                          onUpdate={(updatedSet) =>
-                            updateSet(index, updatedSet)
-                          }
-                          onRemove={() => removeSet(index)}
-                          color={workoutColor}
-                        />
-                      ))}
+              <MotiView
+                from={{ opacity: 0, translateY: 20 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: "spring", delay: 200 }}
+                style={[
+                  styles.configContainer,
+                  { backgroundColor: colors.card },
+                ]}
+              >
+                <Text style={[styles.configTitle, { color: colors.text }]}>
+                  {exercise?.category === "cardio" ? "Configuração" : "Séries"}
+                </Text>
 
-                      <TouchableOpacity
-                        style={[
-                          styles.addSetButton,
-                          {
-                            borderColor: workoutColor,
-                            backgroundColor: workoutColor + "08",
-                          },
-                        ]}
-                        onPress={addNewSet}
-                      >
-                        <Ionicons
-                          name="add-circle-outline"
-                          size={20}
-                          color={workoutColor}
-                        />
-                        <Text
-                          style={[
-                            styles.addSetButtonText,
-                            { color: workoutColor },
-                          ]}
-                        >
-                          Adicionar Série
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
+                {exercise?.category === "cardio" ? (
+                  <CardioCard
+                    duration={cardioDuration}
+                    intensity={cardioIntensity}
+                    onUpdate={updateCardioSettings}
+                    color={workoutColor}
+                  />
+                ) : (
+                  <View style={styles.setsContainer}>
+                    {sets.map((set, index) => (
+                      <SetCard
+                        key={set.id}
+                        set={set}
+                        index={index}
+                        onUpdate={(updatedSet) => updateSet(index, updatedSet)}
+                        onRemove={() => removeSet(index)}
+                        color={workoutColor}
+                      />
+                    ))}
 
-                  <View style={styles.notesContainer}>
-                    <Text style={[styles.notesLabel, { color: colors.text }]}>
-                      Observações
-                    </Text>
-                    <TextInput
+                    <TouchableOpacity
                       style={[
-                        styles.notesInput,
+                        styles.addSetButton,
                         {
-                          color: colors.text,
-                          backgroundColor: colors.background,
+                          borderColor: workoutColor,
+                          backgroundColor: workoutColor + "08",
                         },
                       ]}
-                      placeholder="Adicione observações sobre o exercício..."
-                      placeholderTextColor={colors.text + "60"}
-                      value={notes}
-                      onChangeText={setNotes}
-                      multiline
-                      numberOfLines={3}
-                    />
+                      onPress={addNewSet}
+                    >
+                      <Ionicons
+                        name="add-circle-outline"
+                        size={20}
+                        color={workoutColor}
+                      />
+                      <Text
+                        style={[
+                          styles.addSetButtonText,
+                          { color: workoutColor },
+                        ]}
+                      >
+                        Adicionar Série
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-                </MotiView>
-              </>
-            )}
-          </Animated.ScrollView>
+                )}
 
-          <View
-            style={[styles.bottomBar, { backgroundColor: colors.background }]}
+                <View style={styles.notesContainer}>
+                  <Text style={[styles.notesLabel, { color: colors.text }]}>
+                    Observações
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.notesInput,
+                      {
+                        color: colors.text,
+                        backgroundColor: colors.background,
+                      },
+                    ]}
+                    placeholder="Adicione observações sobre o exercício..."
+                    placeholderTextColor={colors.text + "60"}
+                    value={notes}
+                    onChangeText={setNotes}
+                    multiline
+                    numberOfLines={3}
+                  />
+                </View>
+              </MotiView>
+            </>
+          )}
+        </ScrollView>
+
+        <View
+          style={[styles.bottomBar, { backgroundColor: colors.background }]}
+        >
+          <TouchableOpacity
+            style={[styles.addButton, { backgroundColor: workoutColor }]}
+            onPress={handleAddExercise}
+            disabled={
+              isLoading ||
+              (isCustomExercise && !customExerciseName.trim()) ||
+              (exercise?.category !== "cardio" && sets.length === 0)
+            }
           >
-            <TouchableOpacity
-              style={[styles.addButton, { backgroundColor: workoutColor }]}
-              onPress={handleAddExercise}
-              disabled={
-                isLoading ||
-                (isCustomExercise && !customExerciseName.trim()) ||
-                (exercise?.category !== "cardio" && sets.length === 0)
-              }
-            >
-              <Ionicons name="add" size={24} color="white" />
-              <Text style={styles.addButtonText}>
-                Adicionar ao {workoutType?.name || "Treino"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </>
+            <Text style={styles.addButtonText}>
+              Adicionar ao {workoutType?.name || "Treino"}
+            </Text>
+            <Ionicons
+              name={mode === "edit" ? "checkmark-circle" : "add-circle"}
+              size={20}
+              color="#FFF"
+              style={styles.addButtonIcon}
+            />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -925,15 +908,36 @@ const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
   },
-  headerBackground: {
-    ...StyleSheet.absoluteFillObject,
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 24,
+    paddingTop: Platform.OS === "ios" ? 50 : 20,
+    paddingBottom: 20,
+    borderBottomWidth: 0,
   },
-  scrollView: {
+  title: {
+    fontSize: 24,
+    fontWeight: "600",
+    letterSpacing: -0.5,
+  },
+  closeButton: {
+    padding: 8,
+    backgroundColor: "rgba(0,0,0,0.05)",
+    borderRadius: 12,
+  },
+  rightButtonPlaceholder: {
+    width: 40,
+  },
+  content: {
     flex: 1,
   },
   scrollViewContent: {
-    paddingTop: 100,
     paddingBottom: 100,
+  },
+  headerBackground: {
+    ...StyleSheet.absoluteFillObject,
   },
   loadingContainer: {
     padding: 20,
@@ -1138,12 +1142,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     height: 56,
     borderRadius: 28,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
   },
   addButtonText: {
-    color: "white",
-    fontSize: 16,
+    color: "#FFF",
+    fontSize: 17,
     fontWeight: "600",
-    marginLeft: 4,
+    letterSpacing: -0.3,
+  },
+  addButtonIcon: {
+    marginLeft: 8,
   },
   cardioCard: {
     borderRadius: 12,

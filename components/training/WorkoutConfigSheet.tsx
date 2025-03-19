@@ -1,11 +1,9 @@
 import React, {
   forwardRef,
   useCallback,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useRef,
   useState,
+  useEffect,
+  ForwardedRef,
 } from "react";
 import {
   View,
@@ -14,32 +12,27 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  Platform,
-  KeyboardAvoidingView,
-  Keyboard,
-  useColorScheme,
-  ActivityIndicator,
-  SafeAreaView,
-  FlatList,
+  Alert,
 } from "react-native";
-import { BottomSheetModal, BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import {
   Ionicons,
   MaterialCommunityIcons,
   FontAwesome5,
 } from "@expo/vector-icons";
-// Importar o tipo para os ícones do Ionicons
-import type { Icon } from "@expo/vector-icons/build/createIconSet";
 import * as Haptics from "expo-haptics";
-import { MotiView } from "moti";
 import { Swipeable } from "react-native-gesture-handler";
-import { Animated as RNAnimated } from "react-native"; // Para as animações básicas
-import Animated, { FadeIn, Easing } from "react-native-reanimated"; // Manter para outros efeitos
-import { useTheme } from "../../context/ThemeContext"; // Atualizado para usar ThemeContext consistente
-import { useWorkoutContext, Exercise } from "../../context/WorkoutContext";
+import { Easing } from "react-native-reanimated";
+import { useTheme } from "../../context/ThemeContext";
+import { useWorkoutContext } from "../../context/WorkoutContext";
 import Colors from "../../constants/Colors";
-import ButtonNew from "../common/ButtonNew";
 import { v4 as uuidv4 } from "uuid";
+import { MotiView } from "moti";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { KEYS } from "../../constants/keys";
+import { useAuth } from "../../context/AuthContext";
+import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import Input from "../common/Input";
 
 // Tipo para os ícones do Ionicons
 type IoniconsNames = React.ComponentProps<typeof Ionicons>["name"];
@@ -50,115 +43,6 @@ type MaterialIconNames = React.ComponentProps<
 // Tipo para os ícones do FontAwesome5
 type FontAwesome5Names = React.ComponentProps<typeof FontAwesome5>["name"];
 
-// Componente TextInput otimizado com React.memo
-const OptimizedTextInput = React.memo(
-  ({
-    value,
-    onChangeText,
-    placeholder,
-    placeholderTextColor,
-    style,
-    ...props
-  }: {
-    value: string;
-    onChangeText: (text: string) => void;
-    placeholder?: string;
-    placeholderTextColor?: string;
-    style?: any;
-    [key: string]: any;
-  }) => {
-    return (
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={placeholderTextColor}
-        style={style}
-        {...props}
-      />
-    );
-  }
-);
-
-// Componente de input isolado que gerencia seu próprio estado
-const IsolatedInput = React.memo(
-  ({
-    initialValue,
-    onChangeComplete,
-    placeholder,
-    placeholderTextColor,
-    style,
-    ...props
-  }: {
-    initialValue: string;
-    onChangeComplete: (text: string) => void;
-    placeholder?: string;
-    placeholderTextColor?: string;
-    style?: any;
-    [key: string]: any;
-  }) => {
-    // Estado local isolado do componente pai
-    const [localValue, setLocalValue] = useState(initialValue);
-    const lastValueRef = useRef(initialValue);
-    const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-    // Atualizar o estado local quando o valor inicial mudar
-    useEffect(() => {
-      if (initialValue !== lastValueRef.current) {
-        setLocalValue(initialValue);
-        lastValueRef.current = initialValue;
-      }
-    }, [initialValue]);
-
-    // Limpar o timer de debounce quando o componente for desmontado
-    useEffect(() => {
-      return () => {
-        if (debounceTimerRef.current) {
-          clearTimeout(debounceTimerRef.current);
-        }
-      };
-    }, []);
-
-    // Função para atualizar apenas o estado local (rápido)
-    const handleLocalChange = (text: string) => {
-      setLocalValue(text);
-
-      // Debounce para atualizar o estado pai
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-
-      debounceTimerRef.current = setTimeout(() => {
-        if (text !== lastValueRef.current) {
-          onChangeComplete(text);
-          lastValueRef.current = text;
-        }
-      }, 300); // 300ms de debounce
-    };
-
-    // Função para atualizar o estado do componente pai (quando terminar de digitar)
-    const handleChangeComplete = () => {
-      if (localValue !== lastValueRef.current) {
-        onChangeComplete(localValue);
-        lastValueRef.current = localValue;
-      }
-    };
-
-    return (
-      <TextInput
-        value={localValue}
-        onChangeText={handleLocalChange}
-        onEndEditing={handleChangeComplete}
-        onBlur={handleChangeComplete}
-        placeholder={placeholder}
-        placeholderTextColor={placeholderTextColor}
-        style={style}
-        {...props}
-      />
-    );
-  }
-);
-
 // Tipo para os ícones de treino (união de todos os tipos de ícones)
 type WorkoutIconType = {
   type: "ionicons" | "material" | "fontawesome";
@@ -168,52 +52,52 @@ type WorkoutIconType = {
 // Definição dos tipos de treinos padrão com ícones melhorados
 const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
   {
-    id: "chest",
-    name: "Peito",
+    id: "Treino A",
+    name: "Treino A",
     iconType: {
       type: "material" as const,
-      name: "weight-lifter" as MaterialIconNames,
+      name: "arm-flex-outline" as MaterialIconNames,
     },
     color: "#FF5252",
     selected: false,
     isDefault: true,
   },
   {
-    id: "back",
-    name: "Costas",
+    id: "Treino B",
+    name: "Treino B",
     iconType: {
       type: "material" as const,
-      name: "human-handsdown" as MaterialIconNames,
+      name: "arm-flex-outline" as MaterialIconNames,
     },
     color: "#448AFF",
     selected: false,
     isDefault: true,
   },
   {
-    id: "legs",
-    name: "Pernas",
+    id: "Treino C",
+    name: "Treino C",
     iconType: {
       type: "material" as const,
-      name: "run-fast" as MaterialIconNames,
+      name: "arm-flex-outline" as MaterialIconNames,
     },
     color: "#66BB6A",
     selected: false,
     isDefault: true,
   },
   {
-    id: "shoulders",
-    name: "Ombros",
+    id: "Treino D",
+    name: "Treino D",
     iconType: {
       type: "material" as const,
-      name: "arm-flex" as MaterialIconNames,
+      name: "arm-flex-outline" as MaterialIconNames,
     },
     color: "#FFA726",
     selected: false,
     isDefault: true,
   },
   {
-    id: "arms",
-    name: "Braços",
+    id: "Treino E",
+    name: "Treino E",
     iconType: {
       type: "material" as const,
       name: "arm-flex-outline" as MaterialIconNames,
@@ -223,35 +107,24 @@ const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
     isDefault: true,
   },
   {
-    id: "abs",
-    name: "Abdômen",
-    iconType: {
-      type: "ionicons" as const,
-      name: "body-outline" as IoniconsNames,
-    },
-    color: "#26C6DA",
-    selected: false,
-    isDefault: true,
-  },
-  {
-    id: "cardio",
-    name: "Cardio",
-    iconType: {
-      type: "ionicons" as const,
-      name: "heart-outline" as IoniconsNames,
-    },
-    color: "#EF5350",
-    selected: false,
-    isDefault: true,
-  },
-  {
-    id: "fullbody",
-    name: "Full Body",
+    id: "Treino F",
+    name: "Treino F",
     iconType: {
       type: "material" as const,
-      name: "dumbbell" as MaterialIconNames,
+      name: "arm-flex-outline" as MaterialIconNames,
     },
-    color: "#7E57C2",
+    color: "#26A69A",
+    selected: false,
+    isDefault: true,
+  },
+  {
+    id: "Treino G",
+    name: "Treino G",
+    iconType: {
+      type: "material" as const,
+      name: "arm-flex-outline" as MaterialIconNames,
+    },
+    color: "#EC407A",
     selected: false,
     isDefault: true,
   },
@@ -288,6 +161,49 @@ const AVAILABLE_ICONS: WorkoutIconType[] = [
   { type: "ionicons" as const, name: "heart-outline" as IoniconsNames },
 ];
 
+// Cores disponíveis para treinos
+const AVAILABLE_COLORS: string[] = [
+  // Vermelhos
+  "#FF5252",
+  "#E53935",
+  "#C62828",
+
+  // Laranjas
+  "#FF9800",
+  "#FB8C00",
+  "#EF6C00",
+
+  // Amarelos
+  "#FFEB3B",
+  "#FDD835",
+  "#F9A825",
+
+  // Verdes
+  "#4CAF50",
+  "#43A047",
+  "#2E7D32",
+
+  // Azuis
+  "#2196F3",
+  "#1E88E5",
+  "#1565C0",
+
+  // Roxos
+  "#9C27B0",
+  "#8E24AA",
+  "#6A1B9A",
+
+  // Rosas
+  "#F06292",
+  "#EC407A",
+  "#D81B60",
+
+  // Cinzas
+  "#9E9E9E",
+  "#757575",
+  "#616161",
+];
+
 // Interface para o tipo de treino
 export interface WorkoutType {
   id: string;
@@ -296,15 +212,6 @@ export interface WorkoutType {
   color: string;
   selected: boolean;
   isDefault?: boolean;
-}
-
-// Interface para o dia da semana
-interface WeekDay {
-  id: number; // 0 = domingo, 1 = segunda, ..., 6 = sábado
-  name: string;
-  shortName: string;
-  expanded: boolean;
-  workout: WorkoutType | null;
 }
 
 // Interface para as props do componente
@@ -361,1333 +268,597 @@ const WorkoutIcon = ({
   }
 };
 
-// Componente para renderizar um item de treino de forma memoizada
-const WorkoutItem = React.memo(
-  ({
-    workout,
-    dayId,
-    onToggleSelection,
-    onRenderRightActions,
-    colors,
-  }: {
-    workout: WorkoutType;
-    dayId: number;
-    onToggleSelection: (dayId: number, workoutId: string) => void;
-    onRenderRightActions: (id: string, isDefault?: boolean) => React.ReactNode;
-    colors: any;
-  }) => {
-    // Verificar se o iconType está definido corretamente
-    if (!workout.iconType) {
-      // Procurar o tipo padrão correspondente para obter o iconType correto
-      const defaultType = DEFAULT_WORKOUT_TYPES.find(
-        (type) => type.id === workout.id
-      );
-      if (defaultType && defaultType.iconType) {
-        workout.iconType = { ...defaultType.iconType };
-      } else {
-        // Definir um iconType padrão se não encontrar
-        workout.iconType = {
-          type: "ionicons" as const,
-          name: "barbell-outline" as IoniconsNames,
-        };
-      }
-    }
-
-    return (
-      <Swipeable
-        renderRightActions={() =>
-          onRenderRightActions(workout.id, workout.isDefault)
-        }
-        friction={2}
-        overshootRight={false}
-      >
-        <TouchableOpacity
-          style={[
-            styles.workoutItem,
-            { backgroundColor: colors.card },
-            workout.selected && {
-              backgroundColor: workout.color + "08",
-              borderWidth: 1,
-              borderColor: workout.color + "30",
-            },
-          ]}
-          onPress={() => onToggleSelection(dayId, workout.id)}
-          activeOpacity={0.7}
-        >
-          <View
-            style={[
-              styles.workoutContent,
-              workout.selected && { backgroundColor: "transparent" },
-            ]}
-          >
-            <View
-              style={[
-                styles.workoutIconContainer,
-                {
-                  backgroundColor: workout.selected
-                    ? workout.color + "20"
-                    : "rgba(255, 255, 255, 0.2)",
-                },
-              ]}
-            >
-              <WorkoutIcon
-                iconType={workout.iconType}
-                size={24}
-                color={workout.selected ? workout.color : colors.primary}
-              />
-            </View>
-            <View style={styles.workoutInfo}>
-              <Text style={[styles.workoutName, { color: colors.text }]}>
-                {workout.name}
-              </Text>
-            </View>
-            <View style={styles.workoutSelection}>
-              <View
-                style={[
-                  styles.checkbox,
-                  {
-                    borderColor: workout.selected
-                      ? workout.color
-                      : colors.border,
-                    backgroundColor: workout.selected
-                      ? workout.color
-                      : "transparent",
-                  },
-                ]}
-              >
-                {workout.selected && (
-                  <Ionicons name="checkmark" size={16} color="white" />
-                )}
-              </View>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Swipeable>
-    );
-  }
-);
-
-// Componente para renderizar um dia da semana de forma memoizada
-const DayCard = React.memo(
-  ({
-    day,
-    onToggleExpansion,
-    onSelectAllWorkouts,
-    onToggleWorkoutSelection,
-    onRenderRightActions,
-    colors,
-    forceUpdateKey,
-  }: {
-    day: WeekDay;
-    onToggleExpansion: (dayId: number) => void;
-    onSelectAllWorkouts: (dayId: number) => void;
-    onToggleWorkoutSelection: (dayId: number, workoutId: string) => void;
-    onRenderRightActions: (id: string, isDefault?: boolean) => React.ReactNode;
-    colors: any;
-    forceUpdateKey?: number;
-  }) => {
-    return (
-      <View
-        style={[
-          styles.dayCard,
-          {
-            backgroundColor: colors.card,
-            borderColor: colors.border,
-          },
-        ]}
-      >
-        {/* Cabeçalho do dia */}
-        <TouchableOpacity
-          style={styles.dayHeader}
-          onPress={() => onToggleExpansion(day.id)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.dayInfo}>
-            <Text style={[styles.dayName, { color: colors.text }]}>
-              {day.name}
-            </Text>
-            <Text style={[styles.daySubtitle, { color: colors.text + "70" }]}>
-              {day.workout ? day.workout.name : "Nenhum treino configurado"}
-            </Text>
-          </View>
-          <View style={styles.dayActions}>
-            <TouchableOpacity
-              style={[
-                styles.selectAllDayButton,
-                { backgroundColor: colors.primary + "20" },
-              ]}
-              onPress={() => onSelectAllWorkouts(day.id)}
-            >
-              <Text
-                style={[styles.selectAllDayText, { color: colors.primary }]}
-              >
-                Todos
-              </Text>
-            </TouchableOpacity>
-            <Ionicons
-              name={day.expanded ? "chevron-up" : "chevron-down"}
-              size={24}
-              color={colors.text}
-              style={{ marginLeft: 8 }}
-            />
-          </View>
-        </TouchableOpacity>
-
-        {/* Lista de treinos para o dia */}
-        {day.expanded && (
-          <View style={styles.dayWorkouts}>
-            {day.workout && (
-              <WorkoutItem
-                key={`day-${day.id}-workout-${day.workout.id}-${
-                  day.workout.selected ? "selected" : "unselected"
-                }-${forceUpdateKey}`}
-                workout={day.workout}
-                dayId={day.id}
-                onToggleSelection={onToggleWorkoutSelection}
-                onRenderRightActions={onRenderRightActions}
-                colors={colors}
-              />
-            )}
-          </View>
-        )}
-      </View>
-    );
-  }
-);
-
-// Modificar o componente BottomSheetModal para usar React.memo
-const BottomSheetContent = React.memo(
-  ({
-    weekDays,
-    isAddingCustomWorkout,
-    customWorkoutName,
-    customWorkoutIcon,
-    customWorkoutColor,
-    showIconSelector,
-    colors,
-    AVAILABLE_COLORS,
-    AVAILABLE_ICONS,
-    onToggleDayExpansion,
-    onSelectAllWorkoutsForDay,
-    onToggleWorkoutSelectionForDay,
-    onRenderRightActions,
-    onStartAddingCustomWorkout,
-    onCancelAddingCustomWorkout,
-    onCustomWorkoutNameChange,
-    onCustomWorkoutIconChange,
-    onCustomWorkoutColorChange,
-    onToggleIconSelector,
-    onAddCustomWorkout,
-    onConfirmWorkoutConfig,
-    forceUpdateKey,
-  }: {
-    weekDays: WeekDay[];
-    isAddingCustomWorkout: boolean;
-    customWorkoutName: string;
-    customWorkoutIcon: WorkoutIconType;
-    customWorkoutColor: string;
-    showIconSelector: boolean;
-    colors: any;
-    AVAILABLE_COLORS: string[];
-    AVAILABLE_ICONS: WorkoutIconType[];
-    onToggleDayExpansion: (dayId: number) => void;
-    onSelectAllWorkoutsForDay: (dayId: number) => void;
-    onToggleWorkoutSelectionForDay: (dayId: number, workoutId: string) => void;
-    onRenderRightActions: (id: string, isDefault?: boolean) => React.ReactNode;
-    onStartAddingCustomWorkout: () => void;
-    onCancelAddingCustomWorkout: () => void;
-    onCustomWorkoutNameChange: (text: string) => void;
-    onCustomWorkoutIconChange: (icon: WorkoutIconType) => void;
-    onCustomWorkoutColorChange: (color: string) => void;
-    onToggleIconSelector: () => void;
-    onAddCustomWorkout: () => void;
-    onConfirmWorkoutConfig: () => void;
-    forceUpdateKey?: number;
-  }) => {
-    return (
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.container}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
-      >
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>
-            Configurar Treinos Semanais
-          </Text>
-          <Text style={[styles.subtitle, { color: colors.text + "80" }]}>
-            Selecione os treinos para cada dia da semana
-          </Text>
-        </View>
-
-        <ScrollView
-          style={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Dias da semana */}
-          <View style={styles.weekDaysContainer}>
-            {weekDays.map((day) => (
-              <DayCard
-                key={`day-${day.id}-${
-                  day.expanded ? "expanded" : "collapsed"
-                }-${forceUpdateKey}`}
-                day={day}
-                onToggleExpansion={onToggleDayExpansion}
-                onSelectAllWorkouts={onSelectAllWorkoutsForDay}
-                onToggleWorkoutSelection={onToggleWorkoutSelectionForDay}
-                onRenderRightActions={onRenderRightActions}
-                colors={colors}
-                forceUpdateKey={forceUpdateKey}
-              />
-            ))}
-          </View>
-
-          {/* Adicionar treino personalizado */}
-          {isAddingCustomWorkout ? (
-            <View style={styles.customWorkoutContainer}>
-              <View style={styles.customWorkoutHeader}>
-                <Text
-                  style={[styles.customWorkoutTitle, { color: colors.text }]}
-                >
-                  Adicionar Treino Personalizado
-                </Text>
-                <TouchableOpacity
-                  onPress={onCancelAddingCustomWorkout}
-                  hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-                >
-                  <Ionicons name="close" size={24} color={colors.text} />
-                </TouchableOpacity>
-              </View>
-
-              <IsolatedInput
-                style={[
-                  styles.customWorkoutInput,
-                  {
-                    borderColor: colors.border,
-                    color: colors.text,
-                    backgroundColor: colors.card,
-                  },
-                ]}
-                initialValue={customWorkoutName}
-                onChangeComplete={onCustomWorkoutNameChange}
-                placeholder="Nome do treino"
-                placeholderTextColor={colors.text + "50"}
-                maxLength={30}
-                autoCapitalize="words"
-                returnKeyType="done"
-                keyboardType="default"
-                blurOnSubmit
-                autoFocus
-                autoCorrect={false}
-              />
-
-              <View style={styles.customWorkoutOptions}>
-                <Text style={[styles.optionLabel, { color: colors.text }]}>
-                  Ícone:
-                </Text>
-                <TouchableOpacity
-                  style={[
-                    styles.iconSelector,
-                    {
-                      backgroundColor: customWorkoutColor,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                  onPress={onToggleIconSelector}
-                >
-                  <WorkoutIcon
-                    iconType={customWorkoutIcon}
-                    size={24}
-                    color="white"
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {showIconSelector && (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.iconList}
-                >
-                  {AVAILABLE_ICONS.map((icon) => (
-                    <TouchableOpacity
-                      key={`${icon.type}-${icon.name}`}
-                      style={[
-                        styles.iconItem,
-                        {
-                          backgroundColor: colors.card,
-                          borderColor:
-                            icon.type === customWorkoutIcon.type &&
-                            icon.name === customWorkoutIcon.name
-                              ? customWorkoutColor
-                              : colors.border,
-                        },
-                      ]}
-                      onPress={() => onCustomWorkoutIconChange(icon)}
-                    >
-                      <WorkoutIcon
-                        iconType={icon}
-                        size={24}
-                        color={colors.text}
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              )}
-
-              <View style={styles.customWorkoutOptions}>
-                <Text style={[styles.optionLabel, { color: colors.text }]}>
-                  Cor:
-                </Text>
-                <View style={styles.colorGrid}>
-                  {AVAILABLE_COLORS.map((color) => (
-                    <TouchableOpacity
-                      key={color}
-                      style={[
-                        styles.colorOption,
-                        {
-                          backgroundColor: color,
-                          borderWidth: color === customWorkoutColor ? 3 : 0,
-                          borderColor: colors.background,
-                        },
-                      ]}
-                      onPress={() => onCustomWorkoutColorChange(color)}
-                    />
-                  ))}
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={[
-                  styles.addCustomWorkoutButton,
-                  {
-                    backgroundColor: customWorkoutName.trim()
-                      ? customWorkoutColor
-                      : colors.border,
-                    opacity: customWorkoutName.trim() ? 1 : 0.5,
-                  },
-                ]}
-                onPress={onAddCustomWorkout}
-                disabled={!customWorkoutName.trim()}
-              >
-                <Text style={styles.addCustomWorkoutButtonText}>
-                  Adicionar Treino
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={[
-                styles.addCustomButton,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                },
-              ]}
-              onPress={onStartAddingCustomWorkout}
-            >
-              <Ionicons
-                name="add-circle-outline"
-                size={24}
-                color={colors.primary}
-              />
-              <Text style={[styles.addCustomText, { color: colors.primary }]}>
-                Adicionar Treino Personalizado
-              </Text>
-            </TouchableOpacity>
-          )}
-        </ScrollView>
-
-        <View style={styles.footer}>
-          <ButtonNew
-            title="Confirmar Configuração"
-            onPress={onConfirmWorkoutConfig}
-            variant="primary"
-            iconName="checkmark-outline"
-            iconPosition="right"
-            style={styles.confirmButton}
-            hapticFeedback="notification"
-          />
-        </View>
-      </KeyboardAvoidingView>
-    );
-  }
-);
-
-// Função para converter o formato antigo de ícones para o novo formato
-export function convertToIconType(icon: string): WorkoutIconType {
-  // Verificar se o ícone já está no formato novo
-  if (
-    typeof icon === "object" &&
-    icon !== null &&
-    "type" in icon &&
-    "name" in icon
-  ) {
-    return icon as WorkoutIconType;
-  }
-
-  // Determinar o tipo de ícone com base no nome
-  if (!icon) {
-    return {
-      type: "ionicons" as const,
-      name: "barbell-outline" as IoniconsNames,
-    };
-  }
-
-  // Ícones do MaterialCommunityIcons
-  const materialIcons = [
-    "dumbbell",
-    "weight-lifter",
-    "human-handsdown",
-    "run-fast",
-    "arm-flex",
-    "arm-flex-outline",
-    "human-male",
-    "weight",
-    "yoga",
-    "bike",
-  ];
-
-  // Ícones do FontAwesome5
-  const fontAwesomeIcons = [
-    "dumbbell",
-    "running",
-    "walking",
-    "heartbeat",
-    "biking",
-    "swimmer",
-  ];
-
-  let result: WorkoutIconType;
-
-  if (materialIcons.includes(icon)) {
-    result = {
-      type: "material" as const,
-      name: icon as MaterialIconNames,
-    };
-  } else if (fontAwesomeIcons.includes(icon)) {
-    result = {
-      type: "fontawesome" as const,
-      name: icon as FontAwesome5Names,
-    };
-  } else if (icon.includes("outline") || icon.includes("sharp")) {
-    result = {
-      type: "ionicons" as const,
-      name: icon as IoniconsNames,
-    };
-  } else {
-    // Padrão para Ionicons se não conseguir determinar
-    result = {
-      type: "ionicons" as const,
-      name: "barbell-outline" as IoniconsNames,
-    };
-  }
-  return result;
-}
-
-// Função para converter o formato novo de ícones para o antigo formato (para compatibilidade)
-export function getIconName(iconType: WorkoutIconType | string): string {
-  if (typeof iconType === "string") {
-    return iconType;
-  }
-
-  if (!iconType) {
-    return "barbell-outline";
-  }
-
-  return iconType.name as string;
-}
-
-// Definir cores para os treinos
-const WORKOUT_COLORS = [
-  // Vermelhos
-  "#FF5252",
-  "#E53935",
-  "#C62828",
-
-  // Laranjas
-  "#FF9800",
-  "#FB8C00",
-  "#EF6C00",
-
-  // Amarelos
-  "#FFEB3B",
-  "#FDD835",
-  "#F9A825",
-
-  // Verdes
-  "#4CAF50",
-  "#43A047",
-  "#2E7D32",
-
-  // Azuis
-  "#2196F3",
-  "#1E88E5",
-  "#1565C0",
-
-  // Roxos
-  "#9C27B0",
-  "#8E24AA",
-  "#6A1B9A",
-
-  // Rosas
-  "#F06292",
-  "#EC407A",
-  "#D81B60",
-
-  // Cinzas
-  "#9E9E9E",
-  "#757575",
-  "#616161",
-];
-
 // Componente principal
 const WorkoutConfigSheet = forwardRef<
   BottomSheetModal,
   WorkoutConfigSheetProps
->(({ onWorkoutConfigured, selectedDate }, ref) => {
-  const { theme } = useTheme(); // Usar o ThemeContext
-  const colors = Colors[theme]; // Obter cores com base no tema atual
-  const { weeklyTemplate, updateWeeklyTemplate, workoutTypes } =
-    useWorkoutContext();
-  const [workoutsChanged, setWorkoutsChanged] = useState(false);
-  const [highlightedDay, setHighlightedDay] = useState<number | null>(null);
+>(
+  (
+    { onWorkoutConfigured, selectedDate },
+    ref: ForwardedRef<BottomSheetModal>
+  ) => {
+    const { user } = useAuth();
+    const userId = user?.uid || "anonymous";
+    const { theme } = useTheme();
+    const colors = Colors[theme];
+    const {
+      updateWorkoutTypes,
+      saveAvailableWorkoutTypes,
+      getAvailableWorkoutTypes,
+    } = useWorkoutContext();
 
-  // Referência para o BottomSheetModal
-  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-
-  // Repassar a referência para o componente pai
-  useImperativeHandle(ref, () => bottomSheetModalRef.current as any);
-
-  // Estado para os dias da semana
-  const [weekDays, setWeekDays] = useState<WeekDay[]>([
-    {
-      id: 0,
-      name: "Domingo",
-      shortName: "Dom",
-      expanded: false,
-      workout: null,
-    },
-    {
-      id: 1,
-      name: "Segunda",
-      shortName: "Seg",
-      expanded: false,
-      workout: null,
-    },
-    { id: 2, name: "Terça", shortName: "Ter", expanded: false, workout: null },
-    { id: 3, name: "Quarta", shortName: "Qua", expanded: false, workout: null },
-    { id: 4, name: "Quinta", shortName: "Qui", expanded: false, workout: null },
-    { id: 5, name: "Sexta", shortName: "Sex", expanded: false, workout: null },
-    { id: 6, name: "Sábado", shortName: "Sáb", expanded: false, workout: null },
-  ]);
-
-  // Estados para o builder de treino
-  const [newWorkoutName, setNewWorkoutName] = useState("");
-
-  // Função otimizada para atualizar o nome do treino
-  const handleWorkoutNameChange = useCallback((text: string) => {
-    setNewWorkoutName(text);
-  }, []);
-
-  const [selectedColor, setSelectedColor] = useState("#FF5252");
-  const [selectedIcon, setSelectedIcon] = useState<WorkoutIconType>({
-    type: "ionicons",
-    name: "barbell-outline",
-  });
-  const [editingDayId, setEditingDayId] = useState<number | null>(null);
-
-  // Estados para treino personalizado
-  const [isAddingCustomWorkout, setIsAddingCustomWorkout] = useState(false);
-  const [customWorkoutName, setCustomWorkoutName] = useState("");
-  const [customWorkoutIcon, setCustomWorkoutIcon] = useState<WorkoutIconType>({
-    type: "ionicons",
-    name: "barbell-outline",
-  });
-  const [customWorkoutColor, setCustomWorkoutColor] = useState("#FF5252");
-  const [showIconSelector, setShowIconSelector] = useState(false);
-
-  // Pontos de quebra para o BottomSheetModal
-  const snapPoints = useMemo(() => ["90%"], []);
-
-  // Handler para o BottomSheetBackdrop
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-      />
-    ),
-    []
-  );
-
-  // Rotações para as animações de expansão
-  const rotations = useMemo(() => {
-    const rotationValues: { [key: number]: any } = {};
-    weekDays.forEach((day) => {
-      // Use a API do React Native padrão para animações básicas
-      rotationValues[day.id] = new RNAnimated.Value(0);
+    // Estados
+    const [availableWorkoutTypes, setAvailableWorkoutTypes] = useState<
+      WorkoutType[]
+    >(DEFAULT_WORKOUT_TYPES);
+    const [isAddingCustomWorkout, setIsAddingCustomWorkout] = useState(false);
+    const [customWorkout, setCustomWorkout] = useState<{
+      id: string;
+      name: string;
+      color: string;
+      iconType: WorkoutIconType;
+    }>({
+      id: "",
+      name: "",
+      color: "#FF5252",
+      iconType: {
+        type: "ionicons",
+        name: "barbell-outline" as IoniconsNames,
+      },
     });
-    return rotationValues;
-  }, []);
 
-  // Carregar configuração existente ao iniciar
-  useEffect(() => {
-    // Carregar treinos do template semanal
-    if (weeklyTemplate) {
-      const updatedWeekDays = [...weekDays];
+    // Carregar tipos de treino disponíveis do AsyncStorage
+    useEffect(() => {
+      const loadWorkoutTypes = async () => {
+        try {
+          console.log("Carregando tipos de treino de AsyncStorage...");
+          const storedTypes = await AsyncStorage.getItem(
+            `${KEYS.AVAILABLE_WORKOUT_TYPES}:${userId}`
+          );
 
-      Object.entries(weeklyTemplate).forEach(([dayOfWeek, workouts]) => {
-        const dayIndex = parseInt(dayOfWeek);
-        if (updatedWeekDays[dayIndex]) {
-          // Pegar o primeiro workout configurado (agora temos apenas 1 por dia)
-          const workoutId = Object.keys(workouts)[0];
-          if (workoutId) {
-            const workoutType = workoutTypes.find((w) => w.id === workoutId);
-            if (workoutType) {
-              updatedWeekDays[dayIndex].workout = {
-                ...workoutType,
-                selected: true,
-              };
+          if (storedTypes) {
+            const parsedTypes = JSON.parse(storedTypes);
+            console.log(
+              `Carregados ${parsedTypes.length} tipos de treino do AsyncStorage`
+            );
+
+            if (Array.isArray(parsedTypes) && parsedTypes.length > 0) {
+              setAvailableWorkoutTypes(parsedTypes);
+              return;
             }
           }
+
+          // Fallback para os tipos do contexto
+          const contextTypes = getAvailableWorkoutTypes();
+          if (Array.isArray(contextTypes) && contextTypes.length > 0) {
+            console.log(
+              `Usando ${contextTypes.length} tipos de treino do contexto`
+            );
+            setAvailableWorkoutTypes(contextTypes);
+            return;
+          }
+
+          // Se não há dados salvos nem no contexto, usar os padrões
+          console.log("Usando tipos de treino padrão");
+          setAvailableWorkoutTypes(DEFAULT_WORKOUT_TYPES);
+        } catch (error) {
+          console.error("Erro ao carregar tipos de treino:", error);
+          setAvailableWorkoutTypes(DEFAULT_WORKOUT_TYPES);
         }
+      };
+
+      loadWorkoutTypes();
+    }, [userId, getAvailableWorkoutTypes]);
+
+    // Funções otimizadas
+    const toggleWorkoutSelection = useCallback((workout: WorkoutType) => {
+      setAvailableWorkoutTypes((prevWorkoutTypes) => {
+        const updatedWorkoutTypes = prevWorkoutTypes.map((wt) => {
+          if (wt.id === workout.id) {
+            return { ...wt, selected: !wt.selected };
+          }
+          return wt;
+        });
+
+        return updatedWorkoutTypes;
       });
 
-      setWeekDays(updatedWeekDays);
-    }
-  }, [weeklyTemplate, workoutTypes]);
+      // Removemos o setTimeout e as chamadas para atualizar o contexto global
+      // Agora isso só acontecerá quando o usuário clicar em Salvar Configuração
+    }, []);
 
-  // Quando um dia é expandido, prepara para edição
-  const onToggleExpansion = useCallback(
-    (dayId: number) => {
-      const day = weekDays.find((d) => d.id === dayId);
-      if (!day) return;
+    const startEditingWorkout = (workout: WorkoutType) => {
+      setIsAddingCustomWorkout(true);
+      setCustomWorkout({
+        id: workout.id,
+        name: workout.name,
+        color: workout.color,
+        iconType: workout.iconType,
+      });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    };
 
-      // Se expandir, prepara para edição
-      if (!day.expanded) {
-        // Fechamos todos os outros dias
-        setWeekDays((prevDays) =>
-          prevDays.map((d) => ({
-            ...d,
-            expanded: d.id === dayId ? true : false,
-          }))
-        );
-
-        setEditingDayId(dayId);
-
-        // Se já existir um treino, preenche os campos
-        if (day.workout) {
-          setNewWorkoutName(day.workout.name);
-          setSelectedColor(day.workout.color);
-          setSelectedIcon(day.workout.iconType);
-        } else {
-          // Limpa os campos para um novo treino
-          setNewWorkoutName("");
-          setSelectedColor("#FF5252");
-          setSelectedIcon({
-            type: "ionicons",
-            name: "barbell-outline",
-          });
-        }
-
-        // Feedback tátil para indicar expansão
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      } else {
-        // Se já está expandido, apenas fechamos
-        setWeekDays((prevDays) =>
-          prevDays.map((d) => ({
-            ...d,
-            expanded: d.id === dayId ? false : d.expanded,
-          }))
-        );
-        setEditingDayId(null);
+    const onSaveCustomWorkout = useCallback(() => {
+      if (customWorkout.name.trim() === "") {
+        Alert.alert("Erro", "Por favor, insira um nome para o treino.");
+        return;
       }
-    },
-    [weekDays]
-  );
 
-  // Salva o treino configurado para o dia
-  const saveWorkoutForDay = () => {
-    if (editingDayId === null || !newWorkoutName.trim()) return;
+      setAvailableWorkoutTypes((prevWorkoutTypes) => {
+        const updatedWorkoutTypes = prevWorkoutTypes.map((wt) => {
+          if (wt.id === customWorkout.id) {
+            return {
+              ...wt,
+              name: customWorkout.name,
+              color: customWorkout.color,
+              iconType: customWorkout.iconType,
+            };
+          }
+          return wt;
+        });
+        return updatedWorkoutTypes;
+      });
 
-    // Verificar se já existe um tipo de treino com o mesmo nome em outros dias
-    const existingWorkoutInDays = weekDays
-      .filter((day) => day.id !== editingDayId && day.workout !== null)
-      .find(
-        (day) =>
-          day.workout?.name.toLowerCase() === newWorkoutName.toLowerCase()
-      );
+      setIsAddingCustomWorkout(false);
+      setCustomWorkout({
+        id: "",
+        name: "",
+        color: "#FF5252",
+        iconType: {
+          type: "ionicons",
+          name: "barbell-outline" as IoniconsNames,
+        },
+      });
+    }, [customWorkout]);
 
-    // Verificar se já existe um treino com o mesmo nome nos tipos de treino disponíveis
-    const existingWorkoutInTypes = workoutTypes.find(
-      (workout) => workout.name.toLowerCase() === newWorkoutName.toLowerCase()
+    // Função para deletar treino
+    const renderRightActions = useCallback(
+      (workout: WorkoutType) => {
+        return (
+          <TouchableOpacity
+            style={[styles.deleteButton, { backgroundColor: colors.danger }]}
+            onPress={() => {
+              Alert.alert(
+                "Confirmar exclusão",
+                `Tem certeza que deseja excluir o treino "${workout.name}"?`,
+                [
+                  {
+                    text: "Cancelar",
+                    style: "cancel",
+                  },
+                  {
+                    text: "Excluir",
+                    style: "destructive",
+                    onPress: () => {
+                      setAvailableWorkoutTypes((prevWorkoutTypes) => {
+                        const updatedWorkoutTypes = prevWorkoutTypes.filter(
+                          (wt) => wt.id !== workout.id
+                        );
+                        return updatedWorkoutTypes;
+                      });
+
+                      // Removemos o setTimeout e as chamadas para atualizar o contexto global
+                      // Agora isso só acontecerá quando o usuário clicar em Salvar Configuração
+                    },
+                  },
+                ]
+              );
+            }}
+          >
+            <Ionicons name="trash-outline" size={24} color={colors.danger} />
+          </TouchableOpacity>
+        );
+      },
+      [colors.danger]
     );
 
-    // Usar o treino existente, priorizando o que está nos dias da semana
-    const existingWorkout =
-      existingWorkoutInDays?.workout || existingWorkoutInTypes;
+    const onCancelAddingCustomWorkout = () => {
+      setIsAddingCustomWorkout(false);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    };
 
-    setWeekDays((prevDays) => {
-      return prevDays.map((day) => {
-        if (day.id === editingDayId) {
-          return {
-            ...day,
-            workout: {
-              // Se já existe um treino com o mesmo nome, reutilizar o ID e outros atributos
-              id: existingWorkout?.id || day.workout?.id || uuidv4(),
-              name: newWorkoutName,
-              iconType: existingWorkout?.iconType || selectedIcon,
-              color: existingWorkout?.color || selectedColor,
-              selected: true,
-            },
-            expanded: false, // Fecha o card após salvar
-          };
-        }
-        return day;
+    const handleNameChange = (text: string) => {
+      setCustomWorkout({
+        ...customWorkout,
+        name: text,
       });
-    });
+    };
 
-    // Se não existir nos tipos de treino disponíveis, adicionar
-    if (!existingWorkoutInTypes && !existingWorkoutInDays) {
-      workoutTypes.push({
-        id: uuidv4(),
-        name: newWorkoutName,
-        iconType: selectedIcon,
-        color: selectedColor,
-        selected: false,
-        isDefault: false,
+    const updateCustomWorkout = (property: string, value: any) => {
+      setCustomWorkout({
+        ...customWorkout,
+        [property]: value,
       });
-    }
+    };
 
-    setWorkoutsChanged(true);
-    setEditingDayId(null);
+    const handleSaveWorkoutTypes = async () => {
+      try {
+        // Salvar localmente
+        await saveAvailableWorkoutTypes(availableWorkoutTypes);
 
-    // Feedback tátil para indicar sucesso
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  };
+        // Sincronizar com Firebase se o usuário estiver autenticado e não for anônimo
+        if (user && !user.isAnonymous) {
+          try {
+            const db = getFirestore();
+            const workoutsRef = doc(db, "users", user.uid, "workouts", "data");
 
-  // Remove o treino configurado para o dia
-  const removeWorkoutForDay = (dayId: number) => {
-    setWeekDays((prevDays) => {
-      return prevDays.map((day) => {
-        if (day.id === dayId) {
-          return {
-            ...day,
-            workout: null,
-          };
-        }
-        return day;
-      });
-    });
-
-    setWorkoutsChanged(true);
-
-    // Feedback tátil para indicar remoção
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-  };
-
-  // Renderiza o construtor de treino
-  const renderWorkoutBuilder = (dayId: number) => {
-    const day = weekDays.find((d) => d.id === dayId);
-    if (!day) return null;
-
-    const isEditing = day.workout !== null;
-
-    return (
-      <View style={styles.workoutBuilder}>
-        {/* Campo de nome do treino */}
-        <View style={styles.formGroup}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Nome do treino
-          </Text>
-          <IsolatedInput
-            style={[
-              styles.input,
+            await setDoc(
+              workoutsRef,
               {
-                borderColor: colors.border,
+                availableWorkoutTypes: availableWorkoutTypes,
+                lastUpdated: serverTimestamp(),
+              },
+              { merge: true }
+            );
+
+            console.log("Tipos de treino sincronizados com Firebase");
+          } catch (firebaseError) {
+            console.error(
+              "Erro ao sincronizar tipos de treino com Firebase:",
+              firebaseError
+            );
+          }
+        }
+
+        // Atualizar o contexto
+        updateWorkoutTypes(availableWorkoutTypes);
+
+        // Notificar que a configuração foi concluída
+        onWorkoutConfigured?.(availableWorkoutTypes);
+
+        // Fechar o modal
+        if (typeof ref === "function") {
+          ref(null);
+        } else if (ref?.current) {
+          ref.current.dismiss();
+        }
+      } catch (error) {
+        console.error("Erro ao salvar tipos de treino:", error);
+      }
+    };
+
+    // Renderizar o formulário de adição de treino personalizado
+    const renderCustomWorkoutForm = () => (
+      <MotiView
+        from={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: "timing", duration: 350 }}
+        style={[
+          styles.customWorkoutContainer,
+          { backgroundColor: colors.card },
+        ]}
+      >
+        <View style={styles.customWorkoutHeader}>
+          <View style={styles.headerTitleContainer}>
+            <View
+              style={[
+                styles.headerIconBadge,
+                { backgroundColor: customWorkout.color },
+              ]}
+            >
+              <WorkoutIcon
+                iconType={customWorkout.iconType}
+                size={24}
+                color="#FFF"
+              />
+            </View>
+            <Text style={[styles.customWorkoutTitle, { color: colors.text }]}>
+              Editar Treino {customWorkout.name}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={onCancelAddingCustomWorkout}
+            hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+          >
+            <Ionicons
+              name="close-circle"
+              size={28}
+              color={colors.text + "80"}
+            />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Nome do Treino
+          </Text>
+          <TextInput
+            style={[
+              styles.textInput,
+              {
                 color: colors.text,
                 backgroundColor: colors.card,
+                borderLeftWidth: 4,
+                borderLeftColor: customWorkout.color,
+                borderColor: colors.border,
               },
             ]}
-            initialValue={newWorkoutName}
-            onChangeComplete={handleWorkoutNameChange}
-            placeholder="Ex: Treino de Peito, Pernas, etc."
-            placeholderTextColor={colors.text + "70"}
-            maxLength={30}
-            autoCapitalize="words"
-            returnKeyType="done"
-            keyboardType="default"
-            blurOnSubmit
+            value={customWorkout.name}
+            onChangeText={handleNameChange}
+            placeholder="Ex: Peito, Costas, etc..."
+            placeholderTextColor={colors.text + "50"}
+            autoFocus={true}
             autoCorrect={false}
+            maxLength={20}
+            returnKeyType="done"
+            blurOnSubmit={true}
           />
         </View>
 
-        {/* Seletor de cor */}
-        {renderColorSelector()}
+        <View style={styles.sectionDivider} />
 
-        {/* Seletor de ícone */}
-        {renderIconPicker()}
+        <View style={styles.colorSelectorContainer}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Cor do Treino
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.colorList}
+          >
+            {AVAILABLE_COLORS.map((color) => (
+              <TouchableOpacity
+                key={color}
+                style={[
+                  styles.colorOption,
+                  { backgroundColor: color },
+                  customWorkout.color === color && styles.colorOptionSelected,
+                ]}
+                onPress={() => updateCustomWorkout("color", color)}
+              >
+                {customWorkout.color === color && (
+                  <Ionicons name="checkmark" size={18} color="#FFF" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
-        {/* Botões de ação */}
+        <View style={styles.sectionDivider} />
+
+        <View style={styles.iconSelectorContainer}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Ícone do Treino
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.iconList}
+          >
+            {AVAILABLE_ICONS.map((icon, index) => (
+              <TouchableOpacity
+                key={`${icon.type}-${icon.name}-${index}`}
+                style={[
+                  styles.iconOption,
+                  {
+                    backgroundColor:
+                      customWorkout.iconType.type === icon.type &&
+                      customWorkout.iconType.name === icon.name
+                        ? customWorkout.color
+                        : colors.background,
+                    borderColor:
+                      customWorkout.iconType.type === icon.type &&
+                      customWorkout.iconType.name === icon.name
+                        ? customWorkout.color
+                        : colors.border,
+                    borderWidth: 2,
+                  },
+                ]}
+                onPress={() => updateCustomWorkout("iconType", icon)}
+              >
+                <WorkoutIcon
+                  iconType={icon}
+                  size={24}
+                  color={
+                    customWorkout.iconType.type === icon.type &&
+                    customWorkout.iconType.name === icon.name
+                      ? "#FFF"
+                      : colors.text + "80"
+                  }
+                />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         <View style={styles.actionButtons}>
           <TouchableOpacity
             style={[
               styles.button,
               styles.cancelButton,
-              { backgroundColor: colors.card },
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+              },
             ]}
-            onPress={() => onToggleExpansion(dayId)}
+            onPress={onCancelAddingCustomWorkout}
           >
             <Text style={[styles.buttonText, { color: colors.text }]}>
               Cancelar
             </Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={[
               styles.button,
               styles.saveButton,
-              { backgroundColor: selectedColor },
+              { backgroundColor: customWorkout.color },
             ]}
-            onPress={saveWorkoutForDay}
-            disabled={!newWorkoutName.trim()}
+            onPress={onSaveCustomWorkout}
           >
-            <Text style={styles.saveButtonText}>
-              {isEditing ? "Atualizar Treino" : "Criar Treino"}
-            </Text>
+            <Text style={styles.saveButtonText}>Salvar Alterações</Text>
+            <Ionicons
+              name="checkmark-circle"
+              size={20}
+              color="#FFF"
+              style={styles.saveButtonIcon}
+            />
           </TouchableOpacity>
         </View>
-      </View>
+      </MotiView>
     );
-  };
 
-  // Renderiza o estado vazio (sem treino configurado)
-  const renderEmptyState = (dayId: number) => {
-    const day = weekDays.find((d) => d.id === dayId);
-    if (!day) return null;
-
-    return (
-      <View style={styles.emptyState}>
-        <Ionicons name="fitness-outline" size={48} color={colors.text + "50"} />
-        <Text style={[styles.emptyStateText, { color: colors.text }]}>
-          Nenhum treino configurado para {day.name}
-        </Text>
-        <TouchableOpacity
-          style={[styles.createButton, { backgroundColor: colors.primary }]}
-          onPress={() => {
-            // Apenas configura o dia para edição, não precisa toggle novamente
-            setEditingDayId(dayId);
-            // Inicializa valores padrão para um novo treino
-            setNewWorkoutName("");
-            setSelectedColor("#FF5252");
-            setSelectedIcon({
-              type: "ionicons",
-              name: "barbell-outline",
-            });
-            // Feedback tátil
-            Haptics.selectionAsync();
-          }}
-        >
-          <Text style={styles.createButtonText}>Criar Treino</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
-  // Renderizar cada dia da semana
-  const renderDayItem = ({ item: day }: { item: WeekDay }) => {
-    return (
-      <MotiView
-        key={`day-${day.id}-${theme}`}
-        from={{ opacity: 0, translateY: 20 }}
-        animate={{ opacity: 1, translateY: 0 }}
-        transition={{
-          type: "timing",
-          duration: 300,
-          delay: day.id * 50,
-          easing: Easing.out(Easing.ease),
-        }}
-        style={styles.dayCardWrapper}
-      >
-        <TouchableOpacity
-          style={[
-            styles.dayCard,
-            { backgroundColor: colors.card },
-            day.expanded && {
-              backgroundColor: day.workout
-                ? day.workout.color + "08"
-                : colors.card,
-              borderWidth: 1,
-              borderColor: day.workout
-                ? day.workout.color + "30"
-                : colors.border,
-            },
-          ]}
-          onPress={() => onToggleExpansion(day.id)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.dayCardHeader}>
-            <View style={styles.dayInfo}>
-              <Text style={[styles.dayName, { color: colors.text }]}>
-                {day.name}
-              </Text>
-              {day.workout && (
-                <View
+    // Renderizar a lista de tipos de treino
+    const renderWorkoutTypesList = () => (
+      <View style={styles.workoutTypesList}>
+        {Array.isArray(availableWorkoutTypes) &&
+        availableWorkoutTypes.length > 0 ? (
+          availableWorkoutTypes.map((item) => (
+            <Swipeable
+              key={item.id}
+              renderRightActions={
+                item.isDefault ? undefined : () => renderRightActions(item)
+              }
+              friction={2}
+              overshootRight={false}
+            >
+              <MotiView
+                style={styles.workoutCardWrapper}
+                from={{ opacity: 0, translateY: 20 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{
+                  type: "timing",
+                  duration: 300,
+                  easing: Easing.out(Easing.ease),
+                }}
+              >
+                <TouchableOpacity
                   style={[
-                    styles.workoutChip,
-                    { backgroundColor: day.workout.color + "20" },
+                    styles.workoutItem,
+                    { backgroundColor: colors.card },
+                    item.selected && {
+                      backgroundColor: item.color + "08",
+                      borderWidth: 1,
+                      borderColor: item.color + "30",
+                    },
                   ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    toggleWorkoutSelection(item);
+                  }}
+                  activeOpacity={0.7}
                 >
                   <View
                     style={[
-                      styles.workoutIcon,
-                      { backgroundColor: day.workout.color + "40" },
+                      styles.workoutContent,
+                      item.selected && { backgroundColor: "transparent" },
                     ]}
                   >
-                    <WorkoutIcon
-                      iconType={day.workout.iconType}
-                      size={16}
-                      color={day.workout.color}
-                    />
+                    <View style={styles.workoutIconContainer}>
+                      <WorkoutIcon
+                        iconType={item.iconType}
+                        size={24}
+                        color={item.selected ? item.color : colors.primary}
+                      />
+                    </View>
+                    <View style={styles.workoutInfo}>
+                      <Text
+                        style={[styles.workoutName, { color: colors.text }]}
+                      >
+                        {item.name}
+                      </Text>
+                    </View>
+                    <View style={styles.workoutActions}>
+                      <TouchableOpacity
+                        style={[
+                          styles.editButton,
+                          { backgroundColor: item.color + "20" },
+                        ]}
+                        onPress={() => startEditingWorkout(item)}
+                      >
+                        <Ionicons
+                          name="create-outline"
+                          size={18}
+                          color={item.color}
+                        />
+                      </TouchableOpacity>
+                      <View style={styles.workoutSelection}>
+                        <View
+                          style={[
+                            styles.checkbox,
+                            {
+                              borderColor: item.selected
+                                ? item.color
+                                : colors.border,
+                              backgroundColor: item.selected
+                                ? item.color
+                                : "transparent",
+                            },
+                          ]}
+                        >
+                          {item.selected && (
+                            <Ionicons
+                              name="checkmark"
+                              size={16}
+                              color="white"
+                            />
+                          )}
+                        </View>
+                      </View>
+                    </View>
                   </View>
-                  <Text
-                    style={[styles.workoutName, { color: day.workout.color }]}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {day.workout.name}
-                  </Text>
-                </View>
-              )}
-            </View>
+                </TouchableOpacity>
+              </MotiView>
+            </Swipeable>
+          ))
+        ) : (
+          <Text style={{ color: colors.text, textAlign: "center" }}>
+            Nenhum tipo de treino disponível
+          </Text>
+        )}
+      </View>
+    );
 
-            <View style={styles.dayActions}>
-              <Ionicons
-                name={day.expanded ? "chevron-up" : "chevron-down"}
-                size={20}
-                color={colors.text}
-              />
-            </View>
+    return (
+      <BottomSheetModal
+        ref={ref}
+        index={0}
+        snapPoints={["70%"]}
+        backgroundStyle={{ backgroundColor: colors.background }}
+        handleIndicatorStyle={{ backgroundColor: colors.text + "50" }}
+      >
+        <View
+          style={[styles.container, { backgroundColor: colors.background }]}
+        >
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: colors.text }]}>
+              Configurar Treinos
+            </Text>
+            <Text style={[styles.subtitle, { color: colors.text + "80" }]}>
+              Selecione e personalize seus treinos
+            </Text>
           </View>
 
-          {day.expanded && (
-            <Animated.View
-              entering={FadeIn.duration(200)}
-              style={styles.expandedContent}
+          <ScrollView
+            style={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {isAddingCustomWorkout
+              ? renderCustomWorkoutForm()
+              : renderWorkoutTypesList()}
+          </ScrollView>
+
+          <View style={[styles.footer, { borderTopColor: colors.border }]}>
+            <TouchableOpacity
+              style={[
+                styles.saveConfigButton,
+                { backgroundColor: colors.primary },
+                !availableWorkoutTypes.some((w) => w.selected) &&
+                  styles.saveConfigButtonDisabled,
+              ]}
+              onPress={handleSaveWorkoutTypes}
+              disabled={!availableWorkoutTypes.some((w) => w.selected)}
             >
-              {editingDayId === day.id
-                ? renderWorkoutBuilder(day.id)
-                : renderEmptyState(day.id)}
-            </Animated.View>
-          )}
-        </TouchableOpacity>
-      </MotiView>
-    );
-  };
-
-  // Iniciar a adição de um treino personalizado
-  const onStartAddingCustomWorkout = () => {
-    setIsAddingCustomWorkout(true);
-    setCustomWorkoutName("");
-    setCustomWorkoutIcon({
-      type: "ionicons",
-      name: "barbell-outline",
-    });
-    setCustomWorkoutColor("#FF5252");
-    setShowIconSelector(false);
-  };
-
-  // Handler para mudança de nome do treino personalizado
-  // Verifica se já existe um treino com o mesmo nome e reusa seus atributos
-  const handleCustomWorkoutNameChange = useCallback(
-    (name: string) => {
-      setCustomWorkoutName(name);
-
-      // Verificar se já existe um treino com o mesmo nome nos dias da semana
-      const existingWorkoutInDays = weekDays
-        .filter((day) => day.workout !== null)
-        .map((day) => day.workout)
-        .find((workout) => workout?.name.toLowerCase() === name.toLowerCase());
-
-      // Verificar se já existe um treino com o mesmo nome nos tipos de treino disponíveis
-      const existingWorkoutInTypes = workoutTypes.find(
-        (workout) => workout.name.toLowerCase() === name.toLowerCase()
-      );
-
-      // Usar o treino existente, priorizando o que está nos dias da semana
-      const existingWorkout = existingWorkoutInDays || existingWorkoutInTypes;
-
-      if (existingWorkout) {
-        // Reutilizar as propriedades do treino existente
-        setCustomWorkoutIcon(existingWorkout.iconType);
-        setCustomWorkoutColor(existingWorkout.color);
-      }
-    },
-    [weekDays, workoutTypes]
-  );
-
-  // Adicionar um treino personalizado
-  const onAddCustomWorkout = useCallback(() => {
-    if (!customWorkoutName.trim()) return;
-
-    // Verificar se já existe um treino com o mesmo nome nos dias da semana
-    const existingWorkoutInDays = weekDays
-      .filter((day) => day.workout !== null)
-      .map((day) => day.workout)
-      .find(
-        (workout) =>
-          workout?.name.toLowerCase() === customWorkoutName.toLowerCase()
-      );
-
-    // Verificar se já existe um treino com o mesmo nome nos tipos de treino disponíveis
-    const existingWorkoutInTypes = workoutTypes.find(
-      (workout) =>
-        workout.name.toLowerCase() === customWorkoutName.toLowerCase()
-    );
-
-    // Usar o treino existente, priorizando o que está nos dias da semana
-    const existingWorkout = existingWorkoutInDays || existingWorkoutInTypes;
-
-    // Criar o novo tipo de treino, reusando ID se existir
-    const newWorkoutType: WorkoutType = {
-      id: existingWorkout?.id || uuidv4(), // Reusar ID se existir
-      name: customWorkoutName,
-      iconType: existingWorkout?.iconType || customWorkoutIcon,
-      color: existingWorkout?.color || customWorkoutColor,
-      selected: true,
-      isDefault: false,
-    };
-
-    // Adicionar aos tipos de treino disponíveis apenas se não existir
-    if (!existingWorkout) {
-      workoutTypes.push(newWorkoutType);
-    }
-
-    // Limpar o estado de adição
-    setIsAddingCustomWorkout(false);
-    setWorkoutsChanged(true);
-
-    // Feedback tátil
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }, [
-    customWorkoutName,
-    customWorkoutColor,
-    customWorkoutIcon,
-    weekDays,
-    workoutTypes,
-  ]);
-
-  // Alteração do ícone do treino personalizado
-  const onCustomWorkoutIconChange = (icon: WorkoutIconType) => {
-    setCustomWorkoutIcon(icon);
-    Haptics.selectionAsync();
-  };
-
-  // Alteração da cor do treino personalizado
-  const onCustomWorkoutColorChange = (color: string) => {
-    setCustomWorkoutColor(color);
-    Haptics.selectionAsync();
-  };
-
-  // Salvar toda a configuração
-  const saveConfiguration = async () => {
-    // Primeiro vamos consolidar tipos de treino com nomes iguais para garantir IDs consistentes
-    const workoutNameToIdMap = new Map<string, string>();
-
-    // Construir mapa de nome de treino para ID
-    weekDays.forEach((day) => {
-      if (day.workout) {
-        const workoutName = day.workout.name.toLowerCase();
-        if (!workoutNameToIdMap.has(workoutName)) {
-          workoutNameToIdMap.set(workoutName, day.workout.id);
-        }
-      }
-    });
-
-    // Atualizar weekDays para usar IDs consistentes
-    const consolidatedWeekDays = weekDays.map((day) => {
-      if (!day.workout) return day;
-
-      const workoutName = day.workout.name.toLowerCase();
-      const consistentId =
-        workoutNameToIdMap.get(workoutName) || day.workout.id;
-
-      return {
-        ...day,
-        workout: {
-          ...day.workout,
-          id: consistentId,
-        },
-      };
-    });
-
-    // Atualizar o estado local com os IDs consolidados
-    setWeekDays(consolidatedWeekDays);
-
-    // Converter para o formato esperado pelo contexto
-    const templateConfig: { [key: number]: { [key: string]: Exercise[] } } = {};
-
-    consolidatedWeekDays.forEach((day) => {
-      if (day.workout) {
-        templateConfig[day.id] = {
-          [day.workout.id]: [], // Array vazio de exercícios, será preenchido depois
-        };
-      }
-    });
-
-    // Atualizar o template semanal
-    await updateWeeklyTemplate(templateConfig);
-
-    // Criar mapa de IDs únicos para workoutTypes
-    const uniqueWorkoutTypes = [
-      ...new Map(
-        consolidatedWeekDays
-          .filter((day) => day.workout !== null)
-          .map((day) => day.workout as WorkoutType)
-          .map((workout) => [workout.id, workout])
-      ).values(),
-    ];
-
-    // Não aplicar automaticamente o treino ao dia atual
-    // Apenas informar os tipos de treino disponíveis, sem marcar nenhum como selecionado
-    const workoutTypesWithoutSelection = uniqueWorkoutTypes.map((workout) => ({
-      ...workout,
-      selected: false, // Nenhum treino selecionado para o dia atual
-    }));
-
-    // Informar os tipos de treino, sem selecionar nenhum para o dia atual
-    onWorkoutConfigured(workoutTypesWithoutSelection);
-
-    setWorkoutsChanged(false);
-
-    // Feedback tátil para indicar sucesso
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  };
-
-  // Renderizar o seletor de cores
-  const renderColorSelector = () => (
-    <View style={styles.colorSelector}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>
-        Cor do treino
-      </Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.colorList}
-      >
-        {WORKOUT_COLORS.map((color) => (
-          <TouchableOpacity
-            key={color}
-            style={[
-              styles.colorItem,
-              { backgroundColor: color },
-              selectedColor === color && styles.colorItemSelected,
-            ]}
-            onPress={() => setSelectedColor(color)}
-          >
-            {selectedColor === color && (
-              <Ionicons name="checkmark" size={20} color="white" />
-            )}
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
-
-  // Renderizar o seletor de ícones
-  const renderIconPicker = () => (
-    <View style={styles.iconSelector}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>
-        Ícone do treino
-      </Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.iconList}
-      >
-        {AVAILABLE_ICONS.map((icon) => (
-          <TouchableOpacity
-            key={`${icon.type}-${icon.name}`}
-            style={[
-              styles.iconItem,
-              selectedIcon.type === icon.type &&
-                selectedIcon.name === icon.name && {
-                  backgroundColor: selectedColor + "30",
-                },
-            ]}
-            onPress={() => setSelectedIcon(icon)}
-          >
-            <WorkoutIcon iconType={icon} size={24} color={colors.text} />
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
-
-  return (
-    <BottomSheetModal
-      ref={bottomSheetModalRef}
-      index={0}
-      snapPoints={snapPoints}
-      backdropComponent={renderBackdrop}
-      handleIndicatorStyle={{
-        backgroundColor: colors.text + "50",
-        width: 40,
-      }}
-      backgroundStyle={{
-        backgroundColor: colors.background,
-      }}
-      enablePanDownToClose
-      enableDismissOnClose
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="none"
-    >
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-      >
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>
-            Configure seus Treinos
-          </Text>
-          <Text style={[styles.subtitle, { color: colors.text + "80" }]}>
-            Configure um treino específico para cada dia da semana
-          </Text>
+              <Text style={styles.saveConfigButtonText}>
+                Salvar Configuração
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-
-        <FlatList
-          data={weekDays}
-          renderItem={renderDayItem}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.listContent}
-        />
-
-        <View style={[styles.footer, { borderTopColor: colors.border }]}>
-          <TouchableOpacity
-            style={[
-              styles.saveConfigButton,
-              !workoutsChanged && styles.saveConfigButtonDisabled,
-              {
-                backgroundColor: workoutsChanged
-                  ? colors.success
-                  : colors.border,
-              },
-            ]}
-            onPress={async () => {
-              await saveConfiguration();
-              bottomSheetModalRef.current?.dismiss();
-            }}
-            disabled={!workoutsChanged}
-          >
-            <Text style={styles.saveConfigButtonText}>Salvar Configuração</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    </BottomSheetModal>
-  );
-});
+      </BottomSheetModal>
+    );
+  }
+);
 
 export default WorkoutConfigSheet;
 
@@ -1701,16 +872,16 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
+    fontWeight: "500",
   },
   listContent: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
   },
   footer: {
     padding: 16,
@@ -1726,31 +897,8 @@ const styles = StyleSheet.create({
   },
   saveConfigButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
-  },
-  dayCardWrapper: {
-    marginBottom: 12,
-  },
-  dayCard: {
-    borderRadius: 16,
-    overflow: "hidden",
-  },
-  dayCardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    minHeight: 70,
-  },
-  dayInfo: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  dayName: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
   },
   workoutChip: {
     flexDirection: "row",
@@ -1769,9 +917,8 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   workoutName: {
-    fontSize: 12,
-    fontWeight: "500",
-    maxWidth: 150,
+    fontSize: 16,
+    fontWeight: "600",
   },
   expandedContent: {
     padding: 16,
@@ -1790,66 +937,56 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
   },
+  workoutCardWrapper: {},
   workoutItem: {
     borderRadius: 12,
     overflow: "hidden",
-    marginBottom: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
   workoutContent: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
+    padding: 16,
+    minHeight: 80,
   },
   workoutIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 16,
   },
   workoutInfo: {
     flex: 1,
   },
   workoutSelection: {
-    marginLeft: 8,
+    marginLeft: 12,
   },
   checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 2,
     justifyContent: "center",
     alignItems: "center",
   },
-  dayActions: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  selectAllDayButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  selectAllDayText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  dayWorkouts: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
   scrollContent: {
     flex: 1,
   },
-  weekDaysContainer: {
-    marginBottom: 16,
-  },
   customWorkoutContainer: {
     backgroundColor: "#fff",
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
+    marginHorizontal: 16,
     marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
   },
   customWorkoutHeader: {
     flexDirection: "row",
@@ -1861,39 +998,61 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
   },
-  customWorkoutInput: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
+  headerTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  headerIconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  closeButton: {
+    padding: 4,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.14)",
+    marginVertical: 16,
+  },
+  colorSelectorContainer: {
     marginBottom: 16,
   },
-  customWorkoutOptions: {
-    marginBottom: 16,
-  },
-  optionLabel: {
+  sectionTitle: {
     fontSize: 16,
-    fontWeight: "500",
-    marginBottom: 8,
+    fontWeight: "600",
+    marginBottom: 14,
   },
   colorSelector: {
     marginBottom: 16,
   },
   colorList: {
     flexDirection: "row",
-    marginTop: 8,
+    paddingVertical: 8,
   },
-  colorItem: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  colorOption: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     marginRight: 12,
     justifyContent: "center",
     alignItems: "center",
   },
-  colorItemSelected: {
+  colorOptionSelected: {
     borderWidth: 2,
-    borderColor: "#000",
+    borderColor: "#FFF",
+    transform: [{ scale: 1.05 }],
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  iconSelectorContainer: {
+    marginBottom: 16,
   },
   iconSelector: {
     marginBottom: 16,
@@ -1901,6 +1060,7 @@ const styles = StyleSheet.create({
   iconList: {
     flexDirection: "row",
     marginTop: 8,
+    paddingVertical: 4,
   },
   iconItem: {
     width: 50,
@@ -1912,31 +1072,50 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
     marginRight: 12,
   },
+  colorGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 12,
+  },
+  iconOption: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
   actionButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 16,
+    marginTop: 8,
   },
   button: {
     flex: 1,
-    padding: 12,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
     alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
   },
   cancelButton: {
-    marginRight: 8,
+    marginRight: 10,
+    borderWidth: 1,
   },
   saveButton: {
-    marginLeft: 8,
+    marginLeft: 10,
   },
   buttonText: {
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   saveButtonText: {
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "600",
     color: "#fff",
+  },
+  saveButtonIcon: {
+    marginLeft: 8,
   },
   emptyState: {
     alignItems: "center",
@@ -1976,37 +1155,6 @@ const styles = StyleSheet.create({
   confirmButton: {
     marginBottom: 16,
   },
-  dayHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-  },
-  daySubtitle: {
-    fontSize: 14,
-    color: "#666",
-  },
-  iconOption: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  colorGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 8,
-  },
-  colorOption: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 12,
-    marginBottom: 12,
-  },
   addCustomWorkoutButton: {
     padding: 14,
     borderRadius: 8,
@@ -2017,9 +1165,81 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  sectionTitle: {
+  deleteActionContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    padding: 12,
+  },
+  deleteAction: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  workoutTypesList: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  emptyText: {
     fontSize: 16,
     fontWeight: "500",
-    marginBottom: 8,
+    marginTop: 12,
+    textAlign: "center",
+  },
+  addCustomWorkoutCard: {
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+  addCustomWorkoutContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 18,
+  },
+  addCustomWorkoutIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  addCustomWorkoutInfo: {
+    flex: 1,
+  },
+  addCustomWorkoutTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  addCustomWorkoutSubtitle: {
+    fontSize: 14,
+    opacity: 0.8,
+  },
+  addCustomWorkoutArrow: {
+    marginLeft: 16,
+  },
+  deleteButton: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  workoutActions: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 12,
+  },
+  editButton: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    height: 60,
+    marginTop: 8,
+    fontWeight: "500",
   },
 });

@@ -1,7 +1,12 @@
 ---
-description: Best practices for using Expo in React Native projects
+description: 
 globs: 
 alwaysApply: false
+---
+---
+description: Best practices for using Expo in React Native projects
+globs: 
+alwaysApply: true
 ---
 
 - Leverage Expo Router for file-based navigation

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo, useCallback } from "react";
+import React, { useState, useEffect, memo, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -16,13 +16,14 @@ import { useTheme } from "../../context/ThemeContext";
 import { useWorkoutContext } from "../../context/WorkoutContext";
 import Colors from "../../constants/Colors";
 import { WorkoutType } from "./WorkoutConfigSheet";
+import WorkoutIcon from "../shared/WorkoutIcon";
 
 const { width } = Dimensions.get("window");
 
 interface EmptyWorkoutStateProps {
   onWorkoutConfigured: (workouts: WorkoutType[]) => void;
   onOpenWorkoutConfig: () => void;
-  isRestDay?: boolean; // Nova prop para indicar se é dia de descanso
+  onSelectWorkout?: (workoutId: string) => void;
 }
 
 // Tipo para os ícones do Ionicons
@@ -46,25 +47,93 @@ const TipItem = memo(
   )
 );
 
+// Componente para o card de tipo de treino
+const WorkoutTypeCard = memo(
+  ({
+    workoutType,
+    onPress,
+    index,
+  }: {
+    workoutType: WorkoutType;
+    onPress: () => void;
+    index: number;
+  }) => {
+    const { theme } = useTheme();
+    const colors = Colors[theme];
+    const iconColor = workoutType.color || colors.primary;
+
+    return (
+      <MotiView
+        from={{ opacity: 0, translateY: 20 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{
+          type: "timing",
+          duration: 350,
+          delay: index * 100,
+        }}
+        style={styles.workoutTypeCardContainer}
+      >
+        <TouchableOpacity
+          style={[
+            styles.workoutTypeCard,
+            {
+              backgroundColor: iconColor + "10",
+              borderColor: iconColor + "40",
+            },
+          ]}
+          onPress={onPress}
+          activeOpacity={0.7}
+        >
+          <View
+            style={[
+              styles.workoutTypeIconContainer,
+              { backgroundColor: iconColor + "20" },
+            ]}
+          >
+            <WorkoutIcon
+              iconType={
+                workoutType.iconType || {
+                  type: "ionicons",
+                  name: "barbell-outline",
+                }
+              }
+              size={24}
+              color={iconColor}
+            />
+          </View>
+          <Text style={[styles.workoutTypeName, { color: iconColor }]}>
+            {workoutType.name}
+          </Text>
+        </TouchableOpacity>
+      </MotiView>
+    );
+  }
+);
+
 function EmptyWorkoutState({
   onWorkoutConfigured,
   onOpenWorkoutConfig,
-  isRestDay = false,
+  onSelectWorkout,
 }: EmptyWorkoutStateProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
-  const { hasWorkoutTypesConfigured } = useWorkoutContext();
-  const [isVisible, setIsVisible] = useState(false);
+  const workoutContext = useWorkoutContext();
+  const { selectedDate } = workoutContext;
+  const availableWorkoutTypes = workoutContext.availableWorkoutTypes || [];
+  const { startWorkoutForDate } = workoutContext;
 
-  // Efeito para atrasar a animação inicial
-  useEffect(() => {
-    // Atrasar a animação para permitir que a UI seja renderizada primeiro
-    const timer = setTimeout(() => {
-      setIsVisible(true);
-    }, 100);
+  // Filtrar apenas os tipos de treino selecionados
+  const selectedWorkoutTypes = useMemo(() => {
+    return Array.isArray(availableWorkoutTypes)
+      ? availableWorkoutTypes.filter((type) => type.selected === true)
+      : [];
+  }, [availableWorkoutTypes]);
 
-    return () => clearTimeout(timer);
-  }, []);
+  // Verificar se há tipos de treino selecionados
+  const hasSelectedWorkoutTypes = useMemo(
+    () => selectedWorkoutTypes.length > 0,
+    [selectedWorkoutTypes]
+  );
 
   // Função para abrir o bottom sheet
   const openWorkoutConfig = useCallback(() => {
@@ -72,90 +141,126 @@ function EmptyWorkoutState({
     onOpenWorkoutConfig();
   }, [onOpenWorkoutConfig]);
 
+  // Função para selecionar um tipo de treino
+  const handleSelectWorkout = useCallback(
+    async (workoutType: WorkoutType) => {
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+        // Iniciar o treino para a data atual apenas com o ID do workoutType
+        const workoutId = await startWorkoutForDate(workoutType.id);
+
+        if (!workoutId) {
+          throw new Error(`Falha ao iniciar treino com ID: ${workoutType.id}`);
+        }
+
+        // Notificar o componente pai
+        if (onSelectWorkout) {
+          onSelectWorkout(workoutType.id);
+        }
+
+        // Forçar salvamento imediato dos treinos
+        if (workoutContext.saveWorkouts) {
+          await workoutContext.saveWorkouts();
+        }
+      } catch (error) {
+        console.error("Erro ao selecionar treino:", error);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+    },
+    [startWorkoutForDate, onSelectWorkout, workoutContext]
+  );
+
+  // Renderizar o estado quando não há tipos de treino configurados
+  const renderNoWorkoutTypesState = () => (
+    <>
+      <View style={styles.illustrationContainer}>
+        <Ionicons name="barbell-outline" size={80} color={colors.primary} />
+      </View>
+
+      <Text style={[styles.title, { color: colors.text }]}>
+        Configure seus Treinos
+      </Text>
+
+      <Text style={[styles.description, { color: colors.text + "80" }]}>
+        Personalize seus treinos para acompanhar seu progresso de forma
+        eficiente.
+      </Text>
+
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={openWorkoutConfig}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={[colors.primary, colors.primary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.buttonGradient}
+          >
+            <Text style={styles.buttonText}>Configurar Treinos</Text>
+            <Ionicons name="arrow-forward" size={20} color="white" />
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.tipsContainer}>
+        <TipItem
+          icon="checkmark-circle-outline"
+          text="Organize seus treinos por grupos musculares"
+          color={colors.primary}
+        />
+        <TipItem
+          icon="checkmark-circle-outline"
+          text="Registre exercícios, séries e repetições"
+          color={colors.primary}
+        />
+        <TipItem
+          icon="checkmark-circle-outline"
+          text="Acompanhe sua evolução ao longo do tempo"
+          color={colors.primary}
+        />
+      </View>
+    </>
+  );
+
+  // Renderizar o estado quando há tipos de treino configurados
+  const renderWorkoutTypesState = () => {
+    return (
+      <>
+        <Text style={[styles.title, { color: colors.text }]}>
+          Escolha seu Treino
+        </Text>
+
+        <Text style={[styles.description, { color: colors.text + "80" }]}>
+          Selecione o tipo de treino que deseja realizar hoje.
+        </Text>
+
+        <View style={styles.workoutTypesContainer}>
+          {selectedWorkoutTypes.map((workoutType, index) => (
+            <WorkoutTypeCard
+              key={workoutType.id}
+              workoutType={workoutType}
+              onPress={() => handleSelectWorkout(workoutType)}
+              index={index}
+            />
+          ))}
+        </View>
+      </>
+    );
+  };
+
   return (
     <MotiView
       style={styles.container}
       from={{ opacity: 0 }}
-      animate={{ opacity: isVisible ? 1 : 0 }}
-      transition={{ type: "timing", duration: 300 }}
+      animate={{ opacity: 1 }}
+      transition={{ type: "timing", duration: 300, delay: 100 }}
     >
-      <View style={styles.illustrationContainer}>
-        <Ionicons
-          name={isRestDay ? "bed-outline" : "barbell-outline"}
-          size={80}
-          color={colors.primary}
-        />
-      </View>
-
-      <Text style={[styles.title, { color: colors.text }]}>
-        {isRestDay ? "Dia de Descanso" : "Configure seus Treinos"}
-      </Text>
-
-      <Text style={[styles.description, { color: colors.text + "80" }]}>
-        {isRestDay
-          ? "O descanso é tão importante quanto o treino. Aproveite para recuperar sua energia e voltar mais forte amanhã!"
-          : "Personalize seus treinos para acompanhar seu progresso de forma eficiente."}
-      </Text>
-
-      {!isRestDay && (
-        <>
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={openWorkoutConfig}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={[colors.primary, colors.accent]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.buttonGradient}
-              >
-                <Text style={styles.buttonText}>Configurar Treinos</Text>
-                <Ionicons name="arrow-forward" size={20} color="white" />
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.tipsContainer}>
-            <TipItem
-              icon="checkmark-circle-outline"
-              text="Organize seus treinos por grupos musculares"
-              color={colors.primary}
-            />
-            <TipItem
-              icon="checkmark-circle-outline"
-              text="Registre exercícios, séries e repetições"
-              color={colors.primary}
-            />
-            <TipItem
-              icon="checkmark-circle-outline"
-              text="Acompanhe sua evolução ao longo do tempo"
-              color={colors.primary}
-            />
-          </View>
-        </>
-      )}
-
-      {isRestDay && (
-        <View style={styles.tipsContainer}>
-          <TipItem
-            icon="bed-outline"
-            text="Recuperação muscular"
-            color={colors.primary}
-          />
-          <TipItem
-            icon="battery-charging-outline"
-            text="Reposição de energia"
-            color={colors.primary}
-          />
-          <TipItem
-            icon="trending-up-outline"
-            text="Melhora do desempenho"
-            color={colors.primary}
-          />
-        </View>
-      )}
+      {hasSelectedWorkoutTypes
+        ? renderWorkoutTypesState()
+        : renderNoWorkoutTypesState()}
     </MotiView>
   );
 }
@@ -165,7 +270,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 30,
   },
   illustrationContainer: {
     marginBottom: 30,
@@ -229,6 +333,36 @@ const styles = StyleSheet.create({
   tipText: {
     fontSize: 14,
     marginLeft: 8,
+  },
+  workoutTypesContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    width: "100%",
+    marginBottom: 20,
+  },
+  workoutTypeCardContainer: {
+    width: "50%",
+    padding: 8,
+  },
+  workoutTypeCard: {
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    height: 140,
+  },
+  workoutTypeIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  workoutTypeName: {
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });
 

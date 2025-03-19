@@ -12,7 +12,7 @@ export default function AddExerciseLayout() {
       <Stack.Screen
         name="exercise-details"
         options={{
-          headerShown: true,
+          headerShown: false,
           presentation: "modal",
           animation: "slide_from_bottom",
           gestureEnabled: true,
@@ -21,4 +21,4 @@ export default function AddExerciseLayout() {
       />
     </Stack>
   );
-} 
+}

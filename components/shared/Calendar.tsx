@@ -17,6 +17,7 @@ import {
   setMinutes,
   setSeconds,
   setMilliseconds,
+  subDays,
 } from "date-fns";
 import { MotiView } from "moti";
 import Colors from "../../constants/Colors";
@@ -25,8 +26,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
 
 const { width } = Dimensions.get("window");
-const DAYS_TO_SHOW = 30;
-const DAY_ITEM_WIDTH = 48; // Largura do item de dia (40px) + marginHorizontal (4px * 2)
+const DAYS_TO_SHOW = 61; // 30 dias antes + dia atual + 30 dias depois
+const DAY_ITEM_WIDTH = 48.5; // Largura do item de dia (40px) + marginHorizontal (4px * 2)
 
 interface CalendarProps {
   onSelectDate: (date: Date) => void;
@@ -55,11 +56,17 @@ export default function Calendar({
   const initialScrollDone = useRef(false);
 
   // Inicializa as datas zerando o horário
-  const today = setMilliseconds(
-    setSeconds(setMinutes(setHours(new Date(), 0), 0), 0),
-    0
-  );
-  const startDate = startOfWeek(today, { weekStartsOn: 0 });
+  const today = useMemo(() => {
+    return setMilliseconds(
+      setSeconds(setMinutes(setHours(new Date(), 0), 0), 0),
+      0
+    );
+  }, []);
+
+  const startDate = useMemo(() => {
+    // Começa 30 dias antes do dia atual
+    return subDays(today, 30);
+  }, [today]);
 
   // Cores do gradiente baseadas no tema
   const gradientColors = useMemo(() => {
@@ -114,7 +121,7 @@ export default function Calendar({
         });
       }
     },
-    [dates]
+    [dates, width]
   );
 
   // Função para verificar se uma data tem conteúdo
@@ -167,10 +174,12 @@ export default function Calendar({
   );
 
   // Zera o horário da data selecionada para comparação
-  const normalizedSelectedDate = setMilliseconds(
-    setSeconds(setMinutes(setHours(selectedDate, 0), 0), 0),
-    0
-  );
+  const normalizedSelectedDate = useMemo(() => {
+    return setMilliseconds(
+      setSeconds(setMinutes(setHours(selectedDate, 0), 0), 0),
+      0
+    );
+  }, [selectedDate]);
 
   // Centraliza o dia atual ou o dia selecionado na montagem inicial
   const initializeScroll = useCallback(() => {
@@ -182,24 +191,6 @@ export default function Calendar({
       }, 100);
     }
   }, [normalizedSelectedDate, scrollToDate]);
-
-  // Função segura para formatar cores com opacidade
-  const safeColorWithOpacity = (color: string, opacity: number) => {
-    try {
-      // Limitar a opacidade entre 0 e 1
-      const safeOpacity = Math.min(1, Math.max(0, opacity));
-
-      // Converter para um valor hexadecimal entre 00 e FF
-      const opacityHex = Math.round(safeOpacity * 255)
-        .toString(16)
-        .padStart(2, "0");
-
-      return `${color}${opacityHex}`;
-    } catch (error) {
-      // Em caso de erro, retornar a cor original
-      return color;
-    }
-  };
 
   return (
     <View style={styles.outerContainer}>

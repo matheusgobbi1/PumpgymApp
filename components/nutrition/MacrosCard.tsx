@@ -31,7 +31,7 @@ export default function MacrosCard({
   const [isLoading, setIsLoading] = useState(true);
   const { theme } = useTheme();
   const colors = Colors[theme];
-  
+
   // Estado para forçar re-renderização quando o tema mudar
   const [, setForceUpdate] = useState({});
 
@@ -47,7 +47,7 @@ export default function MacrosCard({
       setIsLoading(false);
     }
   }, [nutritionInfo, refreshKey]);
-  
+
   // Efeito para forçar a re-renderização quando o tema mudar
   useEffect(() => {
     // Forçar re-renderização quando o tema mudar
@@ -65,7 +65,8 @@ export default function MacrosCard({
   };
 
   const getProgressColor = (percentage: number) => {
-    if (percentage >= 90 && percentage <= 110) return colors.success || "#4CAF50";
+    if (percentage >= 90 && percentage <= 110)
+      return colors.success || "#4CAF50";
     if (percentage < 90) return colors.primary;
     return colors.danger || "#FF3B30";
   };
@@ -73,7 +74,7 @@ export default function MacrosCard({
   const renderMacroProgress = (
     title: string,
     icon: string,
-    iconType: 'ionicons' | 'material',
+    iconType: "ionicons" | "material",
     iconColor: string,
     consumed: number,
     target: number,
@@ -96,38 +97,53 @@ export default function MacrosCard({
       >
         <View style={styles.macroInfo}>
           <View style={styles.macroHeader}>
-            <View style={[styles.iconContainer, { backgroundColor: iconColor + '15' }]}>
-              {iconType === 'ionicons' ? (
+            <View
+              style={[
+                styles.iconContainer,
+                { backgroundColor: iconColor + "15" },
+              ]}
+            >
+              {iconType === "ionicons" ? (
                 <Ionicons name={icon as any} size={18} color={iconColor} />
               ) : (
-                <MaterialCommunityIcons name={icon as any} size={18} color={iconColor} />
+                <MaterialCommunityIcons
+                  name={icon as any}
+                  size={18}
+                  color={iconColor}
+                />
               )}
             </View>
-            <Text style={[styles.macroTitle, { color: colors.text }]}>
-              {title}
-            </Text>
+            <View>
+              <Text style={[styles.macroTitle, { color: colors.text }]}>
+                {title}
+              </Text>
+              <Text style={[styles.remaining, { color: colors.text }]}>
+                {isLoading ? (
+                  "Carregando..."
+                ) : isExceeded ? (
+                  <>
+                    Excesso{" "}
+                    <Text
+                      style={[styles.remainingValue, { color: progressColor }]}
+                    >
+                      {Math.abs(Math.round(remaining))}
+                      {unit}
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    Restam{" "}
+                    <Text
+                      style={[styles.remainingValue, { color: progressColor }]}
+                    >
+                      {Math.round(remaining)}
+                      {unit}
+                    </Text>
+                  </>
+                )}
+              </Text>
+            </View>
           </View>
-          <Text style={[styles.remaining, { color: colors.text }]}>
-            {isLoading ? (
-              "Carregando..."
-            ) : isExceeded ? (
-              <>
-                Excesso{" "}
-                <Text style={[styles.remainingValue, { color: progressColor }]}>
-                  {Math.abs(Math.round(remaining))}
-                  {unit}
-                </Text>
-              </>
-            ) : (
-              <>
-                Restam{" "}
-                <Text style={[styles.remainingValue, { color: progressColor }]}>
-                  {Math.round(remaining)}
-                  {unit}
-                </Text>
-              </>
-            )}
-          </Text>
         </View>
 
         <View style={styles.progressWrapper}>
@@ -178,10 +194,15 @@ export default function MacrosCard({
           Progresso Diário
         </Text>
 
-        {!nutritionInfo || (!nutritionInfo.calories && !nutritionInfo.protein && !nutritionInfo.carbs && !nutritionInfo.fat) ? (
+        {!nutritionInfo ||
+        (!nutritionInfo.calories &&
+          !nutritionInfo.protein &&
+          !nutritionInfo.carbs &&
+          !nutritionInfo.fat) ? (
           <View key={`no-targets-${theme}`} style={styles.noTargetsContainer}>
             <Text style={[styles.noTargetsText, { color: colors.text + "80" }]}>
-              Configure suas metas de macronutrientes para acompanhar seu progresso diário
+              Configure suas metas de macronutrientes para acompanhar seu
+              progresso diário
             </Text>
             <TouchableOpacity
               style={[styles.configButton, { backgroundColor: colors.tint }]}
@@ -190,11 +211,14 @@ export default function MacrosCard({
             </TouchableOpacity>
           </View>
         ) : (
-          <View key={`macros-container-${theme}`} style={styles.macrosContainer}>
+          <View
+            key={`macros-container-${theme}`}
+            style={styles.macrosContainer}
+          >
             {renderMacroProgress(
               "Calorias",
               "flame-outline",
-              'ionicons',
+              "ionicons",
               colors.primary,
               dayTotals.calories,
               nutritionInfo.calories || 0,
@@ -203,7 +227,7 @@ export default function MacrosCard({
             {renderMacroProgress(
               "Proteína",
               "food-steak",
-              'material',
+              "material",
               colors.primary,
               dayTotals.protein,
               nutritionInfo.protein || 0,
@@ -212,7 +236,7 @@ export default function MacrosCard({
             {renderMacroProgress(
               "Carboidratos",
               "bread-slice",
-              'material',
+              "material",
               colors.primary,
               dayTotals.carbs,
               nutritionInfo.carbs || 0,
@@ -221,7 +245,7 @@ export default function MacrosCard({
             {renderMacroProgress(
               "Gorduras",
               "oil",
-              'material',
+              "material",
               colors.primary,
               dayTotals.fat,
               nutritionInfo.fat || 0,
@@ -237,15 +261,15 @@ export default function MacrosCard({
 const styles = StyleSheet.create({
   container: {
     borderRadius: 16,
-    marginBottom: 16,
+    marginBottom: 30,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
-    marginBottom: 16,
+    marginBottom: 25,
   },
   macrosContainer: {
-    gap: 16,
+    gap: 20,
   },
   macroRow: {
     flexDirection: "row",
@@ -255,19 +279,18 @@ const styles = StyleSheet.create({
   },
   macroInfo: {
     flex: 1,
-    gap: 4,
   },
   macroHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
   },
   iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
   },
   macroTitle: {
     fontSize: 15,
@@ -276,7 +299,6 @@ const styles = StyleSheet.create({
   remaining: {
     fontSize: 13,
     opacity: 0.8,
-    marginLeft: 42,
   },
   remainingValue: {
     fontWeight: "600",

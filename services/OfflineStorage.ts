@@ -388,10 +388,109 @@ export const OfflineStorage = {
     data: any
   ): Promise<void> => {
     try {
+      // Validar parâmetros
+      if (!userId || !date) {
+        console.error("Parâmetros inválidos para saveMealsData:", {
+          userId,
+          date,
+        });
+        throw new Error("Parâmetros inválidos para saveMealsData");
+      }
+
       const key = `${KEYS.MEALS_KEY}${userId}:${date}`;
-      await AsyncStorage.setItem(key, JSON.stringify(data));
+
+      // Validar os dados antes de salvar
+      if (!data) {
+        console.warn(
+          "Dados vazios fornecidos para saveMealsData, usando objeto vazio"
+        );
+        data = {};
+      }
+
+      // Convertemos para objeto vazio se não for um objeto
+      if (typeof data !== "object") {
+        console.warn(
+          "Dados não são um objeto, usando objeto vazio:",
+          typeof data
+        );
+        data = {};
+      }
+
+      // Corrigir problemas de dados
+      const sanitizedData = {};
+
+      try {
+        // Garantir que estamos trabalhando com um objeto iterável
+        const dataKeys = Object.keys(data);
+
+        // Para cada chave, garantir que os valores são arrays
+        for (const mealId of dataKeys) {
+          try {
+            if (Array.isArray(data[mealId])) {
+              // Fazer uma cópia segura do array
+              sanitizedData[mealId] = [...data[mealId]];
+            } else {
+              // Se não for array, criar um array vazio
+              console.warn(
+                `Dados para refeição ${mealId} não são um array, usando array vazio`
+              );
+              sanitizedData[mealId] = [];
+            }
+          } catch (mealError) {
+            console.warn(`Erro ao processar refeição ${mealId}:`, mealError);
+            sanitizedData[mealId] = [];
+          }
+        }
+      } catch (keysError) {
+        // Problema ao obter as chaves do objeto (provavelmente não é um objeto válido)
+        console.error("Erro ao processar as chaves dos dados:", keysError);
+      }
+
+      // Serializar para garantir que temos uma string JSON válida
+      let jsonData;
+      try {
+        jsonData = JSON.stringify(sanitizedData);
+      } catch (jsonError) {
+        console.error("Erro ao converter dados para JSON:", jsonError);
+        jsonData = "{}"; // Em caso de erro, usar objeto vazio
+      }
+
+      // Salvar os dados
+      await AsyncStorage.setItem(key, jsonData);
+
+      try {
+        // Adicionar à lista de datas modificadas para sincronização posterior
+        let dates = [];
+        try {
+          const modifiedDates = await AsyncStorage.getItem(
+            `${KEYS.MEALS_KEY}${userId}:modified_dates`
+          );
+
+          if (modifiedDates) {
+            const parsedDates = JSON.parse(modifiedDates);
+            if (Array.isArray(parsedDates)) {
+              dates = [...new Set([...parsedDates, date])];
+            } else {
+              dates = [date];
+            }
+          } else {
+            dates = [date];
+          }
+        } catch (modifiedError) {
+          console.warn("Erro ao ler datas modificadas:", modifiedError);
+          dates = [date];
+        }
+
+        await AsyncStorage.setItem(
+          `${KEYS.MEALS_KEY}${userId}:modified_dates`,
+          JSON.stringify(dates)
+        );
+      } catch (datesError) {
+        console.warn("Erro ao salvar datas modificadas:", datesError);
+        // Continuar mesmo se houver erro ao atualizar datas modificadas
+      }
     } catch (error) {
-      // Erro ao salvar dados de refeições
+      console.error("Erro ao salvar dados de refeições:", error);
       throw error;
     }
   },
@@ -399,30 +498,123 @@ export const OfflineStorage = {
   // Carregar dados de refeições
   loadMealsData: async (userId: string, date: string): Promise<any | null> => {
     try {
+      // Validar parâmetros
+      if (!userId || !date) {
+        console.error("Parâmetros inválidos para loadMealsData:", {
+          userId,
+          date,
+        });
+        return null;
+      }
+
       const key = `${KEYS.MEALS_KEY}${userId}:${date}`;
       const data = await AsyncStorage.getItem(key);
-      return data ? JSON.parse(data) : null;
+
+      if (!data) {
+        return {};
+      }
+
+      try {
+        const parsedData = JSON.parse(data);
+
+        // Validar estrutura básica dos dados
+        if (!parsedData || typeof parsedData !== "object") {
+          console.warn("Dados inválidos no armazenamento local:", parsedData);
+          return {};
+        }
+
+        // Verificar se os valores das refeições são arrays
+        const sanitizedData = {};
+
+        try {
+          const mealIds = Object.keys(parsedData);
+
+          for (const mealId of mealIds) {
+            if (Array.isArray(parsedData[mealId])) {
+              // Fazer uma cópia segura do array
+              sanitizedData[mealId] = [...parsedData[mealId]];
+            } else {
+              console.warn(
+                `Dados para refeição ${mealId} não são um array, usando array vazio`
+              );
+              sanitizedData[mealId] = [];
+            }
+          }
+
+          return sanitizedData;
+        } catch (keysError) {
+          console.error(
+            "Erro ao processar as chaves dos dados carregados:",
+            keysError
+          );
+          return {};
+        }
+      } catch (parseError) {
+        console.error("Erro ao fazer parse dos dados:", parseError);
+        // Se houver erro no parsing, tentar recuperar fazendo backup e limpando
+        try {
+          await AsyncStorage.setItem(`${key}_backup`, data);
+          await AsyncStorage.removeItem(key);
+        } catch (backupError) {
+          console.error(
+            "Erro ao fazer backup dos dados corrompidos:",
+            backupError
+          );
+        }
+        return {};
+      }
     } catch (error) {
-      // Erro ao carregar dados de refeições
-      return null;
+      console.error("Erro ao carregar dados de refeições:", error);
+      return {};
     }
   },
 
   // Obter todas as datas que possuem refeições salvas
   getDatesWithMeals: async (userId: string): Promise<string[]> => {
     try {
+      if (!userId) {
+        console.warn("ID de usuário não fornecido para getDatesWithMeals");
+        return [];
+      }
+
       const allKeys = await AsyncStorage.getAllKeys();
-      const mealKeys = allKeys.filter((key) =>
-        key.startsWith(`${KEYS.MEALS_KEY}${userId}`)
+
+      if (!allKeys || !Array.isArray(allKeys)) {
+        console.warn("Não foi possível obter chaves do AsyncStorage");
+        return [];
+      }
+
+      const mealKeyPrefix = `${KEYS.MEALS_KEY}${userId}`;
+      const mealKeys = allKeys.filter(
+        (key) => key && typeof key === "string" && key.startsWith(mealKeyPrefix)
       );
 
-      return mealKeys.map((key) => {
-        // Extrair a data da chave: @meals:userId:YYYY-MM-DD
-        const parts = key.split(":");
-        return parts[parts.length - 1];
-      });
+      if (!mealKeys.length) {
+        return [];
+      }
+
+      // Extrair as datas das chaves com tratamento de erros
+      const dates = [];
+      for (const key of mealKeys) {
+        try {
+          // Extrair a data da chave: @meals:userId:YYYY-MM-DD
+          const parts = key.split(":");
+          if (parts.length >= 3) {
+            const date = parts[parts.length - 1];
+            // Validar se a data está em um formato válido (YYYY-MM-DD)
+            if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+              dates.push(date);
+            }
+          }
+        } catch (err) {
+          // Ignorar chaves com formato inválido
+          console.warn(`Formato de chave inválido: ${key}`);
+        }
+      }
+
+      return dates;
     } catch (error) {
-      // Erro ao buscar datas com refeições
+      console.error("Erro ao buscar datas com refeições:", error);
       return [];
     }
   },
@@ -479,6 +671,42 @@ export const OfflineStorage = {
     } catch (error) {
       // Erro ao limpar histórico de busca
       throw error;
+    }
+  },
+
+  // Limpar todos os dados de refeições para um usuário
+  clearAllMealsData: async (userId: string): Promise<void> => {
+    try {
+      if (!userId) {
+        console.warn("ID de usuário não fornecido para clearAllMealsData");
+        return;
+      }
+
+      // Obter todas as chaves de refeições para o usuário
+      const allKeys = await AsyncStorage.getAllKeys();
+      if (!allKeys || !Array.isArray(allKeys)) {
+        console.warn("Não foi possível obter chaves do AsyncStorage");
+        return;
+      }
+
+      // Filtrar as chaves relacionadas a refeições deste usuário
+      const mealKeyPrefix = `${KEYS.MEALS_KEY}${userId}`;
+      const keysToRemove = allKeys.filter(
+        (key) => key && typeof key === "string" && key.startsWith(mealKeyPrefix)
+      );
+
+      // Se houver chaves para remover, usar multiRemove
+      if (keysToRemove.length > 0) {
+        await AsyncStorage.multiRemove(keysToRemove);
+        console.log(
+          `Removidas ${keysToRemove.length} chaves de refeições para o usuário ${userId}`
+        );
+      }
+
+      return;
+    } catch (error) {
+      console.error("Erro ao limpar todos os dados de refeições:", error);
+      // Não lançar erro para permitir que o reset continue mesmo com falha na limpeza
     }
   },
 };

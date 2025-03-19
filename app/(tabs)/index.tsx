@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, StyleSheet, ScrollView, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HomeHeader from "../../components/home/HomeHeader";
+import DailyReminders from "../../components/home/DailyReminders";
 import WorkoutProgressChart from "../../components/home/WorkoutProgressChart";
 import NutritionProgressChart from "../../components/home/NutritionProgressChart";
 import Colors from "../../constants/Colors";
@@ -67,15 +68,18 @@ export default function HomeScreen() {
             />
           }
         >
+          {/* Lembretes Diários */}
+          <DailyReminders />
+
+           {/* Gráfico de Progresso de Treino */}
+           <WorkoutProgressChart
+            onPress={handleWorkoutChartPress}
+            refreshKey={refreshKey}
+          />
+          
           {/* Gráfico de Progresso de Calorias */}
           <NutritionProgressChart
             onPress={handleNutritionChartPress}
-            refreshKey={refreshKey}
-          />
-
-          {/* Gráfico de Progresso de Treino */}
-          <WorkoutProgressChart
-            onPress={handleWorkoutChartPress}
             refreshKey={refreshKey}
           />
 

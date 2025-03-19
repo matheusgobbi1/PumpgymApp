@@ -4,6 +4,8 @@ import React, {
   useContext,
   ReactNode,
   useEffect,
+  useMemo,
+  useCallback,
 } from "react";
 import {
   doc,
@@ -63,10 +65,10 @@ interface MealContextType {
   getDayTotals: () => MealTotals;
   addFoodToMeal: (mealId: string, food: Food) => void;
   removeFoodFromMeal: (mealId: string, foodId: string) => Promise<void>;
-  saveMeals: () => Promise<void>;
+  saveMeals: () => Promise<boolean>;
   addMealType: (id: string, name: string, icon: string) => void;
-  resetMealTypes: () => Promise<void>;
-  updateMealTypes: (mealTypes: MealType[]) => Promise<void>;
+  resetMealTypes: () => Promise<boolean>;
+  updateMealTypes: (mealTypes: MealType[]) => Promise<boolean>;
   hasMealTypesConfigured: boolean;
   searchHistory: Food[];
   addToSearchHistory: (food: Food) => Promise<void>;
@@ -75,7 +77,8 @@ interface MealContextType {
     sourceDate: string,
     sourceMealId: string,
     targetMealId: string
-  ) => Promise<void>;
+  ) => Promise<boolean>;
+  foodsForSelectedDate: { [mealId: string]: Food[] };
 }
 
 const MealContext = createContext<MealContextType | undefined>(undefined);
@@ -92,13 +95,14 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   const [hasMealTypesConfigured, setHasMealTypesConfigured] =
     useState<boolean>(false);
   const [searchHistory, setSearchHistory] = useState<Food[]>([]);
+  const [contextVersion, setContextVersion] = useState(0);
 
   // Resetar o estado quando o usuário mudar
-  const resetState = () => {
+  const resetState = useCallback(() => {
     setMeals({});
     setMealTypes([]);
     setHasMealTypesConfigured(false);
-  };
+  }, []);
 
   // Carregar refeições do usuário
   useEffect(() => {
@@ -111,7 +115,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       // Limpar dados quando não houver usuário (logout)
       resetState();
     }
-  }, [user?.uid]); // Usar user.uid como dependência para detectar mudança de usuário
+  }, [user?.uid, resetState]); // Usar user.uid como dependência para detectar mudança de usuário
 
   // Carregar histórico de busca
   useEffect(() => {
@@ -129,32 +133,63 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     loadSearchHistory();
   }, [user?.uid]);
 
-  const loadMeals = async () => {
+  const loadMeals = useCallback(async () => {
     try {
       if (!user) return;
 
       // Limpar dados existentes antes de carregar
       setMeals({});
 
-      // Buscar todas as refeições do usuário
-      const mealsRef = collection(db, "users", user.uid, "meals");
-      const mealsSnap = await getDocs(mealsRef);
+      // Primeiro carregar todas as datas salvas localmente
+      const datesWithMeals = await OfflineStorage.getDatesWithMeals(user.uid);
+      const localMealsData: { [date: string]: { [mealId: string]: Food[] } } =
+        {};
 
-      const mealsData: { [date: string]: { [mealId: string]: Food[] } } = {};
+      // Carregar dados de todas as datas
+      for (const date of datesWithMeals) {
+        const localData = await OfflineStorage.loadMealsData(user.uid, date);
+        if (localData) {
+          localMealsData[date] = localData;
+        }
+      }
 
-      mealsSnap.forEach((doc) => {
-        mealsData[doc.id] = doc.data() as { [mealId: string]: Food[] };
-      });
+      // Atualizar estado com dados locais primeiro
+      if (Object.keys(localMealsData).length > 0) {
+        setMeals(localMealsData);
+      }
 
-      setMeals(mealsData);
+      // Tentar sincronizar com Firestore se houver conexão
+      try {
+        const mealsRef = collection(db, "users", user.uid, "meals");
+        const mealsSnap = await getDocs(mealsRef);
+
+        const firestoreData: { [date: string]: { [mealId: string]: Food[] } } =
+          {};
+
+        mealsSnap.forEach((doc) => {
+          firestoreData[doc.id] = doc.data() as { [mealId: string]: Food[] };
+        });
+
+        // Mesclar dados do Firestore com dados locais
+        const mergedData = { ...localMealsData, ...firestoreData };
+        setMeals(mergedData);
+
+        // Atualizar dados locais com dados do Firestore
+        Object.entries(firestoreData).forEach(async ([date, mealData]) => {
+          await OfflineStorage.saveMealsData(user.uid, date, mealData);
+        });
+      } catch (error) {
+        console.error(
+          "Erro ao sincronizar com Firestore, usando dados locais:",
+          error
+        );
+      }
     } catch (error) {
       console.error("Erro ao carregar refeições:", error);
-      // Em caso de erro, garantir que os dados estejam limpos
-      setMeals({});
     }
-  };
+  }, [user]);
 
-  const loadMealTypes = async () => {
+  const loadMealTypes = useCallback(async () => {
     try {
       if (!user) return;
 
@@ -184,319 +219,465 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       setMealTypes([]);
       setHasMealTypesConfigured(false);
     }
-  };
+  }, [user]);
 
-  const addMealType = async (id: string, name: string, icon: string) => {
-    try {
-      // Verificar se o tipo de refeição já existe
-      const existingType = mealTypes.find((type) => type.id === id);
+  const addMealType = useCallback(
+    async (id: string, name: string, icon: string) => {
+      try {
+        // Verificar se o tipo de refeição já existe
+        const existingType = mealTypes.find((type) => type.id === id);
 
-      if (existingType) return;
+        if (existingType) return;
 
-      const newMealType: MealType = { id, name, icon };
+        const newMealType: MealType = { id, name, icon };
 
-      // Adicionar ao estado
-      const updatedTypes = [...mealTypes, newMealType];
-      setMealTypes(updatedTypes);
+        // Adicionar ao estado
+        const updatedTypes = [...mealTypes, newMealType];
+        setMealTypes(updatedTypes);
 
-      // Salvar no Firestore se o usuário estiver autenticado
-      if (user) {
-        await setDoc(
-          doc(db, "users", user.uid, "config", "mealTypes"),
-          { types: updatedTypes },
-          { merge: true }
-        );
-        setHasMealTypesConfigured(true);
+        // Salvar no Firestore se o usuário estiver autenticado
+        if (user) {
+          await setDoc(
+            doc(db, "users", user.uid, "config", "mealTypes"),
+            { types: updatedTypes },
+            { merge: true }
+          );
+          setHasMealTypesConfigured(true);
+        }
+      } catch (error) {
+        console.error("Erro ao adicionar tipo de refeição:", error);
       }
-    } catch (error) {
-      console.error("Erro ao adicionar tipo de refeição:", error);
-    }
-  };
+    },
+    [mealTypes, user]
+  );
+
+  // Função para atualizar os tipos de refeições
+  const updateMealTypes = useCallback(
+    async (newMealTypes: MealType[]) => {
+      try {
+        if (!newMealTypes || !Array.isArray(newMealTypes)) {
+          console.error(
+            "Tipos de refeição inválidos fornecidos:",
+            newMealTypes
+          );
+          return false;
+        }
+
+        // Criar uma cópia segura dos dados
+        const safeTypes = newMealTypes.map((type) => ({
+          id: type.id || `type_${Date.now()}`,
+          name: type.name || "Refeição",
+          icon: type.icon || "restaurant-outline",
+          color: type.color || "#FF9500",
+        }));
+
+        // Atualização em lote para evitar múltiplas renderizações
+        const batchUpdates = () => {
+          // Atualizar estado
+          setHasMealTypesConfigured(safeTypes.length > 0);
+          setMealTypes(safeTypes);
+          // Incrementar a versão do contexto para forçar atualização nas dependências
+          setContextVersion((prev) => prev + 1);
+        };
+
+        // Executar atualizações de estado em lote
+        batchUpdates();
+
+        // Salvar no Firestore se o usuário estiver autenticado
+        if (user) {
+          try {
+            await setDoc(
+              doc(db, "users", user.uid, "config", "mealTypes"),
+              { types: safeTypes },
+              { merge: true }
+            );
+          } catch (firestoreError) {
+            console.error(
+              "Erro ao salvar tipos de refeição no Firestore:",
+              firestoreError
+            );
+            // Continuar mesmo com erro no Firestore
+          }
+        }
+
+        return true;
+      } catch (error) {
+        console.error("Erro ao atualizar tipos de refeições:", error);
+        return false;
+      }
+    },
+    [user]
+  );
 
   // Função para redefinir os tipos de refeições
-  const resetMealTypes = async () => {
+  const resetMealTypes = useCallback(async () => {
     try {
-      // Limpar tipos de refeições
-      setMealTypes([]);
-      setHasMealTypesConfigured(false);
+      // Atualizações em lote para evitar flashes
+      const batchUpdates = () => {
+        // Limpar tipos de refeições
+        setMealTypes([]);
+        setHasMealTypesConfigured(false);
+        // Limpar também as refeições do usuário, já que os tipos foram removidos
+        setMeals({});
+        // Limpar o histórico de busca
+        setSearchHistory([]);
+        // Forçar atualização do contexto para refletir as mudanças
+        setContextVersion((prev) => prev + 1);
+      };
 
-      // Limpar também os dados de refeições
-      setMeals({});
+      // Executar atualizações de estado em lote
+      batchUpdates();
 
+      // Remover dados do Firestore
       if (user) {
-        // Atualizar tipos de refeições no Firestore
-        await setDoc(
-          doc(db, "users", user.uid, "config", "mealTypes"),
-          { types: [] },
-          { merge: true }
-        );
+        await setDoc(doc(db, "users", user.uid, "config", "mealTypes"), {
+          types: [],
+        });
 
-        // Também limpar as refeições no Firestore se necessário
-        // Isso pode ser opcional dependendo do seu caso de uso
+        // Também limpar os dados de refeições no Firestore
         const mealsRef = collection(db, "users", user.uid, "meals");
         const mealsSnap = await getDocs(mealsRef);
 
-        // Excluir cada documento de refeição
         const batch = writeBatch(db);
         mealsSnap.forEach((doc) => {
           batch.delete(doc.ref);
         });
 
+        // Executar batch para remover todos os documentos
         await batch.commit();
+
+        // Limpar dados locais
+        try {
+          // Usar a nova função para limpar todas as refeições de uma vez
+          await OfflineStorage.clearAllMealsData(user.uid);
+          // Limpar também o histórico de comidas salvo localmente
+          await OfflineStorage.saveSearchHistory(user.uid, []);
+        } catch (innerError) {
+          console.error("Erro ao limpar dados locais:", innerError);
+
+          // Fallback: Se a função clearAllMealsData falhar, tentar método alternativo
+          try {
+            // Obter todas as datas com refeições de forma segura
+            const datesWithMeals = await OfflineStorage.getDatesWithMeals(
+              user.uid
+            );
+
+            if (datesWithMeals && Array.isArray(datesWithMeals)) {
+              // Limpar os dados para cada data
+              for (let i = 0; i < datesWithMeals.length; i++) {
+                const date = datesWithMeals[i];
+                await OfflineStorage.saveMealsData(user.uid, date, {});
+              }
+            }
+          } catch (fallbackError) {
+            console.error(
+              "Erro no método alternativo de limpeza:",
+              fallbackError
+            );
+          }
+        }
       }
+
+      return true;
     } catch (error) {
       console.error("Erro ao redefinir tipos de refeições:", error);
+      return false;
     }
-  };
+  }, [user]);
 
-  // Função para atualizar todos os tipos de refeições de uma vez
-  const updateMealTypes = async (newMealTypes: MealType[]) => {
-    try {
-      setMealTypes(newMealTypes);
-
-      if (newMealTypes.length > 0) {
-        setHasMealTypesConfigured(true);
-      } else {
-        setHasMealTypesConfigured(false);
-      }
-
-      if (user) {
-        await setDoc(
-          doc(db, "users", user.uid, "config", "mealTypes"),
-          { types: newMealTypes },
-          { merge: true }
-        );
-      }
-    } catch (error) {
-      console.error("Erro ao atualizar tipos de refeições:", error);
-    }
-  };
-
-  const addFoodToMeal = (mealId: string, food: Food) => {
-    setMeals((prevMeals) => {
-      const updatedMeals = { ...prevMeals };
-
-      // Inicializa a data se não existir
-      if (!updatedMeals[selectedDate]) {
-        updatedMeals[selectedDate] = {};
-      }
-
-      // Inicializa a refeição se não existir
-      if (!updatedMeals[selectedDate][mealId]) {
-        updatedMeals[selectedDate][mealId] = [];
-      }
-
-      // Verificar se o alimento já existe (para edição)
-      const existingFoodIndex = updatedMeals[selectedDate][mealId].findIndex(
-        (existingFood) => existingFood.id === food.id
-      );
-
-      if (existingFoodIndex !== -1) {
-        // Atualizar o alimento existente
-        const updatedFoods = [...updatedMeals[selectedDate][mealId]];
-        updatedFoods[existingFoodIndex] = food;
-        updatedMeals[selectedDate][mealId] = updatedFoods;
-      } else {
-        // Adicionar novo alimento
-        updatedMeals[selectedDate][mealId] = [
-          ...updatedMeals[selectedDate][mealId],
-          food,
-        ];
-      }
-
-      return updatedMeals;
-    });
-
-    // Salvar as alterações imediatamente
-    saveMeals();
-  };
-
-  const removeFoodFromMeal = async (mealId: string, foodId: string) => {
-    try {
+  // Adicionar uma comida a uma refeição
+  const addFoodToMeal = useCallback(
+    (mealId: string, food: Food) => {
       setMeals((prevMeals) => {
-        const updatedMeals = { ...prevMeals };
-        if (updatedMeals[selectedDate]?.[mealId]) {
-          updatedMeals[selectedDate][mealId] = updatedMeals[selectedDate][
-            mealId
-          ].filter((food) => food.id !== foodId);
-        }
-        return updatedMeals;
-      });
+        // Criar uma cópia profunda do estado atual (necessário para objetos aninhados)
+        const updatedMeals = JSON.parse(JSON.stringify(prevMeals));
 
-      // Salvar alterações no Firestore
-      await saveMeals();
-    } catch (error) {
-      console.error("Erro ao remover alimento:", error);
-      throw error;
-    }
-  };
-
-  const saveMeals = async () => {
-    try {
-      if (!user) return;
-
-      // Salvar apenas a data selecionada
-      await setDoc(
-        doc(db, "users", user.uid, "meals", selectedDate),
-        meals[selectedDate] || {}
-      );
-    } catch (error) {
-      console.error("Erro ao salvar refeições:", error);
-    }
-  };
-
-  const getMealTotals = (mealId: string): MealTotals => {
-    const mealFoods = meals[selectedDate]?.[mealId] || [];
-    return mealFoods.reduce(
-      (acc, food) => ({
-        calories: acc.calories + food.calories,
-        protein: acc.protein + food.protein,
-        carbs: acc.carbs + food.carbs,
-        fat: acc.fat + food.fat,
-      }),
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    );
-  };
-
-  const getFoodsForMeal = (mealId: string): Food[] => {
-    return meals[selectedDate]?.[mealId] || [];
-  };
-
-  const getDayTotals = (): MealTotals => {
-    // Usar os IDs de refeição do dia atual ou os tipos de refeição configurados
-    const currentDayMeals = meals[selectedDate] || {};
-    const mealIds =
-      Object.keys(currentDayMeals).length > 0
-        ? Object.keys(currentDayMeals)
-        : mealTypes.map((type) => type.id);
-
-    return mealIds.reduce(
-      (acc, mealId) => {
-        const mealTotals = getMealTotals(mealId);
-        return {
-          calories: acc.calories + mealTotals.calories,
-          protein: acc.protein + mealTotals.protein,
-          carbs: acc.carbs + mealTotals.carbs,
-          fat: acc.fat + mealTotals.fat,
-        };
-      },
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    );
-  };
-
-  const addToSearchHistory = async (food: Food) => {
-    if (!user) return;
-
-    try {
-      // Preservar a porção exata do alimento adicionado
-      // Remover duplicatas pelo nome e manter apenas os 10 itens mais recentes
-      const updatedHistory = [
-        food,
-        ...searchHistory.filter(
-          (item) => item.name.toLowerCase() !== food.name.toLowerCase()
-        ),
-      ].slice(0, 10);
-
-      // Atualizar estado imediatamente para refletir a mudança na UI
-      setSearchHistory(updatedHistory);
-
-      // Persistir o histórico entre sessões
-      await OfflineStorage.saveSearchHistory(user.uid, updatedHistory);
-    } catch (error) {
-      console.error("Erro ao adicionar ao histórico de busca:", error);
-    }
-  };
-
-  const clearSearchHistory = async () => {
-    if (!user) return;
-
-    try {
-      setSearchHistory([]);
-      await OfflineStorage.clearSearchHistory(user.uid);
-    } catch (error) {
-      console.error("Erro ao limpar histórico de busca:", error);
-    }
-  };
-
-  // Função para copiar uma refeição de uma data para outra
-  const copyMealFromDate = async (
-    sourceDate: string,
-    sourceMealId: string,
-    targetMealId: string
-  ) => {
-    try {
-      if (!user) return;
-
-      // Verificar se a refeição de origem existe
-      if (!meals[sourceDate]?.[sourceMealId]) {
-        throw new Error("Refeição de origem não encontrada");
-      }
-
-      // Obter os alimentos da refeição de origem
-      const sourceFoods = [...meals[sourceDate][sourceMealId]];
-
-      // Gerar novos IDs para os alimentos copiados para evitar conflitos
-      const copiedFoods = sourceFoods.map((food) => ({
-        ...food,
-        id: uuidv4(), // Gerar novo ID para cada alimento
-      }));
-
-      // Atualizar o estado
-      setMeals((prevMeals) => {
-        const updatedMeals = { ...prevMeals };
-
-        // Inicializar a data de destino se não existir
+        // Garantir que a data selecionada existe
         if (!updatedMeals[selectedDate]) {
           updatedMeals[selectedDate] = {};
         }
 
-        // Inicializar a refeição de destino se não existir
-        if (!updatedMeals[selectedDate][targetMealId]) {
-          updatedMeals[selectedDate][targetMealId] = [];
+        // Garantir que a refeição existe
+        if (!updatedMeals[selectedDate][mealId]) {
+          updatedMeals[selectedDate][mealId] = [];
         }
 
-        // Adicionar os alimentos copiados à refeição de destino
-        updatedMeals[selectedDate][targetMealId] = [
-          ...updatedMeals[selectedDate][targetMealId],
-          ...copiedFoods,
-        ];
+        // Adicionar a comida à refeição
+        updatedMeals[selectedDate][mealId].push(food);
 
         return updatedMeals;
       });
+    },
+    [selectedDate]
+  );
 
-      // Salvar as alterações
-      await saveMeals();
+  // Remover uma comida de uma refeição
+  const removeFoodFromMeal = useCallback(
+    async (mealId: string, foodId: string) => {
+      setMeals((prevMeals) => {
+        const updatedMeals = JSON.parse(JSON.stringify(prevMeals));
+
+        // Verificar se a data e refeição existem
+        if (updatedMeals[selectedDate] && updatedMeals[selectedDate][mealId]) {
+          // Filtrar a comida pelo ID
+          updatedMeals[selectedDate][mealId] = updatedMeals[selectedDate][
+            mealId
+          ].filter((food: Food) => food.id !== foodId);
+        }
+
+        return updatedMeals;
+      });
+    },
+    [selectedDate]
+  );
+
+  // Salvar refeições no Firestore e localStorage
+  const saveMeals = useCallback(async () => {
+    try {
+      if (!user) return false;
+
+      try {
+        // Verificar se a data selecionada existe nos dados de refeições
+        const mealsForDate = meals[selectedDate] || {};
+
+        // Criar uma cópia segura dos dados antes de salvar
+        const safeData = {};
+
+        // Converter manualmente para um objeto seguro
+        Object.keys(mealsForDate).forEach((mealId) => {
+          safeData[mealId] = Array.isArray(mealsForDate[mealId])
+            ? [...mealsForDate[mealId]]
+            : [];
+        });
+
+        // Salvar dados localmente primeiro
+        await OfflineStorage.saveMealsData(user.uid, selectedDate, safeData);
+
+        // Salvar no Firestore
+        await setDoc(
+          doc(db, "users", user.uid, "meals", selectedDate),
+          safeData,
+          { merge: true }
+        );
+      } catch (saveError) {
+        console.error("Erro ao salvar dados de refeições:", saveError);
+        return false;
+      }
+
+      return true;
     } catch (error) {
-      console.error("Erro ao copiar refeição:", error);
-      throw error;
+      console.error("Erro ao salvar refeições:", error);
+      return false;
     }
-  };
+  }, [user, selectedDate, meals]);
+
+  // Obter os totais para uma refeição específica
+  const getMealTotals = useCallback(
+    (mealId: string): MealTotals => {
+      const emptyTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+
+      if (!meals[selectedDate] || !meals[selectedDate][mealId]) {
+        return emptyTotals;
+      }
+
+      return meals[selectedDate][mealId].reduce(
+        (totals, food) => ({
+          calories: totals.calories + food.calories,
+          protein: totals.protein + food.protein,
+          carbs: totals.carbs + food.carbs,
+          fat: totals.fat + food.fat,
+        }),
+        emptyTotals
+      );
+    },
+    [meals, selectedDate]
+  );
+
+  // Obter comidas para uma refeição específica
+  const getFoodsForMeal = useCallback(
+    (mealId: string): Food[] => {
+      return meals[selectedDate]?.[mealId] || [];
+    },
+    [meals, selectedDate]
+  );
+
+  // Obter totais do dia
+  const getDayTotals = useCallback((): MealTotals => {
+    const emptyTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+
+    if (!meals[selectedDate]) {
+      return emptyTotals;
+    }
+
+    let dayTotals = { ...emptyTotals };
+
+    Object.keys(meals[selectedDate]).forEach((mealId) => {
+      const mealTotals = getMealTotals(mealId);
+      dayTotals.calories += mealTotals.calories;
+      dayTotals.protein += mealTotals.protein;
+      dayTotals.carbs += mealTotals.carbs;
+      dayTotals.fat += mealTotals.fat;
+    });
+
+    return dayTotals;
+  }, [meals, selectedDate, getMealTotals]);
+
+  // Adicionar comida ao histórico de busca
+  const addToSearchHistory = useCallback(
+    async (food: Food) => {
+      try {
+        if (!user) return;
+
+        // Verificar se a comida já existe no histórico - atualizar se existir
+        const existingIndex = searchHistory.findIndex(
+          (item) => item.id === food.id
+        );
+
+        let updatedHistory = [...searchHistory];
+
+        if (existingIndex >= 0) {
+          // Remover a entrada existente
+          updatedHistory.splice(existingIndex, 1);
+        }
+
+        // Adicionar a nova comida no início da lista
+        updatedHistory = [food, ...updatedHistory];
+
+        // Limitar o histórico a 50 itens
+        if (updatedHistory.length > 50) {
+          updatedHistory = updatedHistory.slice(0, 50);
+        }
+
+        // Atualizar estado
+        setSearchHistory(updatedHistory);
+
+        // Salvar histórico localmente
+        await OfflineStorage.saveSearchHistory(user.uid, updatedHistory);
+      } catch (error) {
+        console.error("Erro ao adicionar ao histórico de busca:", error);
+      }
+    },
+    [user, searchHistory]
+  );
+
+  // Limpar o histórico de busca
+  const clearSearchHistory = useCallback(async () => {
+    try {
+      if (!user) return;
+
+      // Limpar estado
+      setSearchHistory([]);
+
+      // Limpar dados locais
+      await OfflineStorage.saveSearchHistory(user.uid, []);
+    } catch (error) {
+      console.error("Erro ao limpar histórico de busca:", error);
+    }
+  }, [user]);
+
+  // Copiar refeição de uma data para outra
+  const copyMealFromDate = useCallback(
+    async (sourceDate: string, sourceMealId: string, targetMealId: string) => {
+      try {
+        // Verificar se a data e a refeição de origem existem
+        if (!meals[sourceDate] || !meals[sourceDate][sourceMealId]) {
+          console.error("Refeição de origem não encontrada");
+          return false;
+        }
+
+        // Obter comidas da refeição de origem
+        const sourceFoods = [...meals[sourceDate][sourceMealId]];
+
+        // Atualizar o estado
+        setMeals((prevMeals) => {
+          // Criar uma cópia profunda do estado atual
+          const updatedMeals = JSON.parse(JSON.stringify(prevMeals));
+
+          // Garantir que a data de destino existe
+          if (!updatedMeals[selectedDate]) {
+            updatedMeals[selectedDate] = {};
+          }
+
+          // Garantir que a refeição de destino existe
+          if (!updatedMeals[selectedDate][targetMealId]) {
+            updatedMeals[selectedDate][targetMealId] = [];
+          }
+
+          // Adicionar as comidas à refeição de destino
+          sourceFoods.forEach((food) => {
+            // Gerar um novo ID para cada comida copiada para evitar conflitos
+            const foodCopy = { ...food, id: uuidv4() };
+            updatedMeals[selectedDate][targetMealId].push(foodCopy);
+          });
+
+          return updatedMeals;
+        });
+
+        // Salvar as alterações
+        await saveMeals();
+
+        return true;
+      } catch (error) {
+        console.error("Erro ao copiar refeição:", error);
+        return false;
+      }
+    },
+    [meals, selectedDate, saveMeals]
+  );
+
+  // Memorizar as comidas para a data selecionada
+  const foodsForSelectedDate = useMemo(() => {
+    return meals[selectedDate] || {};
+  }, [meals, selectedDate]);
+
+  // Memorizar o valor do contexto para evitar re-renderizações desnecessárias
+  const contextValue = useMemo(
+    () => ({
+      meals,
+      mealTypes,
+      selectedDate,
+      setSelectedDate,
+      getMealTotals,
+      getFoodsForMeal,
+      getDayTotals,
+      addFoodToMeal,
+      removeFoodFromMeal,
+      saveMeals,
+      addMealType,
+      resetMealTypes,
+      updateMealTypes,
+      hasMealTypesConfigured,
+      searchHistory,
+      addToSearchHistory,
+      clearSearchHistory,
+      copyMealFromDate,
+      foodsForSelectedDate,
+    }),
+    [
+      meals,
+      mealTypes,
+      selectedDate,
+      getMealTotals,
+      getFoodsForMeal,
+      getDayTotals,
+      addFoodToMeal,
+      removeFoodFromMeal,
+      saveMeals,
+      addMealType,
+      resetMealTypes,
+      updateMealTypes,
+      hasMealTypesConfigured,
+      searchHistory,
+      addToSearchHistory,
+      clearSearchHistory,
+      copyMealFromDate,
+      foodsForSelectedDate,
+      contextVersion, // Incluir na dependência para forçar atualizações
+    ]
+  );
 
   return (
-    <MealContext.Provider
-      value={{
-        meals,
-        mealTypes,
-        selectedDate,
-        setSelectedDate,
-        getMealTotals,
-        getFoodsForMeal,
-        getDayTotals,
-        addFoodToMeal,
-        removeFoodFromMeal,
-        saveMeals,
-        addMealType,
-        resetMealTypes,
-        updateMealTypes,
-        hasMealTypesConfigured,
-        searchHistory,
-        addToSearchHistory,
-        clearSearchHistory,
-        copyMealFromDate,
-      }}
-    >
-      {children}
-    </MealContext.Provider>
+    <MealContext.Provider value={contextValue}>{children}</MealContext.Provider>
   );
 }
 

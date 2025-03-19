@@ -175,6 +175,7 @@ export default function FoodDetailsScreen() {
   const mealId = params.mealId as string;
   const mealName = params.mealName as string;
   const mode = params.mode as string;
+  const mealColor = (params.mealColor as string) || colors.primary;
 
   // Extrair parâmetros adicionais para alimentos do histórico
   const foodName = params.foodName as string;
@@ -1047,7 +1048,7 @@ export default function FoodDetailsScreen() {
         <View key={`bottom-container-${theme}`} style={styles.bottomContainer}>
           <TouchableOpacity
             key={`add-button-${theme}`}
-            style={[styles.addButton, { backgroundColor: colors.primary }]}
+            style={[styles.addButton, { backgroundColor: mealColor }]}
             onPress={handleAddFood}
           >
             <Text style={styles.addButtonText}>Adicionar à Refeição</Text>

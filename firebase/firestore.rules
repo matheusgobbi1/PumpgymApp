@@ -6,12 +6,19 @@ service cloud.firestore {
       return request.resource.data.keys().hasOnly(['onboardingCompleted']);
     }
 
+    // Permite operações que estavam em andamento antes do logout concluir
+    function isValidOperation() {
+      return request.auth != null ||
+        (request.resource != null && request.resource.data.size() > 0 && request.method == "update");
+    }
+
     // Regra para permitir que usuários autenticados acessem apenas seus próprios dados
     match /users/{userId} {
-      // Permitir leitura do status de onboarding mesmo durante o logout
-      allow read: if request.auth != null;
-      // Manter as regras de escrita restritas
-      allow write: if request.auth != null && request.auth.uid == userId;
+      // Permitir leitura do status de onboarding para o próprio usuário
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // Manter as regras de escrita restritas, mas permitir finalização de operações em andamento
+      allow write: if (request.auth != null && request.auth.uid == userId) || 
+                     (resource != null && resource.data.userId == userId && isValidOperation());
       
       // Regra explícita para customMeals
       match /customMeals/{mealId} {
@@ -38,7 +45,22 @@ service cloud.firestore {
     match /workouts/{workoutId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Permitir atualizações de dados que já estavam sendo enviados durante o logout
+      allow update: if (request.auth != null && resource.data.userId == request.auth.uid) || 
+                      (resource != null && resource.data.userId != null && request.method == "update");
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // Regra para permitir que qualquer pessoa adicione emails à lista de espera
+    match /waitlist/{document} {
+      allow read: if request.auth != null; // Apenas usuários autenticados podem ler
+      allow create: if true; // Qualquer pessoa pode adicionar um email
+    }
+    
+    // Regra para permitir que qualquer pessoa adicione sugestões
+    match /suggestions/{document} {
+      allow read: if request.auth != null; // Apenas usuários autenticados podem ler
+      allow create: if true; // Qualquer pessoa pode adicionar uma sugestão
     }
     
     // Regra padrão - negar acesso a todos os documentos
@@ -46,4 +68,4 @@ service cloud.firestore {
       allow read, write: if false;
     }
   }
-} 
+}

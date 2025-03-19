@@ -21,6 +21,7 @@ import Animated, {
 import { format, subDays, isFirstDayOfMonth, getDate } from "date-fns";
 import { useMeals } from "../../context/MealContext";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 
 const { width } = Dimensions.get("window");
 
@@ -50,8 +51,17 @@ export default function NutritionProgressChart({
 
   // Efeito para animar a altura do card quando expandido/recolhido
   useEffect(() => {
+    const emptyStateHeight = 180; // Altura para o estado vazio
+    const hasData = !caloriesData.every((cal) => cal === 0);
+
+    // Se não houver dados, definir uma altura fixa
+    if (!hasData) {
+      cardHeight.value = withTiming(emptyStateHeight, { duration: 300 });
+      return;
+    }
+
     cardHeight.value = withTiming(isExpanded ? 500 : 240, { duration: 300 });
-  }, [isExpanded]);
+  }, [isExpanded, caloriesData]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -248,6 +258,8 @@ export default function NutritionProgressChart({
     setSelectedPeriod(period);
   };
 
+  const hasData = !caloriesData.every((cal) => cal === 0);
+
   return (
     <Animated.View
       entering={FadeIn.duration(500)}
@@ -259,8 +271,10 @@ export default function NutritionProgressChart({
     >
       <Pressable
         style={styles.pressableArea}
-        onPress={toggleExpand}
-        android_ripple={{ color: colors.text + "10", borderless: true }}
+        onPress={hasData ? toggleExpand : undefined}
+        android_ripple={
+          hasData ? { color: colors.text + "10", borderless: true } : undefined
+        }
       >
         <View style={styles.header}>
           <View style={styles.titleContainer}>
@@ -305,187 +319,212 @@ export default function NutritionProgressChart({
               />
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.expandButton,
-                { backgroundColor: colors.text + "10" },
-              ]}
-              onPress={toggleExpand}
-            >
-              <Ionicons
-                name={isExpanded ? "chevron-up" : "chevron-down"}
-                size={20}
-                color={colors.text + "80"}
-              />
-            </TouchableOpacity>
+            {hasData && (
+              <TouchableOpacity
+                style={[
+                  styles.expandButton,
+                  { backgroundColor: colors.text + "10" },
+                ]}
+                onPress={toggleExpand}
+              >
+                <Ionicons
+                  name={isExpanded ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color={colors.text + "80"}
+                />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
-        {/* Seletor de período - sempre visível */}
-        <View style={styles.periodSelector}>
-          <TouchableOpacity
-            style={[
-              styles.periodButton,
-              selectedPeriod === "7d" && [
-                styles.selectedPeriod,
-                { backgroundColor: colors.primary + "20" },
-              ],
-            ]}
-            onPress={() => handlePeriodChange("7d")}
-          >
-            <Text
-              style={[
-                styles.periodText,
-                { color: colors.text + "80" },
-                selectedPeriod === "7d" && {
-                  color: colors.primary,
-                  fontWeight: "600",
-                },
-              ]}
-            >
-              7 dias
-            </Text>
-          </TouchableOpacity>
+        {hasData ? (
+          <>
+            <View style={styles.periodSelector}>
+              <TouchableOpacity
+                style={[
+                  styles.periodButton,
+                  selectedPeriod === "7d" && [
+                    styles.selectedPeriod,
+                    { backgroundColor: colors.primary + "20" },
+                  ],
+                ]}
+                onPress={() => handlePeriodChange("7d")}
+              >
+                <Text
+                  style={[
+                    styles.periodText,
+                    { color: colors.text + "80" },
+                    selectedPeriod === "7d" && {
+                      color: colors.primary,
+                      fontWeight: "600",
+                    },
+                  ]}
+                >
+                  7 dias
+                </Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.periodButton,
-              selectedPeriod === "14d" && [
-                styles.selectedPeriod,
-                { backgroundColor: colors.primary + "20" },
-              ],
-            ]}
-            onPress={() => handlePeriodChange("14d")}
-          >
-            <Text
-              style={[
-                styles.periodText,
-                { color: colors.text + "80" },
-                selectedPeriod === "14d" && {
-                  color: colors.primary,
-                  fontWeight: "600",
-                },
-              ]}
-            >
-              14 dias
-            </Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.periodButton,
+                  selectedPeriod === "14d" && [
+                    styles.selectedPeriod,
+                    { backgroundColor: colors.primary + "20" },
+                  ],
+                ]}
+                onPress={() => handlePeriodChange("14d")}
+              >
+                <Text
+                  style={[
+                    styles.periodText,
+                    { color: colors.text + "80" },
+                    selectedPeriod === "14d" && {
+                      color: colors.primary,
+                      fontWeight: "600",
+                    },
+                  ]}
+                >
+                  14 dias
+                </Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.periodButton,
-              selectedPeriod === "30d" && [
-                styles.selectedPeriod,
-                { backgroundColor: colors.primary + "20" },
-              ],
-            ]}
-            onPress={() => handlePeriodChange("30d")}
-          >
-            <Text
-              style={[
-                styles.periodText,
-                { color: colors.text + "80" },
-                selectedPeriod === "30d" && {
-                  color: colors.primary,
-                  fontWeight: "600",
-                },
-              ]}
-            >
-              Mês
-            </Text>
-          </TouchableOpacity>
-        </View>
+              <TouchableOpacity
+                style={[
+                  styles.periodButton,
+                  selectedPeriod === "30d" && [
+                    styles.selectedPeriod,
+                    { backgroundColor: colors.primary + "20" },
+                  ],
+                ]}
+                onPress={() => handlePeriodChange("30d")}
+              >
+                <Text
+                  style={[
+                    styles.periodText,
+                    { color: colors.text + "80" },
+                    selectedPeriod === "30d" && {
+                      color: colors.primary,
+                      fontWeight: "600",
+                    },
+                  ]}
+                >
+                  Mês
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-        {/* Cards de estatísticas - sempre visíveis */}
-        <View style={styles.statsContainer}>
+            <View style={styles.statsContainer}>
+              <MotiView
+                style={[styles.statCard, { backgroundColor: colors.card }]}
+                from={{ opacity: 0, translateY: 10 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: "timing", duration: 500, delay: 300 }}
+              >
+                <Text
+                  style={[styles.statLabel, { color: colors.text }]}
+                  numberOfLines={1}
+                >
+                  Hoje
+                </Text>
+                <Text style={[styles.statValue, { color: colors.text }]}>
+                  {todayCalories}{" "}
+                  <Text
+                    style={[styles.statUnit, { color: colors.text + "60" }]}
+                  >
+                    kcal
+                  </Text>
+                </Text>
+              </MotiView>
+
+              <MotiView
+                style={[styles.statCard, { backgroundColor: colors.card }]}
+                from={{ opacity: 0, translateY: 10 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: "timing", duration: 500, delay: 400 }}
+              >
+                <Text
+                  style={[styles.statLabel, { color: colors.text }]}
+                  numberOfLines={1}
+                >
+                  Média
+                </Text>
+                <Text style={[styles.statValue, { color: colors.text }]}>
+                  {averageCalories}{" "}
+                  <Text
+                    style={[styles.statUnit, { color: colors.text + "60" }]}
+                  >
+                    kcal
+                  </Text>
+                </Text>
+              </MotiView>
+
+              <MotiView
+                style={[styles.statCard, { backgroundColor: colors.card }]}
+                from={{ opacity: 0, translateY: 10 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: "timing", duration: 500, delay: 500 }}
+              >
+                <Text
+                  style={[styles.statLabel, { color: colors.text }]}
+                  numberOfLines={1}
+                >
+                  Máximo
+                </Text>
+                <Text style={[styles.statValue, { color: colors.text }]}>
+                  {maxCalories}{" "}
+                  <Text
+                    style={[styles.statUnit, { color: colors.text + "60" }]}
+                  >
+                    kcal
+                  </Text>
+                </Text>
+              </MotiView>
+            </View>
+
+            {!isExpanded && (
+              <View style={styles.expandIndicator}>
+                <View
+                  style={[
+                    styles.expandDot,
+                    { backgroundColor: colors.primary + "40" },
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.expandDot,
+                    { backgroundColor: colors.primary + "40" },
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.expandDot,
+                    { backgroundColor: colors.primary + "40" },
+                  ]}
+                />
+              </View>
+            )}
+          </>
+        ) : (
           <MotiView
-            style={[styles.statCard, { backgroundColor: colors.card }]}
-            from={{ opacity: 0, translateY: 10 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: "timing", duration: 500, delay: 300 }}
+            from={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ type: "timing", duration: 500 }}
+            style={styles.emptyContainer}
           >
-            <Text
-              style={[styles.statLabel, { color: colors.text }]}
-              numberOfLines={1}
+            <LinearGradient
+              colors={[colors.light, colors.background]}
+              style={styles.emptyGradient}
             >
-              Hoje
-            </Text>
-            <Text style={[styles.statValue, { color: colors.text }]}>
-              {todayCalories}{" "}
-              <Text style={[styles.statUnit, { color: colors.text + "60" }]}>
-                kcal
+              <Text style={[styles.emptyText, { color: colors.text + "50" }]}>
+                Nenhuma refeição registrada hoje
               </Text>
-            </Text>
+            </LinearGradient>
           </MotiView>
-
-          <MotiView
-            style={[styles.statCard, { backgroundColor: colors.card }]}
-            from={{ opacity: 0, translateY: 10 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: "timing", duration: 500, delay: 400 }}
-          >
-            <Text
-              style={[styles.statLabel, { color: colors.text }]}
-              numberOfLines={1}
-            >
-              Média
-            </Text>
-            <Text style={[styles.statValue, { color: colors.text }]}>
-              {averageCalories}{" "}
-              <Text style={[styles.statUnit, { color: colors.text + "60" }]}>
-                kcal
-              </Text>
-            </Text>
-          </MotiView>
-
-          <MotiView
-            style={[styles.statCard, { backgroundColor: colors.card }]}
-            from={{ opacity: 0, translateY: 10 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: "timing", duration: 500, delay: 500 }}
-          >
-            <Text
-              style={[styles.statLabel, { color: colors.text }]}
-              numberOfLines={1}
-            >
-              Máximo
-            </Text>
-            <Text style={[styles.statValue, { color: colors.text }]}>
-              {maxCalories}{" "}
-              <Text style={[styles.statUnit, { color: colors.text + "60" }]}>
-                kcal
-              </Text>
-            </Text>
-          </MotiView>
-        </View>
-
-        {/* Indicador de expansão */}
-        {!isExpanded && (
-          <View style={styles.expandIndicator}>
-            <View
-              style={[
-                styles.expandDot,
-                { backgroundColor: colors.primary + "40" },
-              ]}
-            />
-            <View
-              style={[
-                styles.expandDot,
-                { backgroundColor: colors.primary + "40" },
-              ]}
-            />
-            <View
-              style={[
-                styles.expandDot,
-                { backgroundColor: colors.primary + "40" },
-              ]}
-            />
-          </View>
         )}
       </Pressable>
 
-      {/* Conteúdo expandido - visível apenas quando expandido */}
-      {isExpanded && (
+      {/* Conteúdo expandido - visível apenas quando expandido e há dados */}
+      {isExpanded && hasData && (
         <MotiView
           from={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -517,66 +556,6 @@ export default function NutritionProgressChart({
                 >
                   Carregando dados...
                 </Text>
-              </View>
-            ) : caloriesData.every((cal) => cal === 0) ? (
-              <View
-                style={[
-                  styles.emptyContainer,
-                  {
-                    backgroundColor: colors.chartBackground,
-                    borderRadius: 16,
-                    elevation: 3,
-                    padding: 20,
-                    margin: 16,
-                    paddingTop: 0,
-                    justifyContent: "center",
-                  },
-                ]}
-              >
-                <View style={styles.emptyContentWrapper}>
-                  <Ionicons
-                    name="restaurant-outline"
-                    size={36}
-                    color={colors.primary + "60"}
-                    style={{ marginBottom: 8 }}
-                  />
-                  <Text
-                    style={[
-                      styles.emptyText,
-                      {
-                        color: colors.text + "80",
-                        fontWeight: "600",
-                        marginBottom: 2, // Reduzir o espaçamento inferior
-                      },
-                    ]}
-                  >
-                    Nenhum dado de calorias encontrado
-                  </Text>
-                  <Text
-                    style={[
-                      styles.emptySubText,
-                      {
-                        color: colors.text + "60",
-                        marginBottom: 12, // Reduzir o espaçamento inferior
-                      },
-                    ]}
-                  >
-                    Registre suas refeições para visualizar seu progresso
-                  </Text>
-                  <TouchableOpacity
-                    style={[
-                      styles.addButton,
-                      {
-                        backgroundColor: colors.dark,
-                        paddingVertical: 10, // Reduzir a altura do botão
-                        marginTop: 2, // Ajustar a margem superior
-                      },
-                    ]}
-                    onPress={onPress}
-                  >
-                    <Text style={styles.addButtonText}>Registrar Refeição</Text>
-                  </TouchableOpacity>
-                </View>
               </View>
             ) : (
               <View style={styles.chartContainer}>
@@ -756,25 +735,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   emptyContainer: {
-    alignItems: "center",
-    height: 180,
+    marginVertical: 12,
+    borderRadius: 10,
+    overflow: "hidden",
   },
-  emptyContentWrapper: {
+  emptyGradient: {
+    padding: 24,
     alignItems: "center",
-    paddingTop: 0,
-  },
-  emptyIcon: {
-    marginBottom: 10,
+    justifyContent: "center",
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 13,
     textAlign: "center",
-    marginBottom: 4,
-  },
-  emptySubText: {
-    fontSize: 14,
-    textAlign: "center",
-    marginBottom: 16,
   },
   addButton: {
     paddingHorizontal: 24,

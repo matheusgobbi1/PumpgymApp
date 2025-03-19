@@ -188,6 +188,7 @@ export default function AddFoodScreen() {
   // Extrair parâmetros da refeição
   const mealId = params.mealId as string;
   const mealName = params.mealName as string;
+  const mealColor = (params.mealColor as string) || colors.primary;
   const targetCalories = Number(params.targetCalories);
   const targetProtein = Number(params.targetProtein);
   const targetCarbs = Number(params.targetCarbs);
@@ -446,6 +447,7 @@ export default function AddFoodScreen() {
         foodId: food.food_id,
         mealId,
         mealName,
+        mealColor,
         targetCalories,
         targetProtein,
         targetCarbs,
@@ -552,7 +554,7 @@ export default function AddFoodScreen() {
             </View>
             <TouchableOpacity
               key={`add-button-${result.food_id}-${theme}`}
-              style={[styles.addButton, { backgroundColor: colors.primary }]}
+              style={[styles.addButton, { backgroundColor: mealColor }]}
               onPress={() => handleQuickAddFromSearch(result)}
             >
               <Ionicons name="add" size={20} color="#FFF" />
@@ -660,9 +662,12 @@ export default function AddFoodScreen() {
               </Text>
               <TouchableOpacity onPress={clearSearchHistory}>
                 <Text
-                  style={[styles.clearHistoryText, { color: colors.danger }]}
+                  style={[
+                    styles.clearHistoryText,
+                    { color: colors.text + "80", backgroundColor: colors.light },
+                  ]}
                 >
-                  Limpar Histórico
+                  Limpar
                 </Text>
               </TouchableOpacity>
             </View>
@@ -701,10 +706,7 @@ export default function AddFoodScreen() {
                   </View>
                   <TouchableOpacity
                     key={`recent-add-button-${food.id}-${theme}`}
-                    style={[
-                      styles.addButton,
-                      { backgroundColor: colors.primary },
-                    ]}
+                    style={[styles.addButton, { backgroundColor: mealColor }]}
                     onPress={() => handleQuickAdd(food)}
                   >
                     <Ionicons name="add" size={20} color="#FFF" />
@@ -859,7 +861,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
-    marginBottom: 12,
   },
   recentHistorySection: {
     marginBottom: 20,
@@ -904,6 +905,9 @@ const styles = StyleSheet.create({
   },
   clearHistoryText: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "400",
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
 });

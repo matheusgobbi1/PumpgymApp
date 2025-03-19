@@ -13,6 +13,7 @@ import {
   Dimensions,
   TouchableOpacity,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
@@ -37,6 +38,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useRefresh } from "../../context/RefreshContext";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import ConfirmationModal from "../../components/ui/ConfirmationModal";
+import ContextMenu, { MenuAction } from "../../components/shared/ContextMenu";
 
 const { width } = Dimensions.get("window");
 
@@ -111,6 +113,7 @@ export default function NutritionScreen() {
     hasMealTypesConfigured,
     resetMealTypes,
     updateMealTypes,
+    saveMeals,
   } = useMeals();
 
   // Estado para forçar a recriação do MealConfigSheet
@@ -119,13 +122,16 @@ export default function NutritionScreen() {
   // Estado para controlar a visibilidade do modal de confirmação
   const [resetModalVisible, setResetModalVisible] = useState(false);
 
-  // Ref para o bottom sheet de configuração de refeições
+  // Referência para o bottom sheet de configuração de refeições
   const mealConfigSheetRef = useRef<BottomSheetModal>(null);
 
-  // Verificar se a referência do bottom sheet está sendo inicializada
+  // Efeito para forçar atualização quando o status de configuração de refeições mudar
   useEffect(() => {
-    return () => {};
-  }, [hasMealTypesConfigured]);
+    if (hasMealTypesConfigured) {
+      // Forçar atualização quando as refeições forem configuradas
+      triggerRefresh();
+    }
+  }, [hasMealTypesConfigured, triggerRefresh]);
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(format(date, "yyyy-MM-dd"));
@@ -182,36 +188,57 @@ export default function NutritionScreen() {
 
   // Tentar abrir o bottom sheet se o parâmetro estiver presente
   // Isso é executado uma vez durante a renderização inicial
-  // em vez de usar useEffect
-  useMemo(() => {
+  useEffect(() => {
     if (params?.openMealConfig === "true") {
       // Pequeno atraso para garantir que o componente esteja montado
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         openMealConfigSheet();
       }, 100);
+
+      return () => clearTimeout(timer);
     }
   }, [params, openMealConfigSheet]);
 
   // Função para lidar com a configuração de refeições
   const handleMealConfigured = useCallback(
-    (configuredMeals: MealTypeContext[]) => {
-      // Converter as refeições configuradas para o formato esperado pelo contexto
-      const mealTypesToUpdate = configuredMeals.map(
-        (meal: MealTypeContext) => ({
-          id: meal.id,
-          name: meal.name,
-          icon: meal.icon,
-          color:
-            meal.color ||
-            DEFAULT_MEAL_COLORS[meal.id] ||
-            DEFAULT_MEAL_COLORS.other,
-        })
-      );
+    async (configuredMeals: MealTypeContext[]) => {
+      try {
+        // Verificar se há refeições selecionadas
+        if (!configuredMeals || configuredMeals.length === 0) {
+          console.error("Nenhuma refeição selecionada para configuração");
+          return;
+        }
 
-      // Atualizar todos os tipos de refeições de uma vez
-      updateMealTypes(mealTypesToUpdate);
+        // Converter as refeições configuradas para o formato esperado pelo contexto
+        const mealTypesToUpdate = configuredMeals.map(
+          (meal: MealTypeContext) => ({
+            id: meal.id,
+            name: meal.name,
+            icon: meal.icon,
+            color:
+              meal.color ||
+              DEFAULT_MEAL_COLORS[meal.id] ||
+              DEFAULT_MEAL_COLORS.other,
+          })
+        );
+
+        // Atualizar todos os tipos de refeições de uma vez
+        const success = await updateMealTypes(mealTypesToUpdate);
+
+        if (success) {
+          // Não precisamos chamar triggerRefresh() aqui pois o contexto já faz isso internamente
+          // Apenas salvar os dados para garantir que persistam
+          await saveMeals();
+
+          // Feedback tátil de sucesso
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      } catch (error) {
+        console.error("Erro ao configurar refeições:", error);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
     },
-    [updateMealTypes]
+    [updateMealTypes, saveMeals]
   );
 
   // Função para redefinir as refeições
@@ -224,33 +251,57 @@ export default function NutritionScreen() {
   // Função para confirmar a redefinição das refeições
   const confirmResetMealTypes = useCallback(async () => {
     try {
-      // Primeiro, redefinir as refeições
-      await resetMealTypes();
-
-      // Forçar a recriação do componente MealConfigSheet
-      setMealConfigKey(Date.now());
-      // Fechar o modal
+      // Primeiro fechar o modal para evitar problemas visuais
       setResetModalVisible(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      // Redefinir as refeições
+      const success = await resetMealTypes();
+
+      if (success) {
+        // Forçar a recriação do componente MealConfigSheet
+        setMealConfigKey(Date.now());
+
+        // Não precisamos chamar triggerRefresh() aqui pois o contexto já faz isso
+
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        Alert.alert(
+          "Erro",
+          "Não foi possível redefinir as refeições. Tente novamente."
+        );
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
     } catch (error) {
       console.error("Erro ao redefinir refeições:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
       // Fechar o modal mesmo em caso de erro
       setResetModalVisible(false);
+
+      // Mostrar alerta de erro
+      Alert.alert(
+        "Erro",
+        "Ocorreu um erro ao redefinir refeições. Tente reiniciar o aplicativo."
+      );
     }
   }, [resetMealTypes]);
 
-  // Obter os tipos de refeições configuradas
+  // Obter os tipos de refeições configuradas com uma técnica mais eficiente
   const configuredMealTypes = useMemo(() => {
+    // Verificar se há tipos de refeição definidos
+    if (!mealTypes || mealTypes.length === 0) {
+      return [];
+    }
+
     return mealTypes.map((type) => ({
       id: type.id,
       name: type.name,
       icon: type.icon,
       color:
         type.color || DEFAULT_MEAL_COLORS[type.id] || DEFAULT_MEAL_COLORS.other,
-      foods: [],
+      foods: getFoodsForMeal(type.id),
     }));
-  }, [mealTypes]);
+  }, [mealTypes, getFoodsForMeal]); // Removemos refreshKey para evitar renderização desnecessária
 
   // Memoizar o componente EmptyNutritionState para evitar re-renderizações desnecessárias
   const emptyStateComponent = useMemo(
@@ -283,17 +334,47 @@ export default function NutritionScreen() {
   );
 
   // Função para lidar com o pull to refresh
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     if (isRefreshing) return; // Evitar múltiplos refreshes simultâneos
 
-    setRefreshing(true);
-    // Usar o triggerRefresh do contexto para atualizar todos os componentes
-    triggerRefresh();
-    // Simular carregamento de dados
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setRefreshing(false);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  };
+    try {
+      setRefreshing(true);
+      triggerRefresh();
+      await saveMeals();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error("Erro ao atualizar dados:", error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [isRefreshing, triggerRefresh, saveMeals]);
+
+  // Adicionar ações do menu contextual para a tela de Nutrição
+  const menuActions = useMemo<MenuAction[]>(
+    () => [
+      {
+        id: "edit",
+        label: "Editar Refeições",
+        icon: "settings-outline",
+        type: "default",
+        onPress: openMealConfigSheet,
+      },
+      {
+        id: "reset",
+        label: "Redefinir Refeições",
+        icon: "refresh-outline",
+        type: "danger",
+        onPress: handleResetMealTypes,
+      },
+    ],
+    [openMealConfigSheet, handleResetMealTypes]
+  );
+
+  // Verificar se há configuração e conteúdo de refeições para mostrar o menu
+  const isMenuVisible = useMemo(() => {
+    return hasMealTypesConfigured && configuredMealTypes.length > 0;
+  }, [hasMealTypesConfigured, configuredMealTypes]);
 
   // Se não houver refeições configuradas, mostrar o estado vazio
   if (!hasMealTypesConfigured) {
@@ -402,6 +483,9 @@ export default function NutritionScreen() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {calendarComponent}
 
+        {/* Menu contextual */}
+        <ContextMenu actions={menuActions} isVisible={isMenuVisible} />
+
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollViewContent}
@@ -418,42 +502,28 @@ export default function NutritionScreen() {
         >
           <MacrosCard dayTotals={dailyTotals} nutritionInfo={nutritionInfo} />
 
-          {configuredMealTypes.map((meal, index) => (
-            <MealCard
-              key={`meal-${meal.id}-${user?.uid || "no-user"}`}
-              meal={meal}
-              foods={getFoodsForMeal(meal.id)}
-              mealTotals={getMealTotals(meal.id)}
-              index={index}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
-              onDeleteFood={(foodId) => handleDeleteFood(meal.id, foodId)}
-              showCopyOption={true}
-            />
-          ))}
-
-          {/* Botão para redefinir refeições */}
-          <TouchableOpacity
-            key={`reset-button-${theme}`}
-            style={[styles.resetButton, { borderColor: colors.border }]}
-            onPress={handleResetMealTypes}
-          >
-            <Ionicons name="refresh-outline" size={20} color={colors.primary} />
-            <Text style={[styles.resetButtonText, { color: colors.text }]}>
-              Redefinir Refeições
+          {configuredMealTypes.length > 0 ? (
+            <>
+              {configuredMealTypes.map((meal, index) => (
+                <MealCard
+                  key={`meal-${meal.id}-${selectedDate}-${refreshKey}`}
+                  meal={meal}
+                  foods={meal.foods}
+                  mealTotals={getMealTotals(meal.id)}
+                  index={index}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                  onDeleteFood={(foodId) => handleDeleteFood(meal.id, foodId)}
+                  showCopyOption={true}
+                />
+              ))}
+            </>
+          ) : (
+            <Text style={[styles.emptyText, { color: colors.text }]}>
+              Configure suas refeições para começar
             </Text>
-          </TouchableOpacity>
-
-          {/* Botão para editar refeições */}
-          <TouchableOpacity
-            key={`edit-button-${theme}`}
-            style={[styles.editButton, { backgroundColor: colors.primary }]}
-            onPress={openMealConfigSheet}
-          >
-            <Ionicons name="settings-outline" size={20} color="white" />
-            <Text style={styles.editButtonText}>Editar Refeições</Text>
-          </TouchableOpacity>
+          )}
         </ScrollView>
 
         {/* Bottom Sheet para configuração de refeições quando há refeições configuradas */}
@@ -491,33 +561,13 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 100,
   },
-  resetButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    marginTop: 20,
-    marginBottom: 12,
+  emptyText: {
+    textAlign: "center",
+    marginTop: 16,
   },
-  resetButtonText: {
-    fontSize: 16,
-    marginLeft: 8,
-  },
-  editButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 20,
-  },
-  editButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "white",
-    marginLeft: 8,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 16,
   },
 });

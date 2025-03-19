@@ -16,6 +16,7 @@ import Colors from "../constants/Colors";
 import OfflineNotice from "../components/notifications/OfflineNotice";
 import "react-native-reanimated";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { ReminderProvider } from "../context/ReminderContext";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -82,7 +83,9 @@ function RootLayoutNav() {
                 <MealProvider>
                   <WorkoutProvider>
                     <RefreshProvider>
-                      <AppContent />
+                      <ReminderProvider>
+                        <AppContent />
+                      </ReminderProvider>
                     </RefreshProvider>
                   </WorkoutProvider>
                 </MealProvider>
@@ -127,6 +130,13 @@ function AppContent() {
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(add-food)" />
+        <Stack.Screen
+          name="reminder-modal"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+          }}
+        />
         <Stack.Screen
           name="terms-of-use"
           options={{

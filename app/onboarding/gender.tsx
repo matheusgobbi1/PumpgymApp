@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Alert } from "react-native";
+import { View, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
@@ -16,18 +16,45 @@ export default function GenderScreen() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { nutritionInfo, updateNutritionInfo } = useNutrition();
-  const { signOut } = useAuth();
+  const { signOut, user, isAnonymous, isNewUser, loading } = useAuth();
   const [selectedGender, setSelectedGender] = useState<Gender | undefined>(
     nutritionInfo.gender
   );
-  
+  // Estado para controlar se o conteúdo deve ser renderizado
+  const [shouldRender, setShouldRender] = useState(false);
   // Estado para forçar re-renderização quando o tema mudar
   const [, setForceUpdate] = useState({});
-  
+
   // Efeito para forçar a re-renderização quando o tema mudar
   useEffect(() => {
     setForceUpdate({});
   }, [theme]);
+
+  // Verificação inicial do estado do usuário antes de renderizar o conteúdo
+  useEffect(() => {
+    // Se a autenticação ainda está carregando, não faça nada
+    if (loading) return;
+
+    console.log("GenderScreen - Estado do usuário:", {
+      userExists: !!user,
+      userId: user?.uid,
+      isAnonymous,
+      isNewUser,
+      hasGender: !!nutritionInfo.gender,
+    });
+
+    // Se usuário está autenticado, não é anônimo e já completou o onboarding
+    if (user && !isAnonymous && !isNewUser) {
+      console.log("Redirecionando para a tela principal da tela de gênero");
+      router.replace("/(tabs)");
+      return;
+    }
+
+    // Somente renderize se o usuário deve estar nesta tela
+    if ((user && isAnonymous) || (user && !isAnonymous && isNewUser)) {
+      setShouldRender(true);
+    }
+  }, [user, isAnonymous, isNewUser, nutritionInfo.gender, router, loading]);
 
   const handleNext = () => {
     if (selectedGender) {
@@ -102,6 +129,20 @@ export default function GenderScreen() {
     },
   ];
 
+  // Se não devemos renderizar ainda, mostrar uma tela em branco
+  if (!shouldRender) {
+    return (
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <OnboardingLayout
       title="Escolha seu gênero"
@@ -131,5 +172,10 @@ export default function GenderScreen() {
 const styles = StyleSheet.create({
   optionsContainer: {
     marginTop: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

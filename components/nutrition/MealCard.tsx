@@ -128,9 +128,9 @@ const MealCardComponent = ({
   );
 
   // Cores dos macronutrientes usando as cores do tema
-  const proteinColor = colors.success || "#4CAF50"; // Verde
-  const carbsColor = colors.primary || "#2196F3"; // Azul
-  const fatColor = colors.danger || "#FF3B30"; // Vermelho
+  const proteinColor = "#FF3D7F"; // Rosa vibrante
+  const carbsColor = "#0ABDE3"; // Azul brilhante
+  const fatColor = "#FEC93D"; // Amarelo ouro vibrante
 
   // Função para navegar para a tela de detalhes do alimento para edição
   const navigateToFoodDetails = useCallback(
@@ -143,6 +143,7 @@ const MealCardComponent = ({
         params: {
           mealId: meal.id,
           mealName: meal.name,
+          mealColor: meal.color,
           isFromHistory: "true",
           foodName: food.name,
           calories: food.calories.toString(),
@@ -155,7 +156,7 @@ const MealCardComponent = ({
         },
       });
     },
-    [router, meal.id, meal.name, handleHapticFeedback]
+    [router, meal.id, meal.name, meal.color, handleHapticFeedback]
   );
 
   // Função para renderizar as ações de deslize à esquerda (editar)
@@ -333,10 +334,11 @@ const MealCardComponent = ({
         params: {
           mealId: meal.id,
           mealName: meal.name,
+          mealColor: meal.color,
         },
       });
     },
-    [handleHapticFeedback, meal.id, meal.name, router]
+    [handleHapticFeedback, meal.id, meal.name, meal.color, router]
   );
 
   const handleDeleteMeal = useCallback(async () => {
@@ -441,6 +443,7 @@ const MealCardComponent = ({
                   params: {
                     mealId: meal.id,
                     mealName: meal.name,
+                    mealColor: meal.color,
                   },
                 });
               }}
@@ -465,28 +468,50 @@ const MealCardComponent = ({
                     <Text style={[styles.mealTitle, { color: colors.text }]}>
                       {meal.name}
                     </Text>
-                    {foods.length > 0 && (
+                    <Text style={[styles.mealCalories, { color: meal.color }]}>
+                      {mealTotals.calories}{" "}
                       <Text
                         style={[
-                          styles.foodCount,
+                          styles.caloriesUnit,
                           { color: colors.text + "70" },
                         ]}
                       >
-                        {foods.length}{" "}
-                        {foods.length === 1 ? "alimento" : "alimentos"}
+                        kcal
                       </Text>
-                    )}
+                    </Text>
                   </View>
                 </View>
-                <View style={styles.mealCaloriesContainer}>
-                  <Text style={[styles.mealCalories, { color: meal.color }]}>
-                    {mealTotals.calories}
-                  </Text>
-                  <Text
-                    style={[styles.caloriesUnit, { color: colors.text + "70" }]}
+                <View style={styles.actionButtonsContainer}>
+                  {getMostRecentMealDate() && showCopyOption && (
+                    <TouchableOpacity
+                      style={[
+                        styles.headerActionButton,
+                        {
+                          borderColor: meal.color,
+                          backgroundColor: meal.color + "10",
+                        },
+                      ]}
+                      onPress={openCopyModal}
+                    >
+                      <Ionicons
+                        name="copy-outline"
+                        size={20}
+                        color={meal.color}
+                      />
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={[
+                      styles.headerActionButton,
+                      {
+                        borderColor: meal.color,
+                        backgroundColor: meal.color + "10",
+                      },
+                    ]}
+                    onPress={handleAddFood}
                   >
-                    kcal
-                  </Text>
+                    <Ionicons name="add" size={20} color={meal.color} />
+                  </TouchableOpacity>
                 </View>
               </View>
             </TouchableOpacity>
@@ -501,21 +526,21 @@ const MealCardComponent = ({
                 <View
                   style={[
                     styles.macroProgressBar,
-                    { backgroundColor: proteinColor },
+                    { backgroundColor: proteinColor + "CC" },
                     { width: `${proteinPercentage}%` },
                   ]}
                 />
                 <View
                   style={[
                     styles.macroProgressBar,
-                    { backgroundColor: carbsColor },
+                    { backgroundColor: carbsColor + "CC" },
                     { width: `${carbsPercentage}%` },
                   ]}
                 />
                 <View
                   style={[
                     styles.macroProgressBar,
-                    { backgroundColor: fatColor },
+                    { backgroundColor: fatColor + "CC" },
                     { width: `${fatPercentage}%` },
                   ]}
                 />
@@ -573,35 +598,6 @@ const MealCardComponent = ({
                   </Text>
                 </MotiView>
               )}
-            </View>
-
-            <View style={styles.addButtonContainer}>
-              {getMostRecentMealDate() && showCopyOption && (
-                <TouchableOpacity
-                  style={[
-                    styles.copyButton,
-                    {
-                      borderColor: meal.color,
-                      backgroundColor: meal.color + "10",
-                    },
-                  ]}
-                  onPress={openCopyModal}
-                >
-                  <Ionicons name="copy-outline" size={20} color={meal.color} />
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={[
-                  styles.addButton,
-                  {
-                    borderColor: meal.color,
-                    backgroundColor: meal.color + "10",
-                  },
-                ]}
-                onPress={handleAddFood}
-              >
-                <Ionicons name="add" size={20} color={meal.color} />
-              </TouchableOpacity>
             </View>
           </View>
         </MotiView>
@@ -711,20 +707,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  foodCount: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  mealCaloriesContainer: {
-    alignItems: "flex-end",
-  },
   mealCalories: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "600",
+    marginTop: 2,
   },
   caloriesUnit: {
     fontSize: 11,
-    marginTop: 2,
+    fontWeight: "normal",
+  },
+  actionButtonsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerActionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    backgroundColor: "transparent",
+    borderColor: "transparent",
   },
   macroProgressContainer: {
     height: 3,
@@ -738,7 +743,6 @@ const styles = StyleSheet.create({
   },
   foodsContainer: {
     minHeight: 50,
-    marginBottom: 50, // Espaço para o botão
   },
   foodsList: {
     marginVertical: 0,
@@ -792,12 +796,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   macroLabel: {
-    fontSize: 10,
+    fontSize: 8,
     fontWeight: "500",
   },
   macroValue: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 10,
+    fontWeight: "600",
     textAlign: "center",
   },
   emptyContainer: {
@@ -814,35 +818,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: "center",
   },
-  addButtonContainer: {
-    position: "absolute",
-    bottom: 16,
-    right: 16,
-    zIndex: 1,
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-  },
-  copyButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    backgroundColor: "transparent",
-    borderColor: "transparent",
-  },
-  addButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    backgroundColor: "transparent",
-    borderColor: "transparent",
-  },
   swipeActionContainer: {
     height: "100%",
     justifyContent: "center",
@@ -853,8 +828,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: 70,
     height: "100%",
-    borderTopRightRadius: 0,
-    borderBottomRightRadius: 0,
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
   },
   swipeActionMeal: {
     height: "100%",
@@ -863,6 +838,8 @@ const styles = StyleSheet.create({
     width: 100,
     backgroundColor: "rgba(255, 59, 48, 0.9)",
     paddingHorizontal: 10,
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
   },
   swipeActionText: {
     color: "white",

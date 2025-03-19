@@ -34,8 +34,78 @@ import { useLocalSearchParams } from "expo-router";
 import { useRefresh } from "../../context/RefreshContext";
 import { Ionicons } from "@expo/vector-icons";
 import ConfirmationModal from "../../components/ui/ConfirmationModal";
+import ContextMenu, { MenuAction } from "../../components/shared/ContextMenu";
+import Toast from "../../components/common/Toast";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Componente memoizado para o card de treino
+// Definir interface para props do MemoizedWorkoutGroup
+interface WorkoutGroupProps {
+  workoutId: string;
+  workoutType: WorkoutType;
+  exercises: Exercise[];
+  workoutTotals: any;
+  index: number;
+  previousWorkoutData: any;
+  previousExercises: Exercise[];
+  onNavigate: (id: string) => void;
+  onDeleteExercise: (workoutId: string, exerciseId: string) => Promise<void>;
+  refreshKey?: number;
+  notificationsEnabled: boolean;
+}
+
+// Função para comparar props do MemoizedWorkoutGroup
+const arePropsEqual = (
+  prevProps: WorkoutGroupProps,
+  nextProps: WorkoutGroupProps
+): boolean => {
+  // Verificar se as props primitivas são iguais
+  if (
+    prevProps.workoutId !== nextProps.workoutId ||
+    prevProps.index !== nextProps.index ||
+    prevProps.refreshKey !== nextProps.refreshKey ||
+    prevProps.notificationsEnabled !== nextProps.notificationsEnabled
+  ) {
+    return false;
+  }
+
+  // Verificar se o workoutType mudou
+  if (
+    prevProps.workoutType.name !== nextProps.workoutType.name ||
+    prevProps.workoutType.color !== nextProps.workoutType.color
+  ) {
+    return false;
+  }
+
+  // Verificar se os totais mudaram
+  if (
+    prevProps.workoutTotals.totalExercises !==
+      nextProps.workoutTotals.totalExercises ||
+    prevProps.workoutTotals.totalSets !== nextProps.workoutTotals.totalSets ||
+    prevProps.workoutTotals.totalVolume !== nextProps.workoutTotals.totalVolume
+  ) {
+    return false;
+  }
+
+  // Verificar se a lista de exercícios mudou em tamanho
+  if (prevProps.exercises.length !== nextProps.exercises.length) {
+    return false;
+  }
+
+  // Verificar se os exercícios mudaram superficialmente
+  for (let i = 0; i < prevProps.exercises.length; i++) {
+    if (
+      prevProps.exercises[i].id !== nextProps.exercises[i].id ||
+      prevProps.exercises[i].name !== nextProps.exercises[i].name
+    ) {
+      return false;
+    }
+  }
+
+  // Se chegou até aqui, as props são consideradas iguais
+  return true;
+};
+
+// Componente memoizado para o card de treino com comparador personalizado
 const MemoizedWorkoutGroup = React.memo(
   ({
     workoutId,
@@ -48,18 +118,8 @@ const MemoizedWorkoutGroup = React.memo(
     onNavigate,
     onDeleteExercise,
     refreshKey,
-  }: {
-    workoutId: string;
-    workoutType: WorkoutType;
-    exercises: Exercise[];
-    workoutTotals: any;
-    index: number;
-    previousWorkoutData: any;
-    previousExercises: Exercise[];
-    onNavigate: (id: string) => void;
-    onDeleteExercise: (workoutId: string, exerciseId: string) => Promise<void>;
-    refreshKey?: number;
-  }) => {
+    notificationsEnabled,
+  }: WorkoutGroupProps) => {
     return (
       <View key={`workout-group-${workoutId}-${index}`}>
         {/* Card de estatísticas para este treino específico */}
@@ -71,6 +131,7 @@ const MemoizedWorkoutGroup = React.memo(
           currentExercises={exercises}
           previousExercises={previousExercises}
           refreshKey={refreshKey}
+          notificationsEnabled={notificationsEnabled}
         />
 
         {/* Card do treino */}
@@ -95,10 +156,12 @@ const MemoizedWorkoutGroup = React.memo(
             onDeleteExercise(workoutId, exerciseId)
           }
           refreshKey={refreshKey}
+          notificationsEnabled={notificationsEnabled}
         />
       </View>
     );
-  }
+  },
+  arePropsEqual
 );
 
 export default function TrainingScreen() {
@@ -112,29 +175,32 @@ export default function TrainingScreen() {
   const [workoutConfigKey, setWorkoutConfigKey] = useState(Date.now());
   // Estado para controlar a visibilidade do modal de confirmação
   const [resetModalVisible, setResetModalVisible] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<"success" | "info" | "error">(
+    "success"
+  );
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
-  // Usar o contexto de treinos
+  // Usar o contexto de treinos - desestruturar apenas o que é necessário para este componente
+  // Usar os valores memoizados do contexto em vez de calcular novamente
   const {
-    workouts,
-    workoutTypes,
     selectedDate: contextSelectedDate,
     setSelectedDate: setContextSelectedDate,
     updateWorkoutTypes,
-    hasWorkoutTypesConfigured,
     getWorkoutTotals,
     getExercisesForWorkout,
     removeExerciseFromWorkout,
     getWorkoutTypeById,
     saveWorkouts,
-    setWorkouts,
     getPreviousWorkoutTotals,
-    getDayTotals,
-    trainingGoals,
-    // Novas propriedades do template semanal
-    weeklyTemplate,
-    hasWeeklyTemplateConfigured,
-    getWorkoutsForDate,
+    startWorkoutForDate,
     resetWorkoutTypes,
+    forceRefresh,
+    // Usar valores memoizados do contexto
+    workoutsForSelectedDate,
+    hasConfiguredWorkouts,
+    getWorkoutsForDate,
   } = useWorkoutContext();
 
   // Estado para a data selecionada (sincronizado com o contexto)
@@ -143,19 +209,126 @@ export default function TrainingScreen() {
   // Referência para o bottom sheet de configuração de treinos
   const workoutConfigSheetRef = useRef<BottomSheetModal>(null);
 
-  // Sincronizar a data selecionada com o contexto
-  useEffect(() => {
-    if (selectedDate !== contextSelectedDate) {
-      setContextSelectedDate(selectedDate);
-    }
-  }, [selectedDate, setContextSelectedDate, contextSelectedDate]);
+  // Referência para armazenar contagens anteriores de exercícios
+  const prevExercisesCountRef = useRef<{ [key: string]: number }>({});
 
-  // Sincronizar o estado local com o contexto
+  // Verificar se há treinos configurados para a data selecionada
+  const hasWorkoutsForSelectedDate = useMemo(
+    () => Object.keys(workoutsForSelectedDate).length > 0,
+    [workoutsForSelectedDate]
+  );
+
+  // Carregar o estado de notificações do AsyncStorage no montagem
   useEffect(() => {
-    if (contextSelectedDate !== selectedDate) {
-      setSelectedDate(contextSelectedDate);
+    const loadNotificationPreference = async () => {
+      try {
+        const preference = await AsyncStorage.getItem("notificationsEnabled");
+        // Se o usuário já definiu uma preferência, use-a. Caso contrário, mantenha o padrão (true)
+        if (preference !== null) {
+          setNotificationsEnabled(preference === "true");
+        }
+      } catch (error) {
+        console.error("Erro ao carregar preferência de notificações:", error);
+      }
+    };
+
+    loadNotificationPreference();
+  }, []);
+
+  // Função para mostrar notificação
+  const showNotification = useCallback(
+    (message: string, type: "success" | "info" | "error" = "success") => {
+      // Verificar se as notificações estão habilitadas, exceto para a notificação
+      // que informa sobre a mudança de estado das notificações
+      if (
+        !notificationsEnabled &&
+        !message.includes("Notificações de progresso")
+      ) {
+        return;
+      }
+
+      setToastMessage(message);
+      setToastType(type);
+      setShowToast(true);
+
+      // Esconder a notificação após 5 segundos
+      setTimeout(() => {
+        setShowToast(false);
+      }, 5000);
+    },
+    [notificationsEnabled]
+  );
+
+  // Função para alternar o estado de notificações
+  const toggleNotifications = useCallback(async () => {
+    try {
+      const newState = !notificationsEnabled;
+      setNotificationsEnabled(newState);
+      await AsyncStorage.setItem("notificationsEnabled", newState.toString());
+
+      // Mostrar uma notificação sobre a alteração
+      showNotification(
+        newState
+          ? "Notificações de progresso ativadas"
+          : "Notificações de progresso desativadas",
+        "info"
+      );
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (error) {
+      console.error("Erro ao salvar preferência de notificações:", error);
     }
-  }, [contextSelectedDate, selectedDate]);
+  }, [notificationsEnabled, showNotification]);
+
+  // Detectar quando o usuário completa um treino (adicionando exercícios)
+  const checkForCompletedWorkout = useCallback(
+    (prevExercises: Exercise[], currentExercises: Exercise[]) => {
+      // Verificar se o usuário adicionou pelo menos 3 exercícios
+      if (prevExercises.length === 0 && currentExercises.length >= 3) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    },
+    []
+  );
+
+  // Efeito para verificar mudanças nos treinos quando a data selecionada muda
+  useEffect(() => {
+    if (hasWorkoutsForSelectedDate) {
+      const workoutIds = Object.keys(workoutsForSelectedDate);
+
+      workoutIds.forEach((workoutId) => {
+        const exercises = getExercisesForWorkout(workoutId);
+
+        if (!prevExercisesCountRef.current[workoutId]) {
+          // Primeiro carregamento, apenas armazenar o número atual
+          prevExercisesCountRef.current[workoutId] = exercises.length;
+        } else if (
+          exercises.length > prevExercisesCountRef.current[workoutId]
+        ) {
+          // Usuário adicionou novos exercícios
+          const prevExercises: Exercise[] = [];
+          checkForCompletedWorkout(prevExercises, exercises);
+
+          // Atualizar a contagem
+          prevExercisesCountRef.current[workoutId] = exercises.length;
+        }
+      });
+    }
+  }, [
+    workoutsForSelectedDate,
+    hasWorkoutsForSelectedDate,
+    getExercisesForWorkout,
+    checkForCompletedWorkout,
+  ]);
+
+  // Sincronizar a data selecionada com o contexto
+  const updateSelectedDate = useCallback(
+    (date: string) => {
+      setSelectedDate(date);
+      setContextSelectedDate(date);
+    },
+    [setContextSelectedDate]
+  );
 
   // Efeito para salvar treinos quando o usuário sair da tela
   useEffect(() => {
@@ -163,52 +336,6 @@ export default function TrainingScreen() {
       saveWorkouts();
     };
   }, [saveWorkouts]);
-
-  // Efeito para verificar se os treinos estão sendo renderizados corretamente após a atualização dos tipos de treino
-  useEffect(() => {
-    const workoutsForSelectedDate = getWorkoutsForDate(selectedDate);
-    if (Object.keys(workoutsForSelectedDate).length > 0) {
-      const workoutIdsForSelectedDate = Object.keys(workoutsForSelectedDate);
-      const selectedWorkoutTypes = workoutTypes.filter((w) => w.selected);
-
-      // Verificar se todos os tipos de treino selecionados têm um treino correspondente
-      const missingWorkouts = selectedWorkoutTypes.filter(
-        (w) => !workoutIdsForSelectedDate.includes(w.id)
-      );
-
-      // Verificar se todos os treinos têm um tipo de treino correspondente
-      const unexpectedWorkouts = workoutIdsForSelectedDate.filter(
-        (id) => !selectedWorkoutTypes.some((w) => w.id === id)
-      );
-    }
-  }, [workoutTypes, workouts, selectedDate]);
-
-  // Efeito para abrir o WorkoutConfigSheet quando solicitado via parâmetro
-  useEffect(() => {
-    if (params?.openWorkoutConfig === "true") {
-      // Aumentar o tempo de espera para garantir que o componente esteja completamente montado
-      const timer = setTimeout(() => {
-        if (workoutConfigSheetRef.current) {
-          workoutConfigSheetRef.current.present();
-          // Feedback tátil para indicar que o sheet foi aberto
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          // Limpar o parâmetro após abrir
-          router.replace("/training");
-        } else {
-          setTimeout(() => {
-            if (workoutConfigSheetRef.current) {
-              workoutConfigSheetRef.current.present();
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              router.replace("/training");
-            } else {
-            }
-          }, 1000);
-        }
-      }, 500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [params, router]);
 
   // Função para lidar com a seleção de data
   const handleDateSelect = useCallback(
@@ -223,13 +350,10 @@ export default function TrainingScreen() {
       // Salvar os treinos da data atual antes de mudar
       saveWorkouts();
 
-      // Atualizar a data selecionada no estado local
-      setSelectedDate(formattedDate);
-
-      // Atualizar a data selecionada no contexto
-      setContextSelectedDate(formattedDate);
+      // Atualizar a data selecionada em uma única operação
+      updateSelectedDate(formattedDate);
     },
-    [selectedDate, saveWorkouts, setContextSelectedDate]
+    [selectedDate, saveWorkouts, updateSelectedDate]
   );
 
   // Função para abrir o bottom sheet de configuração de treinos
@@ -238,23 +362,20 @@ export default function TrainingScreen() {
     workoutConfigSheetRef.current?.present();
   }, []);
 
-  // Função para lidar com a configuração de treinos
-  const handleWorkoutConfigured = useCallback(
-    (configuredWorkouts: WorkoutType[]) => {
-      // Aqui precisamos apenas atualizar os tipos de treino disponíveis
-      // sem vinculá-los ao dia atual. Isso já é feito pelo template semanal.
+  // Efeito para abrir o WorkoutConfigSheet quando solicitado via parâmetro
+  useEffect(() => {
+    if (params?.openWorkoutConfig === "true") {
+      const timer = setTimeout(() => {
+        if (workoutConfigSheetRef.current) {
+          workoutConfigSheetRef.current.present();
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          router.replace("/training");
+        }
+      }, 300);
 
-      // Desmarcar a seleção de todos os workoutTypes para que não sejam
-      // adicionados automaticamente ao dia atual
-      const typesWithoutSelection = configuredWorkouts.map((workout) => ({
-        ...workout,
-        selected: false,
-      }));
-
-      updateWorkoutTypes(typesWithoutSelection);
-    },
-    [updateWorkoutTypes]
-  );
+      return () => clearTimeout(timer);
+    }
+  }, [params, router]);
 
   // Função para navegar para a tela de detalhes do treino
   const navigateToWorkoutDetails = useCallback(
@@ -280,45 +401,98 @@ export default function TrainingScreen() {
       try {
         await removeExerciseFromWorkout(workoutId, exerciseId);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        triggerRefresh(); // Forçar atualização após mudança
       } catch (error) {
         console.error("Erro ao deletar exercício:", error);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     },
-    [removeExerciseFromWorkout]
+    [removeExerciseFromWorkout, triggerRefresh]
   );
 
-  // Obter os treinos para a data selecionada (específicos ou do template)
-  const workoutsForSelectedDate = useMemo(
-    () => (getWorkoutsForDate ? getWorkoutsForDate(selectedDate) : {}),
-    [getWorkoutsForDate, selectedDate]
+  // Função para iniciar um novo treino
+  const handleStartWorkout = useCallback(
+    async (workoutId: string) => {
+      try {
+        await startWorkoutForDate(workoutId);
+        await saveWorkouts();
+        triggerRefresh(); // Forçar atualização após iniciar treino
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (error) {
+        console.error("Erro ao iniciar treino:", error);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+    },
+    [startWorkoutForDate, saveWorkouts, triggerRefresh]
   );
 
-  // Verificar se há treinos configurados para a data selecionada
-  const hasWorkoutsForSelectedDate = useMemo(
-    () =>
-      workoutsForSelectedDate &&
-      Object.keys(workoutsForSelectedDate).length > 0,
-    [workoutsForSelectedDate]
+  // Função para verificar se uma data tem conteúdo - memoizada
+  const hasWorkoutContent = useCallback(
+    (date: Date) => {
+      try {
+        const dateString = format(date, "yyyy-MM-dd");
+        const workoutsForDate = getWorkoutsForDate(dateString);
+        return Object.keys(workoutsForDate).length > 0;
+      } catch (error) {
+        console.error("Erro ao verificar treinos para a data:", error);
+        return false;
+      }
+    },
+    [getWorkoutsForDate]
+  );
+
+  // Função para lidar com a configuração de treinos
+  const handleWorkoutConfigured = useCallback(
+    async (configuredWorkouts: WorkoutType[]) => {
+      try {
+        // Filtrar apenas os tipos de treino que foram selecionados pelo usuário
+        const selectedWorkoutTypes = configuredWorkouts.filter(
+          (workout) => workout.selected
+        );
+
+        // Se não houver tipos selecionados, mostrar um alerta
+        if (selectedWorkoutTypes.length === 0) {
+          Alert.alert("Erro", "Selecione pelo menos um tipo de treino.");
+          return;
+        }
+
+        // Atualizar o contexto com todos os tipos (selecionados e não selecionados)
+        const success = await updateWorkoutTypes(configuredWorkouts);
+
+        if (success) {
+          // Forçar uma atualização da tela
+          triggerRefresh();
+        } else {
+          Alert.alert("Erro", "Falha ao atualizar tipos de treino.");
+        }
+      } catch (error) {
+        console.error("Erro ao configurar treinos:", error);
+        Alert.alert("Erro", "Ocorreu um erro ao configurar os treinos.");
+      }
+    },
+    [updateWorkoutTypes, triggerRefresh]
   );
 
   // Função para lidar com o pull to refresh
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     if (isRefreshing) return; // Evitar múltiplos refreshes simultâneos
 
-    setRefreshing(true);
-    // Usar o triggerRefresh do contexto para atualizar todos os componentes
-    triggerRefresh();
-    // Simular carregamento de dados
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setRefreshing(false);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  };
+    try {
+      setRefreshing(true);
+      triggerRefresh();
+      await saveWorkouts();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error("Erro ao atualizar dados:", error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [isRefreshing, triggerRefresh, saveWorkouts]);
 
   // Função para redefinir os tipos de treino
-  const handleResetWorkoutTypes = useCallback(async () => {
+  const handleResetWorkoutTypes = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    // Mostrar o modal de confirmação
     setResetModalVisible(true);
   }, []);
 
@@ -326,52 +500,44 @@ export default function TrainingScreen() {
   const confirmResetWorkoutTypes = useCallback(async () => {
     try {
       // Redefinir os tipos de treino
-      await resetWorkoutTypes();
-      // Forçar a recriação do WorkoutConfigSheet
-      setWorkoutConfigKey(Date.now());
+      const success = await resetWorkoutTypes();
+
+      if (success) {
+        // Forçar a recriação do WorkoutConfigSheet
+        setWorkoutConfigKey(Date.now());
+
+        // Forçar atualizações
+        triggerRefresh();
+        forceRefresh();
+        await saveWorkouts();
+
+        // Feedback de sucesso para o usuário
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        // Se falhou, informar o usuário
+        Alert.alert(
+          "Erro",
+          "Não foi possível redefinir os treinos. Tente novamente."
+        );
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+
       // Fechar o modal
       setResetModalVisible(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       console.error("Erro ao redefinir treinos:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
       // Fechar o modal mesmo em caso de erro
       setResetModalVisible(false);
+
+      // Mostrar alerta de erro
+      Alert.alert(
+        "Erro",
+        "Ocorreu um erro ao redefinir treinos. Tente reiniciar o aplicativo."
+      );
     }
-  }, [resetWorkoutTypes]);
-
-  // Obter os tipos de treino configurados
-  const configuredWorkoutTypes = useMemo(() => {
-    return workoutTypes.map((type) => ({
-      ...type,
-      exercises: [],
-    }));
-  }, [workoutTypes]);
-
-  // Verificar se é um dia de descanso
-  const isRestDay = useMemo(() => {
-    if (!hasWorkoutTypesConfigured || !hasWeeklyTemplateConfigured)
-      return false;
-
-    // Pegar o dia da semana da data selecionada (0-6, onde 0 é domingo)
-    const selectedDayOfWeek = new Date(selectedDate).getDay();
-
-    // Verificar se há treinos configurados para este dia no template
-    const workoutsForDay = weeklyTemplate[selectedDayOfWeek];
-
-    // Se não houver workoutsForDay OU se for um objeto vazio, é dia de descanso
-    const hasNoWorkouts =
-      !workoutsForDay || Object.keys(workoutsForDay).length === 0;
-
-    return (
-      hasWorkoutTypesConfigured && hasWeeklyTemplateConfigured && hasNoWorkouts
-    );
-  }, [
-    hasWorkoutTypesConfigured,
-    hasWeeklyTemplateConfigured,
-    weeklyTemplate,
-    selectedDate,
-  ]);
+  }, [resetWorkoutTypes, triggerRefresh, saveWorkouts, forceRefresh]);
 
   // Renderizar os cards de treino
   const renderWorkoutCards = useCallback(() => {
@@ -411,10 +577,9 @@ export default function TrainingScreen() {
           previousWorkoutData={previousWorkoutData}
           previousExercises={previousExercises}
           onNavigate={navigateToWorkoutDetails}
-          onDeleteExercise={(workoutId, exerciseId) =>
-            handleDeleteExercise(workoutId, exerciseId)
-          }
+          onDeleteExercise={handleDeleteExercise}
           refreshKey={refreshKey}
+          notificationsEnabled={notificationsEnabled}
         />
       );
     });
@@ -428,18 +593,19 @@ export default function TrainingScreen() {
     navigateToWorkoutDetails,
     handleDeleteExercise,
     refreshKey,
+    notificationsEnabled,
   ]);
 
-  // Memoizar o componente EmptyWorkoutState para evitar re-renderizações desnecessárias
+  // Memoizar o componente de estado vazio para evitar re-renderizações
   const emptyStateComponent = useMemo(
     () => (
       <EmptyWorkoutState
         onWorkoutConfigured={handleWorkoutConfigured}
         onOpenWorkoutConfig={openWorkoutConfigSheet}
-        isRestDay={isRestDay}
+        onSelectWorkout={handleStartWorkout}
       />
     ),
-    [handleWorkoutConfigured, openWorkoutConfigSheet, isRestDay]
+    [handleWorkoutConfigured, openWorkoutConfigSheet, handleStartWorkout]
   );
 
   // Memoizar o componente Calendar para evitar re-renderizações desnecessárias
@@ -448,41 +614,73 @@ export default function TrainingScreen() {
       <Calendar
         selectedDate={getLocalDate(selectedDate)}
         onSelectDate={handleDateSelect}
-        workouts={workouts}
-        weeklyTemplate={weeklyTemplate}
-        getWorkoutsForDate={getWorkoutsForDate}
-        hasContent={(date) => {
-          try {
-            // Verificar treinos para a data usando o template semanal
-            const dateString = format(date, "yyyy-MM-dd");
-            const workoutsForDate = getWorkoutsForDate(dateString);
-            const hasWorkouts = Object.keys(workoutsForDate).length > 0;
-
-            if (hasWorkouts) {
-              return true;
-            }
-
-            return false;
-          } catch (error) {
-            console.error("Erro ao verificar treinos para a data:", error);
-            return false;
-          }
-        }}
+        workouts={workoutsForSelectedDate}
+        hasContent={hasWorkoutContent}
       />
     ),
+    [selectedDate, handleDateSelect, workoutsForSelectedDate, hasWorkoutContent]
+  );
+
+  // Atualizar as ações do menu contextual para incluir a opção de silenciar notificações
+  const menuActions = useMemo<MenuAction[]>(
+    () => [
+      {
+        id: "edit",
+        label: "Editar Treinos",
+        icon: "settings-outline",
+        type: "default",
+        onPress: openWorkoutConfigSheet,
+      },
+      {
+        id: "notifications",
+        label: notificationsEnabled
+          ? "Silenciar Notificações"
+          : "Ativar Notificações",
+        icon: notificationsEnabled
+          ? "notifications-off-outline"
+          : "notifications-outline",
+        type: "default",
+        onPress: toggleNotifications,
+      },
+      {
+        id: "reset",
+        label: "Redefinir Treinos",
+        icon: "refresh-outline",
+        type: "danger",
+        onPress: handleResetWorkoutTypes,
+      },
+    ],
     [
-      selectedDate,
-      handleDateSelect,
-      workouts,
-      weeklyTemplate,
-      getWorkoutsForDate,
+      openWorkoutConfigSheet,
+      handleResetWorkoutTypes,
+      notificationsEnabled,
+      toggleNotifications,
     ]
+  );
+
+  // Função para verificar se o menu deve ser visível
+  const isMenuVisible = useMemo(
+    () => hasConfiguredWorkouts && hasWorkoutsForSelectedDate,
+    [hasConfiguredWorkouts, hasWorkoutsForSelectedDate]
   );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {calendarComponent}
+
+        {/* Menu contextual */}
+        <ContextMenu actions={menuActions} isVisible={isMenuVisible} />
+
+        {/* Toast de notificação com cores sólidas */}
+        {showToast && (
+          <Toast
+            message={toastMessage}
+            type={toastType}
+            onDismiss={() => setShowToast(false)}
+            duration={4000}
+          />
+        )}
 
         <ScrollView
           style={styles.scrollView}
@@ -498,42 +696,10 @@ export default function TrainingScreen() {
             />
           }
         >
-          {hasWorkoutTypesConfigured && hasWeeklyTemplateConfigured
-            ? hasWorkoutsForSelectedDate
-              ? renderWorkoutCards()
-              : emptyStateComponent
+          {/* Renderizar os cards de treino ou o EmptyState */}
+          {hasWorkoutsForSelectedDate
+            ? renderWorkoutCards()
             : emptyStateComponent}
-
-          {/* Botões de redefinir e editar treinos (apenas mostrar se houver treinos configurados) */}
-          {hasWorkoutTypesConfigured && (
-            <>
-              {/* Botão para redefinir treinos */}
-              <TouchableOpacity
-                key={`reset-button-${theme}`}
-                style={[styles.resetButton, { borderColor: colors.border }]}
-                onPress={handleResetWorkoutTypes}
-              >
-                <Ionicons
-                  name="refresh-outline"
-                  size={20}
-                  color={colors.primary}
-                />
-                <Text style={[styles.resetButtonText, { color: colors.text }]}>
-                  Redefinir Treinos
-                </Text>
-              </TouchableOpacity>
-
-              {/* Botão para editar treinos */}
-              <TouchableOpacity
-                key={`edit-button-${theme}`}
-                style={[styles.editButton, { backgroundColor: colors.primary }]}
-                onPress={openWorkoutConfigSheet}
-              >
-                <Ionicons name="settings-outline" size={20} color="white" />
-                <Text style={styles.editButtonText}>Editar Treinos</Text>
-              </TouchableOpacity>
-            </>
-          )}
         </ScrollView>
       </View>
 
@@ -570,34 +736,5 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     padding: 16,
     paddingBottom: 100,
-  },
-  resetButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    marginTop: 20,
-    marginBottom: 12,
-  },
-  resetButtonText: {
-    fontSize: 16,
-    marginLeft: 8,
-  },
-  editButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 20,
-  },
-  editButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "white",
-    marginLeft: 8,
   },
 });

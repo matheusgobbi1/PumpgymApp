@@ -95,7 +95,7 @@ function EmptyNutritionState({
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={[colors.primary, colors.accent]}
+            colors={[colors.primary, colors.primary]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.buttonGradient}
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 30,
+    
   },
   illustrationContainer: {
     marginBottom: 30,

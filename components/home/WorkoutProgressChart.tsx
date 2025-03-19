@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -29,6 +29,7 @@ import * as Haptics from "expo-haptics";
 import { useWorkoutContext } from "../../context/WorkoutContext";
 import { Exercise } from "../../context/WorkoutContext";
 import { WorkoutType } from "../../components/training/WorkoutConfigSheet";
+import { LinearGradient } from "expo-linear-gradient";
 
 const { width } = Dimensions.get("window");
 
@@ -259,8 +260,18 @@ export default function WorkoutProgressChart({
 
   // Efeito para animar a altura do card quando expandido/recolhido
   useEffect(() => {
-    cardHeight.value = withTiming(isExpanded ? 550 : 250, { duration: 300 });
-  }, [isExpanded]);
+    const baseHeight = 40; // Altura base para o cabeçalho
+    const paddingBottom = 20; // Padding inferior
+    const emptyStateHeight = 180; // Altura para o estado vazio
+
+    // Se não houver exercícios, definir uma altura mínima para o estado vazio
+    if (!todayExercises.length) {
+      cardHeight.value = withTiming(emptyStateHeight, { duration: 300 });
+      return;
+    }
+
+    cardHeight.value = withTiming(isExpanded ? 550 : 230, { duration: 300 });
+  }, [isExpanded, todayExercises.length]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -674,8 +685,12 @@ export default function WorkoutProgressChart({
     >
       <Pressable
         style={styles.pressableArea}
-        onPress={toggleExpand}
-        android_ripple={{ color: colors.text + "10", borderless: true }}
+        onPress={hasExercises ? toggleExpand : undefined}
+        android_ripple={
+          hasExercises
+            ? { color: colors.text + "10", borderless: true }
+            : undefined
+        }
       >
         <View style={styles.header}>
           <View style={styles.titleContainer}>
@@ -725,87 +740,41 @@ export default function WorkoutProgressChart({
               />
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.expandButton,
-                { backgroundColor: colors.text + "10" },
-              ]}
-              onPress={toggleExpand}
-            >
-              <Ionicons
-                name={isExpanded ? "chevron-up" : "chevron-down"}
-                size={20}
-                color={colors.text + "80"}
-              />
-            </TouchableOpacity>
+            {hasExercises && (
+              <TouchableOpacity
+                style={[
+                  styles.expandButton,
+                  { backgroundColor: colors.text + "10" },
+                ]}
+                onPress={toggleExpand}
+              >
+                <Ionicons
+                  name={isExpanded ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color={colors.text + "80"}
+                />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
         {/* Conteúdo principal */}
         {!hasExercises ? (
-          <View
-            style={[
-              styles.emptyStateCompact,
-              {
-                backgroundColor: colors.chartBackground,
-                borderRadius: 16,
-                justifyContent: "center",
-                height: 170,
-                margin: 8,
-                marginTop: 4,
-              },
-            ]}
+          <MotiView
+            from={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ type: "timing", duration: 500 }}
+            style={styles.emptyContainer}
           >
-            <View style={styles.emptyContentWrapper}>
-              <Ionicons
-                name="barbell-outline"
-                size={36}
-                color={colors.primary + "60"}
-                style={{ marginBottom: 6 }}
-              />
-              <Text
-                style={[
-                  styles.emptyText,
-                  {
-                    color: colors.text + "80",
-                    fontWeight: "600",
-                    marginBottom: 2,
-                    fontSize: 15,
-                  },
-                ]}
-              >
+            <LinearGradient
+              colors={[colors.light, colors.background]}
+              style={styles.emptyGradient}
+            >
+              <Text style={[styles.emptyText, { color: colors.text + "50" }]}>
                 Nenhum exercício registrado hoje
               </Text>
-              <Text
-                style={[
-                  styles.emptySubText,
-                  {
-                    color: colors.text + "60",
-                    marginBottom: 10,
-                    fontSize: 13,
-                  },
-                ]}
-              >
-                Registre seu treino para acompanhar seu progresso
-              </Text>
-              <TouchableOpacity
-                style={[
-                  styles.addButton,
-                  {
-                    backgroundColor: colors.dark,
-                    paddingVertical: 8,
-                    paddingHorizontal: 20,
-                    marginTop: 0,
-                  },
-                ]}
-                onPress={onPress}
-              >
-                <Text style={[styles.addButtonText, { fontSize: 14 }]}>
-                  Iniciar Treino
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+            </LinearGradient>
+          </MotiView>
         ) : (
           <>
             <View style={styles.progressContainer}>
@@ -1242,31 +1211,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginLeft: 8,
   },
-  emptyStateCompact: {
-    alignItems: "center",
-    padding: 20,
+  emptyContainer: {
+    marginVertical: 12,
+    borderRadius: 10,
+    overflow: "hidden",
   },
-  emptyContentWrapper: {
+  emptyGradient: {
+    padding: 24,
     alignItems: "center",
-    paddingTop: 0,
+    justifyContent: "center",
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 13,
     textAlign: "center",
-  },
-  emptySubText: {
-    fontSize: 14,
-    textAlign: "center",
-  },
-  addButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  addButtonText: {
-    color: "white",
-    fontWeight: "600",
-    fontSize: 15,
   },
   progressContainer: {
     width: "100%",

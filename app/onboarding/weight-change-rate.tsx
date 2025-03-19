@@ -230,9 +230,9 @@ export default function WeightChangeRateScreen() {
     const safeTimeText = isFinite(timeText) ? timeText : 0;
 
     if (isGainingWeight) {
-      return `Você ganhará ${diffFormatted}kg em aproximadamente ${safeTimeText} semanas com uma velocidade ${speedText}.`;
+      return `Você ganhará ${diffFormatted}kg em aproximadamente ${safeTimeText} semanas com uma velocidade ${speedText}. Atenção: isso é apenas uma projeção, o resultado final pode variar de acordo com sua dieta, treino e muitos outros fatores.`;
     } else {
-      return `Você perderá ${diffFormatted}kg em aproximadamente ${safeTimeText} semanas com uma velocidade ${speedText}.`;
+      return `Você perderá ${diffFormatted}kg em aproximadamente ${safeTimeText} semanas com uma velocidade ${speedText}. Atenção: isso é apenas uma projeção, o resultado final pode variar de acordo com sua dieta, treino e muitos outros fatores.`;
     }
   };
 

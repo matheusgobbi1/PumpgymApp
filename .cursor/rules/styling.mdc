@@ -5,6 +5,11 @@ alwaysApply: false
 ---
 ---
 description: 
+globs: 
+alwaysApply: true
+---
+---
+description: 
 globs: **/*.{ts,tsx}
 alwaysApply: false
 ---

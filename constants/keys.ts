@@ -10,4 +10,8 @@ export const KEYS = {
   TEMP_NUTRITION_DATA: "@temp_nutrition_data",
   MEALS_KEY: "@meals:",
   SEARCH_HISTORY: "pumpgym_search_history",
-}; 
+  WORKOUTS: "pumpgym_workouts",
+  WORKOUT_TYPES: "pumpgym_workout_types",
+  AVAILABLE_WORKOUT_TYPES: "pumpgym_available_workout_types",
+  TRAINING_GOALS: "pumpgym_training_goals",
+};

@@ -4,6 +4,7 @@ import React, {
   useContext,
   ReactNode,
   useCallback,
+  useMemo,
 } from "react";
 
 interface RefreshContextType {
@@ -32,7 +33,6 @@ export const RefreshProvider = ({ children }: { children: ReactNode }) => {
     const now = Date.now();
     // Evitar múltiplos refreshes em um curto período de tempo (300ms)
     if (now - lastRefreshTime < 300) {
-      console.log("Refresh ignorado - muito rápido após o último");
       return;
     }
 
@@ -42,21 +42,28 @@ export const RefreshProvider = ({ children }: { children: ReactNode }) => {
     // Evitar atualização se já estiver atualizando
     if (!isRefreshing) {
       setIsRefreshing(true);
-      // Usar setTimeout para garantir que o estado isRefreshing seja atualizado antes
+      // Incrementar a chave de refresh imediatamente para melhor performance
+      setRefreshKey((prev) => prev + 1);
+
+      // Resetar o estado de isRefreshing após um breve período
       setTimeout(() => {
-        setRefreshKey((prev) => prev + 1);
-        // Resetar o estado de atualização após um pequeno delay
-        setTimeout(() => {
-          setIsRefreshing(false);
-        }, 100);
-      }, 0);
+        setIsRefreshing(false);
+      }, 100);
     }
   }, [isRefreshing, lastRefreshTime]);
 
+  // Memoizar o valor do contexto para evitar re-renderizações desnecessárias
+  const contextValue = useMemo(
+    () => ({
+      refreshKey,
+      triggerRefresh,
+      isRefreshing,
+    }),
+    [refreshKey, triggerRefresh, isRefreshing]
+  );
+
   return (
-    <RefreshContext.Provider
-      value={{ refreshKey, triggerRefresh, isRefreshing }}
-    >
+    <RefreshContext.Provider value={contextValue}>
       {children}
     </RefreshContext.Provider>
   );

@@ -17,6 +17,7 @@ import * as Haptics from "expo-haptics";
 import { useTheme } from "../../context/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { BottomTabNavigationOptions } from "@react-navigation/bottom-tabs";
 
 const { width, height } = Dimensions.get("window");
 
@@ -197,9 +198,6 @@ export default function TabLayout() {
             backgroundColor: colors.background,
           },
           headerTintColor: colors.text,
-          contentStyle: {
-            backgroundColor: colors.background,
-          },
         }}
       >
         <Tabs.Screen
@@ -209,7 +207,6 @@ export default function TabLayout() {
             tabBarIcon: ({ color, focused }) => (
               <View style={styles.iconContainer}>
                 <TabBarIcon name="home" color={color} />
-                {focused && <View style={styles.activeIndicator} />}
               </View>
             ),
           }}
@@ -226,7 +223,6 @@ export default function TabLayout() {
             tabBarIcon: ({ color, focused }) => (
               <View style={styles.iconContainer}>
                 <TabBarIcon5 name="apple-alt" color={color} />
-                {focused && <View style={styles.activeIndicator} />}
               </View>
             ),
           }}
@@ -281,7 +277,6 @@ export default function TabLayout() {
             tabBarIcon: ({ color, focused }) => (
               <View style={styles.iconContainer}>
                 <TabBarIcon5 name="dumbbell" color={color} />
-                {focused && <View style={styles.activeIndicator} />}
               </View>
             ),
           }}
@@ -298,7 +293,6 @@ export default function TabLayout() {
             tabBarIcon: ({ color, focused }) => (
               <View style={styles.iconContainer}>
                 <TabBarIcon name="user" color={color} />
-                {focused && <View style={styles.activeIndicator} />}
               </View>
             ),
           }}
@@ -413,14 +407,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 40,
     height: 40,
-  },
-  activeIndicator: {
-    position: "absolute",
-    bottom: -10,
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: "#1c9abe",
   },
   fabContainer: {
     alignItems: "center",

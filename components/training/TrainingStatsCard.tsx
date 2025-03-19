@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -53,6 +53,7 @@ interface TrainingStatsCardProps {
   currentExercises: Exercise[];
   previousExercises?: Exercise[];
   refreshKey?: number;
+  notificationsEnabled?: boolean;
 }
 
 // Função auxiliar para substituir parseISO
@@ -68,15 +69,13 @@ export default function TrainingStatsCard({
   currentExercises,
   previousExercises,
   refreshKey,
+  notificationsEnabled = true,
 }: TrainingStatsCardProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const { theme } = useTheme();
   const colors = Colors[theme];
   const [isExpanded, setIsExpanded] = useState(false);
-
-  // Estado para forçar re-renderização quando o tema mudar
-  const [, setForceUpdate] = useState({});
 
   useEffect(() => {
     // Verificar se os dados de treino estão disponíveis
@@ -85,150 +84,178 @@ export default function TrainingStatsCard({
     }
   }, [workoutTotals]);
 
-  // Efeito para forçar a re-renderização quando o tema mudar
-  useEffect(() => {
-    setForceUpdate({});
-  }, [theme, refreshKey]);
-
-  const formatVolume = (volume: number) => {
+  const formatVolume = useCallback((volume: number) => {
     if (volume >= 1000) {
       return `${(volume / 1000).toFixed(1)}k`;
     }
     return volume.toString();
-  };
+  }, []);
 
-  const formatDuration = (minutes: number) => {
+  const formatDuration = useCallback((minutes: number) => {
     if (minutes >= 60) {
       const hours = Math.floor(minutes / 60);
       const mins = minutes % 60;
       return `${hours}h${mins > 0 ? ` ${mins}m` : ""}`;
     }
     return `${minutes}m`;
-  };
+  }, []);
 
-  const calculateProgress = (current: number, previous: number) => {
+  const calculateProgress = useCallback((current: number, previous: number) => {
     if (!previous) return 0;
     return ((current - previous) / previous) * 100;
-  };
+  }, []);
 
-  const getProgressColor = (progress: number) => {
-    if (progress >= 0 && progress <= 10) return colors.text + "80"; // Neutro
-    if (progress > 10) return colors.success || "#4CAF50"; // Positivo
-    return colors.danger || "#FF3B30"; // Negativo
-  };
+  const getProgressColor = useCallback(
+    (progress: number) => {
+      if (progress >= 0 && progress <= 10) return colors.text + "80"; // Neutro
+      if (progress > 10) return colors.success || "#4CAF50"; // Positivo
+      return colors.danger || "#FF3B30"; // Negativo
+    },
+    [colors.text, colors.success, colors.danger]
+  );
 
-  const toggleExpand = () => {
+  const toggleExpand = useCallback(() => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setIsExpanded(!isExpanded);
-  };
+    setIsExpanded((prev) => !prev);
+  }, []);
 
-  const renderStatRow = (
-    title: string,
-    icon: string,
-    current: number,
-    previous: number | null,
-    unit: string,
-    formatter: (value: number) => string = (value) => value.toString()
-  ) => {
-    const hasPrevious = previous !== null && previous > 0;
-    const progress = hasPrevious ? calculateProgress(current, previous) : 0;
-    const progressColor = getProgressColor(progress);
-    const isExceeded = progress > 0;
+  const renderStatRow = useCallback(
+    (
+      title: string,
+      icon: string,
+      current: number,
+      previous: number | null,
+      unit: string,
+      formatter: (value: number) => string = (value) => value.toString()
+    ) => {
+      const hasPrevious = previous !== null && previous > 0;
+      const progress = hasPrevious ? calculateProgress(current, previous) : 0;
+      const progressColor = hasPrevious
+        ? getProgressColor(progress)
+        : colors.text + "80";
+      const isExceeded = progress > 0;
 
-    const displayProgress = Math.min(Math.abs(progress), 100);
+      const displayProgress = Math.min(Math.abs(progress), 100);
 
-    return (
-      <MotiView
-        key={`stat-${title}-${theme}`}
-        style={styles.statRow}
-        from={{ opacity: 0, translateX: -20 }}
-        animate={{ opacity: 1, translateX: 0 }}
-        transition={{
-          type: "spring",
-          delay: title === "Volume Total" ? 100 : 200,
-        }}
-      >
-        <View style={styles.statInfo}>
-          <View style={styles.statHeader}>
-            <View
+      // Definir uma cor de fundo para o ícone mesmo quando é o primeiro treino
+      const iconBackgroundColor = hasPrevious
+        ? progressColor + "15"
+        : colors.primary + "15"; // Usar a cor primária quando não há dados anteriores
+
+      return (
+        <MotiView
+          key={`stat-${title}-${theme}`}
+          style={styles.statRow}
+          from={{ opacity: 0, translateX: -20 }}
+          animate={{ opacity: 1, translateX: 0 }}
+          transition={{
+            type: "spring",
+            delay: title === "Volume Total" ? 100 : 200,
+          }}
+        >
+          <View style={styles.statInfo}>
+            <View style={styles.statHeader}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: iconBackgroundColor },
+                ]}
+              >
+                <Ionicons
+                  name={icon as any}
+                  size={18}
+                  color={hasPrevious ? progressColor : colors.primary}
+                />
+              </View>
+              <View>
+                <Text style={[styles.statTitle, { color: colors.text }]}>
+                  {title}
+                </Text>
+                <Text style={[styles.comparison, { color: colors.text }]}>
+                  {isLoading ? (
+                    "Carregando..."
+                  ) : hasPrevious ? (
+                    isExceeded ? (
+                      <>
+                        Aumento{" "}
+                        <Text
+                          style={[
+                            styles.comparisonValue,
+                            { color: progressColor },
+                          ]}
+                        >
+                          {Math.abs(Math.round(progress))}%
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        Redução{" "}
+                        <Text
+                          style={[
+                            styles.comparisonValue,
+                            { color: progressColor },
+                          ]}
+                        >
+                          {Math.abs(Math.round(progress))}%
+                        </Text>
+                      </>
+                    )
+                  ) : (
+                    "Primeiro treino"
+                  )}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.progressWrapper}>
+            <MotiView
+              key={`progress-bar-${title}-${theme}`}
               style={[
-                styles.iconContainer,
-                { backgroundColor: progressColor + "15" },
+                styles.progressBar,
+                {
+                  backgroundColor: colors.border,
+                },
               ]}
             >
-              <Ionicons name={icon as any} size={18} color={progressColor} />
-            </View>
-            <Text style={[styles.statTitle, { color: colors.text }]}>
-              {title}
+              {!isLoading && hasPrevious && (
+                <MotiView
+                  key={`progress-fill-${title}-${theme}`}
+                  from={{ width: "0%" }}
+                  animate={{ width: `${displayProgress}%` }}
+                  transition={{ type: "timing", duration: 1000 }}
+                  style={[
+                    styles.progressFill,
+                    {
+                      backgroundColor: progressColor,
+                    },
+                  ]}
+                />
+              )}
+            </MotiView>
+            <Text style={[styles.progressText, { color: colors.text }]}>
+              {isLoading
+                ? "..."
+                : `${formatter(current)}${unit}${
+                    hasPrevious ? ` / ${formatter(previous)}${unit}` : ""
+                  }`}
             </Text>
           </View>
-          <Text style={[styles.comparison, { color: colors.text }]}>
-            {isLoading ? (
-              "Carregando..."
-            ) : hasPrevious ? (
-              isExceeded ? (
-                <>
-                  Aumento{" "}
-                  <Text
-                    style={[styles.comparisonValue, { color: progressColor }]}
-                  >
-                    {Math.abs(Math.round(progress))}%
-                  </Text>
-                </>
-              ) : (
-                <>
-                  Redução{" "}
-                  <Text
-                    style={[styles.comparisonValue, { color: progressColor }]}
-                  >
-                    {Math.abs(Math.round(progress))}%
-                  </Text>
-                </>
-              )
-            ) : (
-              "Primeiro treino"
-            )}
-          </Text>
-        </View>
+        </MotiView>
+      );
+    },
+    [
+      calculateProgress,
+      colors.text,
+      colors.border,
+      getProgressColor,
+      isLoading,
+      theme,
+    ]
+  );
 
-        <View style={styles.progressWrapper}>
-          <MotiView
-            key={`progress-bar-${title}-${theme}`}
-            style={[
-              styles.progressBar,
-              {
-                backgroundColor: colors.border,
-              },
-            ]}
-          >
-            {!isLoading && hasPrevious && (
-              <MotiView
-                key={`progress-fill-${title}-${theme}`}
-                from={{ width: "0%" }}
-                animate={{ width: `${displayProgress}%` }}
-                transition={{ type: "timing", duration: 1000 }}
-                style={[
-                  styles.progressFill,
-                  {
-                    backgroundColor: progressColor,
-                  },
-                ]}
-              />
-            )}
-          </MotiView>
-          <Text style={[styles.progressText, { color: colors.text }]}>
-            {isLoading
-              ? "..."
-              : `${formatter(current)}${unit}${
-                  hasPrevious ? ` / ${formatter(previous)}${unit}` : ""
-                }`}
-          </Text>
-        </View>
-      </MotiView>
-    );
-  };
-
-  const renderExerciseComparison = () => {
+  // Memoizar a comparação de exercícios para evitar recálculos desnecessários
+  const exerciseComparison = useMemo(() => {
     if (!previousExercises || previousExercises.length === 0) {
       return (
         <View style={styles.noComparisonContainer}>
@@ -452,7 +479,60 @@ export default function TrainingStatsCard({
         })}
       </View>
     );
-  };
+  }, [
+    colors.text,
+    colors.card,
+    colors.border,
+    workoutColor,
+    currentExercises,
+    previousExercises,
+    getProgressColor,
+  ]);
+
+  const statsContainer = useMemo(
+    () => (
+      <View style={styles.statsContainer}>
+        {renderStatRow(
+          "Volume Total",
+          "barbell-outline",
+          workoutTotals.totalVolume,
+          previousWorkoutTotals?.totals?.totalVolume || null,
+          " kg",
+          formatVolume
+        )}
+        {renderStatRow(
+          "Carga Média",
+          "speedometer-outline",
+          workoutTotals.avgWeight,
+          previousWorkoutTotals?.totals?.avgWeight || null,
+          " kg"
+        )}
+        {renderStatRow(
+          "Repetições",
+          "repeat-outline",
+          workoutTotals.avgReps,
+          previousWorkoutTotals?.totals?.avgReps || null,
+          " reps"
+        )}
+        {renderStatRow(
+          "Séries",
+          "layers-outline",
+          workoutTotals.totalSets,
+          previousWorkoutTotals?.totals?.totalSets || null,
+          ""
+        )}
+      </View>
+    ),
+    [
+      renderStatRow,
+      workoutTotals.totalVolume,
+      workoutTotals.avgWeight,
+      workoutTotals.avgReps,
+      workoutTotals.totalSets,
+      previousWorkoutTotals?.totals,
+      formatVolume,
+    ]
+  );
 
   return (
     <TouchableOpacity activeOpacity={0.7} onPress={toggleExpand}>
@@ -478,37 +558,7 @@ export default function TrainingStatsCard({
           )}
         </View>
 
-        <View style={styles.statsContainer}>
-          {renderStatRow(
-            "Volume Total",
-            "barbell-outline",
-            workoutTotals.totalVolume,
-            previousWorkoutTotals?.totals?.totalVolume || null,
-            " kg",
-            formatVolume
-          )}
-          {renderStatRow(
-            "Carga Média",
-            "speedometer-outline",
-            workoutTotals.avgWeight,
-            previousWorkoutTotals?.totals?.avgWeight || null,
-            " kg"
-          )}
-          {renderStatRow(
-            "Repetições",
-            "repeat-outline",
-            workoutTotals.avgReps,
-            previousWorkoutTotals?.totals?.avgReps || null,
-            " reps"
-          )}
-          {renderStatRow(
-            "Séries",
-            "layers-outline",
-            workoutTotals.totalSets,
-            previousWorkoutTotals?.totals?.totalSets || null,
-            ""
-          )}
-        </View>
+        {statsContainer}
 
         {isExpanded && (
           <MotiView
@@ -517,7 +567,7 @@ export default function TrainingStatsCard({
             transition={{ type: "timing", duration: 300 }}
             style={styles.expandedContent}
           >
-            {renderExerciseComparison()}
+            {exerciseComparison}
           </MotiView>
         )}
 
@@ -545,12 +595,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
+    marginBottom: 10,
   },
   previousDateText: {
     fontSize: 12,
   },
   statsContainer: {
-    gap: 16,
+    gap: 20,
   },
   statRow: {
     flexDirection: "row",
@@ -560,12 +611,10 @@ const styles = StyleSheet.create({
   },
   statInfo: {
     flex: 1,
-    gap: 4,
   },
   statHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
   },
   statTitle: {
     fontSize: 15,
@@ -574,7 +623,6 @@ const styles = StyleSheet.create({
   comparison: {
     fontSize: 13,
     opacity: 0.8,
-    marginLeft: 42,
   },
   comparisonValue: {
     fontWeight: "600",
@@ -692,10 +740,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
+    marginRight: 12,
   },
 });

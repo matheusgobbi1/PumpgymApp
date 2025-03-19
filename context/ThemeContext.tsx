@@ -1,8 +1,15 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useColorScheme } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
+import { useColorScheme } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-type ThemeType = 'light' | 'dark';
+type ThemeType = "light" | "dark";
 
 interface ThemeContextType {
   theme: ThemeType;
@@ -12,7 +19,7 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: 'light',
+  theme: "light",
   toggleTheme: () => {},
   useSystemTheme: true,
   setUseSystemTheme: () => {},
@@ -25,8 +32,8 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const systemColorScheme = useColorScheme() as ThemeType || 'light';
-  const [theme, setTheme] = useState<ThemeType>('light');
+  const systemColorScheme = (useColorScheme() as ThemeType) || "light";
+  const [theme, setTheme] = useState<ThemeType>("light");
   const [useSystemTheme, setUseSystemTheme] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -34,13 +41,15 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   useEffect(() => {
     const loadThemePreferences = async () => {
       try {
-        const storedTheme = await AsyncStorage.getItem('theme');
-        const storedUseSystemTheme = await AsyncStorage.getItem('useSystemTheme');
-        
+        const storedTheme = await AsyncStorage.getItem("theme");
+        const storedUseSystemTheme = await AsyncStorage.getItem(
+          "useSystemTheme"
+        );
+
         if (storedUseSystemTheme !== null) {
-          const useSystem = storedUseSystemTheme === 'true';
+          const useSystem = storedUseSystemTheme === "true";
           setUseSystemTheme(useSystem);
-          
+
           if (useSystem) {
             setTheme(systemColorScheme);
           } else if (storedTheme !== null) {
@@ -50,10 +59,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
           // Configuração padrão: usar tema do sistema
           setTheme(systemColorScheme);
         }
-        
+
         setIsInitialized(true);
       } catch (error) {
-        console.error('Erro ao carregar preferências de tema:', error);
+        console.error("Erro ao carregar preferências de tema:", error);
         setTheme(systemColorScheme);
         setIsInitialized(true);
       }
@@ -74,10 +83,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     if (isInitialized) {
       const saveThemePreferences = async () => {
         try {
-          await AsyncStorage.setItem('theme', theme);
-          await AsyncStorage.setItem('useSystemTheme', useSystemTheme.toString());
+          await AsyncStorage.setItem("theme", theme);
+          await AsyncStorage.setItem(
+            "useSystemTheme",
+            useSystemTheme.toString()
+          );
         } catch (error) {
-          console.error('Erro ao salvar preferências de tema:', error);
+          console.error("Erro ao salvar preferências de tema:", error);
         }
       };
 
@@ -85,33 +97,42 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     }
   }, [theme, useSystemTheme, isInitialized]);
 
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
+  // Memoizar a função de toggle para evitar recriações desnecessárias
+  const toggleTheme = useCallback(() => {
+    const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
-    
+
     // Quando o usuário alterna manualmente o tema, desativamos o tema do sistema
     if (useSystemTheme) {
       setUseSystemTheme(false);
     }
-  };
+  }, [theme, useSystemTheme]);
 
-  const handleSetUseSystemTheme = (value: boolean) => {
-    setUseSystemTheme(value);
-    if (value) {
-      setTheme(systemColorScheme);
-    }
-  };
+  // Memoizar a função de definir o uso do tema do sistema
+  const handleSetUseSystemTheme = useCallback(
+    (value: boolean) => {
+      setUseSystemTheme(value);
+      if (value) {
+        setTheme(systemColorScheme);
+      }
+    },
+    [systemColorScheme]
+  );
+
+  // Memoizar o valor do contexto para evitar re-renderizações desnecessárias
+  const contextValue = useMemo(
+    () => ({
+      theme,
+      toggleTheme,
+      useSystemTheme,
+      setUseSystemTheme: handleSetUseSystemTheme,
+    }),
+    [theme, toggleTheme, useSystemTheme, handleSetUseSystemTheme]
+  );
 
   return (
-    <ThemeContext.Provider
-      value={{
-        theme,
-        toggleTheme,
-        useSystemTheme,
-        setUseSystemTheme: handleSetUseSystemTheme,
-      }}
-    >
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );
-}; 
+};

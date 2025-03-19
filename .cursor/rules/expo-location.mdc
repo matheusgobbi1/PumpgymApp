@@ -1,4 +1,9 @@
 ---
+description: 
+globs: 
+alwaysApply: false
+---
+---
 description: Best practices for handling localization with Expo
 globs: **/*.{ts,tsx}
 alwaysApply: false

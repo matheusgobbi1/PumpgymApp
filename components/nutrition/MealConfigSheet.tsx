@@ -125,7 +125,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
 
     // Pontos de ancoragem do bottom sheet
     // Definimos apenas um snap point: 90% da altura da tela
-    const snapPoints = useMemo(() => ["90%"], []);
+    const snapPoints = useMemo(() => ["70%"], []);
 
     // Inicializar os tipos de refeições com os existentes ou os padrões
     useEffect(() => {
@@ -165,11 +165,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
       }
 
       setMealTypes(initialTypes);
-
-      // Adicionar um pequeno atraso para garantir que a UI esteja pronta
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 300);
+      setIsLoading(false);
     }, [existingMealTypes]);
 
     // Detectar quando o teclado é aberto ou fechado
@@ -198,6 +194,24 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
       bottomSheetModalRef.current?.dismiss();
     }, []);
 
+    // Função para quando o bottom sheet for fechado
+    const handleSheetChanges = useCallback(
+      (index: number) => {
+        // Quando o bottom sheet for fechado (index = -1)
+        if (index === -1) {
+          // Verificar se há refeições selecionadas e se foram configuradas
+          const selectedMeals = mealTypes.filter((meal) => meal.selected);
+          const selectedCount = selectedMeals.length;
+
+          if (selectedCount > 0) {
+            // Se houver refeições configuradas, chama o callback imediatamente
+            onMealConfigured(selectedMeals);
+          }
+        }
+      },
+      [mealTypes, onMealConfigured]
+    );
+
     // Renderização do backdrop com blur
     const renderBackdrop = useCallback(
       (props: any) => (
@@ -225,6 +239,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
 
     // Função para confirmar a configuração
     const confirmMealConfig = useCallback(() => {
+      // Filtrar apenas as refeições selecionadas
       const selectedMeals = mealTypes.filter((meal) => meal.selected);
 
       if (selectedMeals.length === 0) {
@@ -232,10 +247,14 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
         return;
       }
 
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Primeiro chamar o callback para atualizar o estado no contexto
       onMealConfigured(selectedMeals);
-      closeBottomSheet();
-    }, [mealTypes, onMealConfigured, closeBottomSheet]);
+
+      // Então fechar o modal
+      bottomSheetModalRef.current?.dismiss();
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }, [mealTypes, onMealConfigured]);
 
     // Efeito para animar a entrada do componente
     useEffect(() => {
@@ -285,6 +304,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
         enableDismissOnClose
         keyboardBehavior="interactive"
         keyboardBlurBehavior="none"
+        onChange={handleSheetChanges}
       >
         <KeyboardAvoidingView
           style={[styles.container, { paddingBottom: insets.bottom }]}
