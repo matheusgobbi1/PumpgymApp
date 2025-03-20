@@ -39,6 +39,7 @@ import { useRefresh } from "../../context/RefreshContext";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import ConfirmationModal from "../../components/ui/ConfirmationModal";
 import ContextMenu, { MenuAction } from "../../components/shared/ContextMenu";
+import HomeHeader from "../../components/home/HomeHeader";
 
 const { width } = Dimensions.get("window");
 
@@ -124,6 +125,22 @@ export default function NutritionScreen() {
 
   // Referência para o bottom sheet de configuração de refeições
   const mealConfigSheetRef = useRef<BottomSheetModal>(null);
+
+  // Estado para armazenar o total de refeições
+  const [totalMeals, setTotalMeals] = useState(0);
+
+  // Calcular o total de refeições
+  useEffect(() => {
+    let mealCount = 0;
+    Object.keys(meals).forEach((date) => {
+      Object.keys(meals[date]).forEach((mealId) => {
+        if (meals[date][mealId].length > 0) {
+          mealCount++;
+        }
+      });
+    });
+    setTotalMeals(mealCount);
+  }, [meals, refreshKey]);
 
   // Efeito para forçar atualização quando o status de configuração de refeições mudar
   useEffect(() => {
@@ -232,10 +249,21 @@ export default function NutritionScreen() {
 
           // Feedback tátil de sucesso
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } else {
+          // Notificar erro se não for bem-sucedido
+          Alert.alert(
+            "Erro",
+            "Não foi possível configurar as refeições. Tente novamente."
+          );
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         }
       } catch (error) {
         console.error("Erro ao configurar refeições:", error);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+          "Erro",
+          "Ocorreu um erro ao configurar refeições. Tente novamente."
+        );
       }
     },
     [updateMealTypes, saveMeals]
@@ -376,6 +404,11 @@ export default function NutritionScreen() {
     return hasMealTypesConfigured && configuredMealTypes.length > 0;
   }, [hasMealTypesConfigured, configuredMealTypes]);
 
+  // Navegar para o perfil
+  const navigateToProfile = useCallback(() => {
+    router.push("/profile");
+  }, [router]);
+
   // Se não houver refeições configuradas, mostrar o estado vazio
   if (!hasMealTypesConfigured) {
     return (
@@ -386,6 +419,14 @@ export default function NutritionScreen() {
         <View
           style={[styles.container, { backgroundColor: colors.background }]}
         >
+          <HomeHeader
+            title="Suas refeições"
+            count={totalMeals}
+            iconName="restaurant-outline"
+            iconColor={colors.primary}
+            onProfilePress={navigateToProfile}
+          />
+
           {calendarComponent}
 
           <ScrollView
@@ -439,6 +480,14 @@ export default function NutritionScreen() {
         <View
           style={[styles.container, { backgroundColor: colors.background }]}
         >
+          <HomeHeader
+            title="Suas refeições"
+            count={totalMeals}
+            iconName="restaurant-outline"
+            iconColor={colors.primary}
+            onProfilePress={navigateToProfile}
+          />
+
           {calendarComponent}
 
           <ScrollView
@@ -481,6 +530,14 @@ export default function NutritionScreen() {
       edges={["top"]}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <HomeHeader
+          title="Suas refeições"
+          count={totalMeals}
+          iconName="restaurant-outline"
+          iconColor={colors.primary}
+          onProfilePress={navigateToProfile}
+        />
+
         {calendarComponent}
 
         {/* Menu contextual */}

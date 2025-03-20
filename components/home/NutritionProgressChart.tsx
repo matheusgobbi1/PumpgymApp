@@ -45,9 +45,10 @@ export default function NutritionProgressChart({
   const [labels, setLabels] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [initialMount, setInitialMount] = useState(true);
 
-  // Animação para a altura do card
-  const cardHeight = useSharedValue(250);
+  // Animação para a altura do card - inicializar com valor fixo
+  const cardHeight = useSharedValue(240);
 
   // Efeito para animar a altura do card quando expandido/recolhido
   useEffect(() => {
@@ -56,12 +57,27 @@ export default function NutritionProgressChart({
 
     // Se não houver dados, definir uma altura fixa
     if (!hasData) {
-      cardHeight.value = withTiming(emptyStateHeight, { duration: 300 });
+      if (initialMount) {
+        cardHeight.value = emptyStateHeight;
+        setInitialMount(false);
+      } else {
+        cardHeight.value = withTiming(emptyStateHeight, { duration: 300 });
+      }
       return;
     }
 
-    cardHeight.value = withTiming(isExpanded ? 500 : 240, { duration: 300 });
-  }, [isExpanded, caloriesData]);
+    // Só atualizar quando os dados estiverem carregados
+    if (!isLoading) {
+      if (initialMount) {
+        cardHeight.value = isExpanded ? 500 : 240;
+        setInitialMount(false);
+      } else {
+        cardHeight.value = withTiming(isExpanded ? 500 : 240, {
+          duration: 300,
+        });
+      }
+    }
+  }, [isExpanded, caloriesData, isLoading, initialMount]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -262,7 +278,7 @@ export default function NutritionProgressChart({
 
   return (
     <Animated.View
-      entering={FadeIn.duration(500)}
+      entering={hasData ? FadeIn.duration(500) : undefined}
       style={[
         styles.container,
         { backgroundColor: colors.light },
@@ -505,12 +521,7 @@ export default function NutritionProgressChart({
             )}
           </>
         ) : (
-          <MotiView
-            from={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ type: "timing", duration: 500 }}
-            style={styles.emptyContainer}
-          >
+          <View style={styles.emptyContainer}>
             <LinearGradient
               colors={[colors.light, colors.background]}
               style={styles.emptyGradient}
@@ -519,7 +530,7 @@ export default function NutritionProgressChart({
                 Nenhuma refeição registrada hoje
               </Text>
             </LinearGradient>
-          </MotiView>
+          </View>
         )}
       </Pressable>
 

@@ -249,33 +249,60 @@ export default function WorkoutProgressChart({
   const [workoutHistory, setWorkoutHistory] = useState<{
     [exerciseId: string]: WorkoutHistoryData[];
   }>({});
-  const [chartData, setChartData] = useState<any>({
+  const [chartData, setChartData] = useState<{
+    labels: string[];
+    datasets: {
+      data: number[];
+      color?: (opacity?: number) => string;
+      strokeWidth?: number;
+    }[];
+  }>({
     labels: [],
     datasets: [{ data: [] }],
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [initialMount, setInitialMount] = useState(true);
 
-  // Animação para a altura do card
-  const cardHeight = useSharedValue(isExpanded ? 550 : 250);
+  // Altura animada do card
+  const cardHeight = useSharedValue(230);
 
-  // Efeito para animar a altura do card quando expandido/recolhido
+  // Carregar dados quando o componente montar
   useEffect(() => {
-    const baseHeight = 40; // Altura base para o cabeçalho
-    const paddingBottom = 20; // Padding inferior
-    const emptyStateHeight = 180; // Altura para o estado vazio
+    const initializeComponent = async () => {
+      await loadData();
+      setIsInitialized(true);
+    };
 
-    // Se não houver exercícios, definir uma altura mínima para o estado vazio
-    if (!todayExercises.length) {
-      cardHeight.value = withTiming(emptyStateHeight, { duration: 300 });
+    initializeComponent();
+  }, [getWorkoutsForDate, getWorkoutTypeById, getExercisesForWorkout]);
+
+  // Efeito para animar a altura do card
+  useEffect(() => {
+    const emptyStateHeight = 180; // Altura padrão para o estado vazio
+
+    // Se não tiver exercícios ou estiver carregando, usar altura fixa
+    if (todayExercises.length === 0 || isLoading) {
+      cardHeight.value = emptyStateHeight;
       return;
     }
 
-    cardHeight.value = withTiming(isExpanded ? 550 : 230, { duration: 300 });
-  }, [isExpanded, todayExercises.length]);
+    // Só alterar a altura após os dados estarem carregados
+    if (!isLoading) {
+      if (initialMount) {
+        cardHeight.value = isExpanded ? 650 : 220;
+        setInitialMount(false);
+      } else {
+        cardHeight.value = withTiming(isExpanded ? 750 : 220, {
+          duration: 300,
+        });
+      }
+    }
+  }, [isExpanded, todayExercises.length, isLoading, initialMount]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      height: isExpanded ? "auto" : cardHeight.value,
+      height: cardHeight.value,
     };
   });
 
@@ -292,11 +319,6 @@ export default function WorkoutProgressChart({
       loadData();
     }
   }, [refreshKey]);
-
-  // Efeito para carregar os dados na montagem inicial do componente
-  useEffect(() => {
-    loadData();
-  }, [getWorkoutsForDate, getWorkoutTypeById, getExercisesForWorkout]);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -638,7 +660,16 @@ export default function WorkoutProgressChart({
                   },
                 ]}
               >
-                <View style={styles.exerciseCard}>
+                <MotiView
+                  style={styles.exerciseCard}
+                  from={{ opacity: 0, translateY: 10 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  transition={{
+                    type: "timing",
+                    duration: 500,
+                    delay: index * 100,
+                  }}
+                >
                   <View style={styles.exerciseCardHeader}>
                     <Text
                       style={[styles.exerciseName, { color: colors.text }]}
@@ -665,7 +696,7 @@ export default function WorkoutProgressChart({
                   <Text style={[styles.exerciseValue, { color: colors.text }]}>
                     {formatValue(currentValue)}
                   </Text>
-                </View>
+                </MotiView>
               </TouchableOpacity>
             );
           }}
@@ -674,13 +705,27 @@ export default function WorkoutProgressChart({
     );
   };
 
+  // Se o componente ainda não foi inicializado, aplicar a mesma altura fixa
+  if (!isInitialized) {
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.light,
+            height: 180, // Exatamente a mesma altura do NutritionProgressChart
+          },
+        ]}
+      />
+    );
+  }
+
   return (
     <Animated.View
-      entering={FadeIn.duration(500).delay(300)}
       style={[
         styles.container,
         { backgroundColor: colors.light },
-        animatedStyle,
+        !hasExercises ? { height: 180 } : animatedStyle,
       ]}
     >
       <Pressable
@@ -760,12 +805,7 @@ export default function WorkoutProgressChart({
 
         {/* Conteúdo principal */}
         {!hasExercises ? (
-          <MotiView
-            from={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ type: "timing", duration: 500 }}
-            style={styles.emptyContainer}
-          >
+          <View style={styles.emptyContainer}>
             <LinearGradient
               colors={[colors.light, colors.background]}
               style={styles.emptyGradient}
@@ -774,7 +814,7 @@ export default function WorkoutProgressChart({
                 Nenhum exercício registrado hoje
               </Text>
             </LinearGradient>
-          </MotiView>
+          </View>
         ) : (
           <>
             <View style={styles.progressContainer}>

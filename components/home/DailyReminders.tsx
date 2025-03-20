@@ -68,6 +68,7 @@ export default function DailyReminders() {
   const todayReminders = getTodayReminders();
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedReminderId, setSelectedReminderId] = useState<string>("");
+  const [initialMount, setInitialMount] = useState(true);
 
   // Calcular a altura com base no número de lembretes
   React.useEffect(() => {
@@ -76,10 +77,16 @@ export default function DailyReminders() {
     const reminderCardHeight = 80;
     const bottomPadding = 20;
     const dotsHeight = 30;
+    const emptyStateHeight = 180; // Altura padrão para o estado vazio
 
     // Se não há lembretes, altura mínima
     if (todayReminders.length === 0) {
-      cardHeight.value = withTiming(200);
+      if (initialMount) {
+        cardHeight.value = emptyStateHeight;
+        setInitialMount(false);
+      } else {
+        cardHeight.value = withTiming(emptyStateHeight);
+      }
       return;
     }
 
@@ -96,9 +103,14 @@ export default function DailyReminders() {
       bottomPadding +
       (showDots ? dotsHeight : 0);
 
-    // Aplicar animação
-    cardHeight.value = withTiming(totalHeight, { duration: 300 });
-  }, [isExpanded, todayReminders.length]);
+    // Aplicar a altura imediatamente na primeira montagem, depois usar animação
+    if (initialMount) {
+      cardHeight.value = totalHeight;
+      setInitialMount(false);
+    } else {
+      cardHeight.value = withTiming(totalHeight, { duration: 300 });
+    }
+  }, [isExpanded, todayReminders.length, initialMount]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -408,12 +420,7 @@ export default function DailyReminders() {
             <ActivityIndicator size="small" color={colors.primary} />
           </View>
         ) : todayReminders.length === 0 ? (
-          <MotiView
-            from={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ type: "timing", duration: 500 }}
-            style={styles.emptyContainer}
-          >
+          <View style={styles.emptyContainer}>
             <LinearGradient
               colors={[colors.light, colors.background]}
               style={styles.emptyGradient}
@@ -422,7 +429,7 @@ export default function DailyReminders() {
                 Adicione seu primeiro lembrete
               </Text>
             </LinearGradient>
-          </MotiView>
+          </View>
         ) : (
           <View style={styles.remindersContainer}>
             {/* Renderizar os lembretes */}

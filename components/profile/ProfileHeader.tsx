@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -10,15 +10,9 @@ import {
 import { MotiView } from "moti";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
-import {
-  Ionicons,
-  MaterialCommunityIcons,
-  FontAwesome5,
-} from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../context/AuthContext";
 import { useNutrition } from "../../context/NutritionContext";
-import { useWorkoutContext } from "../../context/WorkoutContext";
-import { useMeals } from "../../context/MealContext";
 
 interface ProfileHeaderProps {
   onSettingsPress?: () => void;
@@ -33,53 +27,18 @@ export default function ProfileHeader({
   const colors = Colors[theme];
   const { user } = useAuth();
   const { nutritionInfo } = useNutrition();
-  const { workouts } = useWorkoutContext();
-  const { meals } = useMeals();
-
-  // Estados para estatísticas do usuário
-  const [totalMeals, setTotalMeals] = useState(0);
-  const [totalWorkouts, setTotalWorkouts] = useState(0);
 
   // Controle de animação - executar apenas uma vez
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const animationExecuted = useRef(false);
 
-  useEffect(() => {
-    // Configurar a animação para ser executada apenas na primeira renderização
-    if (!animationExecuted.current) {
-      setShouldAnimate(true);
-      animationExecuted.current = true;
-    } else {
-      setShouldAnimate(false);
-    }
-  }, []);
-
-  // Calcular estatísticas do usuário
-  useEffect(() => {
-    // Calcular total de refeições registradas
-    let mealCount = 0;
-    Object.keys(meals).forEach((date) => {
-      Object.keys(meals[date]).forEach((mealId) => {
-        if (meals[date][mealId].length > 0) {
-          mealCount++;
-        }
-      });
-    });
-    setTotalMeals(mealCount);
-
-    // Calcular total de treinos realizados
-    let workoutCount = 0;
-
-    Object.keys(workouts).forEach((date) => {
-      Object.keys(workouts[date]).forEach((workoutId) => {
-        if (workouts[date][workoutId].length > 0) {
-          workoutCount++;
-        }
-      });
-    });
-
-    setTotalWorkouts(workoutCount);
-  }, [meals, workouts]);
+  // Configurar a animação para ser executada apenas na primeira renderização
+  if (!animationExecuted.current) {
+    setShouldAnimate(true);
+    animationExecuted.current = true;
+  } else if (shouldAnimate) {
+    setShouldAnimate(false);
+  }
 
   // Função para formatar o nome do usuário (primeira letra maiúscula)
   const formatName = (name: string | null | undefined) => {
@@ -157,30 +116,29 @@ export default function ProfileHeader({
             >
               {user?.email || ""}
             </Text>
+
+            <View style={styles.nutritionStatusContainer}>
+              <Text style={[styles.nutritionStatus, { color: colors.primary }]}>
+                {getNutritionStatus()}
+              </Text>
+            </View>
           </View>
         </View>
 
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <MaterialCommunityIcons
-              name="food-apple"
-              size={16}
-              color={colors.primary}
+        {onSettingsPress && (
+          <TouchableOpacity
+            onPress={onSettingsPress}
+            style={styles.settingsButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="settings-outline"
+              size={24}
+              color={colors.text}
+              style={{ opacity: 0.7 }}
             />
-            <Text style={[styles.statValue, { color: colors.text }]}>
-              {totalMeals}
-            </Text>
-          </View>
-
-          <View style={styles.statDivider} />
-
-          <View style={styles.statItem}>
-            <FontAwesome5 name="dumbbell" size={14} color={colors.primary} />
-            <Text style={[styles.statValue, { color: colors.text }]}>
-              {totalWorkouts}
-            </Text>
-          </View>
-        </View>
+          </TouchableOpacity>
+        )}
       </View>
     </MotiView>
   );
@@ -203,7 +161,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
     marginRight: 10,
-    maxWidth: "70%",
   },
   avatarContainer: {
     width: 50,
@@ -238,24 +195,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
-  statsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexShrink: 0,
+  nutritionStatusContainer: {
+    marginTop: 4,
   },
-  statItem: {
-    alignItems: "center",
-    paddingHorizontal: 6,
+  nutritionStatus: {
+    fontSize: 13,
+    fontWeight: "600",
   },
-  statValue: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginTop: 2,
-  },
-  statDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: "rgba(0,0,0,0.1)",
-    marginHorizontal: 6,
+  settingsButton: {
+    padding: 8,
   },
 });

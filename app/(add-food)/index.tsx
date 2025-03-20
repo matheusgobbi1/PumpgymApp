@@ -310,9 +310,6 @@ export default function AddFoodScreen() {
 
     // Adicionar ao histórico de busca
     await addToSearchHistory(newFood);
-
-    // Salvar as alterações
-    await saveMeals();
   };
 
   // Função para adicionar alimento da pesquisa diretamente
@@ -346,9 +343,6 @@ export default function AddFoodScreen() {
 
     // Adicionar ao histórico de busca
     await addToSearchHistory(newFood);
-
-    // Salvar as alterações
-    await saveMeals();
   };
 
   // Função para obter a porção preferida para exibição
@@ -664,7 +658,10 @@ export default function AddFoodScreen() {
                 <Text
                   style={[
                     styles.clearHistoryText,
-                    { color: colors.text + "80", backgroundColor: colors.light },
+                    {
+                      color: colors.text + "80",
+                      backgroundColor: colors.light,
+                    },
                   ]}
                 >
                   Limpar

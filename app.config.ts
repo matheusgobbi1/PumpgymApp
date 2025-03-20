@@ -3,7 +3,7 @@ import "dotenv/config";
 export default {
   name: "FitFolio",
   slug: "fitfolio",
-  version: "1.0.0",
+  version: "1.0.1",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: "fitfolio",
@@ -19,6 +19,8 @@ export default {
     bundleIdentifier: "com.fitfolio.app",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
+      NSMotionUsageDescription:
+        "O app usa o pedômetro para contar seus passos diários e monitorar sua atividade física.",
     },
   },
   android: {
@@ -27,11 +29,12 @@ export default {
       backgroundColor: "#ffffff",
     },
     package: "com.fitfolio.app",
+    permissions: ["android.permission.ACTIVITY_RECOGNITION"],
   },
   web: {
     favicon: "./assets/images/favicon.png",
   },
-  plugins: ["expo-router"],
+  plugins: ["expo-router", "expo-sensors"],
   extra: {
     EDAMAM_APP_ID: process.env.EXPO_PUBLIC_EDAMAM_APP_ID,
     EDAMAM_APP_KEY: process.env.EXPO_PUBLIC_EDAMAM_APP_KEY,

@@ -124,7 +124,8 @@ export default function FoodDetailsScreen() {
   const [portion, setPortion] = useState("100");
   const [numberOfPortions, setNumberOfPortions] = useState("1");
   const [isCustomPortion, setIsCustomPortion] = useState(true);
-  const { addFoodToMeal, saveMeals, addToSearchHistory } = useMeals();
+  const { addFoodToMeal, updateFoodInMeal, saveMeals, addToSearchHistory } =
+    useMeals();
   const [food, setFood] = useState<FoodItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -731,8 +732,14 @@ export default function FoodDetailsScreen() {
       portionDescription: portionDescription,
     };
 
-    // Adicionar o alimento à refeição
-    addFoodToMeal(mealId, newFood);
+    // Verificar se estamos editando um alimento existente ou adicionando um novo
+    if (isEditMode && foodId) {
+      // Atualizar o alimento existente
+      updateFoodInMeal(mealId, newFood);
+    } else {
+      // Adicionar novo alimento à refeição
+      addFoodToMeal(mealId, newFood);
+    }
 
     // Adicionar ao histórico com a porção exata em que foi adicionado
     await addToSearchHistory(newFood);

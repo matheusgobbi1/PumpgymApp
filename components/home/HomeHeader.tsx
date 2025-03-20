@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -13,22 +13,30 @@ import { useAuth } from "../../context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useWorkoutContext } from "../../context/WorkoutContext";
 
 interface HomeHeaderProps {
   onProfilePress?: () => void;
+  title?: string;
+  count?: number;
+  iconName?: keyof typeof Ionicons.glyphMap;
+  iconColor?: string;
 }
 
-export default function HomeHeader({ onProfilePress }: HomeHeaderProps) {
+export default function HomeHeader({
+  onProfilePress,
+  title,
+  count = 0,
+  iconName = "flame-outline",
+  iconColor,
+}: HomeHeaderProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { user } = useAuth();
-  const { workouts } = useWorkoutContext();
   const [greeting, setGreeting] = useState("");
   const [currentDate, setCurrentDate] = useState("");
-  const [streak, setStreak] = useState(0);
 
-  useEffect(() => {
+  // Inicializar valores no render, sem useEffect
+  if (greeting === "") {
     // Definir a saudação com base na hora do dia
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) {
@@ -38,71 +46,19 @@ export default function HomeHeader({ onProfilePress }: HomeHeaderProps) {
     } else {
       setGreeting("Boa noite");
     }
+  }
 
-    // Formatar a data atual
+  // Inicializar a data atual
+  if (currentDate === "") {
     const today = new Date();
     const formattedDate = format(today, "EEEE, d 'de' MMMM");
     setCurrentDate(
       formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1)
     );
+  }
 
-    // Calcular o streak de treinos
-    calculateStreak();
-  }, [workouts]);
-
-  // Função para calcular o streak de treinos
-  const calculateStreak = () => {
-    if (!workouts) return;
-
-    let currentStreak = 0;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Verificar se há treino hoje
-    const todayFormatted = format(today, "yyyy-MM-dd");
-    const hasTodayWorkout =
-      workouts[todayFormatted] &&
-      Object.keys(workouts[todayFormatted]).length > 0;
-
-    // Se não houver treino hoje, verificar ontem
-    if (!hasTodayWorkout) {
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayFormatted = format(yesterday, "yyyy-MM-dd");
-
-      if (
-        !(
-          workouts[yesterdayFormatted] &&
-          Object.keys(workouts[yesterdayFormatted]).length > 0
-        )
-      ) {
-        setStreak(0);
-        return;
-      }
-    }
-
-    // Contar dias consecutivos com treinos
-    let checkDate = new Date(today);
-    if (!hasTodayWorkout) {
-      checkDate.setDate(checkDate.getDate() - 1);
-    }
-
-    let keepCounting = true;
-    while (keepCounting) {
-      const dateFormatted = format(checkDate, "yyyy-MM-dd");
-      if (
-        workouts[dateFormatted] &&
-        Object.keys(workouts[dateFormatted]).length > 0
-      ) {
-        currentStreak++;
-        checkDate.setDate(checkDate.getDate() - 1);
-      } else {
-        keepCounting = false;
-      }
-    }
-
-    setStreak(currentStreak);
-  };
+  // Cor do ícone (usar a fornecida ou a de aviso padrão)
+  const actualIconColor = iconColor || colors.warning;
 
   return (
     <MotiView
@@ -119,13 +75,26 @@ export default function HomeHeader({ onProfilePress }: HomeHeaderProps) {
           <Text style={[styles.userName, { color: colors.text }]}>
             {user?.displayName?.split(" ")[0] || "Usuário"}
           </Text>
-          <Text style={[styles.dateText, { color: colors.text, opacity: 0.7 }]}>
-            {currentDate}
-          </Text>
+          {title ? (
+            <Text
+              style={[
+                styles.dateText,
+                { color: colors.primary, fontWeight: "600", opacity: 1 },
+              ]}
+            >
+              {title}
+            </Text>
+          ) : (
+            <Text
+              style={[styles.dateText, { color: colors.text, opacity: 0.7 }]}
+            >
+              {currentDate}
+            </Text>
+          )}
         </View>
 
         <View style={styles.rightContainer}>
-          {streak > 0 && (
+          {count > 0 && (
             <MotiView
               from={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -135,9 +104,9 @@ export default function HomeHeader({ onProfilePress }: HomeHeaderProps) {
                 { backgroundColor: colors.primary + "20" },
               ]}
             >
-              <Ionicons name="flame" size={16} color={colors.warning} />
+              <Ionicons name={iconName} size={16} color={actualIconColor} />
               <Text style={[styles.streakText, { color: colors.text }]}>
-                {streak} {streak === 1 ? "dia" : "dias"}
+                {count}
               </Text>
             </MotiView>
           )}
@@ -172,7 +141,7 @@ const styles = StyleSheet.create({
   container: {
     width: "100%",
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === "ios" ? 20 : 10,
+    paddingTop: Platform.OS === "ios" ? 10 : 10,
     paddingBottom: 20,
   },
   content: {
@@ -184,18 +153,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   greeting: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "500",
   },
   userName: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
-    marginTop: 4,
+    marginTop: 2,
     letterSpacing: -0.5,
   },
   dateText: {
-    fontSize: 14,
-    marginTop: 4,
+    fontSize: 12,
+    marginTop: 2,
     fontWeight: "500",
   },
   rightContainer: {
@@ -205,15 +174,16 @@ const styles = StyleSheet.create({
   streakContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
+    justifyContent: "center",
+    height: 36,
+    width: 38,
+    borderRadius: 30,
     marginRight: 12,
   },
   streakText: {
-    fontSize: 13,
-    fontWeight: "600",
-    marginLeft: 4,
+    fontSize: 14,
+    fontWeight: "700",
+    marginLeft: 2,
   },
   profileButton: {
     padding: 4,

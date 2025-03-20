@@ -14,4 +14,5 @@ export const KEYS = {
   WORKOUT_TYPES: "pumpgym_workout_types",
   AVAILABLE_WORKOUT_TYPES: "pumpgym_available_workout_types",
   TRAINING_GOALS: "pumpgym_training_goals",
+  WATER_INTAKE: "pumpgym_water_intake",
 };

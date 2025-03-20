@@ -37,6 +37,7 @@ import ConfirmationModal from "../../components/ui/ConfirmationModal";
 import ContextMenu, { MenuAction } from "../../components/shared/ContextMenu";
 import Toast from "../../components/common/Toast";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import HomeHeader from "../../components/home/HomeHeader";
 
 // Definir interface para props do MemoizedWorkoutGroup
 interface WorkoutGroupProps {
@@ -182,6 +183,9 @@ export default function TrainingScreen() {
   );
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
+  // Estado para contar dias de treino
+  const [trainingDays, setTrainingDays] = useState(0);
+
   // Usar o contexto de treinos - desestruturar apenas o que é necessário para este componente
   // Usar os valores memoizados do contexto em vez de calcular novamente
   const {
@@ -201,7 +205,34 @@ export default function TrainingScreen() {
     workoutsForSelectedDate,
     hasConfiguredWorkouts,
     getWorkoutsForDate,
+    workouts,
   } = useWorkoutContext();
+
+  // Calcular o número de dias com treino registrado
+  useEffect(() => {
+    let workoutDaysCount = 0;
+
+    // Contar dias únicos com treinos
+    Object.keys(workouts).forEach((date) => {
+      if (Object.keys(workouts[date]).length > 0) {
+        // Verificar se há exercícios registrados nesse dia
+        const hasExercisesForDay = Object.values(workouts[date]).some(
+          (exercises) => exercises.length > 0
+        );
+
+        if (hasExercisesForDay) {
+          workoutDaysCount++;
+        }
+      }
+    });
+
+    setTrainingDays(workoutDaysCount);
+  }, [workouts, refreshKey]);
+
+  // Navegar para o perfil
+  const navigateToProfile = useCallback(() => {
+    router.push("/profile");
+  }, [router]);
 
   // Estado para a data selecionada (sincronizado com o contexto)
   const [selectedDate, setSelectedDate] = useState<string>(contextSelectedDate);
@@ -667,6 +698,14 @@ export default function TrainingScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <HomeHeader
+          title="Seus treinos"
+          count={trainingDays}
+          iconName="barbell-outline"
+          iconColor={colors.success}
+          onProfilePress={navigateToProfile}
+        />
+
         {calendarComponent}
 
         {/* Menu contextual */}
