@@ -1,11 +1,11 @@
-import React, { useState, memo, useCallback } from "react";
+import React, { useState, memo, useCallback, useRef } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  Animated,
+  Modal,
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,6 +13,7 @@ import { MotiView } from "moti";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import * as Haptics from "expo-haptics";
+import { BlurView } from "expo-blur";
 
 const { width } = Dimensions.get("window");
 
@@ -28,128 +29,205 @@ export interface MenuAction {
 interface ContextMenuProps {
   actions: MenuAction[];
   isVisible?: boolean;
+  inHeader?: boolean;
 }
 
-const ContextMenu = memo(({ actions, isVisible = true }: ContextMenuProps) => {
-  const { theme } = useTheme();
-  const colors = Colors[theme];
-  const [isExpanded, setIsExpanded] = useState(false);
+const ContextMenu = memo(
+  ({ actions, isVisible = true, inHeader = false }: ContextMenuProps) => {
+    const { theme } = useTheme();
+    const colors = Colors[theme];
+    const [isExpanded, setIsExpanded] = useState(false);
+    const buttonRef = useRef<any>(null);
+    const [menuLayout, setMenuLayout] = useState({
+      pageX: 0,
+      pageY: 0,
+      width: 0,
+      height: 0,
+    });
 
-  // Função para lidar com o toque em uma ação
-  const handleActionPress = useCallback((action: MenuAction) => {
-    // Fornecer feedback tátil
-    Haptics.impactAsync(
-      action.type === "danger"
-        ? Haptics.ImpactFeedbackStyle.Heavy
-        : Haptics.ImpactFeedbackStyle.Medium
-    );
+    // Função para lidar com o toque em uma ação
+    const handleActionPress = useCallback((action: MenuAction) => {
+      // Fornecer feedback tátil
+      Haptics.impactAsync(
+        action.type === "danger"
+          ? Haptics.ImpactFeedbackStyle.Heavy
+          : Haptics.ImpactFeedbackStyle.Medium
+      );
 
-    // Executar a ação
-    action.onPress();
+      // Fechar o menu antes de executar a ação
+      setIsExpanded(false);
 
-    // Fechar o menu após a ação
-    setIsExpanded(false);
-  }, []);
+      // Executar a ação após um pequeno delay para garantir que o menu
+      // seja fechado antes de abrir qualquer outro modal
+      setTimeout(() => {
+        action.onPress();
+      }, 100);
+    }, []);
 
-  // Função para alternar a expansão do menu
-  const toggleMenu = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setIsExpanded((prev) => !prev);
-  }, []);
+    // Função para alternar a expansão do menu
+    const toggleMenu = useCallback(() => {
+      if (!isExpanded) {
+        // Medir posição do botão antes de abrir o menu
+        if (buttonRef.current) {
+          buttonRef.current.measure(
+            (
+              _x: number,
+              _y: number,
+              width: number,
+              height: number,
+              pageX: number,
+              pageY: number
+            ) => {
+              setMenuLayout({
+                pageX,
+                pageY,
+                width,
+                height,
+              });
 
-  // Se o menu não estiver visível, não renderizar nada
-  if (!isVisible) return null;
+              // Após coletar posição, expandir o menu
+              setIsExpanded(true);
+            }
+          );
+        } else {
+          // Se não conseguir medir, ainda assim abrir o menu
+          setIsExpanded(true);
+        }
+      } else {
+        // Fechar o menu
+        setIsExpanded(false);
+      }
 
-  // Obter a cor com base no tipo da ação
-  const getActionColor = (type?: "default" | "danger" | "warning") => {
-    switch (type) {
-      case "danger":
-        return colors.danger;
-      case "warning":
-        return colors.warning;
-      default:
-        return colors.text;
-    }
-  };
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }, [isExpanded]);
 
-  return (
-    <View style={styles.container}>
-      {/* Botão para abrir/fechar o menu */}
-      <TouchableOpacity
-        style={[
-          styles.menuButton,
-          {
-            backgroundColor: isExpanded ? colors.primary : colors.card,
-            shadowColor: colors.text,
-            borderColor: isExpanded ? colors.primary : colors.border,
-          },
-        ]}
-        onPress={toggleMenu}
-        activeOpacity={0.7}
-      >
-        <Ionicons
-          name={isExpanded ? "close" : "ellipsis-horizontal"}
-          size={22}
-          color={isExpanded ? "#fff" : colors.text}
-        />
-      </TouchableOpacity>
+    // Se o menu não estiver visível, não renderizar nada
+    if (!isVisible) return null;
 
-      {/* Menu expandido */}
-      {isExpanded && (
-        <MotiView
-          from={{ opacity: 0, translateY: -10 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          exit={{ opacity: 0, translateY: -10 }}
-          transition={{ type: "timing", duration: 200 }}
-          style={[
-            styles.menuContent,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              shadowColor: colors.text,
-            },
-          ]}
+    // Obter a cor com base no tipo da ação
+    const getActionColor = (type?: "default" | "danger" | "warning") => {
+      switch (type) {
+        case "danger":
+          return colors.danger;
+        case "warning":
+          return colors.warning;
+        default:
+          return colors.text;
+      }
+    };
+
+    // Aplicar estilos diferentes com base em onde o menu está sendo usado
+    const containerStyle = inHeader
+      ? [styles.containerInHeader]
+      : [styles.container];
+
+    return (
+      <>
+        <View style={containerStyle}>
+          {/* Botão para abrir/fechar o menu */}
+          <TouchableOpacity
+            ref={buttonRef}
+            style={[
+              styles.menuButton,
+              {
+                backgroundColor: isExpanded ? colors.primary : colors.card,
+                shadowColor: colors.text,
+                borderColor: isExpanded ? colors.primary : colors.border,
+              },
+            ]}
+            onPress={toggleMenu}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={isExpanded ? "close" : "ellipsis-horizontal"}
+              size={22}
+              color={isExpanded ? "#fff" : colors.text}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Menu expandido em um Modal */}
+        <Modal
+          transparent
+          visible={isExpanded}
+          animationType="fade"
+          onRequestClose={() => setIsExpanded(false)}
         >
-          {actions.map((action, index) => (
+          <BlurView
+            intensity={theme === "dark" ? 50 : 80}
+            tint={theme === "dark" ? "dark" : "light"}
+            style={styles.blurContainer}
+          >
             <TouchableOpacity
-              key={action.id}
-              style={[
-                styles.menuItem,
-                index < actions.length - 1 && {
-                  borderBottomWidth: 1,
-                  borderBottomColor: colors.border + "40",
-                },
-              ]}
-              onPress={() => handleActionPress(action)}
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setIsExpanded(false)}
             >
-              <Ionicons
-                name={action.icon as any}
-                size={20}
-                color={getActionColor(action.type)}
-                style={styles.menuItemIcon}
-              />
-              <Text
+              <MotiView
+                from={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "timing", duration: 150 }}
                 style={[
-                  styles.menuItemText,
-                  { color: getActionColor(action.type) },
+                  styles.menuContent,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    shadowColor: colors.text,
+                    position: "absolute",
+                    top: menuLayout.pageY + menuLayout.height + 5,
+                    // Para o menu no cabeçalho, posicionar à direita
+                    ...(inHeader ? { right: 20 } : { right: 20 }),
+                  },
                 ]}
               >
-                {action.label}
-              </Text>
+                {actions.map((action, index) => (
+                  <TouchableOpacity
+                    key={action.id}
+                    style={[
+                      styles.menuItem,
+                      index < actions.length - 1 && {
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.border + "40",
+                      },
+                    ]}
+                    onPress={() => handleActionPress(action)}
+                  >
+                    <Ionicons
+                      name={action.icon as any}
+                      size={20}
+                      color={getActionColor(action.type)}
+                      style={styles.menuItemIcon}
+                    />
+                    <Text
+                      style={[
+                        styles.menuItemText,
+                        { color: getActionColor(action.type) },
+                      ]}
+                    >
+                      {action.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </MotiView>
             </TouchableOpacity>
-          ))}
-        </MotiView>
-      )}
-    </View>
-  );
-});
+          </BlurView>
+        </Modal>
+      </>
+    );
+  }
+);
 
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
     top: 20,
     right: 10,
-    zIndex: 1000,
+    zIndex: 9999,
+    alignItems: "flex-end",
+  },
+  containerInHeader: {
+    position: "relative",
+    zIndex: 9999,
     alignItems: "flex-end",
   },
   menuButton: {
@@ -167,20 +245,52 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
+  blurContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.1)",
+  },
   menuContent: {
-    marginTop: 10,
+    position: "absolute",
+    top: 80, // Posição fixa para o menu standalone
+    right: 20,
     borderRadius: 12,
     overflow: "hidden",
     minWidth: 180,
     maxWidth: width / 1.5,
     borderWidth: 1,
+    elevation: 999,
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    marginHorizontal: 10,
+  },
+  menuContentHeader: {
+    position: "absolute",
+    top: 80, // Posição fixa para o menu no cabeçalho
+    right: 20,
+    borderRadius: 12,
+    overflow: "hidden",
+    minWidth: 180,
+    maxWidth: width / 1.5,
+    borderWidth: 1,
+    elevation: 999,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    marginHorizontal: 10,
   },
   menuItem: {
     flexDirection: "row",

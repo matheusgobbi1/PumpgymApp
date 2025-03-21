@@ -97,10 +97,11 @@ const DEFAULT_MEAL_TYPES: MealType[] = [
 
 interface MealConfigSheetProps {
   onMealConfigured: (meals: MealType[]) => void;
+  onDismiss?: () => void;
 }
 
 const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
-  ({ onMealConfigured }, ref) => {
+  ({ onMealConfigured, onDismiss }, ref) => {
     const { theme } = useTheme();
     const colors = Colors[theme];
     const insets = useSafeAreaInsets();
@@ -129,43 +130,48 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
 
     // Inicializar os tipos de refeições com os existentes ou os padrões
     useEffect(() => {
-      // Sempre inicializar com os tipos padrão, todos desmarcados
-      const initialTypes = DEFAULT_MEAL_TYPES.map((type) => ({
-        ...type,
-        selected: false,
-      }));
+      const initializeMealTypes = () => {
+        // Sempre inicializar com os tipos padrão, todos desmarcados
+        const initialTypes = DEFAULT_MEAL_TYPES.map((type) => ({
+          ...type,
+          selected: false,
+        }));
 
-      // Se existirem tipos configurados, marcá-los como selecionados
-      if (existingMealTypes.length > 0) {
-        // Marcar os tipos existentes como selecionados
-        initialTypes.forEach((type) => {
-          const existingType = existingMealTypes.find(
-            (et) => et.id === type.id
-          );
-          if (existingType) {
-            type.selected = true;
-          }
-        });
+        // Se existirem tipos configurados, marcá-los como selecionados
+        if (existingMealTypes.length > 0) {
+          // Marcar os tipos existentes como selecionados
+          initialTypes.forEach((type) => {
+            const existingType = existingMealTypes.find(
+              (et) => et.id === type.id
+            );
+            if (existingType) {
+              type.selected = true;
+            }
+          });
 
-        // Adicionar tipos personalizados que não estão nos padrões
-        existingMealTypes.forEach((existingType) => {
-          const isCustomType = !initialTypes.some(
-            (dt) => dt.id === existingType.id
-          );
-          if (isCustomType) {
-            initialTypes.push({
-              id: existingType.id,
-              name: existingType.name,
-              icon: existingType.icon,
-              color: existingType.color,
-              selected: true,
-            } as MealType);
-          }
-        });
-      }
+          // Adicionar tipos personalizados que não estão nos padrões
+          existingMealTypes.forEach((existingType) => {
+            const isCustomType = !initialTypes.some(
+              (dt) => dt.id === existingType.id
+            );
+            if (isCustomType) {
+              initialTypes.push({
+                id: existingType.id,
+                name: existingType.name,
+                icon: existingType.icon,
+                color: existingType.color,
+                selected: true,
+              } as MealType);
+            }
+          });
+        }
 
-      setMealTypes(initialTypes);
-      setIsLoading(false);
+        setMealTypes(initialTypes);
+        setIsLoading(false);
+      };
+
+      // Executar com um pequeno delay para evitar bloqueios na UI
+      requestAnimationFrame(initializeMealTypes);
     }, [existingMealTypes]);
 
     // Detectar quando o teclado é aberto ou fechado
@@ -212,21 +218,6 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
       [mealTypes, onMealConfigured]
     );
 
-    // Renderização do backdrop com blur
-    const renderBackdrop = useCallback(
-      (props: any) => (
-        <BottomSheetBackdrop
-          {...props}
-          disappearsOnIndex={-1}
-          appearsOnIndex={0}
-          pressBehavior="close"
-          opacity={0.7}
-          enableTouchThrough={false}
-        />
-      ),
-      []
-    );
-
     // Função para selecionar/deselecionar uma refeição
     const toggleMealSelection = useCallback((id: string) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -256,6 +247,11 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }, [mealTypes, onMealConfigured]);
 
+    // Verificar se há refeições selecionadas
+    const hasMealsSelected = useMemo(() => {
+      return mealTypes.some((meal) => meal.selected);
+    }, [mealTypes]);
+
     // Efeito para animar a entrada do componente
     useEffect(() => {
       Animated.parallel([
@@ -272,6 +268,87 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
         }),
       ]).start();
     }, []);
+
+    // Componente de renderização para cada item de refeição
+    const renderMealItem = useCallback(
+      (meal: MealType, index: number) => {
+        return (
+          <MotiView
+            key={`meal-${meal.id}-${theme}`}
+            style={styles.mealCardWrapper}
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{
+              type: "timing",
+              duration: 300,
+              delay: index * 50,
+              easing: Easing.out(Easing.ease),
+            }}
+          >
+            <TouchableOpacity
+              style={[
+                styles.mealCard,
+                { backgroundColor: colors.card },
+                meal.selected && {
+                  backgroundColor: meal.color + "08",
+                  borderWidth: 1,
+                  borderColor: meal.color + "30",
+                },
+              ]}
+              onPress={() => toggleMealSelection(meal.id)}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.mealCardContent,
+                  meal.selected && { backgroundColor: "transparent" },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.mealIconContainer,
+                    {
+                      backgroundColor: meal.selected
+                        ? meal.color + "20"
+                        : "rgba(255, 255, 255, 0.2)",
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={meal.icon as any}
+                    size={24}
+                    color={meal.selected ? meal.color : colors.primary}
+                  />
+                </View>
+                <View style={styles.mealInfo}>
+                  <Text style={[styles.mealName, { color: colors.text }]}>
+                    {meal.name}
+                  </Text>
+                </View>
+                <View style={styles.checkboxContainer}>
+                  <View
+                    style={[
+                      styles.checkbox,
+                      {
+                        borderColor: meal.selected ? meal.color : colors.border,
+                      },
+                      meal.selected && {
+                        backgroundColor: meal.color,
+                      },
+                    ]}
+                  >
+                    {meal.selected && (
+                      <Ionicons name="checkmark" size={16} color="white" />
+                    )}
+                  </View>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </MotiView>
+        );
+      },
+      [colors, theme, toggleMealSelection]
+    );
 
     // Adicionar um componente de carregamento
     if (isLoading) {
@@ -292,7 +369,6 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
         ref={bottomSheetModalRef}
         index={0}
         snapPoints={snapPoints}
-        backdropComponent={renderBackdrop}
         handleIndicatorStyle={{
           backgroundColor: colors.text + "50",
           width: 40,
@@ -305,6 +381,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
         keyboardBehavior="interactive"
         keyboardBlurBehavior="none"
         onChange={handleSheetChanges}
+        onDismiss={onDismiss}
       >
         <KeyboardAvoidingView
           style={[styles.container, { paddingBottom: insets.bottom }]}
@@ -327,90 +404,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
           >
             {/* Refeições pré-definidas */}
             <View style={styles.mealTypesContainer}>
-              {mealTypes.map((meal, index) => {
-                return (
-                  <MotiView
-                    key={`meal-${meal.id}-${theme}`}
-                    style={styles.mealCardWrapper}
-                    from={{ opacity: 0, translateY: 20 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    transition={{
-                      type: "timing",
-                      duration: 300,
-                      delay: index * 50,
-                      easing: Easing.out(Easing.ease),
-                    }}
-                  >
-                    <TouchableOpacity
-                      style={[
-                        styles.mealCard,
-                        { backgroundColor: colors.card },
-                        meal.selected && {
-                          backgroundColor: meal.color + "08",
-                          borderWidth: 1,
-                          borderColor: meal.color + "30",
-                        },
-                      ]}
-                      onPress={() => toggleMealSelection(meal.id)}
-                      activeOpacity={0.7}
-                    >
-                      <View
-                        style={[
-                          styles.mealCardContent,
-                          meal.selected && { backgroundColor: "transparent" },
-                        ]}
-                      >
-                        <View
-                          style={[
-                            styles.mealIconContainer,
-                            {
-                              backgroundColor: meal.selected
-                                ? meal.color + "20"
-                                : "rgba(255, 255, 255, 0.2)",
-                            },
-                          ]}
-                        >
-                          <Ionicons
-                            name={meal.icon as any}
-                            size={24}
-                            color={meal.selected ? meal.color : colors.primary}
-                          />
-                        </View>
-                        <View style={styles.mealInfo}>
-                          <Text
-                            style={[styles.mealName, { color: colors.text }]}
-                          >
-                            {meal.name}
-                          </Text>
-                        </View>
-                        <View style={styles.checkboxContainer}>
-                          <View
-                            style={[
-                              styles.checkbox,
-                              {
-                                borderColor: meal.selected
-                                  ? meal.color
-                                  : colors.border,
-                              },
-                              meal.selected && {
-                                backgroundColor: meal.color,
-                              },
-                            ]}
-                          >
-                            {meal.selected && (
-                              <Ionicons
-                                name="checkmark"
-                                size={16}
-                                color="white"
-                              />
-                            )}
-                          </View>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  </MotiView>
-                );
-              })}
+              {mealTypes.map((meal, index) => renderMealItem(meal, index))}
             </View>
           </ScrollView>
 
@@ -427,7 +421,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
               variant="primary"
               iconName="checkmark-outline"
               iconPosition="right"
-              disabled={!mealTypes.some((meal) => meal.selected)}
+              disabled={!hasMealsSelected}
               style={styles.confirmButton}
               hapticFeedback="notification"
             />

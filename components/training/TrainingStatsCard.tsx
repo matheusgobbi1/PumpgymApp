@@ -34,6 +34,7 @@ interface TrainingStatsCardProps {
     maxWeight: number;
     avgReps: number;
     totalReps: number;
+    caloriesBurned: number;
   };
   previousWorkoutTotals?: {
     totals: {
@@ -45,6 +46,7 @@ interface TrainingStatsCardProps {
       maxWeight: number;
       avgReps: number;
       totalReps: number;
+      caloriesBurned: number;
     } | null;
     date: string | null;
   };
@@ -490,6 +492,13 @@ export default function TrainingStatsCard({
   const statsContainer = useMemo(
     () => (
       <View style={styles.statsContainer}>
+         {renderStatRow(
+          "Calorias",
+          "flame-outline",
+          workoutTotals.caloriesBurned,
+          previousWorkoutTotals?.totals?.caloriesBurned || null,
+          " kcal"
+        )}
         {renderStatRow(
           "Volume Total",
           "barbell-outline",
@@ -499,18 +508,11 @@ export default function TrainingStatsCard({
           formatVolume
         )}
         {renderStatRow(
-          "Carga Média",
-          "speedometer-outline",
-          workoutTotals.avgWeight,
-          previousWorkoutTotals?.totals?.avgWeight || null,
-          " kg"
-        )}
-        {renderStatRow(
           "Repetições",
           "repeat-outline",
-          workoutTotals.avgReps,
-          previousWorkoutTotals?.totals?.avgReps || null,
-          " reps"
+          workoutTotals.totalReps,
+          previousWorkoutTotals?.totals?.totalReps || null,
+          ""
         )}
         {renderStatRow(
           "Séries",
@@ -524,8 +526,8 @@ export default function TrainingStatsCard({
     [
       renderStatRow,
       workoutTotals.totalVolume,
-      workoutTotals.avgWeight,
-      workoutTotals.avgReps,
+      workoutTotals.caloriesBurned,
+      workoutTotals.totalReps,
       workoutTotals.totalSets,
       previousWorkoutTotals?.totals,
       formatVolume,

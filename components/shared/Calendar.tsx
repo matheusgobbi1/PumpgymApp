@@ -26,7 +26,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
 
 const { width } = Dimensions.get("window");
-const DAYS_TO_SHOW = 61; // 30 dias antes + dia atual + 30 dias depois
+const DAYS_TO_SHOW = 34; // 30 dias antes + dia atual + 3 dias depois
 const DAY_ITEM_WIDTH = 48.5; // Largura do item de dia (40px) + marginHorizontal (4px * 2)
 
 interface CalendarProps {

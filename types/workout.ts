@@ -39,7 +39,10 @@ export interface WorkoutContextType {
   getWorkoutForDate: (date: string) => Workout | null;
   getExercisesForWorkout: (workoutId: string, date: string) => Exercise[];
   addExerciseToWorkout: (workoutId: string, exercise: Exercise) => void;
-  removeExerciseFromWorkout: (workoutId: string, exerciseId: string) => Promise<void>;
+  removeExerciseFromWorkout: (
+    workoutId: string,
+    exerciseId: string
+  ) => Promise<void>;
   saveWorkouts: () => Promise<void>;
 }
 
@@ -53,4 +56,5 @@ export interface WorkoutStats {
   maxWeight: number;
   avgReps: number;
   totalReps: number;
-} 
+  caloriesBurned: number;
+}

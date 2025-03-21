@@ -13,6 +13,7 @@ import { useAuth } from "../../context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import ContextMenu, { MenuAction } from "../shared/ContextMenu";
 
 interface HomeHeaderProps {
   onProfilePress?: () => void;
@@ -20,6 +21,9 @@ interface HomeHeaderProps {
   count?: number;
   iconName?: keyof typeof Ionicons.glyphMap;
   iconColor?: string;
+  showContextMenu?: boolean;
+  menuActions?: MenuAction[];
+  menuVisible?: boolean;
 }
 
 export default function HomeHeader({
@@ -28,6 +32,9 @@ export default function HomeHeader({
   count = 0,
   iconName = "flame-outline",
   iconColor,
+  showContextMenu = false,
+  menuActions = [],
+  menuVisible = true,
 }: HomeHeaderProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
@@ -111,25 +118,35 @@ export default function HomeHeader({
             </MotiView>
           )}
 
-          {onProfilePress && (
-            <MotiView
-              from={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", delay: 300 }}
-            >
-              <TouchableOpacity
-                onPress={onProfilePress}
-                style={styles.profileButton}
-                activeOpacity={0.7}
+          {showContextMenu ? (
+            <View style={styles.menuContainer}>
+              <ContextMenu
+                actions={menuActions}
+                isVisible={menuVisible}
+                inHeader={true}
+              />
+            </View>
+          ) : (
+            onProfilePress && (
+              <MotiView
+                from={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", delay: 300 }}
               >
-                <Ionicons
-                  name="person-circle-outline"
-                  size={42}
-                  color={colors.primary}
-                  style={{ opacity: 0.9 }}
-                />
-              </TouchableOpacity>
-            </MotiView>
+                <TouchableOpacity
+                  onPress={onProfilePress}
+                  style={styles.profileButton}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="person-circle-outline"
+                    size={42}
+                    color={colors.primary}
+                    style={{ opacity: 0.9 }}
+                  />
+                </TouchableOpacity>
+              </MotiView>
+            )
           )}
         </View>
       </View>
@@ -186,6 +203,9 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
   profileButton: {
+    padding: 4,
+  },
+  menuContainer: {
     padding: 4,
   },
 });

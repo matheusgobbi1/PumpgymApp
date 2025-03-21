@@ -7,8 +7,7 @@ import Colors from "../../constants/Colors";
 import { useNutrition } from "../../context/NutritionContext";
 import { useRouter } from "expo-router";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import NutritionCustomizerSheet from "./NutritionCustomizerSheet";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";;
 import * as Haptics from "expo-haptics";
 import Slider from "@react-native-community/slider";
 import { ErrorMessage } from "../common/ErrorMessage";
@@ -866,11 +865,6 @@ export default function NutritionSummaryCard() {
         )}
       </MotiView>
       
-      {/* Bottom Sheet para customização */}
-      <NutritionCustomizerSheet 
-        ref={customizeSheetRef} 
-        onSave={handleSaveComplete}
-      />
     </TouchableOpacity>
   );
 }

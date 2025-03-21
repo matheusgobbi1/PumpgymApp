@@ -218,6 +218,7 @@ export interface WorkoutType {
 interface WorkoutConfigSheetProps {
   onWorkoutConfigured: (workouts: WorkoutType[]) => void;
   selectedDate?: Date; // Data selecionada (opcional)
+  onDismiss?: () => void; // Callback quando o bottom sheet for fechado
 }
 
 // Componente para renderizar o ícone correto com base no tipo
@@ -274,7 +275,7 @@ const WorkoutConfigSheet = forwardRef<
   WorkoutConfigSheetProps
 >(
   (
-    { onWorkoutConfigured, selectedDate },
+    { onWorkoutConfigured, selectedDate, onDismiss },
     ref: ForwardedRef<BottomSheetModal>
   ) => {
     const { user } = useAuth();
@@ -816,6 +817,7 @@ const WorkoutConfigSheet = forwardRef<
         snapPoints={["70%"]}
         backgroundStyle={{ backgroundColor: colors.background }}
         handleIndicatorStyle={{ backgroundColor: colors.text + "50" }}
+        onDismiss={onDismiss}
       >
         <View
           style={[styles.container, { backgroundColor: colors.background }]}

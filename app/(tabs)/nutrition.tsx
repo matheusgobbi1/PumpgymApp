@@ -38,6 +38,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import ConfirmationModal from "../../components/ui/ConfirmationModal";
 import ContextMenu, { MenuAction } from "../../components/shared/ContextMenu";
 import HomeHeader from "../../components/home/HomeHeader";
+import { BlurView } from "expo-blur";
 
 const { width } = Dimensions.get("window");
 
@@ -111,6 +112,7 @@ export default function NutritionScreen() {
     resetMealTypes,
     updateMealTypes,
     saveMeals,
+    copyMealFromDate,
   } = useMeals();
 
   // Estado para forçar a recriação do MealConfigSheet
@@ -118,6 +120,19 @@ export default function NutritionScreen() {
 
   // Estado para controlar a visibilidade do modal de confirmação
   const [resetModalVisible, setResetModalVisible] = useState(false);
+
+  // Estado para controlar a visibilidade do MealConfigSheet
+  const [isMealConfigVisible, setIsMealConfigVisible] = useState(false);
+
+  // Novo estado para gerenciar modais
+  const [modalInfo, setModalInfo] = useState({
+    type: "",
+    visible: false,
+    mealId: "",
+    foodId: "",
+    mealName: "",
+    sourceDate: "",
+  });
 
   // Referência para o bottom sheet de configuração de refeições
   const mealConfigSheetRef = useRef<BottomSheetModal>(null);
@@ -150,16 +165,59 @@ export default function NutritionScreen() {
   };
 
   const handleDeleteFood = useCallback(
-    async (mealId: string, foodId: string) => {
+    async (foodId: string) => {
       try {
-        await removeFoodFromMeal(mealId, foodId);
+        await removeFoodFromMeal(modalInfo.mealId, foodId);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch (error) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } finally {
+        setModalInfo((prev) => ({ ...prev, visible: false }));
       }
     },
-    [removeFoodFromMeal]
+    [removeFoodFromMeal, modalInfo.mealId]
   );
+
+  const handleDeleteMeal = useCallback(async (mealId: string) => {
+    try {
+      // Implementar função para deletar refeição se necessário
+      console.log("Deletar refeição:", mealId);
+    } catch (error) {
+      console.error("Erro ao excluir refeição:", error);
+    } finally {
+      setModalInfo((prev) => ({ ...prev, visible: false }));
+    }
+  }, []);
+
+  const handleCopyMeal = useCallback(async () => {
+    if (!modalInfo.sourceDate || !modalInfo.mealId) return;
+
+    try {
+      await copyMealFromDate(
+        modalInfo.sourceDate,
+        modalInfo.mealId,
+        modalInfo.mealId
+      );
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error("Erro ao copiar refeição:", error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setModalInfo((prev) => ({ ...prev, visible: false }));
+    }
+  }, [copyMealFromDate, modalInfo.sourceDate, modalInfo.mealId]);
+
+  // Função para formatar a data para exibição
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+
+    // Formatar a data normalmente
+    return date.toLocaleDateString("pt-BR", {
+      weekday: "long",
+      day: "2-digit",
+      month: "2-digit",
+    });
+  };
 
   const dailyTotals = useMemo(() => {
     return getDayTotals();
@@ -168,6 +226,7 @@ export default function NutritionScreen() {
   // Função para abrir o bottom sheet de configuração de refeições
   const openMealConfigSheet = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsMealConfigVisible(true);
 
     // Verificar se a referência existe antes de chamar o método present
     if (mealConfigSheetRef.current) {
@@ -184,6 +243,7 @@ export default function NutritionScreen() {
       if (params?.openMealConfig === "true") {
         setTimeout(() => {
           if (mealConfigSheetRef.current) {
+            setIsMealConfigVisible(true);
             mealConfigSheetRef.current.present();
             router.replace("/nutrition");
           } else {
@@ -195,6 +255,11 @@ export default function NutritionScreen() {
       }
     }
   }, [mealConfigSheetRef, params, router]);
+
+  // Função para fechar o bottom sheet de configuração de refeições
+  const closeMealConfigSheet = useCallback(() => {
+    setIsMealConfigVisible(false);
+  }, []);
 
   // Tentar abrir o bottom sheet se o parâmetro estiver presente
   // Isso é executado uma vez durante a renderização inicial
@@ -242,6 +307,9 @@ export default function NutritionScreen() {
 
           // Feedback tátil de sucesso
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+          // Fechar o bottom sheet
+          closeMealConfigSheet();
         } else {
           // Notificar erro se não for bem-sucedido
           Alert.alert(
@@ -259,51 +327,58 @@ export default function NutritionScreen() {
         );
       }
     },
-    [updateMealTypes, saveMeals]
+    [updateMealTypes, saveMeals, closeMealConfigSheet]
   );
 
   // Função para redefinir as refeições
-  const handleResetMealTypes = useCallback(async () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    // Mostrar o modal de confirmação
+  const handleResetMealTypes = useCallback(() => {
+    // Fornecer feedback tátil imediatamente
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    // Mostrar o modal de confirmação imediatamente
     setResetModalVisible(true);
   }, []);
 
   // Função para confirmar a redefinição das refeições
   const confirmResetMealTypes = useCallback(async () => {
     try {
-      // Primeiro fechar o modal para evitar problemas visuais
+      // Fechar o modal imediatamente para melhor UX
       setResetModalVisible(false);
 
-      // Redefinir as refeições
-      const success = await resetMealTypes();
+      // Pequeno delay para garantir que o modal foi fechado visualmente
+      // antes de processar a lógica pesada de redefinição
+      setTimeout(async () => {
+        try {
+          // Redefinir as refeições
+          const success = await resetMealTypes();
 
-      if (success) {
-        // Forçar a recriação do componente MealConfigSheet
-        setMealConfigKey(Date.now());
+          if (success) {
+            // Forçar a recriação do componente MealConfigSheet
+            setMealConfigKey(Date.now());
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          } else {
+            Alert.alert(
+              "Erro",
+              "Não foi possível redefinir as refeições. Tente novamente."
+            );
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          }
+        } catch (error) {
+          console.error("Erro ao redefinir refeições:", error);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 
-        // Não precisamos chamar triggerRefresh() aqui pois o contexto já faz isso
-
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } else {
-        Alert.alert(
-          "Erro",
-          "Não foi possível redefinir as refeições. Tente novamente."
-        );
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      }
+          // Mostrar alerta de erro
+          Alert.alert(
+            "Erro",
+            "Ocorreu um erro ao redefinir refeições. Tente reiniciar o aplicativo."
+          );
+        }
+      }, 100);
     } catch (error) {
-      console.error("Erro ao redefinir refeições:", error);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      console.error("Erro ao processar redefinição:", error);
 
       // Fechar o modal mesmo em caso de erro
       setResetModalVisible(false);
-
-      // Mostrar alerta de erro
-      Alert.alert(
-        "Erro",
-        "Ocorreu um erro ao redefinir refeições. Tente reiniciar o aplicativo."
-      );
     }
   }, [resetMealTypes]);
 
@@ -385,6 +460,74 @@ export default function NutritionScreen() {
     router.push("/profile");
   }, [router]);
 
+  // Renderizar os modais baseados no modalInfo
+  const renderModals = () => {
+    // Se não houver modal visível, não renderizar nada
+    if (!modalInfo.visible) return null;
+
+    switch (modalInfo.type) {
+      case "deleteFood":
+        return (
+          <ConfirmationModal
+            visible={modalInfo.visible}
+            title="Excluir Alimento"
+            message="Tem certeza que deseja excluir este alimento? Esta ação não pode ser desfeita."
+            confirmText="Excluir"
+            cancelText="Cancelar"
+            confirmType="danger"
+            icon="trash-outline"
+            onConfirm={() => handleDeleteFood(modalInfo.foodId)}
+            onCancel={() =>
+              setModalInfo((prev) => ({ ...prev, visible: false }))
+            }
+          />
+        );
+
+      case "deleteMeal":
+        return (
+          <ConfirmationModal
+            visible={modalInfo.visible}
+            title="Excluir Refeição"
+            message={`Tem certeza que deseja excluir a refeição "${modalInfo.mealName}"? Esta ação não pode ser desfeita.`}
+            confirmText="Excluir"
+            cancelText="Cancelar"
+            confirmType="danger"
+            icon="trash-outline"
+            onConfirm={() => handleDeleteMeal(modalInfo.mealId)}
+            onCancel={() =>
+              setModalInfo((prev) => ({ ...prev, visible: false }))
+            }
+          />
+        );
+
+      case "copyMeal":
+        return (
+          <ConfirmationModal
+            visible={modalInfo.visible}
+            title={`Copiar ${modalInfo.mealName || "refeição"} do dia anterior`}
+            message={
+              modalInfo.sourceDate
+                ? `Deseja copiar a refeição de ${formatDate(
+                    modalInfo.sourceDate
+                  )}?`
+                : "Não há refeições anteriores para copiar."
+            }
+            confirmText="Copiar"
+            cancelText="Cancelar"
+            confirmType="primary"
+            icon="copy-outline"
+            onConfirm={handleCopyMeal}
+            onCancel={() =>
+              setModalInfo((prev) => ({ ...prev, visible: false }))
+            }
+          />
+        );
+
+      default:
+        return null;
+    }
+  };
+
   // Se não houver refeições configuradas, mostrar o estado vazio
   if (!hasMealTypesConfigured) {
     return (
@@ -400,7 +543,9 @@ export default function NutritionScreen() {
             count={totalMeals}
             iconName="restaurant-outline"
             iconColor={colors.primary}
-            onProfilePress={navigateToProfile}
+            showContextMenu={true}
+            menuActions={menuActions}
+            menuVisible={isMenuVisible}
           />
 
           {calendarComponent}
@@ -415,11 +560,11 @@ export default function NutritionScreen() {
             {emptyStateComponent}
           </ScrollView>
 
-          {/* Bottom Sheet para configuração de refeições quando não há refeições configuradas */}
           <MealConfigSheet
             ref={mealConfigSheetRef}
             onMealConfigured={handleMealConfigured}
-            key={`meal-config-empty-${mealConfigKey}-${theme}`}
+            key={`meal-config-configured-${mealConfigKey}-${theme}`}
+            onDismiss={closeMealConfigSheet}
           />
         </View>
 
@@ -435,6 +580,15 @@ export default function NutritionScreen() {
           onConfirm={confirmResetMealTypes}
           onCancel={() => setResetModalVisible(false)}
         />
+
+        {/* Blur overlay quando o MealConfigSheet estiver visível - posicionado fora do SafeAreaView */}
+        {isMealConfigVisible && (
+          <BlurView
+            intensity={theme === "dark" ? 50 : 80}
+            tint={theme === "dark" ? "dark" : "light"}
+            style={styles.blurContainer}
+          />
+        )}
       </SafeAreaView>
     );
   }
@@ -454,7 +608,9 @@ export default function NutritionScreen() {
             count={totalMeals}
             iconName="restaurant-outline"
             iconColor={colors.primary}
-            onProfilePress={navigateToProfile}
+            showContextMenu={true}
+            menuActions={menuActions}
+            menuVisible={isMenuVisible}
           />
 
           {calendarComponent}
@@ -468,6 +624,13 @@ export default function NutritionScreen() {
           >
             {emptyStateComponent}
           </ScrollView>
+
+          <MealConfigSheet
+            ref={mealConfigSheetRef}
+            onMealConfigured={handleMealConfigured}
+            key={`meal-config-configured-${mealConfigKey}-${theme}`}
+            onDismiss={closeMealConfigSheet}
+          />
         </View>
 
         {/* Modal de confirmação para redefinir refeições */}
@@ -482,6 +645,15 @@ export default function NutritionScreen() {
           onConfirm={confirmResetMealTypes}
           onCancel={() => setResetModalVisible(false)}
         />
+
+        {/* Blur overlay quando o MealConfigSheet estiver visível - posicionado fora do SafeAreaView */}
+        {isMealConfigVisible && (
+          <BlurView
+            intensity={theme === "dark" ? 50 : 80}
+            tint={theme === "dark" ? "dark" : "light"}
+            style={styles.blurContainer}
+          />
+        )}
       </SafeAreaView>
     );
   }
@@ -497,13 +669,12 @@ export default function NutritionScreen() {
           count={totalMeals}
           iconName="restaurant-outline"
           iconColor={colors.primary}
-          onProfilePress={navigateToProfile}
+          showContextMenu={true}
+          menuActions={menuActions}
+          menuVisible={isMenuVisible}
         />
 
         {calendarComponent}
-
-        {/* Menu contextual */}
-        <ContextMenu actions={menuActions} isVisible={isMenuVisible} />
 
         <ScrollView
           style={styles.container}
@@ -526,8 +697,9 @@ export default function NutritionScreen() {
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   }}
-                  onDeleteFood={(foodId) => handleDeleteFood(meal.id, foodId)}
+                  onDeleteFood={(foodId) => removeFoodFromMeal(meal.id, foodId)}
                   showCopyOption={true}
+                  setModalInfo={setModalInfo}
                 />
               ))}
             </>
@@ -538,26 +710,38 @@ export default function NutritionScreen() {
           )}
         </ScrollView>
 
-        {/* Bottom Sheet para configuração de refeições quando há refeições configuradas */}
         <MealConfigSheet
           ref={mealConfigSheetRef}
           onMealConfigured={handleMealConfigured}
           key={`meal-config-configured-${mealConfigKey}-${theme}`}
+          onDismiss={closeMealConfigSheet}
+        />
+
+        {/* Renderizar modais fora do ScrollView */}
+        {renderModals()}
+
+        {/* Modal de confirmação para redefinir refeições */}
+        <ConfirmationModal
+          visible={resetModalVisible}
+          title="Redefinir Refeições"
+          message="Tem certeza que deseja redefinir todos os tipos de refeição? Esta ação não pode ser desfeita."
+          confirmText="Redefinir"
+          cancelText="Cancelar"
+          confirmType="danger"
+          icon="refresh-outline"
+          onConfirm={confirmResetMealTypes}
+          onCancel={() => setResetModalVisible(false)}
         />
       </View>
 
-      {/* Modal de confirmação para redefinir refeições */}
-      <ConfirmationModal
-        visible={resetModalVisible}
-        title="Redefinir Refeições"
-        message="Tem certeza que deseja redefinir todos os tipos de refeição? Esta ação não pode ser desfeita."
-        confirmText="Redefinir"
-        cancelText="Cancelar"
-        confirmType="danger"
-        icon="refresh-outline"
-        onConfirm={confirmResetMealTypes}
-        onCancel={() => setResetModalVisible(false)}
-      />
+      {/* Blur overlay quando o MealConfigSheet estiver visível - posicionado fora do SafeAreaView */}
+      {isMealConfigVisible && (
+        <BlurView
+          intensity={theme === "dark" ? 50 : 80}
+          tint={theme === "dark" ? "dark" : "light"}
+          style={styles.blurContainer}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -578,5 +762,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     marginBottom: 16,
+  },
+  blurContainer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 50,
   },
 });

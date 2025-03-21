@@ -39,10 +39,10 @@ import { LinearGradient } from "expo-linear-gradient";
 
 const { width } = Dimensions.get("window");
 
-type ChartType = "weight" | "reps" | "volume";
+type ChartType = "weight" | "calories" | "volume";
 
 // Período de visualização do histórico
-type HistoryPeriod = "1m" | "3m" | "6m" | "all";
+type HistoryPeriod = "1m" | "6m" | "all";
 
 interface WorkoutProgressChartProps {
   onPress?: () => void;
@@ -132,7 +132,7 @@ const ExerciseCard = ({
   if (chartType === "weight") {
     currentValue = calculateMaxWeight(exercise);
     previousValue = prevExercise ? calculateMaxWeight(prevExercise) : 0;
-  } else if (chartType === "reps") {
+  } else if (chartType === "calories") {
     currentValue = calculateTotalReps(exercise);
     previousValue = prevExercise ? calculateTotalReps(prevExercise) : 0;
   } else {
@@ -324,9 +324,6 @@ export default function WorkoutProgressChart({
         case "1m":
           cutoffDate = subDays(today, 30);
           break;
-        case "3m":
-          cutoffDate = subDays(today, 90);
-          break;
         case "6m":
           cutoffDate = subDays(today, 180);
           break;
@@ -351,6 +348,10 @@ export default function WorkoutProgressChart({
       const history: WorkoutHistoryData[] = [];
       if (!workouts) return history;
 
+      // Casos especiais para calorias_total e volume_total
+      const isCaloriesTotal = exerciseName === "calories_total";
+      const isVolumeTotal = exerciseName === "volume_total";
+
       // Percorrer todos os treinos registrados
       for (const date in workouts) {
         // Verificar se o tipo de treino existe para esta data
@@ -358,30 +359,75 @@ export default function WorkoutProgressChart({
           const exercisesForDate = workouts[date][workoutTypeId];
           if (!exercisesForDate) continue;
 
-          // Encontrar o exercício pelo nome (case insensitive)
-          const exercise = exercisesForDate.find(
-            (ex) =>
-              ex &&
-              ex.name &&
-              ex.name.toLowerCase() === exerciseName.toLowerCase()
-          );
+          if (isCaloriesTotal || selectedChartType === "calories") {
+            // Para calorias, calculamos o total do treino inteiro
+            let totalCalories = 0;
 
-          if (exercise) {
-            // Calcular o valor com base no tipo de gráfico selecionado
-            let value = 0;
+            // Calcular calorias totais para esse treino específico
+            exercisesForDate.forEach((ex) => {
+              // Para exercícios de cardio
+              if (ex.category === "cardio" && ex.cardioDuration) {
+                const metValue = 8.0; // Valor médio para cardio
+                const weightInKg = 70; // Peso médio em kg
+                const durationInMinutes = ex.cardioDuration;
 
-            if (selectedChartType === "weight") {
-              value = calculateMaxWeight(exercise);
-            } else if (selectedChartType === "reps") {
-              value = calculateTotalReps(exercise);
-            } else if (selectedChartType === "volume") {
-              value = calculateVolume(exercise);
-            }
+                const caloriesForCardio =
+                  ((metValue * 3.5 * weightInKg) / 200) * durationInMinutes;
+                totalCalories += caloriesForCardio;
+              }
+
+              // Para exercícios de força
+              if (ex.sets && ex.sets.length > 0) {
+                // Estimar duração para exercícios de força (2 minutos por série)
+                const metValue = 5.0; // Valor médio para treinamento com pesos
+                const weightInKg = 70; // Peso médio
+
+                ex.sets.forEach(() => {
+                  const durationInMinutes = 2; // Tempo médio por série
+                  const caloriesForSet =
+                    0.0175 * metValue * weightInKg * durationInMinutes;
+                  totalCalories += caloriesForSet;
+                });
+              }
+            });
 
             history.push({
               date,
-              value,
+              value: Math.round(totalCalories),
             });
+          } else if (isVolumeTotal || selectedChartType === "volume") {
+            // Para volume total, somamos o volume de todos os exercícios do treino
+            let totalVolume = 0;
+
+            exercisesForDate.forEach((ex) => {
+              if (ex.sets) {
+                totalVolume += ex.sets.reduce((sum, set) => {
+                  return sum + set.weight * set.reps;
+                }, 0);
+              }
+            });
+
+            history.push({
+              date,
+              value: totalVolume,
+            });
+          } else {
+            // Para peso máximo, encontrar o exercício específico
+            const exercise = exercisesForDate.find(
+              (ex) =>
+                ex &&
+                ex.name &&
+                ex.name.toLowerCase() === exerciseName.toLowerCase()
+            );
+
+            if (exercise) {
+              // Calcular o valor com base no tipo de gráfico selecionado
+              let value = calculateMaxWeight(exercise);
+              history.push({
+                date,
+                value,
+              });
+            }
           }
         }
       }
@@ -393,17 +439,105 @@ export default function WorkoutProgressChart({
         return dateA.getTime() - dateB.getTime();
       });
     },
-    [
-      workouts,
-      selectedChartType,
-      calculateMaxWeight,
-      calculateTotalReps,
-      calculateVolume,
-    ]
+    [workouts, selectedChartType, calculateMaxWeight]
   );
 
   // Memoizar a função para atualizar os dados do gráfico
   const updateChartData = useCallback(() => {
+    // Se for tipo de gráfico de calorias ou volume, usamos os históricos específicos
+    if (selectedChartType === "calories" || selectedChartType === "volume") {
+      const historyKey =
+        selectedChartType === "calories" ? "calories_total" : "volume_total";
+      const history = workoutHistory[historyKey] || [];
+      const filteredHistory = filterHistoryByPeriod(history);
+
+      if (filteredHistory.length === 0) {
+        setChartData({
+          labels: [],
+          datasets: [{ data: [0] }],
+        });
+        return;
+      }
+
+      // Preparar dados para o gráfico
+      const labels = filteredHistory.map((item) => {
+        const date = parseISODate(item.date);
+        return format(date, "dd/MM");
+      });
+
+      // Limitar o número de labels para evitar sobreposição
+      const maxLabels = 6;
+      const finalLabels =
+        labels.length <= maxLabels
+          ? labels
+          : labels.filter(
+              (_, i) =>
+                i === 0 ||
+                i === labels.length - 1 ||
+                i % Math.ceil(labels.length / maxLabels) === 0
+            );
+
+      const values = filteredHistory.map((item) => item.value);
+
+      setChartData({
+        labels: finalLabels,
+        datasets: [
+          {
+            data: values.length > 0 ? values : [0],
+            color: () => colors.primary,
+            strokeWidth: 2,
+          },
+        ],
+      });
+      return;
+    }
+
+    // Para exercícios virtuais selecionados, usar o histórico correspondente
+    if (
+      selectedExercise?.id === "calories_total" ||
+      selectedExercise?.id === "volume_total"
+    ) {
+      const history = workoutHistory[selectedExercise.id] || [];
+      const filteredHistory = filterHistoryByPeriod(history);
+
+      if (filteredHistory.length === 0) {
+        setChartData({
+          labels: [],
+          datasets: [{ data: [0] }],
+        });
+        return;
+      }
+
+      const labels = filteredHistory.map((item) =>
+        format(parseISODate(item.date), "dd/MM")
+      );
+      const maxLabels = 6;
+      const finalLabels =
+        labels.length <= maxLabels
+          ? labels
+          : labels.filter(
+              (_, i) =>
+                i === 0 ||
+                i === labels.length - 1 ||
+                i % Math.ceil(labels.length / maxLabels) === 0
+            );
+
+      const values = filteredHistory.map((item) => item.value);
+
+      setChartData({
+        labels: finalLabels,
+        datasets: [
+          {
+            data: values.length > 0 ? values : [0],
+            color: () => colors.primary,
+            strokeWidth: 2,
+          },
+        ],
+      });
+      return;
+    }
+
+    // Para tipo de gráfico de peso, precisamos de um exercício específico
     if (!selectedExercise || !workoutHistory[selectedExercise.id]) {
       setChartData({
         labels: [],
@@ -461,6 +595,7 @@ export default function WorkoutProgressChart({
     selectedHistoryPeriod,
     filterHistoryByPeriod,
     colors.primary,
+    selectedChartType,
   ]);
 
   // Memoizar a função loadData para evitar recriações
@@ -510,6 +645,23 @@ export default function WorkoutProgressChart({
               }
             }
 
+            // Adicionar histórico específico para calorias e volume
+            if (exercisesForWorkout[0]) {
+              // Criar históricos especiais para calorias e volume
+              const caloriesHistory = await getExerciseHistory(
+                "calories_total",
+                workoutId
+              );
+              const volumeHistory = await getExerciseHistory(
+                "volume_total",
+                workoutId
+              );
+
+              // Adicionar ao histórico com IDs especiais
+              history["calories_total"] = caloriesHistory;
+              history["volume_total"] = volumeHistory;
+            }
+
             // Atualizar o estado com o histórico carregado
             setWorkoutHistory(history);
 
@@ -543,20 +695,14 @@ export default function WorkoutProgressChart({
   ]);
 
   // Efeito para atualizar o gráfico quando o tipo de gráfico ou período de histórico mudar
-  // Implementando com manejo seguro para evitar ciclos
-  const updateChartWhenDependenciesChange = useCallback(() => {
-    if (selectedExercise && workoutHistory[selectedExercise.id]) {
-      updateChartData();
-    }
-  }, [selectedExercise, workoutHistory, updateChartData]);
-
   useEffect(() => {
-    updateChartWhenDependenciesChange();
-  }, [
-    selectedChartType,
-    selectedHistoryPeriod,
-    updateChartWhenDependenciesChange,
-  ]);
+    // Utilizar uma flag para evitar múltiplas atualizações em sequência
+    const timer = setTimeout(() => {
+      updateChartData();
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [selectedChartType, selectedHistoryPeriod, updateChartData]);
 
   // Carregar dados quando o componente montar - usando um ref para garantir que só executa uma vez
   const initialLoadRef = useRef(false);
@@ -566,11 +712,15 @@ export default function WorkoutProgressChart({
       initialLoadRef.current = true;
       const initializeComponent = async () => {
         await loadData();
-        setIsInitialized(true);
+        // Garantir que o gráfico seja atualizado após carregar os dados
+        setTimeout(() => {
+          updateChartData();
+          setIsInitialized(true);
+        }, 300);
       };
       initializeComponent();
     }
-  }, [loadData]);
+  }, [loadData, updateChartData]);
 
   // Efeito para animar a altura do card
   useEffect(() => {
@@ -606,10 +756,12 @@ export default function WorkoutProgressChart({
     (value: number) => {
       if (selectedChartType === "weight") {
         return `${value} kg`;
-      } else if (selectedChartType === "reps") {
-        return `${value} reps`;
-      } else {
+      } else if (selectedChartType === "calories") {
+        return `${value} kcal`;
+      } else if (selectedChartType === "volume") {
         return `${value} kg`;
+      } else {
+        return `${value}`;
       }
     },
     [selectedChartType]
@@ -625,8 +777,8 @@ export default function WorkoutProgressChart({
   const getChartTitle = useCallback(() => {
     if (selectedChartType === "weight") {
       return "Progressão de Peso";
-    } else if (selectedChartType === "reps") {
-      return "Progressão de Repetições";
+    } else if (selectedChartType === "calories") {
+      return "Calorias Totais do Treino";
     } else {
       return "Progressão de Volume";
     }
@@ -654,6 +806,43 @@ export default function WorkoutProgressChart({
     [selectedExercise]
   );
 
+  // Selecionar automaticamente o primeiro exercício quando o tipo de gráfico mudar
+  useEffect(() => {
+    // Remover essa função ou implementá-la de maneira diferente
+    // Esse efeito está causando um loop infinito de renderização
+    // quando combinado com outros efeitos que atualizam o gráfico
+  }, []);
+
+  // Adicione esta função
+  const changeChartType = useCallback(
+    (type: ChartType) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setSelectedChartType(type);
+
+      // Se o tipo for calorias ou volume e temos exercícios, selecionar o primeiro
+      if (
+        (type === "calories" || type === "volume") &&
+        todayExercises?.length > 0
+      ) {
+        // Criar um exercício virtual para representar os totais
+        const virtualExercise: Exercise = {
+          id: type === "calories" ? "calories_total" : "volume_total",
+          name: type === "calories" ? "Calorias Totais" : "Volume Total",
+          sets: [],
+        };
+
+        // Usar o exercício virtual em vez do primeiro exercício real
+        setSelectedExercise(virtualExercise);
+      }
+
+      // Forçar atualização do gráfico imediatamente
+      setTimeout(() => {
+        updateChartData();
+      }, 100);
+    },
+    [updateChartData, todayExercises]
+  );
+
   // Renderizar cada exercício na lista (extraído para evitar problemas de dependência cíclica)
   const renderExerciseItem = useCallback(
     ({ item: exercise, index }: { item: Exercise; index: number }) => {
@@ -679,24 +868,30 @@ export default function WorkoutProgressChart({
         previousValue = previousExercise
           ? calculateMaxWeight(previousExercise)
           : 0;
-      } else if (selectedChartType === "reps") {
-        currentValue = calculateTotalReps(exercise);
-        previousValue = previousExercise
-          ? calculateTotalReps(previousExercise)
-          : 0;
-      } else {
+      } else if (selectedChartType === "volume") {
         currentValue = calculateVolume(exercise);
         previousValue = previousExercise
           ? calculateVolume(previousExercise)
           : 0;
+      } else {
+        // Para calorias, isso é tratado na renderização condicional
+        currentValue = calculateTotalReps(exercise);
+        previousValue = previousExercise
+          ? calculateTotalReps(previousExercise)
+          : 0;
       }
 
-      const percentChange =
-        previousValue > 0
-          ? ((currentValue - previousValue) / previousValue) * 100
-          : 0;
+      // Calcular a mudança percentual apenas se houver um valor anterior
+      let percentChange = 0;
+      let hasChange = false;
+
+      if (previousValue > 0) {
+        percentChange = ((currentValue - previousValue) / previousValue) * 100;
+        hasChange = true;
+      }
 
       const isPositive = percentChange > 0;
+      const isNegative = percentChange < 0;
 
       return (
         <TouchableOpacity
@@ -727,21 +922,29 @@ export default function WorkoutProgressChart({
               >
                 {exercise.name}
               </Text>
-              <Text
-                style={[
-                  styles.exerciseChange,
-                  {
-                    color: isPositive
-                      ? colors.success
-                      : percentChange < 0
-                      ? colors.danger
-                      : colors.text + "60",
-                  },
-                ]}
-              >
-                {isPositive ? "+" : ""}
-                {percentChange.toFixed(1)}%
-              </Text>
+              {hasChange ? (
+                <Text
+                  style={[
+                    styles.exerciseChange,
+                    {
+                      color: isPositive
+                        ? colors.success
+                        : isNegative
+                        ? colors.danger
+                        : colors.text + "60",
+                    },
+                  ]}
+                >
+                  {isPositive ? "+" : ""}
+                  {Math.abs(percentChange).toFixed(1)}%
+                </Text>
+              ) : (
+                <Text
+                  style={[styles.exerciseChange, { color: colors.text + "60" }]}
+                >
+                  Novo
+                </Text>
+              )}
             </View>
             <Text style={[styles.exerciseValue, { color: colors.text }]}>
               {formatValue(currentValue)}
@@ -774,21 +977,136 @@ export default function WorkoutProgressChart({
     // Se não tiver contexto de treino para mostrar, não renderizar nada
     if (!todayWorkout) return null;
 
+    // Para outros tipos de gráfico, mostrar a lista normal de exercícios
     return (
       <View style={styles.exerciseListContainer}>
         <View style={styles.exerciseListHeader}>
           <Text style={[styles.exerciseListTitle, { color: colors.text }]}>
-            Selecione para ver a progressão
+            {selectedChartType === "calories"
+              ? "Calorias queimadas neste treino"
+              : selectedChartType === "volume"
+              ? "Volume total do treino"
+              : "Selecione para ver a progressão"}
           </Text>
         </View>
-        <FlatList
-          data={todayExercises}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.exerciseListContent}
-          keyExtractor={(item) => `exercise-${item?.id || "unknown"}`}
-          renderItem={renderExerciseItem}
-        />
+        {selectedChartType === "calories" || selectedChartType === "volume" ? (
+          <View style={{ paddingHorizontal: 4 }}>
+            <TouchableOpacity
+              style={[
+                styles.exerciseCardTouchable,
+                {
+                  backgroundColor: colors.card,
+                  width: "100%",
+                },
+                selectedExercise && {
+                  borderColor: colors.primary,
+                  backgroundColor: colors.primary + "10",
+                },
+              ]}
+            >
+              <MotiView
+                style={[styles.exerciseCard, { width: "100%" }]}
+                from={{ opacity: 0, translateY: 10 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{
+                  type: "timing",
+                  duration: 500,
+                  delay: 100,
+                }}
+              >
+                <View style={styles.exerciseCardHeader}>
+                  <Text
+                    style={[styles.exerciseName, { color: colors.text }]}
+                    numberOfLines={1}
+                  >
+                    {selectedChartType === "calories"
+                      ? "Calorias Totais"
+                      : "Volume Total"}
+                  </Text>
+
+                  {/* Mostrar comparação com treino anterior */}
+                  {(() => {
+                    const currentValue =
+                      selectedChartType === "calories"
+                        ? getWorkoutTotals(todayWorkout.id).caloriesBurned
+                        : getWorkoutTotals(todayWorkout.id).totalVolume;
+
+                    const previousWorkoutData = getPreviousWorkoutTotals(
+                      todayWorkout.id
+                    );
+
+                    const previousValue = previousWorkoutData.totals
+                      ? selectedChartType === "calories"
+                        ? previousWorkoutData.totals.caloriesBurned
+                        : previousWorkoutData.totals.totalVolume
+                      : 0;
+
+                    // Calcular percentual de mudança
+                    let percentChange = 0;
+                    let hasChange = false;
+
+                    if (previousValue > 0) {
+                      percentChange =
+                        ((currentValue - previousValue) / previousValue) * 100;
+                      hasChange = true;
+                    }
+
+                    const isPositive = percentChange > 0;
+                    const isNegative = percentChange < 0;
+
+                    return hasChange ? (
+                      <Text
+                        style={[
+                          styles.exerciseChange,
+                          {
+                            color: isPositive
+                              ? colors.success
+                              : isNegative
+                              ? colors.danger
+                              : colors.text + "60",
+                          },
+                        ]}
+                      >
+                        {isPositive ? "+" : ""}
+                        {Math.abs(percentChange).toFixed(1)}%
+                      </Text>
+                    ) : (
+                      <Text
+                        style={[
+                          styles.exerciseChange,
+                          { color: colors.text + "60" },
+                        ]}
+                      >
+                        Novo
+                      </Text>
+                    );
+                  })()}
+                </View>
+                <Text
+                  style={[
+                    styles.exerciseValue,
+                    { color: colors.text, fontSize: 20 },
+                  ]}
+                >
+                  {formatValue(
+                    selectedChartType === "calories"
+                      ? getWorkoutTotals(todayWorkout.id).caloriesBurned
+                      : getWorkoutTotals(todayWorkout.id).totalVolume
+                  )}
+                </Text>
+              </MotiView>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={todayExercises}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.exerciseListContent}
+            keyExtractor={(item) => `exercise-${item?.id || "unknown"}`}
+            renderItem={renderExerciseItem}
+          />
+        )}
       </View>
     );
   }, [
@@ -797,6 +1115,14 @@ export default function WorkoutProgressChart({
     renderExerciseItem,
     isLoading,
     todayWorkout,
+    selectedChartType,
+    selectedExercise,
+    colors.card,
+    colors.primary,
+    handleSelectExercise,
+    getWorkoutTotals,
+    getPreviousWorkoutTotals,
+    formatValue,
   ]);
 
   // Se o componente ainda não foi inicializado, aplicar a mesma altura fixa
@@ -959,7 +1285,11 @@ export default function WorkoutProgressChart({
                     { color: colors.text + "60" },
                   ]}
                 >
-                  {selectedExercise
+                  {selectedChartType === "calories"
+                    ? "Histórico de calorias queimadas nos treinos"
+                    : selectedChartType === "volume"
+                    ? "Histórico de volume total levantado"
+                    : selectedExercise
                     ? selectedExercise.name
                     : "Selecione um exercício"}
                 </Text>
@@ -975,7 +1305,7 @@ export default function WorkoutProgressChart({
                       { backgroundColor: colors.primary + "20" },
                     ],
                   ]}
-                  onPress={() => setSelectedChartType("weight")}
+                  onPress={() => changeChartType("weight")}
                 >
                   <Text
                     style={[
@@ -994,24 +1324,24 @@ export default function WorkoutProgressChart({
                 <TouchableOpacity
                   style={[
                     styles.chartTypeButton,
-                    selectedChartType === "reps" && [
+                    selectedChartType === "calories" && [
                       styles.selectedChartType,
                       { backgroundColor: colors.primary + "20" },
                     ],
                   ]}
-                  onPress={() => setSelectedChartType("reps")}
+                  onPress={() => changeChartType("calories")}
                 >
                   <Text
                     style={[
                       styles.chartTypeText,
                       { color: colors.text + "80" },
-                      selectedChartType === "reps" && {
+                      selectedChartType === "calories" && {
                         color: colors.primary,
                         fontWeight: "600",
                       },
                     ]}
                   >
-                    Repetições
+                    Calorias
                   </Text>
                 </TouchableOpacity>
 
@@ -1023,7 +1353,7 @@ export default function WorkoutProgressChart({
                       { backgroundColor: colors.primary + "20" },
                     ],
                   ]}
-                  onPress={() => setSelectedChartType("volume")}
+                  onPress={() => changeChartType("volume")}
                 >
                   <Text
                     style={[
@@ -1067,30 +1397,6 @@ export default function WorkoutProgressChart({
                       ]}
                     >
                       1 Mês
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.comparisonButton,
-                      selectedHistoryPeriod === "3m" && [
-                        styles.selectedComparison,
-                        { backgroundColor: colors.primary + "20" },
-                      ],
-                    ]}
-                    onPress={() => changeHistoryPeriod("3m")}
-                  >
-                    <Text
-                      style={[
-                        styles.comparisonText,
-                        { color: colors.text + "80" },
-                        selectedHistoryPeriod === "3m" && {
-                          color: colors.primary,
-                          fontWeight: "600",
-                        },
-                      ]}
-                    >
-                      3 Meses
                     </Text>
                   </TouchableOpacity>
 
@@ -1152,8 +1458,11 @@ export default function WorkoutProgressChart({
                   Histórico de Progresso
                 </Text>
 
-                {selectedExercise &&
-                workoutHistory[selectedExercise.id]?.length > 0 ? (
+                {((selectedChartType === "calories" ||
+                  selectedChartType === "volume") &&
+                  Object.values(workoutHistory).length > 0) ||
+                (selectedExercise &&
+                  workoutHistory[selectedExercise.id]?.length > 0) ? (
                   <View style={styles.chartContainer}>
                     <LineChart
                       data={chartData}
@@ -1161,10 +1470,7 @@ export default function WorkoutProgressChart({
                       height={220}
                       yAxisLabel=""
                       yAxisSuffix={
-                        selectedChartType === "weight" ||
-                        selectedChartType === "volume"
-                          ? " kg"
-                          : ""
+                        selectedChartType === "calories" ? " kcal" : " kg"
                       }
                       chartConfig={{
                         backgroundColor: colors.chartBackground,
@@ -1225,9 +1531,11 @@ export default function WorkoutProgressChart({
                         >
                           {selectedChartType === "weight"
                             ? "Peso máximo por treino"
-                            : selectedChartType === "reps"
-                            ? "Total de repetições por treino"
-                            : "Volume total por treino"}
+                            : selectedChartType === "calories"
+                            ? "Calorias queimadas por treino"
+                            : selectedChartType === "volume"
+                            ? "Volume total por treino"
+                            : "Valor por treino"}
                         </Text>
                       </View>
                     </View>
@@ -1258,7 +1566,14 @@ export default function WorkoutProgressChart({
                         { color: colors.text + "80", marginTop: 12 },
                       ]}
                     >
-                      {selectedExercise
+                      {selectedChartType === "calories" ||
+                      selectedChartType === "volume"
+                        ? `Não há dados históricos para ${
+                            selectedChartType === "calories"
+                              ? "calorias"
+                              : "volume"
+                          }`
+                        : selectedExercise
                         ? "Não há dados históricos para este exercício"
                         : "Selecione um exercício para ver o histórico"}
                     </Text>

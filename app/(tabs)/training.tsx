@@ -38,6 +38,7 @@ import ConfirmationModal from "../../components/ui/ConfirmationModal";
 import ContextMenu, { MenuAction } from "../../components/shared/ContextMenu";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import HomeHeader from "../../components/home/HomeHeader";
+import { BlurView } from "expo-blur";
 
 const { width } = Dimensions.get("window");
 
@@ -172,6 +173,8 @@ export default function TrainingScreen() {
   // Estado para controlar a visibilidade do modal de confirmação
   const [resetModalVisible, setResetModalVisible] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  // Estado para controlar a visibilidade do WorkoutConfigSheet
+  const [isWorkoutConfigVisible, setIsWorkoutConfigVisible] = useState(false);
 
   // Estado para contar dias de treino
   const [trainingDays, setTrainingDays] = useState(0);
@@ -195,6 +198,7 @@ export default function TrainingScreen() {
     hasConfiguredWorkouts,
     getWorkoutsForDate,
     workouts,
+    deleteWorkout,
   } = useWorkoutContext();
 
   // Calcular o número de dias com treino registrado
@@ -346,7 +350,13 @@ export default function TrainingScreen() {
   // Função para abrir o bottom sheet de configuração de treinos
   const openWorkoutConfigSheet = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsWorkoutConfigVisible(true);
     workoutConfigSheetRef.current?.present();
+  }, []);
+
+  // Função para fechar o bottom sheet de configuração de treinos
+  const closeWorkoutConfigSheet = useCallback(() => {
+    setIsWorkoutConfigVisible(false);
   }, []);
 
   // Efeito para abrir o WorkoutConfigSheet quando solicitado via parâmetro
@@ -354,6 +364,7 @@ export default function TrainingScreen() {
     if (params?.openWorkoutConfig === "true") {
       const timer = setTimeout(() => {
         if (workoutConfigSheetRef.current) {
+          setIsWorkoutConfigVisible(true);
           workoutConfigSheetRef.current.present();
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           router.replace("/training");
@@ -444,47 +455,72 @@ export default function TrainingScreen() {
         if (!success) {
           Alert.alert("Erro", "Falha ao atualizar tipos de treino.");
         }
+
+        // Fechar o modal
+        closeWorkoutConfigSheet();
       } catch (error) {
         console.error("Erro ao configurar treinos:", error);
         Alert.alert("Erro", "Ocorreu um erro ao configurar os treinos.");
       }
     },
-    [updateWorkoutTypes]
+    [updateWorkoutTypes, closeWorkoutConfigSheet]
   );
 
   // Função para redefinir os tipos de treino
-  const handleResetWorkoutTypes = useCallback(async () => {
+  const handleResetWorkoutTypes = useCallback(() => {
+    // Fornecer feedback tátil imediatamente
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    // Mostrar o modal de confirmação imediatamente
+    setResetModalVisible(true);
+  }, []);
+
+  // Função para confirmar a redefinição dos tipos de treino
+  const confirmResetWorkoutTypes = useCallback(async () => {
     try {
-      // Reiniciar os treinos
-      const success = await resetWorkoutTypes();
-
-      if (success) {
-        // Forçar a recriação do WorkoutConfigSheet
-        setWorkoutConfigKey(Date.now());
-
-        // Forçar atualizações
-        await saveWorkouts();
-      } else {
-        // Se falhou, informar o usuário
-        Alert.alert(
-          "Erro",
-          "Não foi possível redefinir os treinos. Tente novamente."
-        );
-      }
-
-      // Fechar o modal
+      // Fechar o modal imediatamente para melhor UX
       setResetModalVisible(false);
+
+      // Pequeno delay para garantir que o modal foi fechado visualmente
+      // antes de processar a lógica pesada de redefinição
+      setTimeout(async () => {
+        try {
+          // Redefinir os treinos
+          const success = await resetWorkoutTypes();
+
+          if (success) {
+            // Forçar a recriação do WorkoutConfigSheet
+            setWorkoutConfigKey(Date.now());
+
+            // Forçar atualizações
+            await saveWorkouts();
+
+            // Feedback tátil
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          } else {
+            // Se falhou, informar o usuário
+            Alert.alert(
+              "Erro",
+              "Não foi possível redefinir os treinos. Tente novamente."
+            );
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          }
+        } catch (error) {
+          console.error("Erro ao redefinir treinos:", error);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
+          // Mostrar alerta de erro
+          Alert.alert(
+            "Erro",
+            "Ocorreu um erro ao redefinir treinos. Tente reiniciar o aplicativo."
+          );
+        }
+      }, 100);
     } catch (error) {
-      console.error("Erro ao redefinir treinos:", error);
+      console.error("Erro ao processar redefinição:", error);
 
       // Fechar o modal mesmo em caso de erro
       setResetModalVisible(false);
-
-      // Mostrar alerta de erro
-      Alert.alert(
-        "Erro",
-        "Ocorreu um erro ao redefinir treinos. Tente reiniciar o aplicativo."
-      );
     }
   }, [resetWorkoutTypes, saveWorkouts]);
 
@@ -568,7 +604,101 @@ export default function TrainingScreen() {
     [selectedDate, handleDateSelect, workoutsForSelectedDate, hasWorkoutContent]
   );
 
-  // Atualizar as ações do menu contextual para incluir a opção de silenciar notificações
+  // Estado para controlar o modal de confirmação de exclusão de treino
+  const [deleteWorkoutModalVisible, setDeleteWorkoutModalVisible] =
+    useState(false);
+  const [workoutToDelete, setWorkoutToDelete] = useState("");
+
+  // Função para excluir um treino específico
+  const handleDeleteWorkout = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    // Verificar se há treinos para o dia selecionado
+    if (
+      !workoutsForSelectedDate ||
+      Object.keys(workoutsForSelectedDate).length === 0
+    ) {
+      Alert.alert("Aviso", "Não há treinos para excluir nesta data.");
+      return;
+    }
+
+    // Se houver apenas um treino, podemos excluí-lo diretamente
+    const workoutIds = Object.keys(workoutsForSelectedDate);
+    if (workoutIds.length === 1) {
+      setWorkoutToDelete(workoutIds[0]);
+      setDeleteWorkoutModalVisible(true);
+    }
+    // Se houver múltiplos treinos, mostrar uma seleção para o usuário escolher qual excluir
+    else if (workoutIds.length > 1) {
+      const options = workoutIds.map((id) => {
+        const workoutType = getWorkoutTypeById(id);
+        return workoutType ? workoutType.name : "Treino desconhecido";
+      });
+
+      Alert.alert(
+        "Selecione o treino para excluir",
+        "Escolha qual treino deseja excluir:",
+        [
+          ...workoutIds.map((id, index) => ({
+            text: options[index],
+            onPress: () => {
+              setWorkoutToDelete(id);
+              setDeleteWorkoutModalVisible(true);
+            },
+          })),
+          {
+            text: "Cancelar",
+            style: "cancel",
+          },
+        ]
+      );
+    }
+  }, [workoutsForSelectedDate, getWorkoutTypeById]);
+
+  // Função para confirmar e executar a exclusão do treino
+  const confirmDeleteWorkout = useCallback(async () => {
+    if (!workoutToDelete) return;
+
+    try {
+      // Fechar o modal imediatamente para melhor UX
+      setDeleteWorkoutModalVisible(false);
+
+      // Pequeno delay para garantir que o modal foi fechado visualmente
+      setTimeout(async () => {
+        try {
+          // Usar a nova função deleteWorkout do contexto
+          const success = await deleteWorkout(workoutToDelete);
+
+          if (success) {
+            // Feedback tátil de sucesso
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+            // Atualizar a interface sem necessidade de navegação
+            // Foi removido o router.push para evitar refresh completo da página
+          } else {
+            // Feedback tátil de erro
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            Alert.alert(
+              "Erro",
+              "Não foi possível excluir o treino. Tente novamente."
+            );
+          }
+        } catch (error) {
+          console.error("Erro ao excluir treino:", error);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          Alert.alert(
+            "Erro",
+            "Não foi possível excluir o treino. Tente novamente."
+          );
+        }
+      }, 100);
+    } catch (error) {
+      console.error("Erro ao processar exclusão:", error);
+      setDeleteWorkoutModalVisible(false);
+    }
+  }, [workoutToDelete, deleteWorkout]);
+
+  // Atualizar as ações do menu contextual para incluir a opção de excluir treino
   const menuActions = useMemo<MenuAction[]>(
     () => [
       {
@@ -579,15 +709,11 @@ export default function TrainingScreen() {
         onPress: openWorkoutConfigSheet,
       },
       {
-        id: "notifications",
-        label: notificationsEnabled
-          ? "Silenciar Notificações"
-          : "Ativar Notificações",
-        icon: notificationsEnabled
-          ? "notifications-off-outline"
-          : "notifications-outline",
-        type: "default",
-        onPress: toggleNotifications,
+        id: "deleteWorkout",
+        label: "Excluir Treino Atual",
+        icon: "trash-outline",
+        type: "danger",
+        onPress: handleDeleteWorkout,
       },
       {
         id: "reset",
@@ -597,12 +723,7 @@ export default function TrainingScreen() {
         onPress: handleResetWorkoutTypes,
       },
     ],
-    [
-      openWorkoutConfigSheet,
-      handleResetWorkoutTypes,
-      notificationsEnabled,
-      toggleNotifications,
-    ]
+    [openWorkoutConfigSheet, handleDeleteWorkout, handleResetWorkoutTypes]
   );
 
   // Função para verificar se o menu deve ser visível
@@ -619,13 +740,12 @@ export default function TrainingScreen() {
           count={trainingDays}
           iconName="barbell-outline"
           iconColor={colors.success}
-          onProfilePress={navigateToProfile}
+          showContextMenu={true}
+          menuActions={menuActions}
+          menuVisible={isMenuVisible}
         />
 
         {calendarComponent}
-
-        {/* Menu contextual */}
-        <ContextMenu actions={menuActions} isVisible={isMenuVisible} />
 
         <ScrollView
           style={styles.scrollView}
@@ -647,6 +767,7 @@ export default function TrainingScreen() {
         onWorkoutConfigured={handleWorkoutConfigured}
         selectedDate={getLocalDate(selectedDate)}
         key={`workout-config-${workoutConfigKey}-${theme}`}
+        onDismiss={closeWorkoutConfigSheet}
       />
 
       {/* Modal de confirmação para redefinir treinos */}
@@ -658,9 +779,31 @@ export default function TrainingScreen() {
         cancelText="Cancelar"
         confirmType="danger"
         icon="refresh-outline"
-        onConfirm={handleResetWorkoutTypes}
+        onConfirm={confirmResetWorkoutTypes}
         onCancel={() => setResetModalVisible(false)}
       />
+
+      {/* Modal de confirmação para excluir treino específico */}
+      <ConfirmationModal
+        visible={deleteWorkoutModalVisible}
+        title="Excluir Treino"
+        message="Tem certeza que deseja excluir este treino? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        confirmType="danger"
+        icon="trash-outline"
+        onConfirm={confirmDeleteWorkout}
+        onCancel={() => setDeleteWorkoutModalVisible(false)}
+      />
+
+      {/* Blur overlay quando o WorkoutConfigSheet estiver visível - posicionado fora do SafeAreaView */}
+      {isWorkoutConfigVisible && (
+        <BlurView
+          intensity={theme === "dark" ? 50 : 80}
+          tint={theme === "dark" ? "dark" : "light"}
+          style={styles.blurContainer}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -675,5 +818,9 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     padding: 16,
     paddingBottom: 100,
+  },
+  blurContainer: {
+    ...StyleSheet.absoluteFillObject, // Garante cobertura total da tela, incluindo notch
+    zIndex: 50,
   },
 });

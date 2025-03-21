@@ -19,7 +19,7 @@ export default {
     dark: "#212121", // Quase preto
     border: "#E9ECEF", // Borda sutil
     card: "rgba(0,0,0,0.03)", // Cor para cards
-    
+
     // Cores específicas para gráficos
     chartBackground: "60", // Azul bem clarinho para fundo
     chartGradientStart: "#e6f2ff", // Azul clarinho para gradiente inicial
@@ -44,11 +44,11 @@ export default {
     dark: "#121212", // Quase preto
     border: "#333333", // Borda sutil para dark mode
     card: "rgba(255,255,255,0.05)", // Cor para cards em modo escuro
-    
+
     // Cores específicas para gráficos
     chartBackground: "60", // Azul escuro para fundo
     chartGradientStart: "#1E1E1E", // Azul mais escuro para gradiente inicial
-    chartGradientEnd: "#f5faff0", // Azul um pouco mais claro para gradiente final
+    chartGradientEnd: "#f5faff", // Azul um pouco mais claro para gradiente final
     chartGrid: "#2c3e50", // Azul médio para linhas de grade
     chartDotFill: "#121212", // Cor escura para preenchimento dos pontos
   },

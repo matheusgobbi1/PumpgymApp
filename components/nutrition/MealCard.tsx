@@ -1,4 +1,4 @@
-import React, { useState, useCallback, memo } from "react";
+import React, { useState, useCallback, memo, useRef } from "react";
 import {
   View,
   Text,
@@ -39,6 +39,8 @@ interface MealCardProps {
   onDeleteFood: (foodId: string) => Promise<void>;
   onDeleteMeal?: (mealId: string) => Promise<void>;
   showCopyOption?: boolean;
+  // Novas props para gerenciamento externo de modais
+  setModalInfo: (info: any) => void;
 }
 
 const { width } = Dimensions.get("window");
@@ -52,6 +54,7 @@ const MealCardComponent = ({
   onDeleteFood,
   onDeleteMeal,
   showCopyOption = false,
+  setModalInfo,
 }: MealCardProps) => {
   const router = useRouter();
   const { theme } = useTheme();
@@ -59,14 +62,11 @@ const MealCardComponent = ({
   const { user } = useAuth();
   const { meals, selectedDate, copyMealFromDate } = useMeals();
   const userId = user?.uid || "no-user";
+  const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
 
-  // Estados para controlar os modais de confirmação
-  const [showDeleteMealModal, setShowDeleteMealModal] = useState(false);
-  const [showDeleteFoodModal, setShowDeleteFoodModal] = useState(false);
-  const [showCopyMealModal, setShowCopyMealModal] = useState(false);
-  const [selectedFoodId, setSelectedFoodId] = useState<string>("");
-  const [selectedSourceDate, setSelectedSourceDate] = useState<string>("");
+  // Removendo os estados de modal daqui, já que serão gerenciados no componente pai
   const [showCopySuccess, setShowCopySuccess] = useState(false);
+  const [selectedSourceDate, setSelectedSourceDate] = useState<string>("");
 
   // Função para obter datas anteriores que têm esta refeição
   const getPreviousDatesWithMeal = useCallback(() => {
@@ -185,10 +185,13 @@ const MealCardComponent = ({
           ]}
           onPress={() => {
             handleHapticFeedback();
-            // Pequeno timeout para melhorar a responsividade
-            setTimeout(() => {
-              setShowDeleteMealModal(true);
-            }, 10);
+            // Chamar a função que mostrará o modal no componente pai
+            setModalInfo({
+              type: "deleteMeal",
+              mealId: meal.id,
+              mealName: meal.name,
+              visible: true,
+            });
           }}
         >
           <Ionicons name="trash-outline" size={22} color="white" />
@@ -196,7 +199,14 @@ const MealCardComponent = ({
         </TouchableOpacity>
       </View>
     );
-  }, [colors.danger, handleHapticFeedback, onDeleteMeal]);
+  }, [
+    colors.danger,
+    handleHapticFeedback,
+    onDeleteMeal,
+    meal.id,
+    meal.name,
+    setModalInfo,
+  ]);
 
   // Função para renderizar as ações de deslize à direita (excluir)
   const renderRightActions = useCallback(
@@ -209,19 +219,20 @@ const MealCardComponent = ({
           ]}
           onPress={() => {
             handleHapticFeedback();
-            // Definir o ID do alimento selecionado primeiro e depois mostrar o modal
-            setSelectedFoodId(foodId);
-            // Pequeno timeout para garantir que o ID foi definido antes de mostrar o modal
-            setTimeout(() => {
-              setShowDeleteFoodModal(true);
-            }, 10);
+            // Chamar a função que mostrará o modal no componente pai
+            setModalInfo({
+              type: "deleteFood",
+              foodId: foodId,
+              mealId: meal.id,
+              visible: true,
+            });
           }}
         >
           <Ionicons name="trash-outline" size={20} color="white" />
         </TouchableOpacity>
       </View>
     ),
-    [colors.danger, handleHapticFeedback]
+    [colors.danger, handleHapticFeedback, meal.id, setModalInfo]
   );
 
   const renderFoodItem = useCallback(
@@ -233,6 +244,11 @@ const MealCardComponent = ({
         friction={2}
         overshootRight={false}
         overshootLeft={false}
+        ref={(ref) => {
+          if (ref) {
+            swipeableRefs.current.set(food.id, ref);
+          }
+        }}
       >
         <Animated.View
           entering={FadeInRight.delay(foodIndex * 100).duration(300)}
@@ -339,29 +355,6 @@ const MealCardComponent = ({
     [handleHapticFeedback, meal.id, meal.name, meal.color, router]
   );
 
-  const handleDeleteMeal = useCallback(async () => {
-    if (onDeleteMeal) {
-      try {
-        await onDeleteMeal(meal.id);
-      } catch (error) {
-        console.error("Erro ao excluir refeição:", error);
-      }
-    }
-    setShowDeleteMealModal(false);
-  }, [meal.id, onDeleteMeal]);
-
-  const handleDeleteFood = useCallback(async () => {
-    if (selectedFoodId) {
-      try {
-        await onDeleteFood(selectedFoodId);
-      } catch (error) {
-        console.error("Erro ao excluir alimento:", error);
-      }
-    }
-    setShowDeleteFoodModal(false);
-    setSelectedFoodId("");
-  }, [selectedFoodId, onDeleteFood]);
-
   // Função para abrir o modal de cópia
   const openCopyModal = useCallback(() => {
     handleHapticFeedback();
@@ -372,7 +365,13 @@ const MealCardComponent = ({
     // Se houver uma data disponível, selecionar e abrir o modal
     if (mostRecentDate) {
       setSelectedSourceDate(mostRecentDate);
-      setShowCopyMealModal(true);
+      // Chamar a função que mostrará o modal no componente pai
+      setModalInfo({
+        type: "copyMeal",
+        mealId: meal.id,
+        sourceDate: mostRecentDate,
+        visible: true,
+      });
     } else {
       // Notificar o usuário se não houver refeições anteriores
       Alert.alert(
@@ -380,7 +379,7 @@ const MealCardComponent = ({
         "Não há refeições anteriores para copiar."
       );
     }
-  }, [getMostRecentMealDate, handleHapticFeedback]);
+  }, [getMostRecentMealDate, handleHapticFeedback, meal.id, setModalInfo]);
 
   // Função para copiar refeição de uma data anterior
   const handleCopyMeal = useCallback(async () => {
@@ -389,7 +388,6 @@ const MealCardComponent = ({
     try {
       await copyMealFromDate(selectedSourceDate, meal.id, meal.id);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setShowCopyMealModal(false);
 
       // Mostrar mensagem de sucesso
       setShowCopySuccess(true);
@@ -403,18 +401,6 @@ const MealCardComponent = ({
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   }, [selectedSourceDate, meal.id, copyMealFromDate]);
-
-  // Função para formatar a data para exibição
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-
-    // Formatar a data normalmente
-    return date.toLocaleDateString("pt-BR", {
-      weekday: "long",
-      day: "2-digit",
-      month: "2-digit",
-    });
-  };
 
   return (
     <>
@@ -600,52 +586,6 @@ const MealCardComponent = ({
           </View>
         </MotiView>
       </Swipeable>
-
-      {/* Modal de confirmação para excluir refeição */}
-      <ConfirmationModal
-        visible={showDeleteMealModal}
-        title="Excluir Refeição"
-        message={`Tem certeza que deseja excluir a refeição "${meal.name}"? Esta ação não pode ser desfeita.`}
-        confirmText="Excluir"
-        cancelText="Cancelar"
-        confirmType="danger"
-        icon="trash-outline"
-        onConfirm={handleDeleteMeal}
-        onCancel={() => setShowDeleteMealModal(false)}
-      />
-
-      {/* Modal de confirmação para excluir alimento */}
-      <ConfirmationModal
-        visible={showDeleteFoodModal}
-        title="Excluir Alimento"
-        message="Tem certeza que deseja excluir este alimento? Esta ação não pode ser desfeita."
-        confirmText="Excluir"
-        cancelText="Cancelar"
-        confirmType="danger"
-        icon="trash-outline"
-        onConfirm={handleDeleteFood}
-        onCancel={() => {
-          setShowDeleteFoodModal(false);
-          setSelectedFoodId("");
-        }}
-      />
-
-      {/* Modal para copiar refeição de data anterior */}
-      <ConfirmationModal
-        visible={showCopyMealModal}
-        title={`Copiar ${meal.name} do dia anterior`}
-        message={
-          selectedSourceDate
-            ? `Deseja copiar a refeição de ${formatDate(selectedSourceDate)}?`
-            : "Não há refeições anteriores para copiar."
-        }
-        confirmText="Copiar"
-        cancelText="Cancelar"
-        confirmType="primary"
-        icon="copy-outline"
-        onConfirm={handleCopyMeal}
-        onCancel={() => setShowCopyMealModal(false)}
-      />
     </>
   );
 };

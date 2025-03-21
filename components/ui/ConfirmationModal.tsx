@@ -72,24 +72,23 @@ const ConfirmationModalComponent = ({
     onCancel();
   }, [onCancel]);
 
-  if (!visible) return null;
-
   return (
     <Modal
       visible={visible}
       transparent={true}
-      animationType="none"
+      animationType="fade"
       onRequestClose={onCancel}
       statusBarTranslucent={true}
+      hardwareAccelerated={true}
     >
       <View style={[styles.overlay, { backgroundColor: "rgba(0,0,0,0.5)" }]}>
         <TouchableWithoutFeedback onPress={handleCancel}>
           <View style={styles.modalWrapper}>
             <TouchableWithoutFeedback>
               <MotiView
-                from={{ opacity: 0, scale: 0.9 }}
+                from={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: "timing", duration: 200 }}
+                transition={{ type: "timing", duration: 150 }}
                 style={[
                   styles.modalContainer,
                   {

@@ -69,6 +69,7 @@ interface WorkoutTotals {
   maxWeight: number; // Carga máxima
   avgReps: number; // Repetições médias
   totalReps: number; // Total de repetições
+  caloriesBurned: number; // Novo campo para calorias
 }
 
 // Interface para o contexto de treinos
@@ -124,6 +125,7 @@ interface WorkoutContextType {
     totals: WorkoutTotals | null;
     date: string | null;
   };
+  deleteWorkout: (workoutId: string, date?: string) => Promise<boolean>;
   workoutsForSelectedDate: { [workoutId: string]: Exercise[] };
   selectedWorkoutTypes: WorkoutType[];
   hasConfiguredWorkouts: boolean;
@@ -1094,6 +1096,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       maxWeight: 0,
       avgReps: 0,
       totalReps: 0,
+      caloriesBurned: 0, // Novo campo para calorias
     };
 
     // Obter os treinos para a data selecionada
@@ -1115,11 +1118,22 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     let totalRepsSum = 0;
     let totalRepsCount = 0;
     let maxWeightFound = 0;
+    let totalCalories = 0;
 
     exercises.forEach((exercise) => {
       // Calcular duração para exercícios de cardio
       if (exercise.category === "cardio" && exercise.cardioDuration) {
         totals.totalDuration += exercise.cardioDuration;
+
+        // Calcular calorias para cardio (assumindo MET médio de 8.0 para cardio)
+        // Fórmula: MET × 3.5 × peso corporal (kg) / 200 × duração (minutos)
+        const metValue = 8.0; // Valor médio para cardio moderado
+        const weightInKg = 70; // Peso médio em kg (poderia ser obtido do perfil do usuário)
+        const durationInMinutes = exercise.cardioDuration;
+
+        const caloriesForExercise =
+          ((metValue * 3.5 * weightInKg) / 200) * durationInMinutes;
+        totalCalories += caloriesForExercise;
       }
 
       // Calcular séries e volume para exercícios de força
@@ -1142,6 +1156,16 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           if (set.weight > maxWeightFound) {
             maxWeightFound = set.weight;
           }
+
+          // Calcular calorias para exercícios de força
+          // Fórmula aproximada: 0.0175 × MET × peso corporal (kg) × duração (minutos)
+          const metValue = 5.0; // Valor médio para treinamento com pesos
+          const weightInKg = 70; // Peso médio em kg (poderia ser obtido do perfil do usuário)
+          const durationInMinutes = 2; // Tempo médio para completar uma série
+
+          const caloriesForSet =
+            0.0175 * metValue * weightInKg * durationInMinutes;
+          totalCalories += caloriesForSet;
         });
 
         // Estimar duração para exercícios de força (2 minutos por série em média)
@@ -1155,6 +1179,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     totals.avgReps =
       totalRepsCount > 0 ? Math.round(totalRepsSum / totalRepsCount) : 0;
     totals.maxWeight = maxWeightFound;
+    totals.caloriesBurned = Math.round(totalCalories);
 
     return totals;
   };
@@ -1184,6 +1209,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           maxWeight: 0,
           avgReps: 0,
           totalReps: 0,
+          caloriesBurned: 0,
         };
 
         // Variáveis para calcular médias
@@ -1192,12 +1218,23 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         let totalRepsSum = 0;
         let totalRepsCount = 0;
         let maxWeightFound = 0;
+        let totalCalories = 0;
 
         // Calcular os totais
         previousExercises.forEach((exercise) => {
           // Calcular duração para exercícios de cardio
           if (exercise.category === "cardio" && exercise.cardioDuration) {
             totals.totalDuration += exercise.cardioDuration;
+
+            // Calcular calorias para cardio (assumindo MET médio de 8.0 para cardio)
+            // Fórmula: MET × 3.5 × peso corporal (kg) / 200 × duração (minutos)
+            const metValue = 8.0; // Valor médio para cardio moderado
+            const weightInKg = 70; // Peso médio em kg (poderia ser obtido do perfil do usuário)
+            const durationInMinutes = exercise.cardioDuration;
+
+            const caloriesForExercise =
+              ((metValue * 3.5 * weightInKg) / 200) * durationInMinutes;
+            totalCalories += caloriesForExercise;
           }
 
           // Calcular séries e volume para exercícios de força
@@ -1220,6 +1257,16 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
               if (set.weight > maxWeightFound) {
                 maxWeightFound = set.weight;
               }
+
+              // Calcular calorias para exercícios de força
+              // Fórmula aproximada: 0.0175 × MET × peso corporal (kg) × duração (minutos)
+              const metValue = 5.0; // Valor médio para treinamento com pesos
+              const weightInKg = 70; // Peso médio em kg (poderia ser obtido do perfil do usuário)
+              const durationInMinutes = 2; // Tempo médio para completar uma série
+
+              const caloriesForSet =
+                0.0175 * metValue * weightInKg * durationInMinutes;
+              totalCalories += caloriesForSet;
             });
 
             // Estimar duração para exercícios de força (2 minutos por série em média)
@@ -1235,6 +1282,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         totals.avgReps =
           totalRepsCount > 0 ? Math.round(totalRepsSum / totalRepsCount) : 0;
         totals.maxWeight = maxWeightFound;
+        totals.caloriesBurned = Math.round(totalCalories);
 
         return { totals, date };
       }
@@ -1538,6 +1586,113 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     );
   }, [availableWorkoutTypes]);
 
+  // Excluir um treino completo
+  const deleteWorkout = async (
+    workoutId: string,
+    date?: string
+  ): Promise<boolean> => {
+    try {
+      const dateToUse = date || selectedDate;
+      console.log(`Excluindo treino ${workoutId} da data ${dateToUse}`);
+
+      // Verificar se o treino existe na data especificada
+      if (!workouts[dateToUse] || !workouts[dateToUse][workoutId]) {
+        console.warn(`Treino ${workoutId} não encontrado na data ${dateToUse}`);
+        return false;
+      }
+
+      // Atualizar o estado dos treinos
+      setWorkouts((prev) => {
+        const updatedWorkouts = { ...prev };
+
+        // Remover o treino da data especificada
+        if (updatedWorkouts[dateToUse]) {
+          const { [workoutId]: deletedWorkout, ...remainingWorkouts } =
+            updatedWorkouts[dateToUse];
+          updatedWorkouts[dateToUse] = remainingWorkouts;
+
+          // Se não houver mais treinos para esta data, remover a data inteira
+          if (Object.keys(updatedWorkouts[dateToUse]).length === 0) {
+            const { [dateToUse]: deletedDate, ...remainingDates } =
+              updatedWorkouts;
+            return remainingDates;
+          }
+        }
+
+        return updatedWorkouts;
+      });
+
+      // Atualizar o estado dos tipos de treino
+      setWorkoutTypes((prev) => {
+        const updatedWorkoutTypes = { ...prev };
+
+        // Remover o tipo de treino da data especificada
+        if (
+          updatedWorkoutTypes[dateToUse] &&
+          updatedWorkoutTypes[dateToUse][workoutId]
+        ) {
+          const { [workoutId]: deletedType, ...remainingTypes } =
+            updatedWorkoutTypes[dateToUse];
+          updatedWorkoutTypes[dateToUse] = remainingTypes;
+
+          // Se não houver mais tipos para esta data, remover a data inteira
+          if (Object.keys(updatedWorkoutTypes[dateToUse]).length === 0) {
+            const { [dateToUse]: deletedDate, ...remainingDates } =
+              updatedWorkoutTypes;
+            return remainingDates;
+          }
+        }
+
+        return updatedWorkoutTypes;
+      });
+
+      // Salvar alterações
+      try {
+        await Promise.all([saveWorkouts(), saveWorkoutTypes()]);
+        console.log(
+          `Treino ${workoutId} excluído com sucesso da data ${dateToUse}`
+        );
+
+        // Feedback tátil de sucesso
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+        return true;
+      } catch (saveError) {
+        console.error("Erro ao salvar após excluir treino:", saveError);
+
+        // Tentar novamente após um pequeno atraso
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          await Promise.all([saveWorkouts(), saveWorkoutTypes()]);
+          console.log(`Treino ${workoutId} excluído após tentativa adicional`);
+
+          // Feedback tátil de sucesso
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+          return true;
+        } catch (retryError) {
+          console.error(
+            "Falha na segunda tentativa de salvar após excluir treino:",
+            retryError
+          );
+
+          // Feedback tátil de erro
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
+          return false;
+        }
+      }
+    } catch (error) {
+      // Erro ao excluir treino
+      console.error("Erro ao excluir treino:", error);
+
+      // Feedback tátil de erro
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
+      return false;
+    }
+  };
+
   // Adicionar um novo contexto - usando os valores memoizados
   const contextValue: WorkoutContextType = useMemo(
     () => ({
@@ -1566,6 +1721,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       getWorkoutTotals,
       getPreviousWorkoutTotals,
       hasWorkoutTypesConfigured,
+      deleteWorkout,
       // Valores memoizados
       workoutsForSelectedDate,
       selectedWorkoutTypes,
@@ -1595,6 +1751,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       getWorkoutTotals,
       getPreviousWorkoutTotals,
       hasWorkoutTypesConfigured,
+      deleteWorkout,
       workoutsForSelectedDate,
       selectedWorkoutTypes,
       hasConfiguredWorkouts,
