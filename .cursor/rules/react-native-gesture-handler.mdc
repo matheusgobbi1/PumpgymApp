@@ -9,6 +9,11 @@ globs:
 alwaysApply: false
 ---
 ---
+description: 
+globs: 
+alwaysApply: false
+---
+---
 description: Best practices for handling gestures in React Native
 globs: **/*.{ts,tsx}
 alwaysApply: false

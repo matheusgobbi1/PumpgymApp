@@ -8,7 +8,6 @@ import { AuthProvider } from "../context/AuthContext";
 import { NutritionProvider } from "../context/NutritionContext";
 import { MealProvider } from "../context/MealContext";
 import { WorkoutProvider } from "../context/WorkoutContext";
-import { RefreshProvider } from "../context/RefreshContext";
 import { ThemeProvider, useTheme } from "../context/ThemeContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -82,11 +81,9 @@ function RootLayoutNav() {
               <NutritionProvider>
                 <MealProvider>
                   <WorkoutProvider>
-                    <RefreshProvider>
-                      <ReminderProvider>
-                        <AppContent />
-                      </ReminderProvider>
-                    </RefreshProvider>
+                    <ReminderProvider>
+                      <AppContent />
+                    </ReminderProvider>
                   </WorkoutProvider>
                 </MealProvider>
               </NutritionProvider>

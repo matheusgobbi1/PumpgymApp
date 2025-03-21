@@ -26,7 +26,6 @@ import {
 } from "../../context/WorkoutContext";
 import Colors from "../../constants/Colors";
 import { ExerciseData, getExerciseById } from "../../data/exerciseDatabase";
-import { useRefresh } from "../../context/RefreshContext";
 
 const { width } = Dimensions.get("window");
 
@@ -425,7 +424,6 @@ export default function ExerciseDetailsScreen() {
   const { addExerciseToWorkout, updateExerciseInWorkout, getWorkoutTypeById } =
     useWorkoutContext();
   const workoutType = getWorkoutTypeById(workoutId);
-  const { triggerRefresh, isRefreshing } = useRefresh();
 
   // Estados
   const [isLoading, setIsLoading] = useState(true);
@@ -594,11 +592,6 @@ export default function ExerciseDetailsScreen() {
 
     // Voltar para a tela anterior
     router.back();
-
-    // Atualizar o gráfico de progresso
-    if (!isRefreshing) {
-      triggerRefresh();
-    }
   };
 
   return (

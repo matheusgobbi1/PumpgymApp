@@ -52,7 +52,6 @@ interface TrainingStatsCardProps {
   workoutColor: string;
   currentExercises: Exercise[];
   previousExercises?: Exercise[];
-  refreshKey?: number;
   notificationsEnabled?: boolean;
 }
 
@@ -68,7 +67,6 @@ export default function TrainingStatsCard({
   workoutColor,
   currentExercises,
   previousExercises,
-  refreshKey,
   notificationsEnabled = true,
 }: TrainingStatsCardProps) {
   const router = useRouter();

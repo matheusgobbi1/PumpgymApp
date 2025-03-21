@@ -38,7 +38,6 @@ interface MealCardProps {
   onPress: () => void;
   onDeleteFood: (foodId: string) => Promise<void>;
   onDeleteMeal?: (mealId: string) => Promise<void>;
-  refreshKey?: number;
   showCopyOption?: boolean;
 }
 
@@ -52,7 +51,6 @@ const MealCardComponent = ({
   onPress,
   onDeleteFood,
   onDeleteMeal,
-  refreshKey,
   showCopyOption = false,
 }: MealCardProps) => {
   const router = useRouter();

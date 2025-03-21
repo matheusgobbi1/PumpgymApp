@@ -1,11 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
-  Alert,
-} from "react-native";
+import { View, StyleSheet, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
@@ -23,14 +17,8 @@ export default function Profile() {
   const { theme, toggleTheme } = useTheme();
   const colors = Colors[theme];
   const router = useRouter();
-  const { nutritionInfo, saveNutritionInfo } = useNutrition();
+  const { nutritionInfo } = useNutrition();
   const { user } = useAuth();
-
-  // Estado para controlar o refresh da tela
-  const [refreshing, setRefreshing] = useState(false);
-
-  // Estado para forçar re-renderização
-  const [refreshKey, setRefreshKey] = useState(0);
 
   // Estado para contador de logins do usuário (login streak)
   const [loginCount, setLoginCount] = useState(0);
@@ -84,40 +72,6 @@ export default function Profile() {
     router.push("/help-modal");
   };
 
-  // Função para atualizar os dados
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await saveNutritionInfo();
-      setRefreshKey((prev) => prev + 1);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (error) {
-      console.error("Erro ao atualizar dados:", error);
-      // Mostrar mensagem de erro para o usuário
-      Alert.alert(
-        "Erro ao atualizar",
-        "Não foi possível atualizar seus dados. Por favor, tente novamente mais tarde."
-      );
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  // Efeito para atualizar a tela quando os dados de nutrição mudarem
-  useEffect(() => {
-    try {
-      setRefreshKey((prev) => prev + 1);
-    } catch (error) {
-      console.error("Erro ao atualizar interface:", error);
-    }
-  }, [
-    nutritionInfo.calories,
-    nutritionInfo.protein,
-    nutritionInfo.carbs,
-    nutritionInfo.fat,
-  ]);
-
   // Obter status do plano nutricional
   const getNutritionStatus = () => {
     if (!nutritionInfo.calories) {
@@ -159,24 +113,13 @@ export default function Profile() {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              colors={[colors.primary]}
-              tintColor={colors.primary}
-            />
-          }
         >
           <View style={styles.cardsContainer}>
             {/* Novo card de informações do perfil */}
-            <ProfileInfoCard
-              onEditPress={handleEditProfilePress}
-              key={`profile-info-${refreshKey}`}
-            />
+            <ProfileInfoCard onEditPress={handleEditProfilePress} />
 
             {/* Resumo do plano nutricional */}
-            <NutritionSummaryCard key={`nutrition-summary-${refreshKey}`} />
+            <NutritionSummaryCard />
 
             {/* Opções do perfil */}
             <ProfileOptionsCard
@@ -185,7 +128,6 @@ export default function Profile() {
               onPrivacyPress={handlePrivacyPress}
               onAboutPress={handleAboutPress}
               onHelpPress={handleHelpPress}
-              key={`profile-options-${refreshKey}`}
             />
           </View>
 

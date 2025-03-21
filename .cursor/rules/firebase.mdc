@@ -1,14 +1,9 @@
 ---
 description: 
 globs: 
-alwaysApply: false
----
----
-description: 
-globs: 
 alwaysApply: true
 ---
----
+
 description: Best practices for integrating Firebase in React Native apps
 globs: **/*.{ts,tsx}
 alwaysApply: false

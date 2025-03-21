@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -40,7 +46,6 @@ type HistoryPeriod = "1m" | "3m" | "6m" | "all";
 
 interface WorkoutProgressChartProps {
   onPress?: () => void;
-  refreshKey?: number; // Prop para forçar atualização
 }
 
 // Função para obter o ícone correto com base no tipo
@@ -217,7 +222,6 @@ const parseISODate = (dateString: string) => {
 
 export default function WorkoutProgressChart({
   onPress,
-  refreshKey = 0,
 }: WorkoutProgressChartProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
@@ -267,210 +271,158 @@ export default function WorkoutProgressChart({
   // Altura animada do card
   const cardHeight = useSharedValue(230);
 
-  // Carregar dados quando o componente montar
-  useEffect(() => {
-    const initializeComponent = async () => {
-      await loadData();
-      setIsInitialized(true);
-    };
-
-    initializeComponent();
-  }, [getWorkoutsForDate, getWorkoutTypeById, getExercisesForWorkout]);
-
-  // Efeito para animar a altura do card
-  useEffect(() => {
-    const emptyStateHeight = 180; // Altura padrão para o estado vazio
-
-    // Se não tiver exercícios ou estiver carregando, usar altura fixa
-    if (todayExercises.length === 0 || isLoading) {
-      cardHeight.value = emptyStateHeight;
-      return;
-    }
-
-    // Só alterar a altura após os dados estarem carregados
-    if (!isLoading) {
-      if (initialMount) {
-        cardHeight.value = isExpanded ? 650 : 220;
-        setInitialMount(false);
-      } else {
-        cardHeight.value = withTiming(isExpanded ? 750 : 220, {
-          duration: 300,
-        });
-      }
-    }
-  }, [isExpanded, todayExercises.length, isLoading, initialMount]);
-
+  // useAnimatedStyle deve ser chamado diretamente no nível superior, não dentro de useMemo
   const animatedStyle = useAnimatedStyle(() => {
     return {
       height: cardHeight.value,
     };
   });
 
-  // Efeito para atualizar o gráfico quando o tipo de gráfico ou período de histórico mudar
-  useEffect(() => {
-    if (selectedExercise && workoutHistory[selectedExercise.id]) {
-      updateChartData();
-    }
-  }, [selectedChartType, selectedHistoryPeriod, selectedExercise]);
-
-  // Efeito para atualizar o gráfico quando o refreshKey mudar
-  useEffect(() => {
-    if (refreshKey > 0) {
-      loadData();
-    }
-  }, [refreshKey]);
-
-  const loadData = async () => {
-    setIsLoading(true);
-    try {
-      // Obter a data de hoje formatada
-      const today = format(new Date(), "yyyy-MM-dd");
-
-      // Obter os treinos de hoje
-      const todaysWorkouts = getWorkoutsForDate(today);
-
-      // Verificar se há treinos para hoje
-      if (todaysWorkouts && Object.keys(todaysWorkouts).length > 0) {
-        // Pegar o primeiro treino do dia
-        const workoutId = Object.keys(todaysWorkouts)[0];
-
-        // Obter o tipo de treino
-        const workoutType = getWorkoutTypeById(workoutId);
-
-        if (workoutType) {
-          setTodayWorkout({
-            id: workoutId,
-            name: workoutType.name,
-            iconType: workoutType.iconType,
-            color: workoutType.color,
-          });
-
-          // Obter exercícios para este treino
-          const exercisesForWorkout = getExercisesForWorkout(workoutId);
-          setTodayExercises(exercisesForWorkout);
-
-          // Carregar histórico de treinos para cada exercício
-          const history: { [exerciseId: string]: WorkoutHistoryData[] } = {};
-
-          // Para cada exercício, buscar seu histórico
-          for (const exercise of exercisesForWorkout) {
-            history[exercise.id] = await getExerciseHistory(
-              exercise.name,
-              workoutId
-            );
-          }
-
-          setWorkoutHistory(history);
-
-          // Se houver exercícios, selecionar o primeiro por padrão
-          if (exercisesForWorkout.length > 0) {
-            setSelectedExercise(exercisesForWorkout[0]);
-          }
-
-          // Atualizar dados do gráfico
-          updateChartData();
-        }
-      } else {
-        // Limpar dados se não houver treinos hoje
-        setTodayWorkout(null);
-        setTodayExercises([]);
-        setWorkoutHistory({});
-        setChartData({
-          labels: [],
-          datasets: [{ data: [] }],
-        });
-      }
-    } catch (error) {
-      console.error("Erro ao carregar dados do treino:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Função para obter o histórico de um exercício específico
-  const getExerciseHistory = async (
-    exerciseName: string,
-    workoutTypeId: string
-  ): Promise<WorkoutHistoryData[]> => {
-    const history: WorkoutHistoryData[] = [];
-
-    // Percorrer todos os treinos registrados
-    for (const date in workouts) {
-      // Verificar se o tipo de treino existe para esta data
-      if (workouts[date] && workouts[date][workoutTypeId]) {
-        const exercisesForDate = workouts[date][workoutTypeId];
-
-        // Encontrar o exercício pelo nome (case insensitive)
-        const exercise = exercisesForDate.find(
-          (ex) => ex.name.toLowerCase() === exerciseName.toLowerCase()
-        );
-
-        if (exercise) {
-          // Calcular o valor com base no tipo de gráfico selecionado
-          let value = 0;
-
-          if (selectedChartType === "weight") {
-            value = calculateMaxWeight(exercise);
-          } else if (selectedChartType === "reps") {
-            value = calculateTotalReps(exercise);
-          } else if (selectedChartType === "volume") {
-            value = calculateVolume(exercise);
-          }
-
-          // Adicionar ao histórico
-          history.push({
-            date,
-            value,
-          });
-        }
-      }
-    }
-
-    // Ordenar por data (mais antiga para mais recente)
-    history.sort((a, b) => {
-      const dateA = parseISODate(a.date);
-      const dateB = parseISODate(b.date);
-      return isAfter(dateA, dateB) ? 1 : isEqual(dateA, dateB) ? 0 : -1;
-    });
-
-    return history;
-  };
-
-  // Função para calcular o volume (peso * reps * sets)
-  const calculateVolume = (exercise: Exercise) => {
+  // Memoizar as funções de cálculo para evitar recriações
+  const calculateVolume = useCallback((exercise: Exercise) => {
     if (!exercise.sets) return 0;
 
     return exercise.sets.reduce((total, set) => {
       return total + set.weight * set.reps;
     }, 0);
-  };
+  }, []);
 
-  // Função para calcular o peso máximo
-  const calculateMaxWeight = (exercise: Exercise) => {
+  const calculateMaxWeight = useCallback((exercise: Exercise) => {
     if (!exercise.sets || exercise.sets.length === 0) return 0;
     return Math.max(...exercise.sets.map((set) => set.weight));
-  };
+  }, []);
 
-  // Função para calcular o total de repetições
-  const calculateTotalReps = (exercise: Exercise) => {
+  const calculateTotalReps = useCallback((exercise: Exercise) => {
     if (!exercise.sets) return 0;
 
     return exercise.sets.reduce((total, set) => {
       return total + set.reps;
     }, 0);
-  };
+  }, []);
 
-  // Função para atualizar os dados do gráfico
-  const updateChartData = () => {
-    if (!selectedExercise) return;
+  // Função para resetar o estado para valores iniciais
+  const resetState = useCallback(() => {
+    setTodayWorkout(null);
+    setTodayExercises([]);
+    setWorkoutHistory({});
+    setSelectedExercise(null);
+    setChartData({
+      labels: [],
+      datasets: [{ data: [] }],
+    });
+  }, []);
 
-    const exerciseHistory = workoutHistory[selectedExercise.id] || [];
+  // Memoizar a função para filtrar histórico por período
+  const filterHistoryByPeriod = useCallback(
+    (history: WorkoutHistoryData[]) => {
+      // Usar abordagem mais segura para data atual
+      const today = new Date();
 
-    // Filtrar histórico com base no período selecionado
-    const filteredHistory = filterHistoryByPeriod(
-      exerciseHistory,
-      selectedHistoryPeriod
-    );
+      let cutoffDate: Date;
+
+      switch (selectedHistoryPeriod) {
+        case "1m":
+          cutoffDate = subDays(today, 30);
+          break;
+        case "3m":
+          cutoffDate = subDays(today, 90);
+          break;
+        case "6m":
+          cutoffDate = subDays(today, 180);
+          break;
+        default:
+          cutoffDate = subDays(today, 30);
+      }
+
+      return (history || []).filter((item) => {
+        const itemDate = parseISODate(item.date);
+        return isAfter(itemDate, cutoffDate) || isEqual(itemDate, cutoffDate);
+      });
+    },
+    [selectedHistoryPeriod]
+  );
+
+  // Memoizar a função getExerciseHistory para evitar recriações e problemas de referência
+  const getExerciseHistory = useCallback(
+    async (
+      exerciseName: string,
+      workoutTypeId: string
+    ): Promise<WorkoutHistoryData[]> => {
+      const history: WorkoutHistoryData[] = [];
+      if (!workouts) return history;
+
+      // Percorrer todos os treinos registrados
+      for (const date in workouts) {
+        // Verificar se o tipo de treino existe para esta data
+        if (workouts[date] && workouts[date][workoutTypeId]) {
+          const exercisesForDate = workouts[date][workoutTypeId];
+          if (!exercisesForDate) continue;
+
+          // Encontrar o exercício pelo nome (case insensitive)
+          const exercise = exercisesForDate.find(
+            (ex) =>
+              ex &&
+              ex.name &&
+              ex.name.toLowerCase() === exerciseName.toLowerCase()
+          );
+
+          if (exercise) {
+            // Calcular o valor com base no tipo de gráfico selecionado
+            let value = 0;
+
+            if (selectedChartType === "weight") {
+              value = calculateMaxWeight(exercise);
+            } else if (selectedChartType === "reps") {
+              value = calculateTotalReps(exercise);
+            } else if (selectedChartType === "volume") {
+              value = calculateVolume(exercise);
+            }
+
+            history.push({
+              date,
+              value,
+            });
+          }
+        }
+      }
+
+      // Ordenar por data (mais antiga primeiro)
+      return history.sort((a, b) => {
+        const dateA = parseISODate(a.date);
+        const dateB = parseISODate(b.date);
+        return dateA.getTime() - dateB.getTime();
+      });
+    },
+    [
+      workouts,
+      selectedChartType,
+      calculateMaxWeight,
+      calculateTotalReps,
+      calculateVolume,
+    ]
+  );
+
+  // Memoizar a função para atualizar os dados do gráfico
+  const updateChartData = useCallback(() => {
+    if (!selectedExercise || !workoutHistory[selectedExercise.id]) {
+      setChartData({
+        labels: [],
+        datasets: [{ data: [0] }],
+      });
+      return;
+    }
+
+    // Filtrar histórico pelo período selecionado
+    const history = workoutHistory[selectedExercise.id] || [];
+    const filteredHistory = filterHistoryByPeriod(history);
+
+    if (filteredHistory.length === 0) {
+      setChartData({
+        labels: [],
+        datasets: [{ data: [0] }],
+      });
+      return;
+    }
 
     // Preparar dados para o gráfico
     const labels = filteredHistory.map((item) => {
@@ -497,66 +449,180 @@ export default function WorkoutProgressChart({
       labels: finalLabels,
       datasets: [
         {
-          data: values,
+          data: values.length > 0 ? values : [0],
           color: () => colors.primary,
           strokeWidth: 2,
         },
       ],
     });
-  };
+  }, [
+    selectedExercise,
+    workoutHistory,
+    selectedHistoryPeriod,
+    filterHistoryByPeriod,
+    colors.primary,
+  ]);
 
-  // Função para filtrar o histórico com base no período selecionado
-  const filterHistoryByPeriod = (
-    history: WorkoutHistoryData[],
-    period: HistoryPeriod
-  ): WorkoutHistoryData[] => {
-    if (period === "all") return history;
+  // Memoizar a função loadData para evitar recriações
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // Obter a data de hoje formatada para São Paulo, Brasil
+      // Usar uma abordagem mais segura para obter a data atual
+      const today = new Date();
+      const todayFormatted = format(today, "yyyy-MM-dd");
 
-    const today = new Date();
-    let cutoffDate: Date;
+      // Obter os treinos de hoje
+      const todaysWorkouts = getWorkoutsForDate(todayFormatted);
 
-    switch (period) {
-      case "1m":
-        cutoffDate = subDays(today, 30);
-        break;
-      case "3m":
-        cutoffDate = subDays(today, 90);
-        break;
-      case "6m":
-        cutoffDate = subDays(today, 180);
-        break;
-      default:
-        cutoffDate = subDays(today, 30);
+      // Verificar se há treinos para hoje
+      if (todaysWorkouts && Object.keys(todaysWorkouts).length > 0) {
+        // Pegar o primeiro treino do dia
+        const workoutId = Object.keys(todaysWorkouts)[0];
+
+        // Obter o tipo de treino
+        const workoutType = getWorkoutTypeById(workoutId);
+
+        if (workoutType) {
+          setTodayWorkout({
+            id: workoutId,
+            name: workoutType.name,
+            iconType: workoutType.iconType,
+            color: workoutType.color,
+          });
+
+          // Obter exercícios para este treino
+          const exercisesForWorkout = getExercisesForWorkout(workoutId);
+
+          if (exercisesForWorkout && exercisesForWorkout.length > 0) {
+            setTodayExercises(exercisesForWorkout);
+
+            // Carregar histórico de treinos para cada exercício
+            const history: { [exerciseId: string]: WorkoutHistoryData[] } = {};
+
+            // Para cada exercício, buscar seu histórico
+            for (const exercise of exercisesForWorkout) {
+              if (exercise && exercise.id) {
+                history[exercise.id] = await getExerciseHistory(
+                  exercise.name,
+                  workoutId
+                );
+              }
+            }
+
+            // Atualizar o estado com o histórico carregado
+            setWorkoutHistory(history);
+
+            // Selecionar automaticamente o primeiro exercício
+            if (exercisesForWorkout[0]) {
+              setSelectedExercise(exercisesForWorkout[0]);
+            }
+          } else {
+            resetState();
+          }
+        } else {
+          resetState();
+        }
+      } else {
+        // Limpar dados se não houver treinos hoje
+        resetState();
+      }
+    } catch (error) {
+      console.error("Erro ao carregar dados do treino:", error);
+      // Em caso de erro, limpar os dados para evitar estado inconsistente
+      resetState();
+    } finally {
+      setIsLoading(false);
+    }
+  }, [
+    getWorkoutsForDate,
+    getWorkoutTypeById,
+    getExercisesForWorkout,
+    getExerciseHistory,
+    resetState,
+  ]);
+
+  // Efeito para atualizar o gráfico quando o tipo de gráfico ou período de histórico mudar
+  // Implementando com manejo seguro para evitar ciclos
+  const updateChartWhenDependenciesChange = useCallback(() => {
+    if (selectedExercise && workoutHistory[selectedExercise.id]) {
+      updateChartData();
+    }
+  }, [selectedExercise, workoutHistory, updateChartData]);
+
+  useEffect(() => {
+    updateChartWhenDependenciesChange();
+  }, [
+    selectedChartType,
+    selectedHistoryPeriod,
+    updateChartWhenDependenciesChange,
+  ]);
+
+  // Carregar dados quando o componente montar - usando um ref para garantir que só executa uma vez
+  const initialLoadRef = useRef(false);
+
+  useEffect(() => {
+    if (!initialLoadRef.current) {
+      initialLoadRef.current = true;
+      const initializeComponent = async () => {
+        await loadData();
+        setIsInitialized(true);
+      };
+      initializeComponent();
+    }
+  }, [loadData]);
+
+  // Efeito para animar a altura do card
+  useEffect(() => {
+    const emptyStateHeight = 180; // Altura padrão para o estado vazio
+
+    // Se não tiver exercícios ou estiver carregando, usar altura fixa
+    if (todayExercises.length === 0 || isLoading) {
+      cardHeight.value = emptyStateHeight;
+      return;
     }
 
-    return history.filter((item) => {
-      const itemDate = parseISODate(item.date);
-      return isAfter(itemDate, cutoffDate) || isEqual(itemDate, cutoffDate);
-    });
-  };
+    // Só alterar a altura após os dados estarem carregados
+    if (!isLoading) {
+      if (initialMount) {
+        cardHeight.value = isExpanded ? 650 : 220;
+        setInitialMount(false);
+      } else {
+        cardHeight.value = withTiming(isExpanded ? 750 : 220, {
+          duration: 300,
+        });
+      }
+    }
+  }, [isExpanded, todayExercises.length, isLoading, initialMount]);
 
   // Função para alternar entre expandido e recolhido
-  const toggleExpand = () => {
+  const toggleExpand = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsExpanded(!isExpanded);
-  };
+  }, [isExpanded]);
 
   // Função para formatar valores com base no tipo de gráfico
-  const formatValue = (value: number) => {
-    if (selectedChartType === "weight") {
-      return `${value} kg`;
-    } else if (selectedChartType === "reps") {
-      return `${value} reps`;
-    } else {
-      return `${value} kg`;
-    }
-  };
+  const formatValue = useCallback(
+    (value: number) => {
+      if (selectedChartType === "weight") {
+        return `${value} kg`;
+      } else if (selectedChartType === "reps") {
+        return `${value} reps`;
+      } else {
+        return `${value} kg`;
+      }
+    },
+    [selectedChartType]
+  );
 
   // Verificar se há exercícios para mostrar
-  const hasExercises = todayExercises.length > 0;
+  const hasExercises = useMemo(
+    () => Array.isArray(todayExercises) && todayExercises.length > 0,
+    [todayExercises]
+  );
 
   // Título do gráfico com base no tipo selecionado
-  const getChartTitle = () => {
+  const getChartTitle = useCallback(() => {
     if (selectedChartType === "weight") {
       return "Progressão de Peso";
     } else if (selectedChartType === "reps") {
@@ -564,31 +630,149 @@ export default function WorkoutProgressChart({
     } else {
       return "Progressão de Volume";
     }
-  };
+  }, [selectedChartType]);
 
   // Função para mudar o período de histórico com feedback tátil
-  const changeHistoryPeriod = (period: HistoryPeriod) => {
+  const changeHistoryPeriod = useCallback((period: HistoryPeriod) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedHistoryPeriod(period);
-  };
+  }, []);
 
   // Função para selecionar um exercício específico
-  const handleSelectExercise = (exercise: Exercise | null) => {
-    // Se o exercício clicado já está selecionado, deseleciona
-    if (selectedExercise?.id === exercise?.id) {
-      setSelectedExercise(null);
-    } else {
-      setSelectedExercise(exercise);
-    }
+  const handleSelectExercise = useCallback(
+    (exercise: Exercise | null) => {
+      // Se o exercício clicado já está selecionado, deseleciona
+      if (selectedExercise?.id === exercise?.id) {
+        setSelectedExercise(null);
+      } else {
+        setSelectedExercise(exercise);
+      }
 
-    // Feedback tátil
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
+      // Feedback tátil
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    },
+    [selectedExercise]
+  );
+
+  // Renderizar cada exercício na lista (extraído para evitar problemas de dependência cíclica)
+  const renderExerciseItem = useCallback(
+    ({ item: exercise, index }: { item: Exercise; index: number }) => {
+      if (!exercise || !todayWorkout) return null;
+
+      // Calcular a porcentagem de progresso
+      let currentValue = 0;
+      let previousValue = 0;
+
+      const previousWorkoutData = getPreviousWorkoutTotals(
+        todayWorkout?.id || ""
+      );
+
+      // Encontrar o exercício correspondente no treino anterior
+      const previousExercise = previousWorkoutData.date
+        ? workouts[previousWorkoutData.date]?.[todayWorkout?.id || ""]?.find(
+            (ex) => ex.name.toLowerCase() === exercise.name.toLowerCase()
+          )
+        : undefined;
+
+      if (selectedChartType === "weight") {
+        currentValue = calculateMaxWeight(exercise);
+        previousValue = previousExercise
+          ? calculateMaxWeight(previousExercise)
+          : 0;
+      } else if (selectedChartType === "reps") {
+        currentValue = calculateTotalReps(exercise);
+        previousValue = previousExercise
+          ? calculateTotalReps(previousExercise)
+          : 0;
+      } else {
+        currentValue = calculateVolume(exercise);
+        previousValue = previousExercise
+          ? calculateVolume(previousExercise)
+          : 0;
+      }
+
+      const percentChange =
+        previousValue > 0
+          ? ((currentValue - previousValue) / previousValue) * 100
+          : 0;
+
+      const isPositive = percentChange > 0;
+
+      return (
+        <TouchableOpacity
+          onPress={() => handleSelectExercise(exercise)}
+          style={[
+            styles.exerciseCardTouchable,
+            { backgroundColor: colors.card },
+            selectedExercise?.id === exercise.id && {
+              borderColor: colors.primary,
+              backgroundColor: colors.primary + "10",
+            },
+          ]}
+        >
+          <MotiView
+            style={styles.exerciseCard}
+            from={{ opacity: 0, translateY: 10 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{
+              type: "timing",
+              duration: 500,
+              delay: index * 100,
+            }}
+          >
+            <View style={styles.exerciseCardHeader}>
+              <Text
+                style={[styles.exerciseName, { color: colors.text }]}
+                numberOfLines={1}
+              >
+                {exercise.name}
+              </Text>
+              <Text
+                style={[
+                  styles.exerciseChange,
+                  {
+                    color: isPositive
+                      ? colors.success
+                      : percentChange < 0
+                      ? colors.danger
+                      : colors.text + "60",
+                  },
+                ]}
+              >
+                {isPositive ? "+" : ""}
+                {percentChange.toFixed(1)}%
+              </Text>
+            </View>
+            <Text style={[styles.exerciseValue, { color: colors.text }]}>
+              {formatValue(currentValue)}
+            </Text>
+          </MotiView>
+        </TouchableOpacity>
+      );
+    },
+    [
+      todayWorkout,
+      workouts,
+      selectedChartType,
+      selectedExercise,
+      colors,
+      getPreviousWorkoutTotals,
+      calculateMaxWeight,
+      calculateTotalReps,
+      calculateVolume,
+      handleSelectExercise,
+      formatValue,
+    ]
+  );
 
   // Renderizar a lista de exercícios em lista horizontal
-  const renderExerciseList = () => {
-    // Se não houver exercícios, não renderizar nada
-    if (todayExercises.length === 0) return null;
+  const renderExerciseList = useMemo(() => {
+    // Se não houver exercícios ou estiver carregando, não renderizar nada
+    if (!todayExercises || todayExercises.length === 0 || isLoading)
+      return null;
+
+    // Se não tiver contexto de treino para mostrar, não renderizar nada
+    if (!todayWorkout) return null;
 
     return (
       <View style={styles.exerciseListContainer}>
@@ -602,108 +786,18 @@ export default function WorkoutProgressChart({
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.exerciseListContent}
-          keyExtractor={(item) => `exercise-${item.id}`}
-          renderItem={({ item: exercise, index }) => {
-            // Calcular a porcentagem de progresso
-            let currentValue = 0;
-            let previousValue = 0;
-
-            const previousWorkoutData = getPreviousWorkoutTotals(
-              todayWorkout?.id || ""
-            );
-
-            // Encontrar o exercício correspondente no treino anterior
-            const previousExercise = previousWorkoutData.date
-              ? workouts[previousWorkoutData.date]?.[
-                  todayWorkout?.id || ""
-                ]?.find(
-                  (ex) => ex.name.toLowerCase() === exercise.name.toLowerCase()
-                )
-              : undefined;
-
-            if (selectedChartType === "weight") {
-              currentValue = calculateMaxWeight(exercise);
-              previousValue = previousExercise
-                ? calculateMaxWeight(previousExercise)
-                : 0;
-            } else if (selectedChartType === "reps") {
-              currentValue = calculateTotalReps(exercise);
-              previousValue = previousExercise
-                ? calculateTotalReps(previousExercise)
-                : 0;
-            } else {
-              currentValue = calculateVolume(exercise);
-              previousValue = previousExercise
-                ? calculateVolume(previousExercise)
-                : 0;
-            }
-
-            const percentChange =
-              previousValue > 0
-                ? ((currentValue - previousValue) / previousValue) * 100
-                : 0;
-
-            const isPositive = percentChange > 0;
-
-            const cardBackgroundColor =
-              theme === "dark" ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)";
-
-            return (
-              <TouchableOpacity
-                onPress={() => handleSelectExercise(exercise)}
-                style={[
-                  styles.exerciseCardTouchable,
-                  { backgroundColor: colors.card },
-                  selectedExercise?.id === exercise.id && {
-                    borderColor: colors.primary,
-                    backgroundColor: colors.primary + "10",
-                  },
-                ]}
-              >
-                <MotiView
-                  style={styles.exerciseCard}
-                  from={{ opacity: 0, translateY: 10 }}
-                  animate={{ opacity: 1, translateY: 0 }}
-                  transition={{
-                    type: "timing",
-                    duration: 500,
-                    delay: index * 100,
-                  }}
-                >
-                  <View style={styles.exerciseCardHeader}>
-                    <Text
-                      style={[styles.exerciseName, { color: colors.text }]}
-                      numberOfLines={1}
-                    >
-                      {exercise.name}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.exerciseChange,
-                        {
-                          color: isPositive
-                            ? colors.success
-                            : percentChange < 0
-                            ? colors.danger
-                            : colors.text + "60",
-                        },
-                      ]}
-                    >
-                      {isPositive ? "+" : ""}
-                      {percentChange.toFixed(1)}%
-                    </Text>
-                  </View>
-                  <Text style={[styles.exerciseValue, { color: colors.text }]}>
-                    {formatValue(currentValue)}
-                  </Text>
-                </MotiView>
-              </TouchableOpacity>
-            );
-          }}
+          keyExtractor={(item) => `exercise-${item?.id || "unknown"}`}
+          renderItem={renderExerciseItem}
         />
       </View>
     );
-  };
+  }, [
+    todayExercises,
+    colors.text,
+    renderExerciseItem,
+    isLoading,
+    todayWorkout,
+  ]);
 
   // Se o componente ainda não foi inicializado, aplicar a mesma altura fixa
   if (!isInitialized) {
@@ -819,7 +913,7 @@ export default function WorkoutProgressChart({
           <>
             <View style={styles.progressContainer}>
               {/* Renderizar exercícios em lista horizontal logo após o header */}
-              {renderExerciseList()}
+              {renderExerciseList}
 
               {/* Indicador de expansão - visível apenas quando não expandido */}
               {!isExpanded && (

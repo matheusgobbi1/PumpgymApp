@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  RefreshControl,
   Text,
   TouchableOpacity,
   Pressable,
@@ -21,7 +20,6 @@ import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { useRefresh } from "../../context/RefreshContext";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useWorkoutContext } from "../../context/WorkoutContext";
 import { format } from "date-fns";
@@ -37,22 +35,15 @@ const MemoizedWaterIntakeCard = React.memo(WaterIntakeCard);
 interface ProgressChartsProps {
   onWorkoutPress: () => void;
   onNutritionPress: () => void;
-  refreshKey: number;
 }
 
 const MemoizedProgressCharts = React.memo(
-  ({ onWorkoutPress, onNutritionPress, refreshKey }: ProgressChartsProps) => {
+  ({ onWorkoutPress, onNutritionPress }: ProgressChartsProps) => {
     return (
       <>
-        <WorkoutProgressChart
-          onPress={onWorkoutPress}
-          refreshKey={refreshKey}
-        />
+        <WorkoutProgressChart onPress={onWorkoutPress} />
 
-        <NutritionProgressChart
-          onPress={onNutritionPress}
-          refreshKey={refreshKey}
-        />
+        <NutritionProgressChart onPress={onNutritionPress} />
       </>
     );
   }
@@ -62,8 +53,6 @@ export default function HomeScreen() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const router = useRouter();
-  const [refreshing, setRefreshing] = useState(false);
-  const { refreshKey, triggerRefresh, isRefreshing } = useRefresh();
   const [activeTab, setActiveTab] = useState<"lembretes" | "progresso">(
     "lembretes"
   );
@@ -133,7 +122,7 @@ export default function HomeScreen() {
     }
 
     setStreak(currentStreak);
-  }, [workouts, refreshKey]);
+  }, [workouts]);
 
   // Quando a aba progresso for selecionada pela primeira vez, marcamos como carregada
   useEffect(() => {
@@ -145,18 +134,6 @@ export default function HomeScreen() {
   const handleProfilePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push("/(tabs)/profile");
-  };
-
-  const handleRefresh = async () => {
-    if (isRefreshing) return; // Evitar múltiplos refreshes simultâneos
-
-    setRefreshing(true);
-    // Usar o triggerRefresh do contexto para atualizar todos os componentes
-    triggerRefresh();
-    // Simular carregamento de dados
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setRefreshing(false);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
   const handleNutritionChartPress = useCallback(() => {
@@ -248,14 +225,6 @@ export default function HomeScreen() {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
-            />
-          }
         >
           {activeTab === "lembretes" ? (
             <>
@@ -277,7 +246,6 @@ export default function HomeScreen() {
                 <MemoizedProgressCharts
                   onWorkoutPress={handleWorkoutChartPress}
                   onNutritionPress={handleNutritionChartPress}
-                  refreshKey={refreshKey}
                 />
               )}
             </>

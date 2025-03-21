@@ -12,7 +12,6 @@ import {
   ScrollView,
   Dimensions,
   TouchableOpacity,
-  RefreshControl,
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -35,7 +34,6 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import MealConfigSheet from "../../components/nutrition/MealConfigSheet";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import { useRefresh } from "../../context/RefreshContext";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import ConfirmationModal from "../../components/ui/ConfirmationModal";
 import ContextMenu, { MenuAction } from "../../components/shared/ContextMenu";
@@ -97,8 +95,6 @@ export default function NutritionScreen() {
   const colors = Colors[theme];
   const { nutritionInfo } = useNutrition();
   const { user } = useAuth();
-  const { refreshKey, triggerRefresh, isRefreshing } = useRefresh();
-  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
   const params = useLocalSearchParams();
   const {
@@ -140,15 +136,14 @@ export default function NutritionScreen() {
       });
     });
     setTotalMeals(mealCount);
-  }, [meals, refreshKey]);
+  }, [meals]);
 
   // Efeito para forçar atualização quando o status de configuração de refeições mudar
   useEffect(() => {
     if (hasMealTypesConfigured) {
-      // Forçar atualização quando as refeições forem configuradas
-      triggerRefresh();
+      // As refeições foram configuradas, não precisamos mais do triggerRefresh
     }
-  }, [hasMealTypesConfigured, triggerRefresh]);
+  }, [hasMealTypesConfigured]);
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(format(date, "yyyy-MM-dd"));
@@ -159,13 +154,11 @@ export default function NutritionScreen() {
       try {
         await removeFoodFromMeal(mealId, foodId);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        // Atualizar o gráfico de progresso após remover o alimento
-        triggerRefresh();
       } catch (error) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     },
-    [removeFoodFromMeal, triggerRefresh]
+    [removeFoodFromMeal]
   );
 
   const dailyTotals = useMemo(() => {
@@ -361,23 +354,6 @@ export default function NutritionScreen() {
     [selectedDate, handleDateSelect, meals]
   );
 
-  // Função para lidar com o pull to refresh
-  const handleRefresh = useCallback(async () => {
-    if (isRefreshing) return; // Evitar múltiplos refreshes simultâneos
-
-    try {
-      setRefreshing(true);
-      triggerRefresh();
-      await saveMeals();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (error) {
-      console.error("Erro ao atualizar dados:", error);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [isRefreshing, triggerRefresh, saveMeals]);
-
   // Adicionar ações do menu contextual para a tela de Nutrição
   const menuActions = useMemo<MenuAction[]>(
     () => [
@@ -430,18 +406,11 @@ export default function NutritionScreen() {
           {calendarComponent}
 
           <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollViewContent}
+            style={styles.container}
+            contentContainerStyle={styles.contentContainer}
+            keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             removeClippedSubviews={true}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                tintColor={colors.primary}
-                colors={[colors.primary]}
-              />
-            }
           >
             {emptyStateComponent}
           </ScrollView>
@@ -491,18 +460,11 @@ export default function NutritionScreen() {
           {calendarComponent}
 
           <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollViewContent}
+            style={styles.container}
+            contentContainerStyle={styles.contentContainer}
+            keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             removeClippedSubviews={true}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                tintColor={colors.primary}
-                colors={[colors.primary]}
-              />
-            }
           >
             {emptyStateComponent}
           </ScrollView>
@@ -544,18 +506,11 @@ export default function NutritionScreen() {
         <ContextMenu actions={menuActions} isVisible={isMenuVisible} />
 
         <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollViewContent}
+          style={styles.container}
+          contentContainerStyle={styles.contentContainer}
+          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           removeClippedSubviews={true}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
-            />
-          }
         >
           <MacrosCard dayTotals={dailyTotals} nutritionInfo={nutritionInfo} />
 
@@ -563,7 +518,7 @@ export default function NutritionScreen() {
             <>
               {configuredMealTypes.map((meal, index) => (
                 <MealCard
-                  key={`meal-${meal.id}-${selectedDate}-${refreshKey}`}
+                  key={`meal-${meal.id}-${selectedDate}`}
                   meal={meal}
                   foods={meal.foods}
                   mealTotals={getMealTotals(meal.id)}
@@ -611,10 +566,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollViewContent: {
+  contentContainer: {
     padding: 16,
     paddingBottom: 100,
   },

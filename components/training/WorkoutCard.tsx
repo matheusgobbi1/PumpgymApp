@@ -37,9 +37,7 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { useAuth } from "../../context/AuthContext";
-import { useRefresh } from "../../context/RefreshContext";
 import ConfirmationModal from "../ui/ConfirmationModal";
-import Toast from "../common/Toast";
 
 const { width } = Dimensions.get("window");
 
@@ -67,7 +65,6 @@ interface WorkoutCardProps {
   index: number;
   onPress: () => void;
   onDeleteExercise: (exerciseId: string) => Promise<void>;
-  refreshKey?: number;
   notificationsEnabled?: boolean;
 }
 
@@ -78,7 +75,6 @@ export default function WorkoutCard({
   index,
   onPress,
   onDeleteExercise,
-  refreshKey,
   notificationsEnabled = true,
 }: WorkoutCardProps) {
   const router = useRouter();
@@ -86,7 +82,6 @@ export default function WorkoutCard({
   const colors = Colors[theme];
   const { user } = useAuth();
   const userId = user?.uid || "no-user";
-  const { refreshKey: contextRefreshKey } = useRefresh();
   const { selectedDate, copyWorkoutFromDate } = useWorkoutContext();
 
   // Usar useRef para armazenar os workouts em vez de extraí-los do contexto
@@ -94,16 +89,9 @@ export default function WorkoutCard({
   const workoutsRef = useRef<any>(null);
   const { workouts } = useWorkoutContext();
 
-  // Atualizar a referência apenas quando necessário
-  useEffect(() => {
-    workoutsRef.current = workouts;
-  }, [workouts]);
-
-  // Memoizar o combinedRefreshKey para evitar cálculos desnecessários
-  const combinedRefreshKey = useMemo(
-    () => refreshKey || contextRefreshKey,
-    [refreshKey, contextRefreshKey]
-  );
+  // Atualização direta da referência para reduzir operações
+  // Isso é seguro porque não causa re-renderizações e a ref é atualizada sempre que o componente renderiza
+  workoutsRef.current = workouts;
 
   // Estado para controlar quais exercícios estão expandidos
   const [expandedExercises, setExpandedExercises] = useState<{
@@ -130,23 +118,10 @@ export default function WorkoutCard({
     type: "success",
   });
 
-  // Estado para notificações de recorde pessoal (PR)
-  const [showPersonalRecordToast, setShowPersonalRecordToast] = useState(false);
-  const [personalRecordToastMessage, setPersonalRecordToastMessage] =
-    useState("");
-
   // Função para resetar os exercícios expandidos
   const resetExpandedExercises = useCallback(() => {
     setExpandedExercises({});
   }, []);
-
-  // Otimizar useEffect para ter menos dependências e executar menos vezes
-  useEffect(() => {
-    // Apenas redefinir quando o refreshKey realmente mudar e não for o valor inicial
-    if (combinedRefreshKey) {
-      resetExpandedExercises();
-    }
-  }, [combinedRefreshKey, resetExpandedExercises]);
 
   // Função para obter as datas anteriores com este treino - memoizada
   const getPreviousDatesWithWorkout = useCallback(() => {
@@ -163,7 +138,7 @@ export default function WorkoutCard({
         );
       })
       .sort((a, b) => b.localeCompare(a)); // Ordenar por data decrescente
-  }, [selectedDate, workout.id, workouts]);
+  }, [selectedDate, workout.id]);
 
   // Memoizar o resultado para evitar recálculos
   const previousDatesWithWorkout = useMemo(
@@ -258,9 +233,6 @@ export default function WorkoutCard({
   const openCopyModal = useCallback(() => {
     handleHapticFeedback();
 
-    // Atualizar a referência de workouts para garantir dados atualizados
-    workoutsRef.current = workouts;
-
     // Obter a data mais recente
     const mostRecentDate = getMostRecentWorkoutDate();
 
@@ -272,10 +244,10 @@ export default function WorkoutCard({
       // Se não houver data disponível, mostrar mensagem de erro
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
-  }, [getMostRecentWorkoutDate, handleHapticFeedback, workouts]);
+  }, [getMostRecentWorkoutDate, handleHapticFeedback]);
 
   // Função para copiar treino de uma data anterior
-  const handleCopyWorkout = async () => {
+  const handleCopyWorkout = useCallback(async () => {
     if (!selectedSourceDate) {
       return;
     }
@@ -305,7 +277,13 @@ export default function WorkoutCard({
       console.error("Erro ao copiar treino:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
-  };
+  }, [
+    selectedSourceDate,
+    selectedDate,
+    workout.id,
+    copyWorkoutFromDate,
+    router,
+  ]);
 
   // Função para navegar para os detalhes do exercício
   const navigateToExerciseDetails = (exercise: Exercise) => {
@@ -378,7 +356,7 @@ export default function WorkoutCard({
   // Função que verifica se um exercício atingiu um novo recorde pessoal (PR)
   const checkForPersonalRecord = useCallback(
     (currentExercise: Exercise, previousExercise: Exercise) => {
-      // Se as notificações estiverem desativadas, não mostrar toast de PR
+      // Se as notificações estiverem desativadas, não verificar PRs
       if (!notificationsEnabled) return false;
 
       if (!previousExercise || !currentExercise) return false;
@@ -419,19 +397,8 @@ export default function WorkoutCard({
               (increase / matchingPrevSet.weight) * 100
             );
 
-            // Usar o formato título + detalhes para o novo Toast
-            setPersonalRecordToastMessage(
-              `NOVO RECORDE PESSOAL\n${currentExercise.name}: +${increase}kg em ${currentSet.reps} repetições (${percentIncrease}%)`
-            );
-            setShowPersonalRecordToast(true);
-
-            // Feedback tátil mais forte para PRs
+            // Apenas feedback tátil para PRs
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-            // Esconder a notificação após 4 segundos (reduzido de 7 segundos)
-            setTimeout(() => {
-              setShowPersonalRecordToast(false);
-            }, 4000);
 
             return true;
           }
@@ -454,21 +421,10 @@ export default function WorkoutCard({
               // Novo PR detectado - mais repetições no mesmo peso!
               const increase = currentSet.reps - maxPrevReps;
 
-              // Usar o formato título + detalhes para o novo Toast
-              setPersonalRecordToastMessage(
-                `NOVO RECORDE PESSOAL\n${currentExercise.name}: +${increase} repetições com ${currentSet.weight}kg`
-              );
-              setShowPersonalRecordToast(true);
-
-              // Feedback tátil mais forte para PRs
+              // Apenas feedback tátil para PRs
               Haptics.notificationAsync(
                 Haptics.NotificationFeedbackType.Success
               );
-
-              // Esconder a notificação após 4 segundos (reduzido de 7 segundos)
-              setTimeout(() => {
-                setShowPersonalRecordToast(false);
-              }, 4000);
 
               return true;
             }
@@ -481,7 +437,7 @@ export default function WorkoutCard({
     [notificationsEnabled]
   );
 
-  // Modificar o useEffect existente para verificar PRs
+  // Modificar o useEffect existente para verificar PRs - OTIMIZADO
   useEffect(() => {
     // Se as notificações estiverem desativadas, não verificar PRs nem progresso
     if (!notificationsEnabled) return;
@@ -495,24 +451,35 @@ export default function WorkoutCard({
     const previousWorkoutExercises =
       workoutsRef.current[mostRecentDate]?.[workout.id] || [];
 
-    // Verificar cada exercício atual em relação ao anterior
-    for (const currentExercise of exercises) {
-      // Encontrar o exercício correspondente no treino anterior
-      const previousExercise = previousWorkoutExercises.find(
-        (ex: Exercise) =>
-          ex.name.toLowerCase() === currentExercise.name.toLowerCase()
-      );
+    // Verificar cada exercício atual em relação ao anterior - apenas uma vez
+    const checkExercises = () => {
+      for (const currentExercise of exercises) {
+        // Encontrar o exercício correspondente no treino anterior
+        const previousExercise = previousWorkoutExercises.find(
+          (ex: Exercise) =>
+            ex.name.toLowerCase() === currentExercise.name.toLowerCase()
+        );
 
-      if (previousExercise) {
-        // Primeiro verificar PRs, que são mais importantes
-        const hasPR = checkForPersonalRecord(currentExercise, previousExercise);
-        if (hasPR) break; // Mostrar apenas uma notificação por vez
+        if (previousExercise) {
+          // Primeiro verificar PRs, que são mais importantes
+          const hasPR = checkForPersonalRecord(
+            currentExercise,
+            previousExercise
+          );
+          if (hasPR) break; // Mostrar apenas uma notificação por vez
 
-        // Se não houver PR, verificar progresso geral
-        const hasProgress = checkForProgress(currentExercise, previousExercise);
-        if (hasProgress) break; // Mostrar apenas uma notificação por vez
+          // Se não houver PR, verificar progresso geral
+          const hasProgress = checkForProgress(
+            currentExercise,
+            previousExercise
+          );
+          if (hasProgress) break; // Mostrar apenas uma notificação por vez
+        }
       }
-    }
+    };
+
+    // Só executar a verificação uma vez quando os dados estiverem prontos
+    checkExercises();
   }, [
     exercises,
     previousDatesWithWorkout,
@@ -520,6 +487,7 @@ export default function WorkoutCard({
     checkForProgress,
     checkForPersonalRecord,
     notificationsEnabled,
+    workout.id,
   ]);
 
   // Função para renderizar um exercício
@@ -1022,19 +990,6 @@ export default function WorkoutCard({
               )}
             </View>
           </View>
-
-          {/* Toast para recordes pessoais, posicionado na parte inferior do card */}
-          <View style={styles.toastContainer}>
-            {showPersonalRecordToast && (
-              <Toast
-                message={personalRecordToastMessage}
-                type="success"
-                color="#FFD700"
-                duration={4000}
-                onDismiss={() => setShowPersonalRecordToast(false)}
-              />
-            )}
-          </View>
         </MotiView>
       </Swipeable>
 
@@ -1380,12 +1335,5 @@ const styles = StyleSheet.create({
     height: "100%",
     borderTopRightRadius: 8,
     borderBottomRightRadius: 8,
-  },
-  toastContainer: {
-    position: "absolute",
-    bottom: 80,
-    left: 16,
-    right: 16,
-    zIndex: 5,
   },
 });

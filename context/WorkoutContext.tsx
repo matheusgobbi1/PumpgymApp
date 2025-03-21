@@ -124,7 +124,6 @@ interface WorkoutContextType {
     totals: WorkoutTotals | null;
     date: string | null;
   };
-  forceRefresh: () => void;
   workoutsForSelectedDate: { [workoutId: string]: Exercise[] };
   selectedWorkoutTypes: WorkoutType[];
   hasConfiguredWorkouts: boolean;
@@ -152,12 +151,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     WorkoutType[]
   >([]);
   const [loading, setLoading] = useState(false);
-  const [contextVersion, setContextVersion] = useState(0); // Estado para forçar atualizações do contexto
-
-  // Função para forçar uma atualização completa do contexto - memoizada para evitar recriação
-  const forceRefresh = useCallback(() => {
-    setContextVersion((prev) => prev + 1);
-  }, []);
 
   // Memoizar valores derivados do estado que são frequentemente acessados
   const workoutsForSelectedDate = useMemo(
@@ -696,52 +689,22 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log("Iniciando redefinição de treinos...");
 
-      // Limpar completamente os tipos de treino e treinos no estado
-      setWorkoutTypes({});
+      // Limpar todos os estados
       setWorkouts({});
+      setWorkoutTypes({});
       setAvailableWorkoutTypes([]);
 
-      // Limpar dados persistentes no AsyncStorage
+      // Limpar dados do AsyncStorage
       await AsyncStorage.removeItem(`${KEYS.WORKOUT_TYPES}:${userId}`);
       await AsyncStorage.removeItem(`${KEYS.WORKOUTS}:${userId}`);
       await AsyncStorage.removeItem(
         `${KEYS.AVAILABLE_WORKOUT_TYPES}:${userId}`
       );
 
-      console.log("AsyncStorage limpo, inicializando tipos padrão...");
+      // Inicializar tipos de treino padrão
+      initializeDefaultWorkoutTypes();
 
-      // Reinicializar os tipos de treino padrão
-      await initializeDefaultWorkoutTypes();
-
-      // Se o usuário estiver autenticado e não for anônimo, limpar dados no Firebase
-      if (userId && userId !== "anonymous" && userId !== "no-user") {
-        try {
-          console.log("Limpando dados no Firebase...");
-          const db = getFirestore();
-
-          // Verificar se o usuário ainda está autenticado
-          const { auth } = require("../firebase/config");
-          if (auth.currentUser) {
-            const workoutsRef = doc(db, "users", userId, "workouts", "data");
-            await setDoc(
-              workoutsRef,
-              {
-                workouts: {},
-                workoutTypes: {},
-                availableWorkoutTypes: [],
-                lastUpdated: serverTimestamp(),
-              },
-              { merge: true }
-            );
-            console.log("Dados limpos no Firebase com sucesso");
-          }
-        } catch (firebaseError) {
-          console.error("Erro ao limpar dados no Firebase:", firebaseError);
-          // Continuar mesmo com erro no Firebase
-        }
-      }
-
-      // Verificar se os dados foram realmente limpos
+      // Verificar se a remoção foi bem-sucedida
       const storedWorkouts = await AsyncStorage.getItem(
         `${KEYS.WORKOUTS}:${userId}`
       );
@@ -767,9 +730,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           initializeDefaultWorkoutTypes();
         }, 500);
       }
-
-      // Forçar atualização do contexto para garantir que todos os componentes sejam atualizados
-      forceRefresh();
 
       // Feedback tátil
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -1606,12 +1566,10 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       getWorkoutTotals,
       getPreviousWorkoutTotals,
       hasWorkoutTypesConfigured,
-      forceRefresh,
       // Valores memoizados
       workoutsForSelectedDate,
       selectedWorkoutTypes,
       hasConfiguredWorkouts,
-      contextVersion, // Incluir o contextVersion para forçar atualizações
     }),
     [
       workouts,
@@ -1637,11 +1595,9 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       getWorkoutTotals,
       getPreviousWorkoutTotals,
       hasWorkoutTypesConfigured,
-      forceRefresh,
       workoutsForSelectedDate,
       selectedWorkoutTypes,
       hasConfiguredWorkouts,
-      contextVersion, // Incluir o contextVersion para forçar atualizações
     ]
   );
 

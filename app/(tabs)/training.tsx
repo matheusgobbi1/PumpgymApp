@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
+  Dimensions,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
@@ -31,13 +33,13 @@ import WorkoutCard from "../../components/training/WorkoutCard";
 import TrainingStatsCard from "../../components/training/TrainingStatsCard";
 import { useRouter } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
-import { useRefresh } from "../../context/RefreshContext";
 import { Ionicons } from "@expo/vector-icons";
 import ConfirmationModal from "../../components/ui/ConfirmationModal";
 import ContextMenu, { MenuAction } from "../../components/shared/ContextMenu";
-import Toast from "../../components/common/Toast";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import HomeHeader from "../../components/home/HomeHeader";
+
+const { width } = Dimensions.get("window");
 
 // Definir interface para props do MemoizedWorkoutGroup
 interface WorkoutGroupProps {
@@ -50,7 +52,6 @@ interface WorkoutGroupProps {
   previousExercises: Exercise[];
   onNavigate: (id: string) => void;
   onDeleteExercise: (workoutId: string, exerciseId: string) => Promise<void>;
-  refreshKey?: number;
   notificationsEnabled: boolean;
 }
 
@@ -63,7 +64,6 @@ const arePropsEqual = (
   if (
     prevProps.workoutId !== nextProps.workoutId ||
     prevProps.index !== nextProps.index ||
-    prevProps.refreshKey !== nextProps.refreshKey ||
     prevProps.notificationsEnabled !== nextProps.notificationsEnabled
   ) {
     return false;
@@ -118,7 +118,6 @@ const MemoizedWorkoutGroup = React.memo(
     previousExercises,
     onNavigate,
     onDeleteExercise,
-    refreshKey,
     notificationsEnabled,
   }: WorkoutGroupProps) => {
     return (
@@ -131,7 +130,6 @@ const MemoizedWorkoutGroup = React.memo(
           workoutColor={workoutType.color}
           currentExercises={exercises}
           previousExercises={previousExercises}
-          refreshKey={refreshKey}
           notificationsEnabled={notificationsEnabled}
         />
 
@@ -156,7 +154,6 @@ const MemoizedWorkoutGroup = React.memo(
           onDeleteExercise={(exerciseId) =>
             onDeleteExercise(workoutId, exerciseId)
           }
-          refreshKey={refreshKey}
           notificationsEnabled={notificationsEnabled}
         />
       </View>
@@ -170,17 +167,10 @@ export default function TrainingScreen() {
   const colors = Colors[theme];
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [refreshing, setRefreshing] = useState(false);
-  const { refreshKey, triggerRefresh, isRefreshing } = useRefresh();
   // Estado para forçar a recriação do WorkoutConfigSheet
   const [workoutConfigKey, setWorkoutConfigKey] = useState(Date.now());
   // Estado para controlar a visibilidade do modal de confirmação
   const [resetModalVisible, setResetModalVisible] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastType, setToastType] = useState<"success" | "info" | "error">(
-    "success"
-  );
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   // Estado para contar dias de treino
@@ -200,7 +190,6 @@ export default function TrainingScreen() {
     getPreviousWorkoutTotals,
     startWorkoutForDate,
     resetWorkoutTypes,
-    forceRefresh,
     // Usar valores memoizados do contexto
     workoutsForSelectedDate,
     hasConfiguredWorkouts,
@@ -227,7 +216,7 @@ export default function TrainingScreen() {
     });
 
     setTrainingDays(workoutDaysCount);
-  }, [workouts, refreshKey]);
+  }, [workouts]);
 
   // Navegar para o perfil
   const navigateToProfile = useCallback(() => {
@@ -266,50 +255,17 @@ export default function TrainingScreen() {
     loadNotificationPreference();
   }, []);
 
-  // Função para mostrar notificação
-  const showNotification = useCallback(
-    (message: string, type: "success" | "info" | "error" = "success") => {
-      // Verificar se as notificações estão habilitadas, exceto para a notificação
-      // que informa sobre a mudança de estado das notificações
-      if (
-        !notificationsEnabled &&
-        !message.includes("Notificações de progresso")
-      ) {
-        return;
-      }
-
-      setToastMessage(message);
-      setToastType(type);
-      setShowToast(true);
-
-      // Esconder a notificação após 5 segundos
-      setTimeout(() => {
-        setShowToast(false);
-      }, 5000);
-    },
-    [notificationsEnabled]
-  );
-
   // Função para alternar o estado de notificações
   const toggleNotifications = useCallback(async () => {
     try {
       const newState = !notificationsEnabled;
       setNotificationsEnabled(newState);
       await AsyncStorage.setItem("notificationsEnabled", newState.toString());
-
-      // Mostrar uma notificação sobre a alteração
-      showNotification(
-        newState
-          ? "Notificações de progresso ativadas"
-          : "Notificações de progresso desativadas",
-        "info"
-      );
-
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (error) {
       console.error("Erro ao salvar preferência de notificações:", error);
     }
-  }, [notificationsEnabled, showNotification]);
+  }, [notificationsEnabled]);
 
   // Detectar quando o usuário completa um treino (adicionando exercícios)
   const checkForCompletedWorkout = useCallback(
@@ -432,29 +388,24 @@ export default function TrainingScreen() {
       try {
         await removeExerciseFromWorkout(workoutId, exerciseId);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        triggerRefresh(); // Forçar atualização após mudança
       } catch (error) {
-        console.error("Erro ao deletar exercício:", error);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        console.error("Erro ao remover exercício:", error);
       }
     },
-    [removeExerciseFromWorkout, triggerRefresh]
+    [removeExerciseFromWorkout]
   );
 
-  // Função para iniciar um novo treino
+  // Função para iniciar um treino
   const handleStartWorkout = useCallback(
-    async (workoutId: string) => {
+    async (workoutTypeId: string) => {
       try {
-        await startWorkoutForDate(workoutId);
+        await startWorkoutForDate(workoutTypeId);
         await saveWorkouts();
-        triggerRefresh(); // Forçar atualização após iniciar treino
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch (error) {
         console.error("Erro ao iniciar treino:", error);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     },
-    [startWorkoutForDate, saveWorkouts, triggerRefresh]
+    [startWorkoutForDate, saveWorkouts]
   );
 
   // Função para verificar se uma data tem conteúdo - memoizada
@@ -490,10 +441,7 @@ export default function TrainingScreen() {
         // Atualizar o contexto com todos os tipos (selecionados e não selecionados)
         const success = await updateWorkoutTypes(configuredWorkouts);
 
-        if (success) {
-          // Forçar uma atualização da tela
-          triggerRefresh();
-        } else {
+        if (!success) {
           Alert.alert("Erro", "Falha ao atualizar tipos de treino.");
         }
       } catch (error) {
@@ -501,36 +449,13 @@ export default function TrainingScreen() {
         Alert.alert("Erro", "Ocorreu um erro ao configurar os treinos.");
       }
     },
-    [updateWorkoutTypes, triggerRefresh]
+    [updateWorkoutTypes]
   );
 
-  // Função para lidar com o pull to refresh
-  const handleRefresh = useCallback(async () => {
-    if (isRefreshing) return; // Evitar múltiplos refreshes simultâneos
-
-    try {
-      setRefreshing(true);
-      triggerRefresh();
-      await saveWorkouts();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (error) {
-      console.error("Erro ao atualizar dados:", error);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [isRefreshing, triggerRefresh, saveWorkouts]);
-
   // Função para redefinir os tipos de treino
-  const handleResetWorkoutTypes = useCallback(() => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    setResetModalVisible(true);
-  }, []);
-
-  // Função para confirmar a redefinição dos tipos de treino
-  const confirmResetWorkoutTypes = useCallback(async () => {
+  const handleResetWorkoutTypes = useCallback(async () => {
     try {
-      // Redefinir os tipos de treino
+      // Reiniciar os treinos
       const success = await resetWorkoutTypes();
 
       if (success) {
@@ -538,26 +463,19 @@ export default function TrainingScreen() {
         setWorkoutConfigKey(Date.now());
 
         // Forçar atualizações
-        triggerRefresh();
-        forceRefresh();
         await saveWorkouts();
-
-        // Feedback de sucesso para o usuário
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
         // Se falhou, informar o usuário
         Alert.alert(
           "Erro",
           "Não foi possível redefinir os treinos. Tente novamente."
         );
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
 
       // Fechar o modal
       setResetModalVisible(false);
     } catch (error) {
       console.error("Erro ao redefinir treinos:", error);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 
       // Fechar o modal mesmo em caso de erro
       setResetModalVisible(false);
@@ -568,7 +486,7 @@ export default function TrainingScreen() {
         "Ocorreu um erro ao redefinir treinos. Tente reiniciar o aplicativo."
       );
     }
-  }, [resetWorkoutTypes, triggerRefresh, saveWorkouts, forceRefresh]);
+  }, [resetWorkoutTypes, saveWorkouts]);
 
   // Renderizar os cards de treino
   const renderWorkoutCards = useCallback(() => {
@@ -609,7 +527,6 @@ export default function TrainingScreen() {
           previousExercises={previousExercises}
           onNavigate={navigateToWorkoutDetails}
           onDeleteExercise={handleDeleteExercise}
-          refreshKey={refreshKey}
           notificationsEnabled={notificationsEnabled}
         />
       );
@@ -623,7 +540,6 @@ export default function TrainingScreen() {
     getWorkoutsForDate,
     navigateToWorkoutDetails,
     handleDeleteExercise,
-    refreshKey,
     notificationsEnabled,
   ]);
 
@@ -711,29 +627,13 @@ export default function TrainingScreen() {
         {/* Menu contextual */}
         <ContextMenu actions={menuActions} isVisible={isMenuVisible} />
 
-        {/* Toast de notificação com cores sólidas */}
-        {showToast && (
-          <Toast
-            message={toastMessage}
-            type={toastType}
-            onDismiss={() => setShowToast(false)}
-            duration={4000}
-          />
-        )}
-
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollViewContent}
+          keyboardShouldPersistTaps="handled"
+          scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
           removeClippedSubviews={true} // Melhora a performance para listas longas
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
-            />
-          }
         >
           {/* Renderizar os cards de treino ou o EmptyState */}
           {hasWorkoutsForSelectedDate
@@ -758,7 +658,7 @@ export default function TrainingScreen() {
         cancelText="Cancelar"
         confirmType="danger"
         icon="refresh-outline"
-        onConfirm={confirmResetWorkoutTypes}
+        onConfirm={handleResetWorkoutTypes}
         onCancel={() => setResetModalVisible(false)}
       />
     </SafeAreaView>

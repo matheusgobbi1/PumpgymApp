@@ -19,13 +19,11 @@ interface MacrosCardProps {
     carbs?: number;
     fat?: number;
   };
-  refreshKey?: number;
 }
 
 export default function MacrosCard({
   dayTotals,
   nutritionInfo,
-  refreshKey,
 }: MacrosCardProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
@@ -46,13 +44,13 @@ export default function MacrosCard({
     ) {
       setIsLoading(false);
     }
-  }, [nutritionInfo, refreshKey]);
+  }, [nutritionInfo]);
 
   // Efeito para forçar a re-renderização quando o tema mudar
   useEffect(() => {
     // Forçar re-renderização quando o tema mudar
     setForceUpdate({});
-  }, [theme, refreshKey]);
+  }, [theme]);
 
   const calculateProgress = (consumed: number, target: number) => {
     if (!target) return 0;

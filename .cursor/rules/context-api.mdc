@@ -1,9 +1,10 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 ---
+
 description: Best practices for state management with Context API
 globs: **/*.{ts,tsx}
 alwaysApply: true

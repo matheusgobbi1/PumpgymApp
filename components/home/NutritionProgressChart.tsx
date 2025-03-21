@@ -29,12 +29,10 @@ type Period = "7d" | "14d" | "30d";
 
 interface NutritionProgressChartProps {
   onPress?: () => void;
-  refreshKey?: number; // Prop para forçar atualização
 }
 
 export default function NutritionProgressChart({
   onPress,
-  refreshKey = 0,
 }: NutritionProgressChartProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
@@ -102,6 +100,7 @@ export default function NutritionProgressChart({
   const processData = useCallback(async () => {
     setIsLoading(true);
 
+    // Usar abordagem segura para obter a data atual
     const today = new Date();
     let daysToSubtract = 0;
 
@@ -194,10 +193,10 @@ export default function NutritionProgressChart({
     setIsLoading(false);
   }, [selectedPeriod, meals]);
 
-  // Efeito para carregar dados quando o período mudar ou quando houver atualização
+  // Efeito para carregar dados quando o período mudar
   useEffect(() => {
     processData();
-  }, [processData, refreshKey]);
+  }, [processData]);
 
   // Calcular estatísticas
   const averageCalories =
