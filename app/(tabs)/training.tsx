@@ -198,7 +198,6 @@ export default function TrainingScreen() {
     hasConfiguredWorkouts,
     getWorkoutsForDate,
     workouts,
-    deleteWorkout,
   } = useWorkoutContext();
 
   // Calcular o número de dias com treino registrado
@@ -604,101 +603,7 @@ export default function TrainingScreen() {
     [selectedDate, handleDateSelect, workoutsForSelectedDate, hasWorkoutContent]
   );
 
-  // Estado para controlar o modal de confirmação de exclusão de treino
-  const [deleteWorkoutModalVisible, setDeleteWorkoutModalVisible] =
-    useState(false);
-  const [workoutToDelete, setWorkoutToDelete] = useState("");
-
-  // Função para excluir um treino específico
-  const handleDeleteWorkout = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    // Verificar se há treinos para o dia selecionado
-    if (
-      !workoutsForSelectedDate ||
-      Object.keys(workoutsForSelectedDate).length === 0
-    ) {
-      Alert.alert("Aviso", "Não há treinos para excluir nesta data.");
-      return;
-    }
-
-    // Se houver apenas um treino, podemos excluí-lo diretamente
-    const workoutIds = Object.keys(workoutsForSelectedDate);
-    if (workoutIds.length === 1) {
-      setWorkoutToDelete(workoutIds[0]);
-      setDeleteWorkoutModalVisible(true);
-    }
-    // Se houver múltiplos treinos, mostrar uma seleção para o usuário escolher qual excluir
-    else if (workoutIds.length > 1) {
-      const options = workoutIds.map((id) => {
-        const workoutType = getWorkoutTypeById(id);
-        return workoutType ? workoutType.name : "Treino desconhecido";
-      });
-
-      Alert.alert(
-        "Selecione o treino para excluir",
-        "Escolha qual treino deseja excluir:",
-        [
-          ...workoutIds.map((id, index) => ({
-            text: options[index],
-            onPress: () => {
-              setWorkoutToDelete(id);
-              setDeleteWorkoutModalVisible(true);
-            },
-          })),
-          {
-            text: "Cancelar",
-            style: "cancel",
-          },
-        ]
-      );
-    }
-  }, [workoutsForSelectedDate, getWorkoutTypeById]);
-
-  // Função para confirmar e executar a exclusão do treino
-  const confirmDeleteWorkout = useCallback(async () => {
-    if (!workoutToDelete) return;
-
-    try {
-      // Fechar o modal imediatamente para melhor UX
-      setDeleteWorkoutModalVisible(false);
-
-      // Pequeno delay para garantir que o modal foi fechado visualmente
-      setTimeout(async () => {
-        try {
-          // Usar a nova função deleteWorkout do contexto
-          const success = await deleteWorkout(workoutToDelete);
-
-          if (success) {
-            // Feedback tátil de sucesso
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-            // Atualizar a interface sem necessidade de navegação
-            // Foi removido o router.push para evitar refresh completo da página
-          } else {
-            // Feedback tátil de erro
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            Alert.alert(
-              "Erro",
-              "Não foi possível excluir o treino. Tente novamente."
-            );
-          }
-        } catch (error) {
-          console.error("Erro ao excluir treino:", error);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          Alert.alert(
-            "Erro",
-            "Não foi possível excluir o treino. Tente novamente."
-          );
-        }
-      }, 100);
-    } catch (error) {
-      console.error("Erro ao processar exclusão:", error);
-      setDeleteWorkoutModalVisible(false);
-    }
-  }, [workoutToDelete, deleteWorkout]);
-
-  // Atualizar as ações do menu contextual para incluir a opção de excluir treino
+  // Atualizar as ações do menu contextual para incluir a opção de silenciar notificações
   const menuActions = useMemo<MenuAction[]>(
     () => [
       {
@@ -709,11 +614,15 @@ export default function TrainingScreen() {
         onPress: openWorkoutConfigSheet,
       },
       {
-        id: "deleteWorkout",
-        label: "Excluir Treino Atual",
-        icon: "trash-outline",
-        type: "danger",
-        onPress: handleDeleteWorkout,
+        id: "notifications",
+        label: notificationsEnabled
+          ? "Silenciar Notificações"
+          : "Ativar Notificações",
+        icon: notificationsEnabled
+          ? "notifications-off-outline"
+          : "notifications-outline",
+        type: "default",
+        onPress: toggleNotifications,
       },
       {
         id: "reset",
@@ -723,7 +632,12 @@ export default function TrainingScreen() {
         onPress: handleResetWorkoutTypes,
       },
     ],
-    [openWorkoutConfigSheet, handleDeleteWorkout, handleResetWorkoutTypes]
+    [
+      openWorkoutConfigSheet,
+      handleResetWorkoutTypes,
+      notificationsEnabled,
+      toggleNotifications,
+    ]
   );
 
   // Função para verificar se o menu deve ser visível
@@ -781,19 +695,6 @@ export default function TrainingScreen() {
         icon="refresh-outline"
         onConfirm={confirmResetWorkoutTypes}
         onCancel={() => setResetModalVisible(false)}
-      />
-
-      {/* Modal de confirmação para excluir treino específico */}
-      <ConfirmationModal
-        visible={deleteWorkoutModalVisible}
-        title="Excluir Treino"
-        message="Tem certeza que deseja excluir este treino? Esta ação não pode ser desfeita."
-        confirmText="Excluir"
-        cancelText="Cancelar"
-        confirmType="danger"
-        icon="trash-outline"
-        onConfirm={confirmDeleteWorkout}
-        onCancel={() => setDeleteWorkoutModalVisible(false)}
       />
 
       {/* Blur overlay quando o WorkoutConfigSheet estiver visível - posicionado fora do SafeAreaView */}

@@ -125,7 +125,6 @@ interface WorkoutContextType {
     totals: WorkoutTotals | null;
     date: string | null;
   };
-  deleteWorkout: (workoutId: string, date?: string) => Promise<boolean>;
   workoutsForSelectedDate: { [workoutId: string]: Exercise[] };
   selectedWorkoutTypes: WorkoutType[];
   hasConfiguredWorkouts: boolean;
@@ -1586,113 +1585,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     );
   }, [availableWorkoutTypes]);
 
-  // Excluir um treino completo
-  const deleteWorkout = async (
-    workoutId: string,
-    date?: string
-  ): Promise<boolean> => {
-    try {
-      const dateToUse = date || selectedDate;
-      console.log(`Excluindo treino ${workoutId} da data ${dateToUse}`);
-
-      // Verificar se o treino existe na data especificada
-      if (!workouts[dateToUse] || !workouts[dateToUse][workoutId]) {
-        console.warn(`Treino ${workoutId} não encontrado na data ${dateToUse}`);
-        return false;
-      }
-
-      // Atualizar o estado dos treinos
-      setWorkouts((prev) => {
-        const updatedWorkouts = { ...prev };
-
-        // Remover o treino da data especificada
-        if (updatedWorkouts[dateToUse]) {
-          const { [workoutId]: deletedWorkout, ...remainingWorkouts } =
-            updatedWorkouts[dateToUse];
-          updatedWorkouts[dateToUse] = remainingWorkouts;
-
-          // Se não houver mais treinos para esta data, remover a data inteira
-          if (Object.keys(updatedWorkouts[dateToUse]).length === 0) {
-            const { [dateToUse]: deletedDate, ...remainingDates } =
-              updatedWorkouts;
-            return remainingDates;
-          }
-        }
-
-        return updatedWorkouts;
-      });
-
-      // Atualizar o estado dos tipos de treino
-      setWorkoutTypes((prev) => {
-        const updatedWorkoutTypes = { ...prev };
-
-        // Remover o tipo de treino da data especificada
-        if (
-          updatedWorkoutTypes[dateToUse] &&
-          updatedWorkoutTypes[dateToUse][workoutId]
-        ) {
-          const { [workoutId]: deletedType, ...remainingTypes } =
-            updatedWorkoutTypes[dateToUse];
-          updatedWorkoutTypes[dateToUse] = remainingTypes;
-
-          // Se não houver mais tipos para esta data, remover a data inteira
-          if (Object.keys(updatedWorkoutTypes[dateToUse]).length === 0) {
-            const { [dateToUse]: deletedDate, ...remainingDates } =
-              updatedWorkoutTypes;
-            return remainingDates;
-          }
-        }
-
-        return updatedWorkoutTypes;
-      });
-
-      // Salvar alterações
-      try {
-        await Promise.all([saveWorkouts(), saveWorkoutTypes()]);
-        console.log(
-          `Treino ${workoutId} excluído com sucesso da data ${dateToUse}`
-        );
-
-        // Feedback tátil de sucesso
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-        return true;
-      } catch (saveError) {
-        console.error("Erro ao salvar após excluir treino:", saveError);
-
-        // Tentar novamente após um pequeno atraso
-        try {
-          await new Promise((resolve) => setTimeout(resolve, 500));
-          await Promise.all([saveWorkouts(), saveWorkoutTypes()]);
-          console.log(`Treino ${workoutId} excluído após tentativa adicional`);
-
-          // Feedback tátil de sucesso
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-          return true;
-        } catch (retryError) {
-          console.error(
-            "Falha na segunda tentativa de salvar após excluir treino:",
-            retryError
-          );
-
-          // Feedback tátil de erro
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-
-          return false;
-        }
-      }
-    } catch (error) {
-      // Erro ao excluir treino
-      console.error("Erro ao excluir treino:", error);
-
-      // Feedback tátil de erro
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-
-      return false;
-    }
-  };
-
   // Adicionar um novo contexto - usando os valores memoizados
   const contextValue: WorkoutContextType = useMemo(
     () => ({
@@ -1721,7 +1613,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       getWorkoutTotals,
       getPreviousWorkoutTotals,
       hasWorkoutTypesConfigured,
-      deleteWorkout,
       // Valores memoizados
       workoutsForSelectedDate,
       selectedWorkoutTypes,
@@ -1751,7 +1642,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       getWorkoutTotals,
       getPreviousWorkoutTotals,
       hasWorkoutTypesConfigured,
-      deleteWorkout,
       workoutsForSelectedDate,
       selectedWorkoutTypes,
       hasConfiguredWorkouts,
