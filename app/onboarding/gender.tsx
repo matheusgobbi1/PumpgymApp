@@ -10,6 +10,7 @@ import SelectionOption from "../../components/onboarding/SelectionOption";
 import { useAuth } from "../../context/AuthContext";
 import { auth } from "../../firebase/config";
 import { signOut as firebaseSignOut } from "firebase/auth";
+import { useTranslation } from "react-i18next";
 
 export default function GenderScreen() {
   const router = useRouter();
@@ -17,6 +18,8 @@ export default function GenderScreen() {
   const colors = Colors[theme];
   const { nutritionInfo, updateNutritionInfo } = useNutrition();
   const { signOut, user, isAnonymous, isNewUser, loading } = useAuth();
+  const { t } = useTranslation();
+
   const [selectedGender, setSelectedGender] = useState<Gender | undefined>(
     nutritionInfo.gender
   );
@@ -65,15 +68,15 @@ export default function GenderScreen() {
 
   const handleBack = () => {
     Alert.alert(
-      "Sair do onboarding",
-      "Tem certeza que deseja voltar para a tela de login? Seu progresso não será salvo.",
+      t("onboarding.gender.exitAlert.title"),
+      t("onboarding.gender.exitAlert.message"),
       [
         {
-          text: "Cancelar",
+          text: t("onboarding.gender.exitAlert.cancel"),
           style: "cancel",
         },
         {
-          text: "Voltar para login",
+          text: t("onboarding.gender.exitAlert.confirm"),
           style: "destructive",
           onPress: async () => {
             try {
@@ -90,7 +93,7 @@ export default function GenderScreen() {
   const genderOptions = [
     {
       gender: "male" as Gender,
-      title: "Masculino",
+      title: t("onboarding.gender.options.male"),
       description: "",
       icon: (
         <Ionicons
@@ -103,7 +106,7 @@ export default function GenderScreen() {
     },
     {
       gender: "female" as Gender,
-      title: "Feminino",
+      title: t("onboarding.gender.options.female"),
       description: "",
       icon: (
         <Ionicons
@@ -116,7 +119,7 @@ export default function GenderScreen() {
     },
     {
       gender: "other" as Gender,
-      title: "Outro",
+      title: t("onboarding.gender.options.other"),
       description: "",
       icon: (
         <Ionicons
@@ -145,8 +148,8 @@ export default function GenderScreen() {
 
   return (
     <OnboardingLayout
-      title="Escolha seu gênero"
-      subtitle="Isso será usado para calibrar seu plano personalizado"
+      title={t("onboarding.gender.title")}
+      subtitle={t("onboarding.gender.subtitle")}
       currentStep={1}
       totalSteps={10}
       onBack={handleBack}

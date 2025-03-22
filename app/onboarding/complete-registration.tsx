@@ -22,6 +22,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { MotiView, MotiText, AnimatePresence } from "moti";
 import * as Haptics from "expo-haptics";
+import { useTranslation } from "react-i18next";
 import {
   validateRegistration,
   validateRegistrationStep1,
@@ -35,6 +36,7 @@ import { ErrorMessage } from "../../components/common/ErrorMessage";
 const { width } = Dimensions.get("window");
 
 export default function CompleteRegistrationScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { theme } = useTheme();
   const colors = Colors[theme];
@@ -60,7 +62,6 @@ export default function CompleteRegistrationScreen() {
   const handleCompleteRegistration = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    // Validar a segunda etapa (senha e confirmação)
     const validationResult = validateRegistrationStep2(
       password,
       confirmPassword
@@ -71,7 +72,6 @@ export default function CompleteRegistrationScreen() {
       return;
     }
 
-    // Validar o formulário completo para garantir que todos os dados estão corretos
     const fullValidationResult = validateRegistration(
       name,
       email,
@@ -91,13 +91,13 @@ export default function CompleteRegistrationScreen() {
     } catch (err: any) {
       console.error("Erro ao completar registro:", err);
       if (err.code === "auth/email-already-in-use") {
-        setError("Este email já está em uso. Por favor, use outro email.");
+        setError(t("completeRegistration.errors.emailInUse"));
       } else if (err.code === "auth/invalid-email") {
-        setError("Email inválido");
+        setError(t("completeRegistration.errors.invalidEmail"));
       } else if (err.code === "auth/weak-password") {
-        setError("Senha muito fraca");
+        setError(t("completeRegistration.errors.weakPassword"));
       } else {
-        setError("Ocorreu um erro ao completar o registro. Tente novamente.");
+        setError(t("completeRegistration.errors.generic"));
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
@@ -175,7 +175,9 @@ export default function CompleteRegistrationScreen() {
                 transition={{ type: "spring", delay: 300 }}
                 style={[styles.title, { color: colors.text }]}
               >
-                {formStep === 1 ? "Quase lá!" : "Crie sua senha"}
+                {formStep === 1
+                  ? t("completeRegistration.title.step1")
+                  : t("completeRegistration.title.step2")}
               </MotiText>
 
               <MotiText
@@ -186,8 +188,8 @@ export default function CompleteRegistrationScreen() {
                 style={[styles.subtitle, { color: colors.text }]}
               >
                 {formStep === 1
-                  ? "Complete seu cadastro para salvar seu plano nutricional personalizado"
-                  : "Escolha uma senha segura para proteger sua conta"}
+                  ? t("completeRegistration.subtitle.step1")
+                  : t("completeRegistration.subtitle.step2")}
               </MotiText>
             </MotiView>
 
@@ -276,8 +278,10 @@ export default function CompleteRegistrationScreen() {
                     <View style={styles.formInnerContainer}>
                       <View style={styles.inputWrapper}>
                         <Input
-                          label="Nome"
-                          placeholder="Seu nome completo"
+                          label={t("completeRegistration.form.name.label")}
+                          placeholder={t(
+                            "completeRegistration.form.name.placeholder"
+                          )}
                           value={name}
                           onChangeText={setName}
                           autoCapitalize="words"
@@ -290,8 +294,10 @@ export default function CompleteRegistrationScreen() {
 
                       <View style={styles.inputWrapper}>
                         <Input
-                          label="Email"
-                          placeholder="Seu email"
+                          label={t("completeRegistration.form.email.label")}
+                          placeholder={t(
+                            "completeRegistration.form.email.placeholder"
+                          )}
                           value={email}
                           onChangeText={setEmail}
                           keyboardType="email-address"
@@ -312,7 +318,9 @@ export default function CompleteRegistrationScreen() {
                         onPress={nextStep}
                         activeOpacity={0.8}
                       >
-                        <Text style={styles.nextButtonText}>Continuar</Text>
+                        <Text style={styles.nextButtonText}>
+                          {t("completeRegistration.buttons.continue")}
+                        </Text>
                         <Ionicons
                           name="arrow-forward"
                           size={20}
@@ -336,7 +344,7 @@ export default function CompleteRegistrationScreen() {
                             { color: theme === "dark" ? "#aaa" : "#888" },
                           ]}
                         >
-                          ou continue com
+                          {t("completeRegistration.socialAuth.continueWith")}
                         </Text>
                         <View
                           style={[
@@ -419,8 +427,10 @@ export default function CompleteRegistrationScreen() {
                     <View style={styles.formInnerContainer}>
                       <View style={styles.inputWrapper}>
                         <Input
-                          label="Senha"
-                          placeholder="Sua senha"
+                          label={t("completeRegistration.form.password.label")}
+                          placeholder={t(
+                            "completeRegistration.form.password.placeholder"
+                          )}
                           value={password}
                           onChangeText={handlePasswordChange}
                           secureTextEntry={!showPassword}
@@ -465,15 +475,19 @@ export default function CompleteRegistrationScreen() {
                               },
                             ]}
                           >
-                            {getPasswordStrengthText(passwordStrength)}
+                            {t(getPasswordStrengthText(passwordStrength))}
                           </Text>
                         </MotiView>
                       )}
 
                       <View style={styles.inputWrapper}>
                         <Input
-                          label="Confirmar Senha"
-                          placeholder="Confirme sua senha"
+                          label={t(
+                            "completeRegistration.form.confirmPassword.label"
+                          )}
+                          placeholder={t(
+                            "completeRegistration.form.confirmPassword.placeholder"
+                          )}
                           value={confirmPassword}
                           onChangeText={setConfirmPassword}
                           secureTextEntry={!showConfirmPassword}
@@ -537,7 +551,7 @@ export default function CompleteRegistrationScreen() {
                             </MotiView>
                           ) : (
                             <Text style={styles.createAccountButtonText}>
-                              Criar Conta
+                              {t("completeRegistration.buttons.createAccount")}
                             </Text>
                           )}
                         </TouchableOpacity>
@@ -555,13 +569,13 @@ export default function CompleteRegistrationScreen() {
                   { color: theme === "dark" ? "#aaa" : "#888" },
                 ]}
               >
-                Ao criar uma conta, você concorda com nossos{" "}
+                {t("completeRegistration.terms.agreement")}{" "}
                 <Text style={[styles.termsLink, { color: colors.primary }]}>
-                  Termos de Serviço
+                  {t("completeRegistration.terms.termsOfService")}
                 </Text>{" "}
-                e{" "}
+                {t("completeRegistration.terms.and")}{" "}
                 <Text style={[styles.termsLink, { color: colors.primary }]}>
-                  Política de Privacidade
+                  {t("completeRegistration.terms.privacyPolicy")}
                 </Text>
               </Text>
             </View>

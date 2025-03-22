@@ -23,6 +23,7 @@ import { debounce } from "lodash";
 import { useMeals, Food } from "../../context/MealContext";
 import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 
@@ -151,6 +152,7 @@ export default function AddFoodScreen() {
   const params = useLocalSearchParams();
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<FoodItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -273,7 +275,7 @@ export default function AddFoodScreen() {
       const response = await searchFoods(query);
       setSearchResults(response.items || []);
     } catch (err) {
-      setError("Erro ao buscar alimentos. Tente novamente.");
+      setError(t("nutrition.addFood.searchError"));
     } finally {
       setIsLoading(false);
     }
@@ -509,7 +511,7 @@ export default function AddFoodScreen() {
       return (
         <View style={styles.centerContainer}>
           <Text style={[styles.emptyText, { color: colors.text }]}>
-            Nenhum alimento encontrado
+            {t("nutrition.addFood.noFoodFound")}
           </Text>
         </View>
       );
@@ -574,7 +576,7 @@ export default function AddFoodScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Adicionar Alimento
+            {t("nutrition.addFood.title")}
           </Text>
           <Text style={[styles.headerSubtitle, { color: colors.text + "80" }]}>
             {mealName}
@@ -596,7 +598,7 @@ export default function AddFoodScreen() {
         />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
-          placeholder="Buscar alimento..."
+          placeholder={t("nutrition.addFood.searchPlaceholder")}
           placeholderTextColor={colors.text + "80"}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -620,7 +622,7 @@ export default function AddFoodScreen() {
         >
           <Ionicons name="barcode-outline" size={24} color={colors.primary} />
           <Text style={[styles.quickActionText, { color: colors.text }]}>
-            Escanear Código
+            {t("nutrition.addFood.scanCode")}
           </Text>
         </TouchableOpacity>
 
@@ -635,7 +637,7 @@ export default function AddFoodScreen() {
             color={colors.primary}
           />
           <Text style={[styles.quickActionText, { color: colors.text }]}>
-            Adição Rápida
+            {t("nutrition.addFood.quickAdd")}
           </Text>
         </TouchableOpacity>
       </View>
@@ -652,7 +654,7 @@ export default function AddFoodScreen() {
           >
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                Adicionados Recentemente
+                {t("nutrition.addFood.recentlyAdded")}
               </Text>
               <TouchableOpacity onPress={clearSearchHistory}>
                 <Text
@@ -664,7 +666,7 @@ export default function AddFoodScreen() {
                     },
                   ]}
                 >
-                  Limpar
+                  {t("nutrition.addFood.clear")}
                 </Text>
               </TouchableOpacity>
             </View>

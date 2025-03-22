@@ -9,6 +9,7 @@ export const KEYS = {
   PENDING_SYNC: "pumpgym_pending_sync",
   TEMP_NUTRITION_DATA: "@temp_nutrition_data",
   MEALS_KEY: "@meals:",
+  MEAL_TYPES: "pumpgym_meal_types",
   SEARCH_HISTORY: "pumpgym_search_history",
   WORKOUTS: "pumpgym_workouts",
   WORKOUT_TYPES: "pumpgym_workout_types",

@@ -19,6 +19,7 @@ import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import { useAuth } from "../../context/AuthContext";
 import ConfirmationModal from "../ui/ConfirmationModal";
+import { useTranslation } from "react-i18next";
 
 interface MealCardProps {
   meal: {
@@ -63,6 +64,7 @@ const MealCardComponent = ({
   const { meals, selectedDate, copyMealFromDate } = useMeals();
   const userId = user?.uid || "no-user";
   const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
+  const { t } = useTranslation();
 
   // Removendo os estados de modal daqui, já que serão gerenciados no componente pai
   const [showCopySuccess, setShowCopySuccess] = useState(false);
@@ -195,7 +197,7 @@ const MealCardComponent = ({
           }}
         >
           <Ionicons name="trash-outline" size={22} color="white" />
-          <Text style={styles.swipeActionText}>Excluir</Text>
+          <Text style={styles.swipeActionText}>{t("common.delete")}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -206,6 +208,7 @@ const MealCardComponent = ({
     meal.id,
     meal.name,
     setModalInfo,
+    t,
   ]);
 
   // Função para renderizar as ações de deslize à direita (excluir)
@@ -279,14 +282,16 @@ const MealCardComponent = ({
                 <View
                   style={[styles.macroBar, { backgroundColor: proteinColor }]}
                 />
-                <Text style={[styles.macroValue, { color: colors.text }]}>
+                <View style={styles.macroValueContainer}>
                   <Text
                     style={[styles.macroLabel, { color: colors.text + "99" }]}
                   >
-                    P{" "}
+                    P
                   </Text>
-                  {food.protein}
-                </Text>
+                  <Text style={[styles.macroValue, { color: colors.text }]}>
+                    {food.protein}
+                  </Text>
+                </View>
               </View>
 
               {/* Carboidratos */}
@@ -294,14 +299,16 @@ const MealCardComponent = ({
                 <View
                   style={[styles.macroBar, { backgroundColor: carbsColor }]}
                 />
-                <Text style={[styles.macroValue, { color: colors.text }]}>
+                <View style={styles.macroValueContainer}>
                   <Text
                     style={[styles.macroLabel, { color: colors.text + "99" }]}
                   >
-                    C{" "}
+                    C
                   </Text>
-                  {food.carbs}
-                </Text>
+                  <Text style={[styles.macroValue, { color: colors.text }]}>
+                    {food.carbs}
+                  </Text>
+                </View>
               </View>
 
               {/* Gorduras */}
@@ -309,14 +316,16 @@ const MealCardComponent = ({
                 <View
                   style={[styles.macroBar, { backgroundColor: fatColor }]}
                 />
-                <Text style={[styles.macroValue, { color: colors.text }]}>
+                <View style={styles.macroValueContainer}>
                   <Text
                     style={[styles.macroLabel, { color: colors.text + "99" }]}
                   >
-                    G{" "}
+                    G
                   </Text>
-                  {food.fat}
-                </Text>
+                  <Text style={[styles.macroValue, { color: colors.text }]}>
+                    {food.fat}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
@@ -369,17 +378,25 @@ const MealCardComponent = ({
       setModalInfo({
         type: "copyMeal",
         mealId: meal.id,
+        mealName: meal.name,
         sourceDate: mostRecentDate,
         visible: true,
       });
     } else {
       // Notificar o usuário se não houver refeições anteriores
       Alert.alert(
-        "Nenhuma refeição anterior",
-        "Não há refeições anteriores para copiar."
+        t("nutrition.noPreviousMealTitle"),
+        t("nutrition.noPreviousMeals")
       );
     }
-  }, [getMostRecentMealDate, handleHapticFeedback, meal.id, setModalInfo]);
+  }, [
+    getMostRecentMealDate,
+    handleHapticFeedback,
+    meal.id,
+    meal.name,
+    setModalInfo,
+    t,
+  ]);
 
   // Função para copiar refeição de uma data anterior
   const handleCopyMeal = useCallback(async () => {
@@ -597,7 +614,7 @@ export default MealCard;
 
 const styles = StyleSheet.create({
   mealCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: 16,
     overflow: "hidden",
     shadowColor: "#000",
@@ -606,20 +623,19 @@ const styles = StyleSheet.create({
       height: 2,
     },
     shadowOpacity: 0.05,
-    shadowRadius: 6,
+    shadowRadius: 8,
     elevation: 3,
   },
   swipeableContainer: {
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: "hidden",
     marginBottom: 16,
   },
   mealContent: {
-    padding: 20,
-    paddingBottom: 20,
+    padding: 16,
   },
   headerTouchable: {
-    marginBottom: 14,
+    marginBottom: 12,
   },
   mealHeader: {
     flexDirection: "row",
@@ -631,24 +647,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   mealIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   mealIcon: {
-    // Remover marginRight pois agora está no container
+    // Estilo melhorado no container
   },
   mealTitle: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: -0.3,
   },
   mealCalories: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
-    marginTop: 2,
+    marginTop: 3,
   },
   caloriesUnit: {
     fontSize: 11,
@@ -657,24 +679,27 @@ const styles = StyleSheet.create({
   actionButtonsContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
   },
   headerActionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    backgroundColor: "transparent",
-    borderColor: "transparent",
+    borderWidth: 0,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   macroProgressContainer: {
-    height: 3,
+    height: 4,
     flexDirection: "row",
-    borderRadius: 1.5,
+    borderRadius: 2,
     overflow: "hidden",
-    marginBottom: 18,
+    marginBottom: 16,
   },
   macroProgressBar: {
     height: "100%",
@@ -684,18 +709,18 @@ const styles = StyleSheet.create({
   },
   foodsList: {
     marginVertical: 0,
-    marginHorizontal: -20, // Estender além do padding do card
+    marginHorizontal: -16, // Ajustado para o novo padding do card
   },
   foodItemContainer: {
     overflow: "hidden",
   },
   firstFoodItem: {
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
   lastFoodItem: {
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
   },
   foodItemContent: {
     padding: 16,
@@ -712,49 +737,57 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   foodName: {
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: 15,
+    fontWeight: "600",
     marginBottom: 4,
+    letterSpacing: -0.2,
   },
   foodPortion: {
-    fontSize: 11,
+    fontSize: 12,
+    letterSpacing: -0.1,
   },
   macroIndicators: {
     flexDirection: "row",
-    gap: 20,
+    gap: 14,
   },
   macroIndicator: {
     alignItems: "center",
-    width: 32,
+    width: 36,
   },
   macroBar: {
     width: 16,
-    height: 3,
-    borderRadius: 1.5,
+    height: 4,
+    borderRadius: 2,
     marginBottom: 4,
   },
+  macroValueContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   macroLabel: {
-    fontSize: 8,
-    fontWeight: "500",
+    fontSize: 9,
+    fontWeight: "600",
+    marginRight: 2,
   },
   macroValue: {
-    fontSize: 10,
-    fontWeight: "600",
-    textAlign: "center",
+    fontSize: 11,
+    fontWeight: "700",
   },
   emptyContainer: {
-    marginVertical: 12,
-    borderRadius: 10,
+    marginVertical: 16,
+    borderRadius: 16,
     overflow: "hidden",
   },
   emptyGradient: {
-    padding: 24,
+    padding: 28,
     alignItems: "center",
     justifyContent: "center",
   },
   emptyText: {
-    fontSize: 13,
+    fontSize: 14,
     textAlign: "center",
+    fontWeight: "500",
+    letterSpacing: -0.3,
   },
   swipeActionContainer: {
     height: "100%",
@@ -766,22 +799,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: 70,
     height: "100%",
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 16,
   },
   swipeActionMeal: {
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
-    width: 100,
+    width: 90,
     backgroundColor: "rgba(255, 59, 48, 0.9)",
     paddingHorizontal: 10,
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 16,
   },
   swipeActionText: {
     color: "white",
-    fontSize: 10,
+    fontSize: 11,
+    fontWeight: "600",
     marginTop: 4,
   },
   separator: {
@@ -793,13 +827,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 10,
-    borderRadius: 8,
+    borderRadius: 12,
     marginTop: 10,
     alignSelf: "center",
   },
   successMessageText: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
     marginLeft: 6,
+    letterSpacing: -0.2,
   },
 });

@@ -5,6 +5,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
+import { useTranslation } from "react-i18next";
 
 interface MacrosCardProps {
   dayTotals: {
@@ -29,6 +30,7 @@ export default function MacrosCard({
   const [isLoading, setIsLoading] = useState(true);
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const { t } = useTranslation();
 
   // Estado para forçar re-renderização quando o tema mudar
   const [, setForceUpdate] = useState({});
@@ -91,7 +93,10 @@ export default function MacrosCard({
         style={styles.macroRow}
         from={{ opacity: 0, translateX: -20 }}
         animate={{ opacity: 1, translateX: 0 }}
-        transition={{ type: "spring", delay: title === "Calorias" ? 100 : 200 }}
+        transition={{
+          type: "spring",
+          delay: title === t("common.nutrition.calories") ? 100 : 200,
+        }}
       >
         <View style={styles.macroInfo}>
           <View style={styles.macroHeader}>
@@ -117,10 +122,10 @@ export default function MacrosCard({
               </Text>
               <Text style={[styles.remaining, { color: colors.text }]}>
                 {isLoading ? (
-                  "Carregando..."
+                  t("nutrition.loading")
                 ) : isExceeded ? (
                   <>
-                    Excesso{" "}
+                    {t("nutrition.excess")}{" "}
                     <Text
                       style={[styles.remainingValue, { color: progressColor }]}
                     >
@@ -130,7 +135,7 @@ export default function MacrosCard({
                   </>
                 ) : (
                   <>
-                    Restam{" "}
+                    {t("nutrition.remaining")}{" "}
                     <Text
                       style={[styles.remainingValue, { color: progressColor }]}
                     >
@@ -189,7 +194,7 @@ export default function MacrosCard({
         transition={{ type: "spring" }}
       >
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          Progresso Diário
+          {t("nutrition.dailyProgress")}
         </Text>
 
         {!nutritionInfo ||
@@ -199,13 +204,14 @@ export default function MacrosCard({
           !nutritionInfo.fat) ? (
           <View key={`no-targets-${theme}`} style={styles.noTargetsContainer}>
             <Text style={[styles.noTargetsText, { color: colors.text + "80" }]}>
-              Configure suas metas de macronutrientes para acompanhar seu
-              progresso diário
+              {t("nutrition.configureMacrosMessage")}
             </Text>
             <TouchableOpacity
               style={[styles.configButton, { backgroundColor: colors.tint }]}
             >
-              <Text style={styles.configButtonText}>Configurar Metas</Text>
+              <Text style={styles.configButtonText}>
+                {t("nutrition.configureTargets")}
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -214,7 +220,7 @@ export default function MacrosCard({
             style={styles.macrosContainer}
           >
             {renderMacroProgress(
-              "Calorias",
+              t("common.nutrition.calories"),
               "flame-outline",
               "ionicons",
               colors.primary,
@@ -223,7 +229,7 @@ export default function MacrosCard({
               "kcal"
             )}
             {renderMacroProgress(
-              "Proteína",
+              t("common.nutrition.protein"),
               "food-steak",
               "material",
               colors.primary,
@@ -232,7 +238,7 @@ export default function MacrosCard({
               "g"
             )}
             {renderMacroProgress(
-              "Carboidratos",
+              t("common.nutrition.carbs"),
               "bread-slice",
               "material",
               colors.primary,
@@ -241,7 +247,7 @@ export default function MacrosCard({
               "g"
             )}
             {renderMacroProgress(
-              "Gorduras",
+              t("common.nutrition.fat"),
               "oil",
               "material",
               colors.primary,

@@ -16,6 +16,7 @@ import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import { format } from "date-fns";
 import { Exercise } from "../../context/WorkoutContext";
+import { useTranslation } from "react-i18next";
 
 // Habilitar LayoutAnimation para Android
 if (Platform.OS === "android") {
@@ -76,6 +77,7 @@ export default function TrainingStatsCard({
   const { theme } = useTheme();
   const colors = Colors[theme];
   const [isExpanded, setIsExpanded] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     // Verificar se os dados de treino estão disponíveis
@@ -150,7 +152,7 @@ export default function TrainingStatsCard({
           animate={{ opacity: 1, translateX: 0 }}
           transition={{
             type: "spring",
-            delay: title === "Volume Total" ? 100 : 200,
+            delay: title === t("training.stats.totalVolume") ? 100 : 200,
           }}
         >
           <View style={styles.statInfo}>
@@ -177,7 +179,7 @@ export default function TrainingStatsCard({
                   ) : hasPrevious ? (
                     isExceeded ? (
                       <>
-                        Aumento{" "}
+                        {t("training.stats.increase")}{" "}
                         <Text
                           style={[
                             styles.comparisonValue,
@@ -189,7 +191,7 @@ export default function TrainingStatsCard({
                       </>
                     ) : (
                       <>
-                        Redução{" "}
+                        {t("training.stats.decrease")}{" "}
                         <Text
                           style={[
                             styles.comparisonValue,
@@ -201,7 +203,7 @@ export default function TrainingStatsCard({
                       </>
                     )
                   ) : (
-                    "Primeiro treino"
+                    t("training.stats.firstWorkout")
                   )}
                 </Text>
               </View>
@@ -248,9 +250,11 @@ export default function TrainingStatsCard({
       calculateProgress,
       colors.text,
       colors.border,
+      colors.primary,
       getProgressColor,
       isLoading,
       theme,
+      t,
     ]
   );
 
@@ -262,7 +266,7 @@ export default function TrainingStatsCard({
           <Text
             style={[styles.noComparisonText, { color: colors.text + "80" }]}
           >
-            Não há exercícios do treino anterior para comparar.
+            {t("training.stats.noComparisonText")}
           </Text>
         </View>
       );
@@ -271,7 +275,7 @@ export default function TrainingStatsCard({
     return (
       <View style={styles.exercisesContainer}>
         <Text style={[styles.exercisesTitle, { color: colors.text }]}>
-          Evolução por Exercício
+          {t("training.stats.evolutionByExercise")}
         </Text>
 
         {currentExercises.map((currentExercise, index) => {
@@ -388,7 +392,7 @@ export default function TrainingStatsCard({
                       { color: colors.text + "80" },
                     ]}
                   >
-                    Volume
+                    {t("training.stats.volume")}
                   </Text>
                   {previousTotalWeight > 0 && (
                     <Text
@@ -397,7 +401,7 @@ export default function TrainingStatsCard({
                         { color: colors.text + "60" },
                       ]}
                     >
-                      Anterior: {previousTotalWeight}kg
+                      {t("training.stats.previous")}: {previousTotalWeight}kg
                     </Text>
                   )}
                 </View>
@@ -421,7 +425,7 @@ export default function TrainingStatsCard({
                       { color: colors.text + "80" },
                     ]}
                   >
-                    Carga Máx.
+                    {t("training.stats.maxWeight")}
                   </Text>
                   {previousMaxWeight > 0 && (
                     <Text
@@ -430,7 +434,7 @@ export default function TrainingStatsCard({
                         { color: colors.text + "60" },
                       ]}
                     >
-                      Anterior: {previousMaxWeight}kg
+                      {t("training.stats.previous")}: {previousMaxWeight}kg
                     </Text>
                   )}
                 </View>
@@ -457,7 +461,7 @@ export default function TrainingStatsCard({
                       { color: colors.text + "80" },
                     ]}
                   >
-                    Séries × Reps
+                    {t("training.stats.seriesReps")}
                   </Text>
                   {previousTotalSets > 0 && (
                     <Text
@@ -466,7 +470,7 @@ export default function TrainingStatsCard({
                         { color: colors.text + "60" },
                       ]}
                     >
-                      Anterior: {previousTotalSets}×
+                      {t("training.stats.previous")}: {previousTotalSets}×
                       {previousSets.length > 0
                         ? Math.round(previousTotalReps / previousTotalSets)
                         : 0}
@@ -487,20 +491,21 @@ export default function TrainingStatsCard({
     currentExercises,
     previousExercises,
     getProgressColor,
+    t,
   ]);
 
   const statsContainer = useMemo(
     () => (
       <View style={styles.statsContainer}>
-         {renderStatRow(
-          "Calorias",
+        {renderStatRow(
+          t("training.stats.calories"),
           "flame-outline",
           workoutTotals.caloriesBurned,
           previousWorkoutTotals?.totals?.caloriesBurned || null,
           " kcal"
         )}
         {renderStatRow(
-          "Volume Total",
+          t("training.stats.totalVolume"),
           "barbell-outline",
           workoutTotals.totalVolume,
           previousWorkoutTotals?.totals?.totalVolume || null,
@@ -508,14 +513,14 @@ export default function TrainingStatsCard({
           formatVolume
         )}
         {renderStatRow(
-          "Repetições",
+          t("training.stats.repetitions"),
           "repeat-outline",
           workoutTotals.totalReps,
           previousWorkoutTotals?.totals?.totalReps || null,
           ""
         )}
         {renderStatRow(
-          "Séries",
+          t("training.stats.sets"),
           "layers-outline",
           workoutTotals.totalSets,
           previousWorkoutTotals?.totals?.totalSets || null,
@@ -531,6 +536,7 @@ export default function TrainingStatsCard({
       workoutTotals.totalSets,
       previousWorkoutTotals?.totals,
       formatVolume,
+      t,
     ]
   );
 
@@ -545,14 +551,14 @@ export default function TrainingStatsCard({
       >
         <View style={styles.headerContainer}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Estatísticas: {workoutName}
+            {t("training.stats.statistics")}: {workoutName}
           </Text>
 
           {previousWorkoutTotals?.date && (
             <Text
               style={[styles.previousDateText, { color: colors.text + "80" }]}
             >
-              Comparando com{" "}
+              {t("training.stats.comparingWith")}{" "}
               {format(parseISODate(previousWorkoutTotals.date), "dd/MM")}
             </Text>
           )}
@@ -573,7 +579,9 @@ export default function TrainingStatsCard({
 
         <View style={styles.expandHintContainer}>
           <Text style={[styles.expandHint, { color: colors.text + "60" }]}>
-            {isExpanded ? "Toque para recolher" : "Toque para ver detalhes"}
+            {isExpanded
+              ? t("training.stats.tapToCollapse")
+              : t("training.stats.tapToSeeDetails")}
           </Text>
         </View>
       </MotiView>

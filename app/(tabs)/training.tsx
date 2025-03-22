@@ -39,6 +39,7 @@ import ContextMenu, { MenuAction } from "../../components/shared/ContextMenu";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import HomeHeader from "../../components/home/HomeHeader";
 import { BlurView } from "expo-blur";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 
@@ -165,6 +166,7 @@ const MemoizedWorkoutGroup = React.memo(
 
 export default function TrainingScreen() {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const colors = Colors[theme];
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -498,10 +500,7 @@ export default function TrainingScreen() {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           } else {
             // Se falhou, informar o usuário
-            Alert.alert(
-              "Erro",
-              "Não foi possível redefinir os treinos. Tente novamente."
-            );
+            Alert.alert(t("common.error"), t("training.errors.resetFailed"));
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           }
         } catch (error) {
@@ -509,10 +508,7 @@ export default function TrainingScreen() {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 
           // Mostrar alerta de erro
-          Alert.alert(
-            "Erro",
-            "Ocorreu um erro ao redefinir treinos. Tente reiniciar o aplicativo."
-          );
+          Alert.alert(t("common.error"), t("training.errors.resetError"));
         }
       }, 100);
     } catch (error) {
@@ -521,7 +517,7 @@ export default function TrainingScreen() {
       // Fechar o modal mesmo em caso de erro
       setResetModalVisible(false);
     }
-  }, [resetWorkoutTypes, saveWorkouts]);
+  }, [resetWorkoutTypes, saveWorkouts, t]);
 
   // Renderizar os cards de treino
   const renderWorkoutCards = useCallback(() => {
@@ -608,7 +604,7 @@ export default function TrainingScreen() {
     () => [
       {
         id: "edit",
-        label: "Editar Treinos",
+        label: t("training.menu.editWorkouts"),
         icon: "settings-outline",
         type: "default",
         onPress: openWorkoutConfigSheet,
@@ -616,8 +612,8 @@ export default function TrainingScreen() {
       {
         id: "notifications",
         label: notificationsEnabled
-          ? "Silenciar Notificações"
-          : "Ativar Notificações",
+          ? t("training.menu.muteNotifications")
+          : t("training.menu.enableNotifications"),
         icon: notificationsEnabled
           ? "notifications-off-outline"
           : "notifications-outline",
@@ -626,7 +622,7 @@ export default function TrainingScreen() {
       },
       {
         id: "reset",
-        label: "Redefinir Treinos",
+        label: t("training.menu.resetWorkouts"),
         icon: "refresh-outline",
         type: "danger",
         onPress: handleResetWorkoutTypes,
@@ -637,6 +633,7 @@ export default function TrainingScreen() {
       handleResetWorkoutTypes,
       notificationsEnabled,
       toggleNotifications,
+      t,
     ]
   );
 
@@ -650,7 +647,7 @@ export default function TrainingScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <HomeHeader
-          title="Seus treinos"
+          title={t("training.title")}
           count={trainingDays}
           iconName="barbell-outline"
           iconColor={colors.success}
@@ -687,10 +684,10 @@ export default function TrainingScreen() {
       {/* Modal de confirmação para redefinir treinos */}
       <ConfirmationModal
         visible={resetModalVisible}
-        title="Redefinir Treinos"
-        message="Tem certeza que deseja redefinir todos os tipos de treino? Esta ação não pode ser desfeita."
-        confirmText="Redefinir"
-        cancelText="Cancelar"
+        title={t("training.resetModal.title")}
+        message={t("training.resetModal.message")}
+        confirmText={t("training.resetModal.confirm")}
+        cancelText={t("training.resetModal.cancel")}
         confirmType="danger"
         icon="refresh-outline"
         onConfirm={confirmResetWorkoutTypes}

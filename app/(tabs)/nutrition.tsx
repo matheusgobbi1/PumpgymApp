@@ -39,6 +39,7 @@ import ConfirmationModal from "../../components/ui/ConfirmationModal";
 import ContextMenu, { MenuAction } from "../../components/shared/ContextMenu";
 import HomeHeader from "../../components/home/HomeHeader";
 import { BlurView } from "expo-blur";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 
@@ -98,6 +99,7 @@ export default function NutritionScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { t } = useTranslation();
   const {
     selectedDate,
     setSelectedDate,
@@ -312,22 +314,16 @@ export default function NutritionScreen() {
           closeMealConfigSheet();
         } else {
           // Notificar erro se não for bem-sucedido
-          Alert.alert(
-            "Erro",
-            "Não foi possível configurar as refeições. Tente novamente."
-          );
+          Alert.alert(t("common.error"), t("nutrition.errors.configFailed"));
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         }
       } catch (error) {
         console.error("Erro ao configurar refeições:", error);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert(
-          "Erro",
-          "Ocorreu um erro ao configurar refeições. Tente novamente."
-        );
+        Alert.alert(t("common.error"), t("nutrition.errors.configError"));
       }
     },
-    [updateMealTypes, saveMeals, closeMealConfigSheet]
+    [updateMealTypes, saveMeals, closeMealConfigSheet, t]
   );
 
   // Função para redefinir as refeições
@@ -357,10 +353,7 @@ export default function NutritionScreen() {
             setMealConfigKey(Date.now());
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           } else {
-            Alert.alert(
-              "Erro",
-              "Não foi possível redefinir as refeições. Tente novamente."
-            );
+            Alert.alert(t("common.error"), t("nutrition.errors.resetFailed"));
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           }
         } catch (error) {
@@ -368,10 +361,7 @@ export default function NutritionScreen() {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 
           // Mostrar alerta de erro
-          Alert.alert(
-            "Erro",
-            "Ocorreu um erro ao redefinir refeições. Tente reiniciar o aplicativo."
-          );
+          Alert.alert(t("common.error"), t("nutrition.errors.resetError"));
         }
       }, 100);
     } catch (error) {
@@ -380,7 +370,7 @@ export default function NutritionScreen() {
       // Fechar o modal mesmo em caso de erro
       setResetModalVisible(false);
     }
-  }, [resetMealTypes]);
+  }, [resetMealTypes, t]);
 
   // Obter os tipos de refeições configuradas com uma técnica mais eficiente
   const configuredMealTypes = useMemo(() => {
@@ -434,20 +424,20 @@ export default function NutritionScreen() {
     () => [
       {
         id: "edit",
-        label: "Editar Refeições",
+        label: t("nutrition.menu.editMeals"),
         icon: "settings-outline",
         type: "default",
         onPress: openMealConfigSheet,
       },
       {
         id: "reset",
-        label: "Redefinir Refeições",
+        label: t("nutrition.menu.resetMeals"),
         icon: "refresh-outline",
         type: "danger",
         onPress: handleResetMealTypes,
       },
     ],
-    [openMealConfigSheet, handleResetMealTypes]
+    [openMealConfigSheet, handleResetMealTypes, t]
   );
 
   // Verificar se há configuração e conteúdo de refeições para mostrar o menu
@@ -470,10 +460,10 @@ export default function NutritionScreen() {
         return (
           <ConfirmationModal
             visible={modalInfo.visible}
-            title="Excluir Alimento"
-            message="Tem certeza que deseja excluir este alimento? Esta ação não pode ser desfeita."
-            confirmText="Excluir"
-            cancelText="Cancelar"
+            title={t("nutrition.deleteFood")}
+            message={t("nutrition.deleteFoodConfirm")}
+            confirmText={t("common.delete")}
+            cancelText={t("common.cancel")}
             confirmType="danger"
             icon="trash-outline"
             onConfirm={() => handleDeleteFood(modalInfo.foodId)}
@@ -487,10 +477,12 @@ export default function NutritionScreen() {
         return (
           <ConfirmationModal
             visible={modalInfo.visible}
-            title="Excluir Refeição"
-            message={`Tem certeza que deseja excluir a refeição "${modalInfo.mealName}"? Esta ação não pode ser desfeita.`}
-            confirmText="Excluir"
-            cancelText="Cancelar"
+            title={t("nutrition.deleteMeal")}
+            message={t("nutrition.deleteMealConfirm", {
+              name: modalInfo.mealName,
+            })}
+            confirmText={t("common.delete")}
+            cancelText={t("common.cancel")}
             confirmType="danger"
             icon="trash-outline"
             onConfirm={() => handleDeleteMeal(modalInfo.mealId)}
@@ -504,16 +496,18 @@ export default function NutritionScreen() {
         return (
           <ConfirmationModal
             visible={modalInfo.visible}
-            title={`Copiar ${modalInfo.mealName || "refeição"} do dia anterior`}
+            title={t("nutrition.copyMeal", {
+              name: modalInfo.mealName || t("nutrition.meal"),
+            })}
             message={
               modalInfo.sourceDate
-                ? `Deseja copiar a refeição de ${formatDate(
-                    modalInfo.sourceDate
-                  )}?`
-                : "Não há refeições anteriores para copiar."
+                ? t("nutrition.copyMealFrom", {
+                    date: formatDate(modalInfo.sourceDate),
+                  })
+                : t("nutrition.noPreviousMeals")
             }
-            confirmText="Copiar"
-            cancelText="Cancelar"
+            confirmText={t("common.copy")}
+            cancelText={t("common.cancel")}
             confirmType="primary"
             icon="copy-outline"
             onConfirm={handleCopyMeal}
@@ -539,7 +533,7 @@ export default function NutritionScreen() {
           style={[styles.container, { backgroundColor: colors.background }]}
         >
           <HomeHeader
-            title="Suas refeições"
+            title={t("nutrition.title")}
             count={totalMeals}
             iconName="restaurant-outline"
             iconColor={colors.primary}
@@ -571,10 +565,10 @@ export default function NutritionScreen() {
         {/* Modal de confirmação para redefinir refeições */}
         <ConfirmationModal
           visible={resetModalVisible}
-          title="Redefinir Refeições"
-          message="Tem certeza que deseja redefinir todos os tipos de refeição? Esta ação não pode ser desfeita."
-          confirmText="Redefinir"
-          cancelText="Cancelar"
+          title={t("nutrition.resetModal.title")}
+          message={t("nutrition.resetModal.message")}
+          confirmText={t("nutrition.resetModal.confirm")}
+          cancelText={t("nutrition.resetModal.cancel")}
           confirmType="danger"
           icon="refresh-outline"
           onConfirm={confirmResetMealTypes}
@@ -604,7 +598,7 @@ export default function NutritionScreen() {
           style={[styles.container, { backgroundColor: colors.background }]}
         >
           <HomeHeader
-            title="Suas refeições"
+            title={t("nutrition.title")}
             count={totalMeals}
             iconName="restaurant-outline"
             iconColor={colors.primary}
@@ -636,10 +630,10 @@ export default function NutritionScreen() {
         {/* Modal de confirmação para redefinir refeições */}
         <ConfirmationModal
           visible={resetModalVisible}
-          title="Redefinir Refeições"
-          message="Tem certeza que deseja redefinir todos os tipos de refeição? Esta ação não pode ser desfeita."
-          confirmText="Redefinir"
-          cancelText="Cancelar"
+          title={t("nutrition.resetModal.title")}
+          message={t("nutrition.resetModal.message")}
+          confirmText={t("nutrition.resetModal.confirm")}
+          cancelText={t("nutrition.resetModal.cancel")}
           confirmType="danger"
           icon="refresh-outline"
           onConfirm={confirmResetMealTypes}
@@ -665,7 +659,7 @@ export default function NutritionScreen() {
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <HomeHeader
-          title="Suas refeições"
+          title={t("nutrition.title")}
           count={totalMeals}
           iconName="restaurant-outline"
           iconColor={colors.primary}
@@ -705,7 +699,7 @@ export default function NutritionScreen() {
             </>
           ) : (
             <Text style={[styles.emptyText, { color: colors.text }]}>
-              Configure suas refeições para começar
+              {t("nutrition.configureToStart")}
             </Text>
           )}
         </ScrollView>
@@ -723,10 +717,10 @@ export default function NutritionScreen() {
         {/* Modal de confirmação para redefinir refeições */}
         <ConfirmationModal
           visible={resetModalVisible}
-          title="Redefinir Refeições"
-          message="Tem certeza que deseja redefinir todos os tipos de refeição? Esta ação não pode ser desfeita."
-          confirmText="Redefinir"
-          cancelText="Cancelar"
+          title={t("nutrition.resetModal.title")}
+          message={t("nutrition.resetModal.message")}
+          confirmText={t("nutrition.resetModal.confirm")}
+          cancelText={t("nutrition.resetModal.cancel")}
           confirmType="danger"
           icon="refresh-outline"
           onConfirm={confirmResetMealTypes}

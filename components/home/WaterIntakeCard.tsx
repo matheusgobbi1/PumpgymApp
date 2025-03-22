@@ -17,6 +17,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { format, isToday } from "date-fns";
 import { useAuth } from "../../context/AuthContext";
 import { KEYS } from "../../constants/keys";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 48) / 2; // Metade da largura da tela menos o padding
@@ -26,6 +27,7 @@ export default function WaterIntakeCard() {
   const colors = Colors[theme];
   const { nutritionInfo } = useNutrition();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   // Estados para gerenciar a ingestão de água
   const [waterIntake, setWaterIntake] = useState(0);
@@ -139,7 +141,9 @@ export default function WaterIntakeCard() {
           >
             <MaterialCommunityIcons name="water" size={18} color="#0096FF" />
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>Água</Text>
+          <Text style={[styles.title, { color: colors.text }]}>
+            {t("common.nutrition.water")}
+          </Text>
         </View>
       </View>
 
@@ -197,7 +201,7 @@ export default function WaterIntakeCard() {
             {/* Meta */}
             <View style={styles.goalContainer}>
               <Text style={[styles.goalText, { color: colors.text + "80" }]}>
-                Meta: {formatWater(dailyGoal)}
+                {t("home.stats.target")}: {formatWater(dailyGoal)}
               </Text>
             </View>
           </View>

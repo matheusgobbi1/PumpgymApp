@@ -417,7 +417,7 @@ export const OfflineStorage = {
       }
 
       // Corrigir problemas de dados
-      const sanitizedData = {};
+      const sanitizedData: { [key: string]: any[] } = {};
 
       try {
         // Garantir que estamos trabalhando com um objeto iterável
@@ -524,7 +524,7 @@ export const OfflineStorage = {
         }
 
         // Verificar se os valores das refeições são arrays
-        const sanitizedData = {};
+        const sanitizedData: { [key: string]: any[] } = {};
 
         try {
           const mealIds = Object.keys(parsedData);

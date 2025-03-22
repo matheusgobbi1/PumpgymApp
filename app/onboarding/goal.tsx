@@ -7,12 +7,14 @@ import { useColorScheme } from "react-native";
 import { useNutrition, Goal } from "../../context/NutritionContext";
 import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
 import SelectionOption from "../../components/onboarding/SelectionOption";
+import { useTranslation } from "react-i18next";
 
 export default function GoalScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? "light";
   const colors = Colors[colorScheme];
   const { nutritionInfo, updateNutritionInfo } = useNutrition();
+  const { t } = useTranslation();
   const [selectedGoal, setSelectedGoal] = useState<Goal | undefined>(
     nutritionInfo.goal
   );
@@ -31,8 +33,8 @@ export default function GoalScreen() {
   const goalOptions = [
     {
       goal: "lose" as Goal,
-      title: "Perder Peso",
-      description: "Reduzir gordura corporal",
+      title: t("onboarding.goal.options.lose.title"),
+      description: t("onboarding.goal.options.lose.description"),
       icon: (
         <Ionicons
           name="trending-down-outline"
@@ -43,8 +45,8 @@ export default function GoalScreen() {
     },
     {
       goal: "maintain" as Goal,
-      title: "Manter Peso",
-      description: "Manter composição corporal atual",
+      title: t("onboarding.goal.options.maintain.title"),
+      description: t("onboarding.goal.options.maintain.description"),
       icon: (
         <Ionicons
           name="reorder-two-outline"
@@ -55,8 +57,8 @@ export default function GoalScreen() {
     },
     {
       goal: "gain" as Goal,
-      title: "Ganhar Massa",
-      description: "Aumentar massa muscular",
+      title: t("onboarding.goal.options.gain.title"),
+      description: t("onboarding.goal.options.gain.description"),
       icon: (
         <Ionicons
           name="trending-up-outline"
@@ -69,8 +71,8 @@ export default function GoalScreen() {
 
   return (
     <OnboardingLayout
-      title="Qual seu objetivo?"
-      subtitle="Isso será usado para calibrar seu plano personalizado"
+      title={t("onboarding.goal.title")}
+      subtitle={t("onboarding.goal.subtitle")}
       currentStep={5}
       totalSteps={10}
       onBack={handleBack}

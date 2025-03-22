@@ -31,6 +31,8 @@ import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
+import { useTranslation } from "react-i18next";
+import { useLanguage } from "../../context/LanguageContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -43,12 +45,16 @@ export default function LoginScreen() {
   const colors = Colors[theme];
   const { signInAnonymously } = useAuth();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const { currentLanguage, changeLanguage } = useLanguage();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   // Estado para controlar o índice do bottom sheet
   const [bottomSheetIndex, setBottomSheetIndex] = useState(-1);
+  // Estado para controlar o diálogo de seleção de idioma
+  const [showLanguageSelector, setShowLanguageSelector] = useState(false);
 
   // Função para fechar o teclado
   const dismissKeyboard = () => {
@@ -79,6 +85,14 @@ export default function LoginScreen() {
     }
   };
 
+  // Função para alternar entre os idiomas disponíveis
+  const toggleLanguage = () => {
+    // Alternar entre português e inglês
+    const newLanguage = currentLanguage === "pt-BR" ? "en-US" : "pt-BR";
+    changeLanguage(newLanguage);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
       <View style={styles.container}>
@@ -107,12 +121,28 @@ export default function LoginScreen() {
               },
             ]}
           >
+            {/* Botão de seleção de idioma no canto superior direito */}
+            <Animated.View
+              entering={FadeIn.delay(700).duration(500)}
+              style={styles.languageToggleContainer}
+            >
+              <TouchableOpacity
+                style={styles.languageToggleButton}
+                onPress={toggleLanguage}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.languageText}>
+                  {currentLanguage === "pt-BR" ? "🇧🇷" : "🇺🇸"}
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+
             {/* Logo e Nome do App */}
             <Animated.View
               entering={FadeInDown.delay(100).duration(1000)}
               style={styles.logoContainer}
             >
-              <Text style={styles.appName}>FitFolio</Text>
+              <Text style={styles.appName}>{t("login.appName")}</Text>
             </Animated.View>
 
             {/* Espaço vazio para dar mais destaque à imagem de fundo */}
@@ -125,11 +155,8 @@ export default function LoginScreen() {
                 entering={FadeInDown.delay(200).duration(1000)}
                 style={styles.centralTextContainer}
               >
-                <Text style={styles.titleText}>Acompanhe seu progresso</Text>
-                <Text style={styles.subtitleText}>
-                  Registre suas refeições e treinos para alcançar suas metas e
-                  uma vida mais saudável
-                </Text>
+                <Text style={styles.titleText}>{t("login.title")}</Text>
+                <Text style={styles.subtitleText}>{t("login.subtitle")}</Text>
               </Animated.View>
 
               {/* Botões */}
@@ -143,7 +170,7 @@ export default function LoginScreen() {
                   {loading ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <Text style={styles.buttonText}>COMEÇAR AGORA</Text>
+                    <Text style={styles.buttonText}>{t("login.startNow")}</Text>
                   )}
                 </AnimatedTouchableOpacity>
 
@@ -154,8 +181,10 @@ export default function LoginScreen() {
                   activeOpacity={0.8}
                 >
                   <Text style={styles.loginLinkText}>
-                    Já tem conta?{" "}
-                    <Text style={styles.loginLinkHighlight}>Entrar</Text>
+                    {t("login.alreadyHaveAccount")}{" "}
+                    <Text style={styles.loginLinkHighlight}>
+                      {t("login.signIn")}
+                    </Text>
                   </Text>
                 </AnimatedTouchableOpacity>
               </View>
@@ -167,19 +196,19 @@ export default function LoginScreen() {
               style={styles.footerContainer}
             >
               <Text style={styles.footerText}>
-                Ao continuar, você concorda com nossos{" "}
+                {t("login.termsAndPolicy")}{" "}
                 <Text
                   style={styles.footerLink}
                   onPress={() => router.push("/terms-of-use")}
                 >
-                  termos de uso
+                  {t("login.termsOfUse")}
                 </Text>{" "}
-                e{" "}
+                {t("login.and")}{" "}
                 <Text
                   style={styles.footerLink}
                   onPress={() => router.push("/privacy-policy")}
                 >
-                  política de privacidade
+                  {t("login.privacyPolicy")}
                 </Text>
               </Text>
             </Animated.View>
@@ -320,5 +349,24 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0, 0, 0, 0.75)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
+  },
+  languageToggleContainer: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    zIndex: 10,
+  },
+  languageToggleButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+  },
+  languageText: {
+    fontSize: 18,
   },
 });

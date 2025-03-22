@@ -12,8 +12,10 @@ import { useNutrition } from "../../context/NutritionContext";
 import { useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "../../context/AuthContext";
+import { useTranslation } from "react-i18next";
 
 export default function Profile() {
+  const { t } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const colors = Colors[theme];
   const router = useRouter();
@@ -75,7 +77,7 @@ export default function Profile() {
   // Obter status do plano nutricional
   const getNutritionStatus = () => {
     if (!nutritionInfo.calories) {
-      return "Plano não configurado";
+      return t("profile.header.planNotConfigured");
     }
 
     if (
@@ -84,10 +86,10 @@ export default function Profile() {
       nutritionInfo.weight &&
       nutritionInfo.goal
     ) {
-      return "Plano ativo";
+      return t("profile.header.planActive");
     }
 
-    return "Plano incompleto";
+    return t("profile.header.planIncomplete");
   };
 
   // Atualizar dados quando a tela receber foco
@@ -107,7 +109,7 @@ export default function Profile() {
       edges={["top"]}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <HomeHeader title={user?.email || "Email não disponível"} count={0} />
+        <HomeHeader title={user?.email || t("common.user")} count={0} />
 
         <ScrollView
           style={styles.scrollView}

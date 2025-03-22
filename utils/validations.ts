@@ -1,3 +1,5 @@
+import i18n from "../i18n";
+
 export const ValidationRules = {
   AGE: {
     MIN: 14,
@@ -79,14 +81,14 @@ export const validateBirthDate = (birthDate: Date): ValidationResult => {
   if (age < ValidationRules.AGE.MIN) {
     return {
       isValid: false,
-      message: `Você precisa ter pelo menos ${ValidationRules.AGE.MIN} anos para usar o app`,
+      message: i18n.t("onboarding.birthDate.validation.tooYoung"),
     };
   }
 
   if (age > ValidationRules.AGE.MAX) {
     return {
       isValid: false,
-      message: `A idade máxima permitida é ${ValidationRules.AGE.MAX} anos`,
+      message: i18n.t("onboarding.birthDate.validation.tooOld"),
     };
   }
 
@@ -97,7 +99,7 @@ export const validateHeight = (height: number): ValidationResult => {
   if (!height || isNaN(height)) {
     return {
       isValid: false,
-      message: "Por favor, insira uma altura válida",
+      message: i18n.t("onboarding.measurements.validation.invalidHeight"),
     };
   }
 
@@ -107,7 +109,7 @@ export const validateHeight = (height: number): ValidationResult => {
   ) {
     return {
       isValid: false,
-      message: `A altura deve estar entre ${ValidationRules.HEIGHT.MIN} e ${ValidationRules.HEIGHT.MAX}cm`,
+      message: i18n.t("onboarding.measurements.validation.heightRange"),
     };
   }
 
@@ -118,7 +120,7 @@ export const validateWeight = (weight: number): ValidationResult => {
   if (!weight || isNaN(weight)) {
     return {
       isValid: false,
-      message: "Por favor, insira um peso válido",
+      message: i18n.t("onboarding.measurements.validation.invalidWeight"),
     };
   }
 
@@ -128,7 +130,7 @@ export const validateWeight = (weight: number): ValidationResult => {
   ) {
     return {
       isValid: false,
-      message: `O peso deve estar entre ${ValidationRules.WEIGHT.MIN} e ${ValidationRules.WEIGHT.MAX}kg`,
+      message: i18n.t("onboarding.measurements.validation.weightRange"),
     };
   }
 
@@ -142,7 +144,7 @@ export const validateWeightGoal = (
   if (!targetWeight || isNaN(targetWeight)) {
     return {
       isValid: false,
-      message: "Por favor, insira um peso meta válido",
+      message: i18n.t("onboarding.weightGoal.validation.invalidTargetWeight"),
     };
   }
 
@@ -154,7 +156,10 @@ export const validateWeightGoal = (
   ) {
     return {
       isValid: false,
-      message: `A meta deve estar entre ${ValidationRules.WEIGHT_CHANGE.MIN_PERCENT}% e +${ValidationRules.WEIGHT_CHANGE.MAX_PERCENT}% do seu peso atual`,
+      message: i18n.t("onboarding.weightGoal.validation.weightRangeError", {
+        min: Math.abs(ValidationRules.WEIGHT_CHANGE.MIN_PERCENT),
+        max: ValidationRules.WEIGHT_CHANGE.MAX_PERCENT,
+      }),
     };
   }
 
@@ -163,9 +168,23 @@ export const validateWeightGoal = (
 
 // Função para validar todas as medidas de uma vez
 export const validateMeasurements = (
-  height: number,
-  weight: number
+  height?: number,
+  weight?: number
 ): ValidationResult => {
+  if (!height || isNaN(height)) {
+    return {
+      isValid: false,
+      message: i18n.t("onboarding.measurements.validation.invalidHeight"),
+    };
+  }
+
+  if (!weight || isNaN(weight)) {
+    return {
+      isValid: false,
+      message: i18n.t("onboarding.measurements.validation.invalidWeight"),
+    };
+  }
+
   const heightValidation = validateHeight(height);
   if (!heightValidation.isValid) return heightValidation;
 
@@ -215,7 +234,7 @@ export const validateName = (name: string): ValidationResult => {
         message: "Por favor, insira seu nome completo (nome e sobrenome)",
       };
     }
-    
+
     // Verificar se cada parte do nome tem pelo menos 2 caracteres
     for (const part of nameParts) {
       if (part.length < 2) {
@@ -249,7 +268,7 @@ export const validateEmail = (email: string): ValidationResult => {
   }
 
   // Validação mais rigorosa de email
-  const emailParts = email.trim().split('@');
+  const emailParts = email.trim().split("@");
   if (emailParts.length !== 2) {
     return {
       isValid: false,
@@ -258,7 +277,7 @@ export const validateEmail = (email: string): ValidationResult => {
   }
 
   const [localPart, domain] = emailParts;
-  
+
   // Verificar se a parte local tem pelo menos 3 caracteres
   if (localPart.length < 3) {
     return {
@@ -268,7 +287,7 @@ export const validateEmail = (email: string): ValidationResult => {
   }
 
   // Verificar se o domínio tem pelo menos uma extensão válida
-  const domainParts = domain.split('.');
+  const domainParts = domain.split(".");
   if (domainParts.length < 2) {
     return {
       isValid: false,
@@ -288,10 +307,10 @@ export const validateEmail = (email: string): ValidationResult => {
   // Verificar se o email parece ser temporário ou aleatório
   // Isso é uma heurística simples e pode precisar ser ajustada
   const randomPatterns = [
-    /^[a-z]{1,3}\d{1,3}@/i,  // Padrões como abc123@
-    /^test\d*@/i,            // test, test1, test123, etc.
-    /^temp\d*@/i,            // temp, temp1, temp123, etc.
-    /^user\d*@/i,            // user, user1, user123, etc.
+    /^[a-z]{1,3}\d{1,3}@/i, // Padrões como abc123@
+    /^test\d*@/i, // test, test1, test123, etc.
+    /^temp\d*@/i, // temp, temp1, temp123, etc.
+    /^user\d*@/i, // user, user1, user123, etc.
     /^[a-z]{1,2}[0-9]{1,2}[a-z]{1,2}@/i, // Padrões como a1b@, xy12z@
   ];
 
@@ -314,7 +333,11 @@ export const validateEmail = (email: string): ValidationResult => {
   }
 
   // Verificar se o domínio é muito curto (como dd.com)
-  if (domainParts[0].length <= 2 && !domainLower.endsWith('.co.uk') && !domainLower.endsWith('.co.jp')) {
+  if (
+    domainParts[0].length <= 2 &&
+    !domainLower.endsWith(".co.uk") &&
+    !domainLower.endsWith(".co.jp")
+  ) {
     return {
       isValid: false,
       message: "Por favor, use um domínio de email válido",
@@ -322,11 +345,13 @@ export const validateEmail = (email: string): ValidationResult => {
   }
 
   // Verificar se o domínio é comum (opcional, pode ser removido se for muito restritivo)
-  if (!ValidationRules.EMAIL.COMMON_DOMAINS.includes(domainLower) && 
-      !domainLower.endsWith('.edu') && 
-      !domainLower.endsWith('.gov') && 
-      !domainLower.endsWith('.org') && 
-      !domainLower.endsWith('.com.br')) {
+  if (
+    !ValidationRules.EMAIL.COMMON_DOMAINS.includes(domainLower) &&
+    !domainLower.endsWith(".edu") &&
+    !domainLower.endsWith(".gov") &&
+    !domainLower.endsWith(".org") &&
+    !domainLower.endsWith(".com.br")
+  ) {
     // Esta é apenas uma verificação suave, não bloqueia o registro
     console.warn(`Domínio de email não comum: ${domain}`);
     // Poderíamos adicionar uma verificação mais rigorosa aqui se necessário
@@ -377,7 +402,9 @@ export const validatePassword = (password: string): ValidationResult => {
   if (missingRequirements.length > 0) {
     return {
       isValid: false,
-      message: `A senha deve conter pelo menos uma ${missingRequirements.join(", uma ")}`,
+      message: `A senha deve conter pelo menos uma ${missingRequirements.join(
+        ", uma "
+      )}`,
     };
   }
 
@@ -498,21 +525,21 @@ export const validateLogin = (
 // Validação de força da senha
 export const calculatePasswordStrength = (password: string): number => {
   if (!password) return 0;
-  
+
   let strength = 0;
-  
+
   // Comprimento da senha
   if (password.length >= ValidationRules.PASSWORD.MIN_LENGTH) strength += 0.25;
-  
+
   // Letras maiúsculas
   if (/[A-Z]/.test(password)) strength += 0.25;
-  
+
   // Números
   if (/[0-9]/.test(password)) strength += 0.25;
-  
+
   // Caracteres especiais
   if (/[^A-Za-z0-9]/.test(password)) strength += 0.25;
-  
+
   return strength;
 };
 
@@ -524,8 +551,8 @@ export const getPasswordStrengthColor = (strength: number): string => {
 };
 
 export const getPasswordStrengthText = (strength: number): string => {
-  if (strength <= 0.25) return "Fraca";
-  if (strength <= 0.5) return "Média";
-  if (strength <= 0.75) return "Boa";
-  return "Forte";
+  if (strength <= 0.25) return i18n.t("passwordStrength.weak");
+  if (strength <= 0.5) return i18n.t("passwordStrength.medium");
+  if (strength <= 0.75) return i18n.t("passwordStrength.good");
+  return i18n.t("passwordStrength.strong");
 };

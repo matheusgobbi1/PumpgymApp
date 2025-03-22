@@ -7,53 +7,55 @@ import { useTheme } from "../../context/ThemeContext";
 import { useNutrition } from "../../context/NutritionContext";
 import { Ionicons } from "@expo/vector-icons";
 import { MotiView } from "moti";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.85;
-
-const LOADING_STEPS = [
-  {
-    title: "Calculando Metabolismo",
-    description: "Analisando suas necessidades energéticas com Mifflin-St Jeor",
-    icon: "calculator",
-    color: "#FF5A00",
-    detail: "BMR + TDEE",
-  },
-  {
-    title: "Ajustando Macros",
-    description: "Otimizando proteínas, carboidratos e gorduras",
-    icon: "sync",
-    color: "#4CAF50",
-    detail: "P/C/G",
-  },
-  {
-    title: "Plano de Hidratação",
-    description: "Calculando necessidade hídrica diária",
-    icon: "water",
-    color: "#2196F3",
-    detail: "H2O",
-  },
-  {
-    title: "Health Score",
-    description: "Avaliando seus indicadores de saúde",
-    icon: "heart",
-    color: "#E91E63",
-    detail: "Score",
-  },
-  {
-    title: "Recomendações",
-    description: "Gerando seu plano personalizado",
-    icon: "star",
-    color: "#9C27B0",
-    detail: "Plano",
-  },
-];
 
 export default function LoadingScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { calculateMacros } = useNutrition();
+  const { t } = useTranslation();
+
+  const LOADING_STEPS = [
+    {
+      title: t("onboarding.loading.steps.metabolism.title"),
+      description: t("onboarding.loading.steps.metabolism.description"),
+      icon: "calculator",
+      color: "#FF5A00",
+      detail: t("onboarding.loading.steps.metabolism.detail"),
+    },
+    {
+      title: t("onboarding.loading.steps.macros.title"),
+      description: t("onboarding.loading.steps.macros.description"),
+      icon: "sync",
+      color: "#4CAF50",
+      detail: t("onboarding.loading.steps.macros.detail"),
+    },
+    {
+      title: t("onboarding.loading.steps.hydration.title"),
+      description: t("onboarding.loading.steps.hydration.description"),
+      icon: "water",
+      color: "#2196F3",
+      detail: t("onboarding.loading.steps.hydration.detail"),
+    },
+    {
+      title: t("onboarding.loading.steps.healthScore.title"),
+      description: t("onboarding.loading.steps.healthScore.description"),
+      icon: "heart",
+      color: "#E91E63",
+      detail: t("onboarding.loading.steps.healthScore.detail"),
+    },
+    {
+      title: t("onboarding.loading.steps.recommendations.title"),
+      description: t("onboarding.loading.steps.recommendations.description"),
+      icon: "star",
+      color: "#9C27B0",
+      detail: t("onboarding.loading.steps.recommendations.detail"),
+    },
+  ];
 
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
@@ -94,7 +96,7 @@ export default function LoadingScreen() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [LOADING_STEPS.length]);
 
   // Navegar para a tela de resumo após completar os passos
   useEffect(() => {
@@ -105,7 +107,7 @@ export default function LoadingScreen() {
     }, totalDuration);
 
     return () => clearTimeout(navigationTimer);
-  }, []);
+  }, [LOADING_STEPS.length]);
 
   return (
     <SafeAreaView
@@ -113,10 +115,10 @@ export default function LoadingScreen() {
     >
       <View style={styles.content}>
         <Text style={[styles.title, { color: colors.text }]}>
-          Preparando seu Plano
+          {t("onboarding.loading.title")}
         </Text>
         <Text style={[styles.subtitle, { color: colors.text }]}>
-          Calculando as melhores recomendações para você
+          {t("onboarding.loading.subtitle")}
         </Text>
 
         <View style={styles.stepsContainer}>

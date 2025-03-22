@@ -21,6 +21,8 @@ import { useAuth } from "./AuthContext";
 import { OfflineStorage } from "../services/OfflineStorage";
 import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { KEYS } from "../constants/keys";
 
 // Tipos
 export interface Food {
@@ -132,6 +134,96 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     loadSearchHistory();
   }, [user?.uid]);
 
+  // Carregar refeições quando a data selecionada mudar
+  useEffect(() => {
+    if (user) {
+      const loadMealsForSelectedDate = async () => {
+        try {
+          // Tentar carregar dados do storage local
+          const localMeals = await OfflineStorage.loadMealsData(
+            user.uid,
+            selectedDate
+          );
+
+          if (localMeals && Object.keys(localMeals).length > 0) {
+            // Se encontrou dados locais, usar eles
+            setMeals((prevMeals) => ({
+              ...prevMeals,
+              [selectedDate]: localMeals,
+            }));
+            console.log(
+              "Refeições para a data selecionada carregadas localmente"
+            );
+          } else if (!meals[selectedDate]) {
+            // Verificar conexão com a internet antes de tentar acessar o Firebase
+            const isOnline = await OfflineStorage.isOnline();
+
+            if (isOnline) {
+              // Se está online, tentar buscar do Firebase
+              try {
+                const mealDoc = await getDoc(
+                  doc(db, "users", user.uid, "meals", selectedDate)
+                );
+
+                if (mealDoc.exists()) {
+                  const mealData = mealDoc.data() as {
+                    [mealId: string]: Food[];
+                  };
+                  setMeals((prevMeals) => ({
+                    ...prevMeals,
+                    [selectedDate]: mealData,
+                  }));
+
+                  // Salvar no storage local para futuras consultas
+                  await OfflineStorage.saveMealsData(
+                    user.uid,
+                    selectedDate,
+                    mealData
+                  );
+                } else {
+                  // Inicializar com objeto vazio quando não existem dados no Firestore
+                  setMeals((prevMeals) => ({
+                    ...prevMeals,
+                    [selectedDate]: {},
+                  }));
+                }
+              } catch (error) {
+                console.error(
+                  "Erro ao carregar refeições da data selecionada:",
+                  error
+                );
+                // Inicializar com objeto vazio em caso de erro
+                setMeals((prevMeals) => ({
+                  ...prevMeals,
+                  [selectedDate]: {},
+                }));
+              }
+            } else {
+              // Se está offline, inicializar com objeto vazio
+              console.log("Dispositivo offline. Usando dados locais vazios.");
+              setMeals((prevMeals) => ({
+                ...prevMeals,
+                [selectedDate]: {},
+              }));
+            }
+          }
+        } catch (error) {
+          console.error(
+            "Erro ao carregar refeições para a data selecionada:",
+            error
+          );
+          // Garantir que temos um objeto vazio em caso de erro
+          setMeals((prevMeals) => ({
+            ...prevMeals,
+            [selectedDate]: {},
+          }));
+        }
+      };
+
+      loadMealsForSelectedDate();
+    }
+  }, [selectedDate, user?.uid]);
+
   const loadMeals = async () => {
     try {
       if (!user) return;
@@ -139,17 +231,71 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       // Limpar dados existentes antes de carregar
       setMeals({});
 
-      // Buscar todas as refeições do usuário
-      const mealsRef = collection(db, "users", user.uid, "meals");
-      const mealsSnap = await getDocs(mealsRef);
+      // Primeiro tentar carregar do storage local
+      try {
+        // Buscar a data selecionada
+        const localMeals = await OfflineStorage.loadMealsData(
+          user.uid,
+          selectedDate
+        );
 
-      const mealsData: { [date: string]: { [mealId: string]: Food[] } } = {};
+        if (localMeals && Object.keys(localMeals).length > 0) {
+          // Se encontrou dados locais, usar eles
+          setMeals((prevMeals) => ({
+            ...prevMeals,
+            [selectedDate]: localMeals,
+          }));
+          console.log(
+            "Refeições carregadas do armazenamento local com sucesso"
+          );
+          return; // Retornar se os dados foram carregados localmente
+        }
+      } catch (localError) {
+        console.error("Erro ao carregar refeições locais:", localError);
+      }
 
-      mealsSnap.forEach((doc) => {
-        mealsData[doc.id] = doc.data() as { [mealId: string]: Food[] };
-      });
+      // Verificar conexão com a internet antes de tentar acessar o Firebase
+      const isOnline = await OfflineStorage.isOnline();
 
-      setMeals(mealsData);
+      if (isOnline) {
+        // Se está online, tentar do Firebase
+        try {
+          // Buscar todas as refeições do usuário
+          const mealsRef = collection(db, "users", user.uid, "meals");
+          const mealsSnap = await getDocs(mealsRef);
+
+          const mealsData: { [date: string]: { [mealId: string]: Food[] } } =
+            {};
+
+          mealsSnap.forEach((doc) => {
+            mealsData[doc.id] = doc.data() as { [mealId: string]: Food[] };
+          });
+
+          setMeals(mealsData);
+
+          // Salvar os dados carregados no armazenamento local
+          if (mealsData[selectedDate]) {
+            await OfflineStorage.saveMealsData(
+              user.uid,
+              selectedDate,
+              mealsData[selectedDate]
+            );
+          }
+        } catch (firebaseError) {
+          console.error(
+            "Erro ao carregar refeições do Firebase:",
+            firebaseError
+          );
+          // Em caso de erro, garantir que os dados estejam limpos
+          setMeals({});
+        }
+      } else {
+        // Se está offline, log informativo
+        console.log(
+          "Dispositivo offline. Não foi possível carregar dados do Firebase."
+        );
+        // Já tentamos carregar dados locais e não temos, então mantemos vazio
+      }
     } catch (error) {
       console.error("Erro ao carregar refeições:", error);
       // Em caso de erro, garantir que os dados estejam limpos
@@ -165,21 +311,89 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       setMealTypes([]);
       setHasMealTypesConfigured(false);
 
-      // Buscar os tipos de refeições do usuário
-      const mealTypesDoc = await getDoc(
-        doc(db, "users", user.uid, "config", "mealTypes")
-      );
+      // Primeiro tentar carregar do AsyncStorage
+      try {
+        console.log("Tentando carregar tipos de refeição do AsyncStorage...");
+        const localMealTypes = await AsyncStorage.getItem(
+          `${KEYS.MEAL_TYPES}:${user.uid}`
+        );
 
-      if (
-        mealTypesDoc.exists() &&
-        mealTypesDoc.data().types &&
-        mealTypesDoc.data().types.length > 0
-      ) {
-        const mealTypesData = mealTypesDoc.data().types as MealType[];
-        setMealTypes(mealTypesData);
-        setHasMealTypesConfigured(true);
+        if (localMealTypes) {
+          const parsedMealTypes = JSON.parse(localMealTypes) as MealType[];
+
+          if (
+            parsedMealTypes &&
+            Array.isArray(parsedMealTypes) &&
+            parsedMealTypes.length > 0
+          ) {
+            console.log(
+              "Tipos de refeição carregados do AsyncStorage com sucesso"
+            );
+            setMealTypes(parsedMealTypes);
+            setHasMealTypesConfigured(true);
+            return; // Retornar se já carregou do storage local
+          }
+        }
+      } catch (localError) {
+        console.error(
+          "Erro ao carregar tipos de refeição do AsyncStorage:",
+          localError
+        );
+      }
+
+      // Verificar conexão com a internet antes de tentar acessar o Firebase
+      const isOnline = await OfflineStorage.isOnline();
+
+      if (isOnline) {
+        // Se está online, tentar do Firebase
+        try {
+          // Buscar os tipos de refeições do usuário
+          const mealTypesDoc = await getDoc(
+            doc(db, "users", user.uid, "config", "mealTypes")
+          );
+
+          if (
+            mealTypesDoc.exists() &&
+            mealTypesDoc.data().types &&
+            mealTypesDoc.data().types.length > 0
+          ) {
+            const mealTypesData = mealTypesDoc.data().types as MealType[];
+            setMealTypes(mealTypesData);
+            setHasMealTypesConfigured(true);
+
+            // Salvar no AsyncStorage para uso offline
+            try {
+              await AsyncStorage.setItem(
+                `${KEYS.MEAL_TYPES}:${user.uid}`,
+                JSON.stringify(mealTypesData)
+              );
+              console.log(
+                "Tipos de refeição do Firebase salvos no AsyncStorage"
+              );
+            } catch (saveError) {
+              console.error(
+                "Erro ao salvar tipos de refeição no AsyncStorage:",
+                saveError
+              );
+            }
+          } else {
+            setHasMealTypesConfigured(false);
+          }
+        } catch (firebaseError) {
+          console.error(
+            "Erro ao carregar tipos de refeições do Firebase:",
+            firebaseError
+          );
+          // Em caso de erro, garantir que os dados estejam limpos
+          setMealTypes([]);
+          setHasMealTypesConfigured(false);
+        }
       } else {
-        setHasMealTypesConfigured(false);
+        // Se está offline, log informativo
+        console.log(
+          "Dispositivo offline. Não foi possível carregar tipos de refeição do Firebase."
+        );
+        // Já tentamos carregar dados locais e não temos, então mantemos vazio
       }
     } catch (error) {
       console.error("Erro ao carregar tipos de refeições:", error);
@@ -202,13 +416,35 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       const updatedTypes = [...mealTypes, newMealType];
       setMealTypes(updatedTypes);
 
-      // Salvar no Firestore se o usuário estiver autenticado
+      // Salvar no AsyncStorage para persistência local
       if (user) {
-        await setDoc(
-          doc(db, "users", user.uid, "config", "mealTypes"),
-          { types: updatedTypes },
-          { merge: true }
-        );
+        try {
+          await AsyncStorage.setItem(
+            `${KEYS.MEAL_TYPES}:${user.uid}`,
+            JSON.stringify(updatedTypes)
+          );
+        } catch (storageError) {
+          console.error(
+            "Erro ao salvar tipo de refeição no AsyncStorage:",
+            storageError
+          );
+        }
+
+        // Salvar no Firestore se o usuário estiver autenticado
+        try {
+          await setDoc(
+            doc(db, "users", user.uid, "config", "mealTypes"),
+            { types: updatedTypes },
+            { merge: true }
+          );
+          console.log("Tipos de refeição atualizados no Firebase com sucesso");
+        } catch (firebaseError) {
+          console.error(
+            "Erro ao salvar no Firebase, dados mantidos localmente:",
+            firebaseError
+          );
+        }
+
         setHasMealTypesConfigured(true);
       }
     } catch (error) {
@@ -227,25 +463,43 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       setMeals({});
 
       if (user) {
-        // Atualizar tipos de refeições no Firestore
-        await setDoc(
-          doc(db, "users", user.uid, "config", "mealTypes"),
-          { types: [] },
-          { merge: true }
-        );
+        // Primeiro limpar no AsyncStorage
+        try {
+          await AsyncStorage.removeItem(`${KEYS.MEAL_TYPES}:${user.uid}`);
+        } catch (storageError) {
+          console.error(
+            "Erro ao limpar tipos de refeição do AsyncStorage:",
+            storageError
+          );
+        }
 
-        // Também limpar as refeições no Firestore se necessário
-        // Isso pode ser opcional dependendo do seu caso de uso
-        const mealsRef = collection(db, "users", user.uid, "meals");
-        const mealsSnap = await getDocs(mealsRef);
+        // Depois tentar limpar no Firebase
+        try {
+          // Atualizar tipos de refeições no Firestore
+          await setDoc(
+            doc(db, "users", user.uid, "config", "mealTypes"),
+            { types: [] },
+            { merge: true }
+          );
 
-        // Excluir cada documento de refeição
-        const batch = writeBatch(db);
-        mealsSnap.forEach((doc) => {
-          batch.delete(doc.ref);
-        });
+          // Também limpar as refeições no Firestore se necessário
+          // Isso pode ser opcional dependendo do seu caso de uso
+          const mealsRef = collection(db, "users", user.uid, "meals");
+          const mealsSnap = await getDocs(mealsRef);
 
-        await batch.commit();
+          // Excluir cada documento de refeição
+          const batch = writeBatch(db);
+          mealsSnap.forEach((doc) => {
+            batch.delete(doc.ref);
+          });
+
+          await batch.commit();
+        } catch (firebaseError) {
+          console.error(
+            "Erro ao limpar tipos de refeição no Firebase:",
+            firebaseError
+          );
+        }
       }
 
       return true; // Retornar true para indicar sucesso
@@ -266,12 +520,53 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
         setHasMealTypesConfigured(false);
       }
 
+      // Primeiro salvar no AsyncStorage para persistência local
       if (user) {
-        await setDoc(
-          doc(db, "users", user.uid, "config", "mealTypes"),
-          { types: newMealTypes },
-          { merge: true }
-        );
+        try {
+          console.log("Salvando tipos de refeição no AsyncStorage...");
+          await AsyncStorage.setItem(
+            `${KEYS.MEAL_TYPES}:${user.uid}`,
+            JSON.stringify(newMealTypes)
+          );
+
+          // Verificar se os dados foram salvos
+          const savedData = await AsyncStorage.getItem(
+            `${KEYS.MEAL_TYPES}:${user.uid}`
+          );
+          if (!savedData) {
+            console.warn(
+              "Falha ao verificar persistência dos tipos de refeição"
+            );
+            // Tentar novamente uma vez
+            await AsyncStorage.setItem(
+              `${KEYS.MEAL_TYPES}:${user.uid}`,
+              JSON.stringify(newMealTypes)
+            );
+          }
+        } catch (storageError) {
+          console.error(
+            "Erro ao salvar tipos de refeição no AsyncStorage:",
+            storageError
+          );
+        }
+
+        // Depois tentar salvar no Firebase
+        try {
+          await setDoc(
+            doc(db, "users", user.uid, "config", "mealTypes"),
+            { types: newMealTypes },
+            { merge: true }
+          );
+          console.log(
+            "Tipos de refeição sincronizados com Firebase com sucesso"
+          );
+        } catch (firebaseError) {
+          console.error(
+            "Erro ao salvar no Firebase, dados mantidos localmente:",
+            firebaseError
+          );
+          // Continuar, pois os dados foram salvos no AsyncStorage
+        }
       }
 
       return true; // Retornar true para indicar sucesso
@@ -316,8 +611,13 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       return updatedMeals;
     });
 
-    // Salvar as alterações imediatamente
-    saveMeals();
+    // Salvar as alterações imediatamente com um pequeno delay
+    // para garantir que o estado foi atualizado
+    setTimeout(() => {
+      saveMeals().catch((error) => {
+        console.error("Erro ao salvar após adicionar alimento:", error);
+      });
+    }, 100);
   };
 
   const removeFoodFromMeal = async (mealId: string, foodId: string) => {
@@ -332,8 +632,14 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
         return updatedMeals;
       });
 
-      // Salvar alterações no Firestore
-      await saveMeals();
+      // Salvar alterações no Firestore com delay para garantir atualização do estado
+      setTimeout(async () => {
+        try {
+          await saveMeals();
+        } catch (saveError) {
+          console.error("Erro ao salvar após remover alimento:", saveError);
+        }
+      }, 100);
     } catch (error) {
       console.error("Erro ao remover alimento:", error);
       throw error;
@@ -344,11 +650,35 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     try {
       if (!user) return;
 
-      // Salvar apenas a data selecionada
-      await setDoc(
-        doc(db, "users", user.uid, "meals", selectedDate),
+      // Primeiro salvar localmente para garantir persistência
+      const key = `${KEYS.MEALS_KEY}${user.uid}:${selectedDate}`;
+      await OfflineStorage.saveMealsData(
+        user.uid,
+        selectedDate,
         meals[selectedDate] || {}
       );
+
+      // Verificar conexão antes de tentar salvar no Firebase
+      const isOnline = await OfflineStorage.isOnline();
+
+      // Salvar no Firestore se o usuário estiver autenticado, não for anônimo e estiver online
+      if (isOnline && user.uid && user.uid !== "anonymous") {
+        try {
+          // Salvar apenas a data selecionada
+          await setDoc(
+            doc(db, "users", user.uid, "meals", selectedDate),
+            meals[selectedDate] || {}
+          );
+          console.log("Refeições sincronizadas com Firebase com sucesso");
+        } catch (firebaseError) {
+          console.error(
+            "Erro ao salvar no Firebase, dados mantidos localmente:",
+            firebaseError
+          );
+        }
+      } else if (!isOnline) {
+        console.log("Dispositivo offline. Dados salvos apenas localmente.");
+      }
     } catch (error) {
       console.error("Erro ao salvar refeições:", error);
     }

@@ -22,10 +22,12 @@ import CircularProgress from "react-native-circular-progress-indicator";
 import { OfflineStorage } from "../../services/OfflineStorage";
 import { MotiView } from "moti";
 import * as Haptics from "expo-haptics";
+import { useTranslation } from "react-i18next";
 
 const screenWidth = Dimensions.get("window").width;
 
 export default function SummaryScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const navigation = useNavigation();
   const { theme } = useTheme();
@@ -138,11 +140,11 @@ export default function SummaryScreen() {
   const getGoalText = () => {
     switch (nutritionInfo.goal) {
       case "lose":
-        return "Perder Peso";
+        return t("common.goals.lose");
       case "maintain":
-        return "Manter Peso";
+        return t("common.goals.maintain");
       case "gain":
-        return "Ganhar Massa";
+        return t("common.goals.gain");
       default:
         return "";
     }
@@ -179,15 +181,15 @@ export default function SummaryScreen() {
   const getActivityLevelText = () => {
     switch (nutritionInfo.trainingFrequency) {
       case "sedentary":
-        return "Sedentário";
+        return t("common.activityLevels.sedentary");
       case "light":
-        return "Leve";
+        return t("common.activityLevels.light");
       case "moderate":
-        return "Moderado";
+        return t("common.activityLevels.moderate");
       case "intense":
-        return "Intenso";
+        return t("common.activityLevels.intense");
       case "athlete":
-        return "Atleta";
+        return t("common.activityLevels.athlete");
       default:
         return "";
     }
@@ -236,7 +238,7 @@ export default function SummaryScreen() {
           transition={{ type: "timing", duration: 600 }}
         >
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Seu Plano Personalizado
+            {t("summary.title")}
           </Text>
         </MotiView>
 
@@ -265,7 +267,7 @@ export default function SummaryScreen() {
             transition={{ type: "spring", delay: 300 }}
           >
             <Text style={[styles.cardLabel, { color: colors.text }]}>
-              Perfil
+              {t("summary.profile.title")}
             </Text>
             <View
               key={`measurement-row-${theme}`}
@@ -279,7 +281,8 @@ export default function SummaryScreen() {
                   color={colors.primary}
                 />
                 <Text style={[styles.measurementText, { color: colors.text }]}>
-                  {nutritionInfo.height}cm
+                  {nutritionInfo.height}
+                  {t("common.measurements.cm")}
                 </Text>
               </View>
               <View
@@ -302,7 +305,8 @@ export default function SummaryScreen() {
                   color={colors.primary}
                 />
                 <Text style={[styles.measurementText, { color: colors.text }]}>
-                  {nutritionInfo.weight}kg
+                  {nutritionInfo.weight}
+                  {t("common.measurements.kg")}
                 </Text>
               </View>
             </View>
@@ -328,7 +332,7 @@ export default function SummaryScreen() {
             transition={{ type: "spring", delay: 400 }}
           >
             <Text style={[styles.cardLabel, { color: colors.text }]}>
-              Objetivo
+              {t("summary.goal.title")}
             </Text>
             <View key={`goal-content-${theme}`} style={styles.goalContent}>
               <Ionicons
@@ -343,7 +347,9 @@ export default function SummaryScreen() {
             </View>
             {nutritionInfo.goal !== "maintain" && (
               <Text style={[styles.goalTarget, { color: colors.text }]}>
-                Meta: {nutritionInfo.targetWeight}kg
+                {t("summary.goal.target", {
+                  weight: nutritionInfo.targetWeight,
+                })}
               </Text>
             )}
           </MotiView>
@@ -393,14 +399,14 @@ export default function SummaryScreen() {
               style={styles.healthScoreInfo}
             >
               <Text style={[styles.healthScoreTitle, { color: colors.text }]}>
-                Health Score
+                {t("summary.healthScore.title")}
               </Text>
               <Text style={[styles.healthScoreDesc, { color: colors.text }]}>
                 {nutritionInfo.healthScore && nutritionInfo.healthScore >= 7
-                  ? "Excelente! Continue assim!"
+                  ? t("summary.healthScore.excellent")
                   : nutritionInfo.healthScore && nutritionInfo.healthScore >= 5
-                  ? "Bom! Pode melhorar ainda mais!"
-                  : "Vamos melhorar seus hábitos!"}
+                  ? t("summary.healthScore.good")
+                  : t("summary.healthScore.needsImprovement")}
               </Text>
             </View>
             <Ionicons
@@ -420,7 +426,7 @@ export default function SummaryScreen() {
           transition={{ type: "timing", duration: 600, delay: 600 }}
         >
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Necessidades Diárias
+            {t("common.nutrition.dailyNeeds")}
           </Text>
         </MotiView>
 
@@ -458,7 +464,7 @@ export default function SummaryScreen() {
                 duration={300}
                 progressValueColor={colors.text}
                 maxValue={100}
-                title={`${formatNumber(nutritionInfo.calories)}`}
+                title={formatNumber(nutritionInfo.calories)}
                 titleColor={colors.text}
                 titleStyle={{ fontSize: 14 }}
                 activeStrokeColor={colors.primary}
@@ -473,17 +479,18 @@ export default function SummaryScreen() {
               />
               <View key={`calories-info-${theme}`} style={styles.caloriesInfo}>
                 <Text style={[styles.caloriesTitle, { color: colors.text }]}>
-                  Calorias Diárias
+                  {t("summary.dailyNeeds.calories.title")}
                 </Text>
                 <Text style={[styles.caloriesValue, { color: colors.primary }]}>
-                  {formatNumber(nutritionInfo.calories)} kcal
+                  {formatNumber(nutritionInfo.calories)}{" "}
+                  {t("common.nutrition.kcal")}
                 </Text>
                 <Text style={[styles.caloriesDesc, { color: colors.text }]}>
                   {nutritionInfo.goal === "lose"
-                    ? "Déficit calórico para perda de peso"
+                    ? t("summary.dailyNeeds.calories.deficit")
                     : nutritionInfo.goal === "gain"
-                    ? "Superávit calórico para ganho de massa"
-                    : "Manutenção do peso atual"}
+                    ? t("summary.dailyNeeds.calories.surplus")
+                    : t("summary.dailyNeeds.calories.maintenance")}
                 </Text>
               </View>
               <Ionicons
@@ -552,18 +559,25 @@ export default function SummaryScreen() {
                     color="#FF6B6B"
                   />
                   <Text style={[styles.macroTitle, { color: colors.text }]}>
-                    Proteína
+                    {t("common.nutrition.protein")}
                   </Text>
                   <Text style={[styles.macroValue, { color: "#FF6B6B" }]}>
-                    {formatNumber(nutritionInfo.protein)}g
+                    {formatNumber(nutritionInfo.protein)}
+                    {t("common.nutrition.grams")}
                   </Text>
                   <Text style={[styles.macroDesc, { color: colors.text }]}>
-                    {nutritionInfo.protein && nutritionInfo.weight
-                      ? (nutritionInfo.protein / nutritionInfo.weight).toFixed(
-                          1
-                        )
-                      : "0"}
-                    g/kg • {Math.round(getMacroCalories.protein)} kcal
+                    {t("summary.dailyNeeds.macros.perKg", {
+                      value:
+                        nutritionInfo.protein && nutritionInfo.weight
+                          ? (
+                              nutritionInfo.protein / nutritionInfo.weight
+                            ).toFixed(1)
+                          : "0",
+                    })}{" "}
+                    •{" "}
+                    {t("summary.dailyNeeds.macros.calories", {
+                      value: Math.round(getMacroCalories.protein),
+                    })}
                   </Text>
                 </View>
               </View>
@@ -615,13 +629,16 @@ export default function SummaryScreen() {
                     color="#4ECDC4"
                   />
                   <Text style={[styles.macroTitle, { color: colors.text }]}>
-                    Carboidratos
+                    {t("common.nutrition.carbs")}
                   </Text>
                   <Text style={[styles.macroValue, { color: "#4ECDC4" }]}>
-                    {formatNumber(nutritionInfo.carbs)}g
+                    {formatNumber(nutritionInfo.carbs)}
+                    {t("common.nutrition.grams")}
                   </Text>
                   <Text style={[styles.macroDesc, { color: colors.text }]}>
-                    {Math.round(getMacroCalories.carbs)} kcal
+                    {t("summary.dailyNeeds.macros.calories", {
+                      value: Math.round(getMacroCalories.carbs),
+                    })}
                   </Text>
                 </View>
               </View>
@@ -673,13 +690,16 @@ export default function SummaryScreen() {
                     color="#FFE66D"
                   />
                   <Text style={[styles.macroTitle, { color: colors.text }]}>
-                    Gorduras
+                    {t("common.nutrition.fat")}
                   </Text>
                   <Text style={[styles.macroValue, { color: "#FFE66D" }]}>
-                    {formatNumber(nutritionInfo.fat)}g
+                    {formatNumber(nutritionInfo.fat)}
+                    {t("common.nutrition.grams")}
                   </Text>
                   <Text style={[styles.macroDesc, { color: colors.text }]}>
-                    {Math.round(getMacroCalories.fat)} kcal
+                    {t("summary.dailyNeeds.macros.calories", {
+                      value: Math.round(getMacroCalories.fat),
+                    })}
                   </Text>
                 </View>
               </View>
@@ -711,19 +731,20 @@ export default function SummaryScreen() {
               />
               <View key={`water-info-${theme}`} style={styles.waterInfo}>
                 <Text style={[styles.waterTitle, { color: colors.text }]}>
-                  Água Recomendada
+                  {t("summary.dailyNeeds.water.title")}
                 </Text>
                 <Text style={[styles.waterValue, { color: "#4ECDC4" }]}>
                   {nutritionInfo.waterIntake
                     ? (nutritionInfo.waterIntake / 1000).toFixed(1)
                     : "0"}
-                  L
+                  {t("common.nutrition.liters")}
                 </Text>
                 <Text style={[styles.waterTip, { color: colors.text }]}>
-                  {nutritionInfo.waterIntake
-                    ? Math.round(nutritionInfo.waterIntake / 200)
-                    : 0}{" "}
-                  copos de 200ml
+                  {t("summary.dailyNeeds.water.glasses", {
+                    count: nutritionInfo.waterIntake
+                      ? Math.round(nutritionInfo.waterIntake / 200)
+                      : 0,
+                  })}
                 </Text>
               </View>
             </View>
@@ -753,8 +774,7 @@ export default function SummaryScreen() {
             color={colors.primary}
           />
           <Text style={[styles.infoText, { color: colors.text }]}>
-            Plano calculado com base no seu perfil. Ajuste a qualquer momento
-            nas configurações.
+            {t("summary.info")}
           </Text>
         </MotiView>
 
@@ -784,15 +804,15 @@ export default function SummaryScreen() {
               color={colors.primary}
             />
             <Text style={[styles.tipTitle, { color: colors.primary }]}>
-              Dica do dia
+              {t("summary.tip.title")}
             </Text>
           </View>
           <Text style={[styles.tipText, { color: colors.text }]}>
             {nutritionInfo.goal === "lose"
-              ? "Beba um copo de água antes das refeições para ajudar a controlar o apetite e melhorar a digestão."
+              ? t("summary.tip.lose")
               : nutritionInfo.goal === "gain"
-              ? "Adicione uma fonte de proteína de qualidade em todas as suas refeições para otimizar o ganho de massa muscular."
-              : "Mantenha um diário alimentar para acompanhar seu progresso e identificar padrões que podem ser melhorados."}
+              ? t("summary.tip.gain")
+              : t("summary.tip.maintain")}
           </Text>
         </MotiView>
 
@@ -807,7 +827,7 @@ export default function SummaryScreen() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: "spring" }}
           >
-            <Text style={styles.errorText}>{error}</Text>
+            <Text style={styles.errorText}>{t("summary.error")}</Text>
           </MotiView>
         )}
       </ScrollView>
@@ -843,7 +863,7 @@ export default function SummaryScreen() {
                 textAlign: "center",
               }}
             >
-              Iniciar Jornada
+              {t("summary.startJourney")}
             </Text>
           )}
         </TouchableOpacity>

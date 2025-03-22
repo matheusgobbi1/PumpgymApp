@@ -1,95 +1,103 @@
-import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useFonts } from "expo-font";
+import React, { useEffect } from "react";
 import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useCallback } from "react";
-import { useColorScheme, StatusBar, Platform, View } from "react-native";
-import { AuthProvider } from "../context/AuthContext";
-import { NutritionProvider } from "../context/NutritionContext";
-import { MealProvider } from "../context/MealContext";
-import { WorkoutProvider } from "../context/WorkoutContext";
-import { ThemeProvider, useTheme } from "../context/ThemeContext";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { Platform, View, StatusBar as RNStatusBar } from "react-native";
+import {
+  SafeAreaProvider,
+  initialWindowMetrics,
+} from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
+import "react-native-gesture-handler";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import Colors from "../constants/Colors";
+import { NutritionProvider } from "../context/NutritionContext";
+import { WorkoutProvider } from "../context/WorkoutContext";
+import { AuthProvider } from "../context/AuthContext";
+import { ThemeProvider, useTheme } from "../context/ThemeContext";
+import { ReminderProvider } from "../context/ReminderContext";
+import { LanguageProvider } from "../context/LanguageContext";
+import { MealProvider } from "../context/MealContext";
+import "../i18n"; // Importando a configuração i18n
+import "../firebase/config";
 import OfflineNotice from "../components/notifications/OfflineNotice";
+import Colors from "../constants/Colors";
 import "react-native-reanimated";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import { ReminderProvider } from "../context/ReminderContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from "expo-router";
 
-export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: "index",
-};
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
-
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    ...FontAwesome.font,
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+    // Verificar sincronização pendente na inicialização do app
+    const checkPendingSyncOnStartup = async () => {
+      try {
+        // Importar dinamicamente para evitar problemas de circular import
+        const { SyncService } = require("../services/SyncService");
+        const { OfflineStorage } = require("../services/OfflineStorage");
 
-  // Ocultar a splash screen quando as fontes estiverem carregadas
-  const onLayoutRootView = useCallback(async () => {
-    if (loaded) {
-      // Ocultar a splash screen nativa do Expo
-      await SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+        // Verificar se está online
+        const isOnline = await SyncService.isOnline();
+        if (!isOnline) return;
 
-  // Garantir que a splash screen seja ocultada mesmo se houver problemas
-  useEffect(() => {
-    if (loaded) {
-      onLayoutRootView();
+        // Verificar se há operações pendentes
+        const pendingOps = await OfflineStorage.getPendingOperations();
 
-      // Timeout de segurança para garantir que a splash screen seja ocultada
-      const timeoutId = setTimeout(async () => {
-        try {
-          await SplashScreen.hideAsync();
-        } catch (e) {}
-      }, 3000);
+        // Verificar se há datas de refeições modificadas
+        const userData = await AsyncStorage.getItem("pumpgym_user_data");
+        if (userData) {
+          const user = JSON.parse(userData);
+          const modifiedDatesKey = `@meals:${user.uid}:modified_dates`;
+          const modifiedDatesStr = await AsyncStorage.getItem(modifiedDatesKey);
+          const modifiedDates = modifiedDatesStr
+            ? JSON.parse(modifiedDatesStr)
+            : [];
 
-      return () => clearTimeout(timeoutId);
-    }
-  }, [loaded, onLayoutRootView]);
+          // Se existirem operações pendentes, sincronizar
+          if (pendingOps.length > 0 || modifiedDates.length > 0) {
+            console.log(
+              "Operações pendentes encontradas na inicialização. Sincronizando..."
+            );
+            // Atraso para garantir que os contexts estejam inicializados
+            setTimeout(async () => {
+              await SyncService.syncAll();
+              console.log("Sincronização na inicialização concluída");
+            }, 3000);
+          }
+        }
+      } catch (error) {
+        console.error(
+          "Erro ao verificar sincronização pendente na inicialização:",
+          error
+        );
+      }
+    };
 
-  if (!loaded) {
-    return null;
-  }
+    checkPendingSyncOnStartup();
+  }, []);
 
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <BottomSheetModalProvider>
-          <ThemeProvider>
-            <AuthProvider>
-              <NutritionProvider>
-                <MealProvider>
-                  <WorkoutProvider>
-                    <ReminderProvider>
-                      <AppContent />
-                    </ReminderProvider>
-                  </WorkoutProvider>
-                </MealProvider>
-              </NutritionProvider>
-            </AuthProvider>
-          </ThemeProvider>
-        </BottomSheetModalProvider>
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        <ThemeProvider>
+          <AuthProvider>
+            <LanguageProvider>
+              <BottomSheetModalProvider>
+                <NutritionProvider>
+                  <MealProvider>
+                    <WorkoutProvider>
+                      <ReminderProvider>
+                        <OfflineNotice />
+                        <AppContent />
+                      </ReminderProvider>
+                    </WorkoutProvider>
+                  </MealProvider>
+                </NutritionProvider>
+              </BottomSheetModalProvider>
+            </LanguageProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
@@ -102,13 +110,8 @@ function AppContent() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Configuração da StatusBar para Android e iOS */}
-      <StatusBar
-        backgroundColor={colors.background}
-        barStyle={theme === "dark" ? "light-content" : "dark-content"}
-        translucent={true}
-      />
-
-      <OfflineNotice />
+      <StatusBar style={theme === "dark" ? "light" : "dark"} />
+      <RNStatusBar backgroundColor={colors.background} translucent={true} />
 
       <Stack
         screenOptions={{

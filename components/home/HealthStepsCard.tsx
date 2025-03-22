@@ -16,6 +16,7 @@ import * as Haptics from "expo-haptics";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { Pedometer } from "expo-sensors";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 48) / 2; // Metade da largura da tela menos o padding
@@ -23,6 +24,7 @@ const CARD_WIDTH = (width - 48) / 2; // Metade da largura da tela menos o paddin
 export default function HealthStepsCard() {
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const { t } = useTranslation();
 
   // Estado para armazenar os passos
   const [steps, setSteps] = useState<number | null>(null);
@@ -144,7 +146,9 @@ export default function HealthStepsCard() {
               color="#4CAF50"
             />
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>Passos</Text>
+          <Text style={[styles.title, { color: colors.text }]}>
+            {t("home.stats.steps")}
+          </Text>
         </View>
       </View>
 
@@ -158,7 +162,7 @@ export default function HealthStepsCard() {
             <Text
               style={[styles.notAvailableText, { color: colors.text + "80" }]}
             >
-              Pedômetro não disponível
+              {t("home.stats.pedometerNotAvailable")}
             </Text>
           </View>
         ) : !hasPermission ? (
@@ -177,7 +181,7 @@ export default function HealthStepsCard() {
               style={styles.connectIcon}
             />
             <Text style={[styles.connectText, { color: "#4CAF50" }]}>
-              Conectar
+              {t("home.stats.connect")}
             </Text>
           </TouchableOpacity>
         ) : (
@@ -197,7 +201,7 @@ export default function HealthStepsCard() {
               {/* Meta */}
               <View style={styles.goalContainer}>
                 <Text style={[styles.goalText, { color: colors.text + "80" }]}>
-                  Meta: {formatSteps(dailyGoal)}
+                  {t("home.stats.target")}: {formatSteps(dailyGoal)}
                 </Text>
               </View>
             </View>

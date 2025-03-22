@@ -17,6 +17,7 @@ import { LineChart } from "react-native-chart-kit";
 import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
 import { MotiView } from "moti";
 import * as Haptics from "expo-haptics";
+import { useTranslation } from "react-i18next";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -25,6 +26,7 @@ export default function WeightChangeRateScreen() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { nutritionInfo, updateNutritionInfo } = useNutrition();
+  const { t } = useTranslation();
   const sliderRef = useRef<any>(null);
   const animatedScale = useRef(new Animated.Value(1)).current;
 
@@ -88,9 +90,9 @@ export default function WeightChangeRateScreen() {
       dates.push(pointDate);
 
       if (i === 0) {
-        labels.push("Hoje");
+        labels.push(t("onboarding.weightChangeRate.projection.today"));
       } else if (i === numPoints - 1) {
-        labels.push("Meta");
+        labels.push(t("onboarding.weightChangeRate.projection.goal"));
       } else {
         // Datas intermediárias formatadas
         labels.push(formatShortDate(pointDate));
@@ -190,10 +192,10 @@ export default function WeightChangeRateScreen() {
 
   // Determinar a velocidade baseada na taxa
   const getSpeedText = () => {
-    if (rate <= 0.3) return "Conservadora";
-    if (rate <= 0.7) return "Moderada";
-    if (rate <= 0.9) return "Acelerada";
-    return "Agressiva";
+    if (rate <= 0.3) return t("onboarding.weightChangeRate.speed.verySlowType");
+    if (rate <= 0.7) return t("onboarding.weightChangeRate.speed.moderateType");
+    if (rate <= 0.9) return t("onboarding.weightChangeRate.speed.fastType");
+    return t("onboarding.weightChangeRate.speed.veryFastType");
   };
 
   // Determinar a cor baseada na taxa
@@ -229,19 +231,30 @@ export default function WeightChangeRateScreen() {
     const timeText = Math.ceil(projectedData.weeksToGoal);
     const safeTimeText = isFinite(timeText) ? timeText : 0;
 
-    if (isGainingWeight) {
-      return `Você ganhará ${diffFormatted}kg em aproximadamente ${safeTimeText} semanas com uma velocidade ${speedText}. Atenção: isso é apenas uma projeção, o resultado final pode variar de acordo com sua dieta, treino e muitos outros fatores.`;
-    } else {
-      return `Você perderá ${diffFormatted}kg em aproximadamente ${safeTimeText} semanas com uma velocidade ${speedText}. Atenção: isso é apenas uma projeção, o resultado final pode variar de acordo com sua dieta, treino e muitos outros fatores.`;
-    }
+    return t(
+      isGainingWeight
+        ? "onboarding.weightChangeRate.info.gainProjection"
+        : "onboarding.weightChangeRate.info.lossProjection",
+      {
+        weight: diffFormatted,
+        weeks: safeTimeText,
+        speedType: speedText,
+      }
+    );
   };
 
   // Presets de velocidade
   const speedPresets = [
-    { label: "Lenta", value: 0.3 },
-    { label: "Moderada", value: 0.6 },
-    { label: "Rápida", value: 0.9 },
-    { label: "Intensa", value: 1.2 },
+    { label: t("onboarding.weightChangeRate.speed.presets.slow"), value: 0.3 },
+    {
+      label: t("onboarding.weightChangeRate.speed.presets.moderate"),
+      value: 0.6,
+    },
+    { label: t("onboarding.weightChangeRate.speed.presets.fast"), value: 0.9 },
+    {
+      label: t("onboarding.weightChangeRate.speed.presets.intense"),
+      value: 1.2,
+    },
   ];
 
   // Função segura para formatar números
@@ -270,8 +283,8 @@ export default function WeightChangeRateScreen() {
 
   return (
     <OnboardingLayout
-      title="Velocidade da mudança"
-      subtitle="Ajuste a velocidade para atingir seu objetivo de forma sustentável"
+      title={t("onboarding.weightChangeRate.title")}
+      subtitle={t("onboarding.weightChangeRate.subtitle")}
       currentStep={7}
       totalSteps={10}
       onBack={handleBack}
@@ -301,7 +314,11 @@ export default function WeightChangeRateScreen() {
           <View style={styles.chartHeader}>
             <View>
               <Text style={[styles.chartTitle, { color: colors.text }]}>
-                Projeção de {isGainingWeight ? "Ganho" : "Perda"}
+                {t(
+                  isGainingWeight
+                    ? "onboarding.weightChangeRate.projection.gainTitle"
+                    : "onboarding.weightChangeRate.projection.lossTitle"
+                )}
               </Text>
               <Animated.Text
                 style={[
@@ -312,11 +329,12 @@ export default function WeightChangeRateScreen() {
                   },
                 ]}
               >
-                {safeNumberFormat(Math.abs(getWeightDifference()))}kg em{" "}
-                {isFinite(projectedData.weeksToGoal)
-                  ? Math.ceil(projectedData.weeksToGoal)
-                  : 0}{" "}
-                semanas
+                {t("onboarding.weightChangeRate.projection.weightChange", {
+                  weight: safeNumberFormat(Math.abs(getWeightDifference())),
+                  weeks: isFinite(projectedData.weeksToGoal)
+                    ? Math.ceil(projectedData.weeksToGoal)
+                    : 0,
+                })}
               </Animated.Text>
             </View>
             <Ionicons
@@ -450,7 +468,7 @@ export default function WeightChangeRateScreen() {
                 transition={{ type: "spring", delay: 200 }}
               >
                 <Text style={[styles.dateChipText, { color: getSpeedColor() }]}>
-                  Hoje
+                  {t("onboarding.weightChangeRate.projection.today")}
                 </Text>
               </MotiView>
 
@@ -469,10 +487,11 @@ export default function WeightChangeRateScreen() {
               >
                 <Text style={[styles.dateChipText, { color: getSpeedColor() }]}>
                   {formatShortDate(projectedData.targetDate)} •{" "}
-                  {isFinite(projectedData.weeksToGoal)
-                    ? Math.ceil(projectedData.weeksToGoal)
-                    : 0}{" "}
-                  semanas
+                  {t("onboarding.weightChangeRate.projection.weeks", {
+                    weeks: isFinite(projectedData.weeksToGoal)
+                      ? Math.ceil(projectedData.weeksToGoal)
+                      : 0,
+                  })}
                 </Text>
               </MotiView>
             </View>
@@ -509,7 +528,9 @@ export default function WeightChangeRateScreen() {
             </View>
             <View style={styles.speedTextContainer}>
               <Text style={[styles.speedTitle, { color: colors.text }]}>
-                Velocidade {getSpeedText()}
+                {t("onboarding.weightChangeRate.speed.title", {
+                  speedType: getSpeedText(),
+                })}
               </Text>
               <Animated.Text
                 style={[
@@ -520,7 +541,9 @@ export default function WeightChangeRateScreen() {
                   },
                 ]}
               >
-                {safeNumberFormat(rate)}kg por semana
+                {t("onboarding.weightChangeRate.speed.value", {
+                  rate: safeNumberFormat(rate),
+                })}
               </Animated.Text>
             </View>
           </View>
@@ -607,7 +630,7 @@ export default function WeightChangeRateScreen() {
                     { color: safeColorWithOpacity(colors.text, 0.5) },
                   ]}
                 >
-                  Peso Atual
+                  {t("onboarding.weightChangeRate.info.currentWeight")}
                 </Text>
                 <Text style={[styles.infoValue, { color: colors.text }]}>
                   {nutritionInfo.weight
@@ -624,7 +647,7 @@ export default function WeightChangeRateScreen() {
                     { color: safeColorWithOpacity(colors.text, 0.5) },
                   ]}
                 >
-                  Peso Meta
+                  {t("onboarding.weightChangeRate.info.targetWeight")}
                 </Text>
                 <Text style={[styles.infoValue, { color: colors.text }]}>
                   {nutritionInfo.targetWeight
@@ -643,7 +666,7 @@ export default function WeightChangeRateScreen() {
                     { color: safeColorWithOpacity(colors.text, 0.5) },
                   ]}
                 >
-                  Data Prevista
+                  {t("onboarding.weightChangeRate.info.targetDate")}
                 </Text>
                 <Animated.Text
                   style={[

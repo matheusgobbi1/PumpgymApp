@@ -34,7 +34,7 @@ export default {
   web: {
     favicon: "./assets/images/favicon.png",
   },
-  plugins: ["expo-router", "expo-sensors"],
+  plugins: ["expo-router", "expo-sensors", "expo-localization"],
   extra: {
     EDAMAM_APP_ID: process.env.EXPO_PUBLIC_EDAMAM_APP_ID,
     EDAMAM_APP_KEY: process.env.EXPO_PUBLIC_EDAMAM_APP_KEY,

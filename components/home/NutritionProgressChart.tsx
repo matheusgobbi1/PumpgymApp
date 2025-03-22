@@ -22,6 +22,7 @@ import { format, subDays, isFirstDayOfMonth, getDate } from "date-fns";
 import { useMeals } from "../../context/MealContext";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 
@@ -37,6 +38,7 @@ export default function NutritionProgressChart({
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { meals, getDayTotals } = useMeals();
+  const { t } = useTranslation();
 
   const [selectedPeriod, setSelectedPeriod] = useState<Period>("7d");
   const [caloriesData, setCaloriesData] = useState<number[]>([]);
@@ -307,14 +309,14 @@ export default function NutritionProgressChart({
             </View>
             <View>
               <Text style={[styles.title, { color: colors.text }]}>
-                Calorias Diárias
+                {t("home.chart.dailyCalories")}
               </Text>
               <Text style={[styles.subtitle, { color: colors.text + "80" }]}>
                 {selectedPeriod === "7d"
-                  ? "Últimos 7 dias"
+                  ? t("home.chart.last7Days")
                   : selectedPeriod === "14d"
-                  ? "Últimos 14 dias"
-                  : "Último mês"}
+                  ? t("home.chart.last14Days")
+                  : t("home.chart.lastMonth")}
               </Text>
             </View>
           </View>
@@ -564,7 +566,7 @@ export default function NutritionProgressChart({
                 <Text
                   style={[styles.loadingText, { color: colors.text + "60" }]}
                 >
-                  Carregando dados...
+                  {t("common.loading")}
                 </Text>
               </View>
             ) : (
@@ -621,6 +623,38 @@ export default function NutritionProgressChart({
               </View>
             )}
           </View>
+
+          {/* Informações estatísticas quando expandido */}
+          {isExpanded && (
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <Text style={[styles.statLabel, { color: colors.text + "70" }]}>
+                  {t("home.chart.average")}
+                </Text>
+                <Text style={[styles.statValue, { color: colors.text }]}>
+                  {averageCalories} kcal
+                </Text>
+              </View>
+
+              <View style={styles.statItem}>
+                <Text style={[styles.statLabel, { color: colors.text + "70" }]}>
+                  {t("home.chart.today")}
+                </Text>
+                <Text style={[styles.statValue, { color: colors.text }]}>
+                  {todayCalories} kcal
+                </Text>
+              </View>
+
+              <View style={styles.statItem}>
+                <Text style={[styles.statLabel, { color: colors.text + "70" }]}>
+                  {t("home.chart.maximum")}
+                </Text>
+                <Text style={[styles.statValue, { color: colors.text }]}>
+                  {maxCalories} kcal
+                </Text>
+              </View>
+            </View>
+          )}
         </MotiView>
       )}
     </Animated.View>
@@ -827,5 +861,10 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 12,
+  },
+  statItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
 });

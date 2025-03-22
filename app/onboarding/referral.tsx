@@ -7,20 +7,22 @@ import { useTheme } from "../../context/ThemeContext";
 import { useNutrition } from "../../context/NutritionContext";
 import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
 import { MotiView } from "moti";
+import { useTranslation } from "react-i18next";
 
 export default function ReferralScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { nutritionInfo, updateNutritionInfo } = useNutrition();
+  const { t } = useTranslation();
 
   const [referral, setReferral] = useState<string>(
     nutritionInfo.referral || ""
   );
-  
+
   // Estado para forçar re-renderização quando o tema mudar
   const [, setForceUpdate] = useState({});
-  
+
   // Efeito para forçar a re-renderização quando o tema mudar
   useEffect(() => {
     setForceUpdate({});
@@ -36,17 +38,37 @@ export default function ReferralScreen() {
   };
 
   const referralOptions = [
-    { id: "instagram", name: "Instagram", icon: "logo-instagram" },
-    { id: "facebook", name: "Facebook", icon: "logo-facebook" },
-    { id: "tiktok", name: "TikTok", icon: "logo-tiktok" },
-    { id: "youtube", name: "Youtube", icon: "logo-youtube" },
-    { id: "google", name: "Google", icon: "logo-google" },
+    {
+      id: "instagram",
+      name: t("onboarding.referral.options.instagram"),
+      icon: "logo-instagram",
+    },
+    {
+      id: "facebook",
+      name: t("onboarding.referral.options.facebook"),
+      icon: "logo-facebook",
+    },
+    {
+      id: "tiktok",
+      name: t("onboarding.referral.options.tiktok"),
+      icon: "logo-tiktok",
+    },
+    {
+      id: "youtube",
+      name: t("onboarding.referral.options.youtube"),
+      icon: "logo-youtube",
+    },
+    {
+      id: "google",
+      name: t("onboarding.referral.options.google"),
+      icon: "logo-google",
+    },
   ];
 
   return (
     <OnboardingLayout
-      title="Onde você ouviu falar de nós?"
-      subtitle=""
+      title={t("onboarding.referral.title")}
+      subtitle={t("onboarding.referral.subtitle")}
       currentStep={9}
       totalSteps={10}
       onBack={handleBack}
@@ -57,7 +79,7 @@ export default function ReferralScreen() {
         key={`options-container-${theme}`}
         from={{ opacity: 0, translateY: 20 }}
         animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: 'timing', duration: 500 }}
+        transition={{ type: "timing", duration: 500 }}
         style={styles.optionsContainer}
       >
         {referralOptions.map((option) => (
@@ -65,14 +87,21 @@ export default function ReferralScreen() {
             key={`referral-option-${option.id}-${theme}`}
             from={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'spring', delay: 100 + referralOptions.indexOf(option) * 50 }}
+            transition={{
+              type: "spring",
+              delay: 100 + referralOptions.indexOf(option) * 50,
+            }}
           >
             <TouchableOpacity
               style={[
                 styles.optionContainer,
                 {
                   backgroundColor:
-                    referral === option.id ? colors.primary : theme === 'dark' ? colors.dark : colors.light,
+                    referral === option.id
+                      ? colors.primary
+                      : theme === "dark"
+                      ? colors.dark
+                      : colors.light,
                   borderColor:
                     referral === option.id ? colors.primary : colors.border,
                 },

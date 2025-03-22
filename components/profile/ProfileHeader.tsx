@@ -13,6 +13,7 @@ import Colors from "../../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../context/AuthContext";
 import { useNutrition } from "../../context/NutritionContext";
+import { useTranslation } from "react-i18next";
 
 interface ProfileHeaderProps {
   onSettingsPress?: () => void;
@@ -23,6 +24,7 @@ export default function ProfileHeader({
   onSettingsPress,
   onEditProfilePress,
 }: ProfileHeaderProps) {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { user } = useAuth();
@@ -42,7 +44,7 @@ export default function ProfileHeader({
 
   // Função para formatar o nome do usuário (primeira letra maiúscula)
   const formatName = (name: string | null | undefined) => {
-    if (!name) return "Usuário";
+    if (!name) return t("profile.header.user");
 
     return name
       .split(" ")
@@ -53,7 +55,7 @@ export default function ProfileHeader({
   // Função para determinar o status do plano nutricional
   const getNutritionStatus = () => {
     if (!nutritionInfo.calories) {
-      return "Plano não configurado";
+      return t("profile.header.planNotConfigured");
     }
 
     // Verificar se o usuário completou o onboarding
@@ -63,10 +65,10 @@ export default function ProfileHeader({
       nutritionInfo.weight &&
       nutritionInfo.goal
     ) {
-      return "Plano ativo";
+      return t("profile.header.planActive");
     }
 
-    return "Plano incompleto";
+    return t("profile.header.planIncomplete");
   };
 
   // Função para obter a primeira letra do nome para o avatar

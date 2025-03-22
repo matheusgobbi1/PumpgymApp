@@ -38,6 +38,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MotiView } from "moti";
+import { useTranslation } from "react-i18next";
 
 const { width, height } = Dimensions.get("window");
 
@@ -62,6 +63,7 @@ const LoginBottomSheet = ({
   const colors = Colors[theme];
   const insets = useSafeAreaInsets();
   const { login } = useAuth();
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -229,32 +231,34 @@ const LoginBottomSheet = ({
   );
 
   const handleLogin = async () => {
-    const validationResult = validateLogin(email, password);
-    if (!validationResult.isValid) {
-      setError(validationResult.message);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      return;
-    }
-
     try {
+      // Validar os campos
+      const validationResult = validateLogin(email, password);
+      if (!validationResult.isValid) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        setError(
+          email === "" || password === ""
+            ? t("login.bottomSheet.errorMessages.emptyFields")
+            : validationResult.message
+        );
+        return;
+      }
+
+      // Iniciar o carregamento
       setLoading(true);
       setError("");
+
+      // Chamar a função de login
       await login(email, password);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      // O redirecionamento será feito automaticamente pelo AuthProvider
-    } catch (err: any) {
-      console.error("Erro ao fazer login:", err);
+
+      // Fechar o BottomSheet após o login bem-sucedido
+      setBottomSheetIndex(-1);
+    } catch (err) {
+      console.error("Erro no login:", err);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      if (
-        err.code === "auth/user-not-found" ||
-        err.code === "auth/wrong-password"
-      ) {
-        setError("Email ou senha incorretos");
-      } else if (err.code === "auth/invalid-email") {
-        setError("Email inválido");
-      } else {
-        setError("Ocorreu um erro ao fazer login. Tente novamente.");
-      }
+
+      // Usar mensagem de erro traduzida
+      setError(t("login.bottomSheet.errorMessages.invalidCredentials"));
     } finally {
       setLoading(false);
     }
@@ -386,7 +390,7 @@ const LoginBottomSheet = ({
                 },
               ]}
             >
-              Bem-vindo de volta
+              {t("login.bottomSheet.welcomeBack")}
             </Text>
             <TouchableOpacity
               onPress={handleCloseBottomSheet}
@@ -443,7 +447,9 @@ const LoginBottomSheet = ({
           <View style={[styles.form, keyboardVisible && { paddingBottom: 30 }]}>
             {/* Campo de email */}
             <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>Email</Text>
+              <Text style={styles.inputLabel}>
+                {t("login.bottomSheet.email")}
+              </Text>
               <View
                 style={[
                   styles.inputContainer,
@@ -466,7 +472,7 @@ const LoginBottomSheet = ({
                       color: theme === "dark" ? "#ffffff" : "#000000",
                     },
                   ]}
-                  placeholder="Seu endereço de email"
+                  placeholder={t("login.bottomSheet.emailPlaceholder")}
                   placeholderTextColor={
                     theme === "dark" ? "#999999" : "#999999"
                   }
@@ -484,7 +490,9 @@ const LoginBottomSheet = ({
 
             {/* Campo de senha */}
             <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>Senha</Text>
+              <Text style={styles.inputLabel}>
+                {t("login.bottomSheet.password")}
+              </Text>
               <View
                 style={[
                   styles.inputContainer,
@@ -508,7 +516,7 @@ const LoginBottomSheet = ({
                       color: theme === "dark" ? "#ffffff" : "#000000",
                     },
                   ]}
-                  placeholder="Sua senha"
+                  placeholder={t("login.bottomSheet.passwordPlaceholder")}
                   placeholderTextColor={
                     theme === "dark" ? "#999999" : "#999999"
                   }
@@ -532,7 +540,7 @@ const LoginBottomSheet = ({
               <Text
                 style={[styles.forgotPasswordText, { color: colors.primary }]}
               >
-                Esqueceu sua senha?
+                {t("login.bottomSheet.forgotPassword")}
               </Text>
             </TouchableOpacity>
 
@@ -570,7 +578,7 @@ const LoginBottomSheet = ({
                       },
                     ]}
                   >
-                    ENTRAR
+                    {t("login.bottomSheet.loginButton")}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -592,7 +600,7 @@ const LoginBottomSheet = ({
                   { color: theme === "dark" ? "#999" : "#666" },
                 ]}
               >
-                ou continue com
+                {t("login.bottomSheet.orContinueWith")}
               </Text>
               <View
                 style={[

@@ -23,6 +23,7 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
+import { useTranslation } from "react-i18next";
 
 // Tipo para os ícones do MaterialCommunityIcons
 type MaterialIconNames = React.ComponentProps<
@@ -135,6 +136,7 @@ const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
 
 // Provider do contexto
 export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const userId = user?.uid || "anonymous";
 
@@ -318,7 +320,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       const defaultTypes: WorkoutType[] = [
         {
           id: "Treino A",
-          name: "Treino A",
+          name: t("workouts.context.defaultWorkouts.workoutA"),
           iconType: {
             type: "material" as const,
             name: "arm-flex-outline" as MaterialIconNames,
@@ -329,7 +331,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         },
         {
           id: "Treino B",
-          name: "Treino B",
+          name: t("workouts.context.defaultWorkouts.workoutB"),
           iconType: {
             type: "material" as const,
             name: "arm-flex-outline" as MaterialIconNames,
@@ -340,7 +342,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         },
         {
           id: "Treino C",
-          name: "Treino C",
+          name: t("workouts.context.defaultWorkouts.workoutC"),
           iconType: {
             type: "material" as const,
             name: "arm-flex-outline" as MaterialIconNames,
@@ -351,7 +353,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         },
         {
           id: "Treino D",
-          name: "Treino D",
+          name: t("workouts.context.defaultWorkouts.workoutD"),
           iconType: {
             type: "material" as const,
             name: "arm-flex-outline" as MaterialIconNames,
@@ -362,7 +364,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         },
         {
           id: "Treino E",
-          name: "Treino E",
+          name: t("workouts.context.defaultWorkouts.workoutE"),
           iconType: {
             type: "material" as const,
             name: "arm-flex-outline" as MaterialIconNames,
@@ -373,7 +375,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         },
         {
           id: "Treino F",
-          name: "Treino F",
+          name: t("workouts.context.defaultWorkouts.workoutF"),
           iconType: {
             type: "material" as const,
             name: "arm-flex-outline" as MaterialIconNames,
@@ -384,7 +386,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         },
         {
           id: "Treino G",
-          name: "Treino G",
+          name: t("workouts.context.defaultWorkouts.workoutG"),
           iconType: {
             type: "material" as const,
             name: "arm-flex-outline" as MaterialIconNames,

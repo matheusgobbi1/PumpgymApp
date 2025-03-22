@@ -24,6 +24,7 @@ import { useRouter } from "expo-router";
 import { useReminders } from "../../context/ReminderContext";
 import ConfirmationModal from "../ui/ConfirmationModal";
 import { Swipeable } from "react-native-gesture-handler";
+import { useTranslation } from "react-i18next";
 
 // Tipos para os lembretes
 export interface Reminder {
@@ -55,6 +56,7 @@ export default function DailyReminders() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const router = useRouter();
+  const { t } = useTranslation();
   const {
     reminders,
     loading,
@@ -377,10 +379,10 @@ export default function DailyReminders() {
             </View>
             <View>
               <Text style={[styles.title, { color: colors.text }]}>
-                Lembretes Diários
+                {t("dailyReminders.title")}
               </Text>
               <Text style={[styles.subtitle, { color: colors.text + "80" }]}>
-                {todayReminders.length} lembretes hoje
+                {t("dailyReminders.subtitle", { count: todayReminders.length })}
               </Text>
             </View>
           </View>
@@ -426,7 +428,7 @@ export default function DailyReminders() {
               style={styles.emptyGradient}
             >
               <Text style={[styles.emptyText, { color: colors.text + "50" }]}>
-                Adicione seu primeiro lembrete
+                {t("dailyReminders.emptyState.text")}
               </Text>
             </LinearGradient>
           </View>
@@ -474,10 +476,10 @@ export default function DailyReminders() {
       {/* Modal de confirmação para excluir lembrete */}
       <ConfirmationModal
         visible={deleteModalVisible}
-        title="Excluir Lembrete"
-        message="Tem certeza que deseja excluir este lembrete? Esta ação não pode ser desfeita."
-        confirmText="Excluir"
-        cancelText="Cancelar"
+        title={t("dailyReminders.deleteModal.title")}
+        message={t("dailyReminders.deleteModal.message")}
+        confirmText={t("dailyReminders.deleteModal.confirmText")}
+        cancelText={t("dailyReminders.deleteModal.cancelText")}
         confirmType="danger"
         icon="trash-outline"
         onConfirm={handleDeleteReminder}

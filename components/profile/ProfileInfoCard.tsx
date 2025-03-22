@@ -29,6 +29,7 @@ import {
   ValidationResult,
 } from "../../utils/validations";
 import { ErrorMessage } from "../common/ErrorMessage";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 
@@ -37,6 +38,7 @@ interface ProfileInfoCardProps {
 }
 
 export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { nutritionInfo, updateNutritionInfo, saveNutritionInfo } =
@@ -83,28 +85,16 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
 
   // Função para traduzir o gênero
   const translateGender = (gender?: Gender) => {
-    if (!gender) return "Não informado";
+    if (!gender) return t("profile.infoCard.gender.notSpecified");
 
-    const translations: Record<Gender, string> = {
-      male: "Masculino",
-      female: "Feminino",
-      other: "Outro",
-    };
-
-    return translations[gender];
+    return t(`profile.infoCard.gender.${gender}`);
   };
 
   // Função para traduzir o objetivo
   const translateGoal = (goal?: Goal) => {
-    if (!goal) return "Não informado";
+    if (!goal) return t("profile.infoCard.goals.notSpecified");
 
-    const translations: Record<Goal, string> = {
-      lose: "Perder peso",
-      maintain: "Manter peso",
-      gain: "Ganhar peso",
-    };
-
-    return translations[goal];
+    return t(`profile.infoCard.goals.${goal}`);
   };
 
   // Função para calcular a idade
@@ -185,7 +175,7 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
     const currentWeightValue = parseFloat(editWeight);
 
     if (isNaN(currentWeightValue)) {
-      setTargetWeightError("Por favor, defina seu peso atual primeiro");
+      setTargetWeightError(t("profile.infoCard.targetWeightError"));
       return false;
     }
 
@@ -311,10 +301,10 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
             </View>
             <View>
               <Text style={[styles.title, { color: colors.text }]}>
-                Dados Biométricos
+                {t("profile.infoCard.biometricData")}
               </Text>
               <Text style={[styles.subtitle, { color: colors.text + "80" }]}>
-                {age ? `${age} anos` : ""}
+                {age ? `${age} ${t("profile.infoCard.years")}` : ""}
                 {age && nutritionInfo.gender ? " • " : ""}
                 {nutritionInfo.gender
                   ? translateGender(nutritionInfo.gender)
@@ -399,7 +389,7 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
                 },
               ]}
             >
-              Medidas
+              {t("profile.infoCard.measures")}
             </Text>
           </TouchableOpacity>
 
@@ -433,7 +423,7 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
                 },
               ]}
             >
-              Objetivo
+              {t("profile.infoCard.goal")}
             </Text>
           </TouchableOpacity>
         </View>
@@ -484,7 +474,7 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
                       style={[styles.statLabel, { color: colors.text }]}
                       numberOfLines={1}
                     >
-                      Altura
+                      {t("profile.infoCard.height")}
                     </Text>
                     <View style={styles.editInputContainer}>
                       {isEditMode ? (
@@ -554,7 +544,7 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
                       style={[styles.statLabel, { color: colors.text }]}
                       numberOfLines={1}
                     >
-                      Peso
+                      {t("profile.infoCard.weight")}
                     </Text>
                     <View style={styles.editInputContainer}>
                       {isEditMode ? (
@@ -648,7 +638,7 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
                     style={[styles.statLabel, { color: colors.text }]}
                     numberOfLines={1}
                   >
-                    Objetivo Principal
+                    {t("profile.infoCard.mainGoal")}
                   </Text>
                   <Text style={[styles.statValue, { color: colors.text }]}>
                     {translateGoal(nutritionInfo.goal)}
@@ -666,7 +656,7 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
                           { color: colors.text + "60" },
                         ]}
                       >
-                        Atual
+                        {t("profile.infoCard.current")}
                       </Text>
                       <Text
                         style={[styles.weightValue, { color: colors.text }]}
@@ -681,7 +671,7 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
                           { color: colors.text + "60" },
                         ]}
                       >
-                        Meta
+                        {t("profile.infoCard.target")}
                       </Text>
                       {isEditMode ? (
                         <View style={styles.editInputContainer}>
@@ -746,7 +736,8 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
                           { color: colors.text + "70" },
                         ]}
                       >
-                        {Math.round(weightProgress)}% concluído
+                        {Math.round(weightProgress)}%{" "}
+                        {t("profile.infoCard.completed")}
                       </Text>
                     </View>
                   )}

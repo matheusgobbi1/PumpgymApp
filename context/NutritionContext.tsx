@@ -13,6 +13,8 @@ import NetInfo from "@react-native-community/netinfo";
 import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTranslation } from "react-i18next";
+import { SyncService } from "../services/SyncService";
 
 // Chaves para armazenamento no AsyncStorage
 const KEYS = {
@@ -82,7 +84,7 @@ interface NutritionContextType {
   completeOnboarding: () => Promise<void>;
   resetNutritionInfo: () => void;
   isOnline: boolean;
-  syncPendingData: () => Promise<void>;
+  syncPendingData: () => Promise<any>;
   saveOnboardingStep: (step: string) => Promise<void>;
   getOnboardingStep: () => Promise<string | null>;
 }
@@ -122,6 +124,7 @@ const initialNutritionInfo: NutritionInfo = {
 };
 
 export const NutritionProvider = ({ children }: NutritionProviderProps) => {
+  const { t } = useTranslation();
   const [nutritionInfo, setNutritionInfo] =
     useState<NutritionInfo>(initialNutritionInfo);
   const [isOnline, setIsOnline] = useState<boolean>(true);
@@ -738,34 +741,26 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
     if (!user) return;
 
     try {
-      const isDeviceOnline = await OfflineStorage.isOnline();
+      // Usar o novo SyncService para sincronizar os dados pendentes
+      const syncResult = await SyncService.syncAll();
 
-      if (!isDeviceOnline) return;
-
-      // Obter todas as operações pendentes
-      const pendingOps = await OfflineStorage.getPendingOperations();
-
-      if (pendingOps.length === 0) {
-        return;
+      // Registrar resultados da sincronização (opcional)
+      if (
+        syncResult.pendingOps.syncedCount > 0 ||
+        syncResult.meals.syncedDates.length > 0
+      ) {
+        console.log("Sincronização concluída com sucesso:", syncResult);
       }
 
-      // Processar cada operação pendente
-      for (const op of pendingOps) {
-        try {
-          if (op.collection === "nutrition" && op.type === "update") {
-            await setDoc(doc(db, "nutrition", user.uid), op.data);
-          } else if (op.collection === "users" && op.type === "update") {
-            await setDoc(doc(db, "users", user.uid), op.data, { merge: true });
-          }
-
-          // Remover operação processada
-          await OfflineStorage.removePendingOperation(op.id);
-        } catch (opError) {
-          // Erro ao sincronizar operação
-        }
+      // Se houver erros, podemos registrá-los
+      if (syncResult.errors.length > 0) {
+        console.warn("Erros durante a sincronização:", syncResult.errors);
       }
+
+      return syncResult;
     } catch (error) {
-      // Erro ao sincronizar dados
+      console.error("Erro ao sincronizar dados pendentes:", error);
+      // Não propagar o erro para não interromper a experiência do usuário
     }
   };
 

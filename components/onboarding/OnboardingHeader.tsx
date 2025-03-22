@@ -12,6 +12,7 @@ import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 
@@ -29,6 +30,7 @@ export default function OnboardingHeader({
   const { theme } = useTheme();
   const colors = Colors[theme];
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const handleBack = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -57,19 +59,21 @@ export default function OnboardingHeader({
 
         {/* Stepper centralizado */}
         <View style={styles.stepperContainer}>
-          {Array.from({ length: totalSteps }).map((_, index) => (
-            <View
-              key={`progress-${index}`}
-              style={[
-                styles.progressBar,
-                {
-                  backgroundColor:
-                    index < currentStep ? colors.primary : colors.border,
-                  marginRight: index < totalSteps - 1 ? 8 : 0,
-                },
-              ]}
-            />
-          ))}
+          <View style={styles.progressBarsContainer}>
+            {Array.from({ length: totalSteps }).map((_, index) => (
+              <View
+                key={`progress-${index}`}
+                style={[
+                  styles.progressBar,
+                  {
+                    backgroundColor:
+                      index < currentStep ? colors.primary : colors.border,
+                    marginRight: index < totalSteps - 1 ? 8 : 0,
+                  },
+                ]}
+              />
+            ))}
+          </View>
         </View>
 
         {/* Espaço vazio para equilibrar o layout */}
@@ -99,6 +103,10 @@ const styles = StyleSheet.create({
   },
   stepperContainer: {
     flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  progressBarsContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",

@@ -7,19 +7,21 @@ import { useTheme } from "../../context/ThemeContext";
 import { useNutrition, DietType } from "../../context/NutritionContext";
 import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
 import SelectionOption from "../../components/onboarding/SelectionOption";
+import { useTranslation } from "react-i18next";
 
 export default function DietTypeScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { nutritionInfo, updateNutritionInfo } = useNutrition();
+  const { t } = useTranslation();
   const [selectedDietType, setSelectedDietType] = useState<
     DietType | undefined
   >(nutritionInfo.dietType);
-  
+
   // Estado para forçar re-renderização quando o tema mudar
   const [, setForceUpdate] = useState({});
-  
+
   // Efeito para forçar a re-renderização quando o tema mudar
   useEffect(() => {
     setForceUpdate({});
@@ -39,8 +41,8 @@ export default function DietTypeScreen() {
   const dietTypeOptions = [
     {
       dietType: "classic" as DietType,
-      title: "Clássica",
-      description: "Inclui todos os grupos alimentares",
+      title: t("onboarding.dietType.options.classic.title"),
+      description: t("onboarding.dietType.options.classic.description"),
       icon: (
         <Ionicons
           key={`classic-icon-${theme}`}
@@ -52,34 +54,38 @@ export default function DietTypeScreen() {
     },
     {
       dietType: "pescatarian" as DietType,
-      title: "Pescetariana",
-      description: "Vegetais, ovos, laticínios e peixes",
+      title: t("onboarding.dietType.options.pescatarian.title"),
+      description: t("onboarding.dietType.options.pescatarian.description"),
       icon: (
         <Ionicons
           key={`pescatarian-icon-${theme}`}
           name="fish-outline"
           size={28}
-          color={selectedDietType === "pescatarian" ? colors.primary : colors.text}
+          color={
+            selectedDietType === "pescatarian" ? colors.primary : colors.text
+          }
         />
       ),
     },
     {
       dietType: "vegetarian" as DietType,
-      title: "Vegetariana",
-      description: "Sem carnes, mas inclui ovos e laticínios",
+      title: t("onboarding.dietType.options.vegetarian.title"),
+      description: t("onboarding.dietType.options.vegetarian.description"),
       icon: (
         <Ionicons
           key={`vegetarian-icon-${theme}`}
           name="leaf-outline"
           size={28}
-          color={selectedDietType === "vegetarian" ? colors.primary : colors.text}
+          color={
+            selectedDietType === "vegetarian" ? colors.primary : colors.text
+          }
         />
       ),
     },
     {
       dietType: "vegan" as DietType,
-      title: "Vegana",
-      description: "Apenas alimentos de origem vegetal",
+      title: t("onboarding.dietType.options.vegan.title"),
+      description: t("onboarding.dietType.options.vegan.description"),
       icon: (
         <Ionicons
           key={`vegan-icon-${theme}`}
@@ -93,8 +99,8 @@ export default function DietTypeScreen() {
 
   return (
     <OnboardingLayout
-      title="Qual seu tipo de dieta?"
-      subtitle="Isso será usado para calibrar seu plano personalizado"
+      title={t("onboarding.dietType.title")}
+      subtitle={t("onboarding.dietType.subtitle")}
       currentStep={8}
       totalSteps={10}
       onBack={handleBack}

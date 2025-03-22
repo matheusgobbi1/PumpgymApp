@@ -26,6 +26,7 @@ import {
 } from "../../context/WorkoutContext";
 import Colors from "../../constants/Colors";
 import { ExerciseData, getExerciseById } from "../../data/exerciseDatabase";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 
@@ -73,6 +74,7 @@ const SetCard = ({
 }) => {
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const { t } = useTranslation();
 
   // Estados locais para os valores de entrada
   const [repsInput, setRepsInput] = useState(set.reps.toString());
@@ -167,7 +169,7 @@ const SetCard = ({
           style={[styles.setNumberContainer, { backgroundColor: color + "20" }]}
         >
           <Text style={[styles.setNumberText, { color }]}>
-            Série {index + 1}
+            {t("exercise.setNumber")} {index + 1}
           </Text>
         </View>
 
@@ -190,7 +192,7 @@ const SetCard = ({
               style={styles.setMetricIcon}
             />
             <Text style={[styles.setMetricLabel, { color: colors.text }]}>
-              Repetições
+              {t("exercise.repetitions")}
             </Text>
           </View>
           <View
@@ -240,7 +242,7 @@ const SetCard = ({
               style={styles.setMetricIcon}
             />
             <Text style={[styles.setMetricLabel, { color: colors.text }]}>
-              Carga (kg)
+              {t("exercise.weight")}
             </Text>
           </View>
           <View
@@ -406,11 +408,12 @@ const CardioCard = ({
   );
 };
 
-export default function ExerciseDetailsScreen() {
+const ExerciseDetailsScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const { t } = useTranslation();
 
   // Extrair parâmetros da URL
   const exerciseId = params.exerciseId as string;
@@ -603,21 +606,16 @@ export default function ExerciseDetailsScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoidingView}
       >
-        <View
-          style={[
-            styles.header,
-            {
-              borderBottomColor:
-                theme === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
-            },
-          ]}
-        >
-          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-            <Ionicons name="close" size={24} color={colors.text} />
+        <View style={[styles.header, { backgroundColor: colors.background }]}>
+          <TouchableOpacity
+            style={[styles.closeButton, { backgroundColor: colors.card }]}
+            onPress={handleClose}
+          >
+            <Ionicons name="chevron-back" size={22} color={colors.text} />
           </TouchableOpacity>
 
           <Text style={[styles.title, { color: colors.text }]}>
-            {mode === "edit" ? "Editar Exercício" : "Novo Exercício"}
+            {mode === "edit" ? t("exercise.edit") : t("exercise.add")}
           </Text>
 
           <View style={styles.rightButtonPlaceholder} />
@@ -633,15 +631,19 @@ export default function ExerciseDetailsScreen() {
           ) : (
             <>
               <MotiView
-                from={{ opacity: 0, translateY: 20 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                transition={{ type: "spring" }}
+                from={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "timing", duration: 400 }}
                 style={styles.exerciseHeader}
               >
                 <View
                   style={[
                     styles.exerciseIconContainer,
-                    { backgroundColor: workoutColor + "20" },
+                    {
+                      backgroundColor: workoutColor + "15",
+                      borderColor: workoutColor + "30",
+                      borderWidth: 1,
+                    },
                   ]}
                 >
                   <Ionicons
@@ -673,7 +675,12 @@ export default function ExerciseDetailsScreen() {
                     <TextInput
                       style={[
                         styles.customNameInput,
-                        { color: colors.text, borderColor: colors.border },
+                        {
+                          color: colors.text,
+                          borderColor: colors.border,
+                          backgroundColor: colors.card,
+                          borderRadius: 12,
+                        },
                       ]}
                       placeholder="Nome do exercício"
                       placeholderTextColor={colors.text + "60"}
@@ -693,7 +700,7 @@ export default function ExerciseDetailsScreen() {
                     <View
                       style={[
                         styles.exerciseDetailTag,
-                        { backgroundColor: workoutColor + "20" },
+                        { backgroundColor: workoutColor + "15" },
                       ]}
                     >
                       <Text
@@ -709,7 +716,7 @@ export default function ExerciseDetailsScreen() {
                     <View
                       style={[
                         styles.exerciseDetailTag,
-                        { backgroundColor: workoutColor + "20" },
+                        { backgroundColor: workoutColor + "15" },
                       ]}
                     >
                       <Text
@@ -728,10 +735,10 @@ export default function ExerciseDetailsScreen() {
                         {
                           backgroundColor:
                             exercise.difficulty === "iniciante"
-                              ? "#4CAF50" + "20"
+                              ? "#4CAF50" + "15"
                               : exercise.difficulty === "intermediário"
-                              ? "#FFC107" + "20"
-                              : "#F44336" + "20",
+                              ? "#FFC107" + "15"
+                              : "#F44336" + "15",
                         },
                       ]}
                     >
@@ -757,16 +764,20 @@ export default function ExerciseDetailsScreen() {
 
               {exercise && (
                 <MotiView
-                  from={{ opacity: 0, translateY: 20 }}
+                  from={{ opacity: 0, translateY: 15 }}
                   animate={{ opacity: 1, translateY: 0 }}
-                  transition={{ type: "spring", delay: 100 }}
+                  transition={{ type: "timing", duration: 400, delay: 100 }}
                   style={[
                     styles.descriptionContainer,
-                    { backgroundColor: colors.card },
+                    {
+                      backgroundColor: colors.card,
+                      borderLeftWidth: 3,
+                      borderLeftColor: workoutColor,
+                    },
                   ]}
                 >
                   <Text
-                    style={[styles.descriptionTitle, { color: colors.text }]}
+                    style={[styles.descriptionTitle, { color: workoutColor }]}
                   >
                     Como fazer
                   </Text>
@@ -782,15 +793,15 @@ export default function ExerciseDetailsScreen() {
               )}
 
               <MotiView
-                from={{ opacity: 0, translateY: 20 }}
+                from={{ opacity: 0, translateY: 15 }}
                 animate={{ opacity: 1, translateY: 0 }}
-                transition={{ type: "spring", delay: 200 }}
+                transition={{ type: "timing", duration: 400, delay: 200 }}
                 style={[
                   styles.configContainer,
-                  { backgroundColor: colors.card },
+                  { backgroundColor: "transparent" },
                 ]}
               >
-                <Text style={[styles.configTitle, { color: colors.text }]}>
+                <Text style={[styles.configTitle, { color: workoutColor }]}>
                   {exercise?.category === "cardio" ? "Configuração" : "Séries"}
                 </Text>
 
@@ -818,15 +829,15 @@ export default function ExerciseDetailsScreen() {
                       style={[
                         styles.addSetButton,
                         {
-                          borderColor: workoutColor,
-                          backgroundColor: workoutColor + "08",
+                          borderColor: workoutColor + "40",
+                          backgroundColor: workoutColor + "10",
                         },
                       ]}
                       onPress={addNewSet}
                     >
                       <Ionicons
                         name="add-circle-outline"
-                        size={20}
+                        size={18}
                         color={workoutColor}
                       />
                       <Text
@@ -842,7 +853,7 @@ export default function ExerciseDetailsScreen() {
                 )}
 
                 <View style={styles.notesContainer}>
-                  <Text style={[styles.notesLabel, { color: colors.text }]}>
+                  <Text style={[styles.notesLabel, { color: workoutColor }]}>
                     Observações
                   </Text>
                   <TextInput
@@ -850,7 +861,9 @@ export default function ExerciseDetailsScreen() {
                       styles.notesInput,
                       {
                         color: colors.text,
-                        backgroundColor: colors.background,
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        borderWidth: 1,
                       },
                     ]}
                     placeholder="Adicione observações sobre o exercício..."
@@ -866,11 +879,32 @@ export default function ExerciseDetailsScreen() {
           )}
         </ScrollView>
 
-        <View
-          style={[styles.bottomBar, { backgroundColor: colors.background }]}
+        <MotiView
+          from={{ opacity: 0, translateY: 20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: "spring", damping: 15 }}
+          style={[
+            styles.bottomBar,
+            {
+              backgroundColor: colors.background,
+              borderTopColor: colors.border,
+              borderTopWidth: 1,
+            },
+          ]}
         >
           <TouchableOpacity
-            style={[styles.addButton, { backgroundColor: workoutColor }]}
+            style={[
+              styles.addButton,
+              {
+                backgroundColor: workoutColor,
+                opacity:
+                  isLoading ||
+                  (isCustomExercise && !customExerciseName.trim()) ||
+                  (exercise?.category !== "cardio" && sets.length === 0)
+                    ? 0.6
+                    : 1,
+              },
+            ]}
             onPress={handleAddExercise}
             disabled={
               isLoading ||
@@ -879,7 +913,8 @@ export default function ExerciseDetailsScreen() {
             }
           >
             <Text style={styles.addButtonText}>
-              Adicionar ao {workoutType?.name || "Treino"}
+              {t("exercise.addToWorkout")}{" "}
+              {workoutType?.name || t("training.title")}
             </Text>
             <Ionicons
               name={mode === "edit" ? "checkmark-circle" : "add-circle"}
@@ -888,11 +923,13 @@ export default function ExerciseDetailsScreen() {
               style={styles.addButtonIcon}
             />
           </TouchableOpacity>
-        </View>
+        </MotiView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-}
+};
+
+export default ExerciseDetailsScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -905,20 +942,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingTop: Platform.OS === "ios" ? 50 : 20,
-    paddingBottom: 20,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "ios" ? 16 : 20,
+    paddingBottom: 16,
     borderBottomWidth: 0,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "700",
     letterSpacing: -0.5,
   },
   closeButton: {
-    padding: 8,
-    backgroundColor: "rgba(0,0,0,0.05)",
-    borderRadius: 12,
+    padding: 10,
+    borderRadius: 16,
   },
   rightButtonPlaceholder: {
     width: 40,
@@ -928,6 +964,7 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     paddingBottom: 100,
+    paddingTop: 10,
   },
   headerBackground: {
     ...StyleSheet.absoluteFillObject,
@@ -957,85 +994,100 @@ const styles = StyleSheet.create({
   exerciseHeader: {
     alignItems: "center",
     paddingHorizontal: 20,
-    marginBottom: 24,
+    marginBottom: 32,
   },
   exerciseIconContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
   },
   exerciseName: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "700",
     textAlign: "center",
-    marginBottom: 12,
+    marginBottom: 16,
+    letterSpacing: -0.5,
   },
   customNameContainer: {
     width: "100%",
-    marginBottom: 12,
+    marginBottom: 16,
+    paddingHorizontal: 20,
   },
   customNameInput: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "600",
     textAlign: "center",
-    borderBottomWidth: 2,
-    paddingVertical: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   exerciseDetails: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
-    gap: 8,
+    gap: 10,
   },
   exerciseDetailTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   exerciseDetailTagText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
   },
   descriptionContainer: {
     marginHorizontal: 20,
     padding: 20,
     borderRadius: 16,
-    marginBottom: 24,
+    marginBottom: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   descriptionTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 12,
+    fontWeight: "700",
+    marginBottom: 14,
+    letterSpacing: -0.3,
   },
   descriptionText: {
-    fontSize: 16,
+    fontSize: 15,
     lineHeight: 24,
   },
   configContainer: {
     marginHorizontal: 20,
-    padding: 20,
-    borderRadius: 16,
+    paddingTop: 10,
     marginBottom: 24,
   },
   configTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 24,
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 20,
+    letterSpacing: -0.5,
+    paddingHorizontal: 4,
   },
   setsContainer: {
-    marginBottom: 24,
+    marginBottom: 30,
     gap: 16,
   },
   setCard: {
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   setCardHeader: {
     flexDirection: "row",
@@ -1064,31 +1116,31 @@ const styles = StyleSheet.create({
   setMetricHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   setMetricIcon: {
-    marginRight: 3,
+    marginRight: 6,
   },
   setMetricLabel: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   setMetricControls: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 4,
+    padding: 6,
   },
   setMetricButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
   },
   setMetricValue: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
     textAlign: "center",
     minWidth: 40,
     padding: 0,
@@ -1098,36 +1150,36 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    padding: 14,
-    borderRadius: 12,
+    padding: 16,
+    borderRadius: 16,
     borderWidth: 1,
     borderStyle: "dashed",
-    marginTop: 8,
+    marginTop: 12,
   },
   addSetButtonText: {
-    fontSize: 16,
-    fontWeight: "500",
-    marginLeft: 4,
+    fontSize: 15,
+    fontWeight: "600",
+    marginLeft: 8,
   },
   notesContainer: {
     marginBottom: 16,
   },
   notesLabel: {
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "600",
     marginBottom: 12,
+    paddingHorizontal: 4,
   },
   notesInput: {
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 16,
-    minHeight: 80,
+    borderRadius: 16,
+    padding: 14,
+    fontSize: 15,
+    minHeight: 100,
     textAlignVertical: "top",
   },
   bottomBar: {
     padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0, 0, 0, 0.1)",
+    paddingHorizontal: 20,
   },
   addButton: {
     flexDirection: "row",
@@ -1137,26 +1189,27 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   addButtonText: {
     color: "#FFF",
-    fontSize: 17,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
     letterSpacing: -0.3,
   },
   addButtonIcon: {
     marginLeft: 8,
   },
   cardioCard: {
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 18,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   cardioCardHeader: {
     marginBottom: 16,
@@ -1175,18 +1228,18 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   cardioMetricContainer: {
-    gap: 8,
+    gap: 12,
   },
   cardioMetricHeader: {
     flexDirection: "row",
     alignItems: "center",
   },
   cardioMetricIcon: {
-    marginRight: 6,
+    marginRight: 8,
   },
   cardioMetricLabel: {
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: 15,
+    fontWeight: "600",
   },
   cardioSlider: {
     width: "100%",
@@ -1194,7 +1247,7 @@ const styles = StyleSheet.create({
   },
   cardioMetricValue: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
     textAlign: "center",
   },
   intensityLabels: {

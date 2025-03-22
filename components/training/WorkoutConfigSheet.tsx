@@ -4,6 +4,8 @@ import React, {
   useState,
   useEffect,
   ForwardedRef,
+  useRef,
+  useImperativeHandle,
 } from "react";
 import {
   View,
@@ -33,6 +35,8 @@ import { KEYS } from "../../constants/keys";
 import { useAuth } from "../../context/AuthContext";
 import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import Input from "../common/Input";
+import { useTranslation } from "react-i18next";
+import { OfflineStorage } from "../../services/OfflineStorage";
 
 // Tipo para os ícones do Ionicons
 type IoniconsNames = React.ComponentProps<typeof Ionicons>["name"];
@@ -53,7 +57,7 @@ type WorkoutIconType = {
 const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
   {
     id: "Treino A",
-    name: "Treino A",
+    name: "Workout A",
     iconType: {
       type: "material" as const,
       name: "arm-flex-outline" as MaterialIconNames,
@@ -64,7 +68,7 @@ const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
   },
   {
     id: "Treino B",
-    name: "Treino B",
+    name: "Workout B",
     iconType: {
       type: "material" as const,
       name: "arm-flex-outline" as MaterialIconNames,
@@ -75,7 +79,7 @@ const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
   },
   {
     id: "Treino C",
-    name: "Treino C",
+    name: "Workout C",
     iconType: {
       type: "material" as const,
       name: "arm-flex-outline" as MaterialIconNames,
@@ -86,7 +90,7 @@ const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
   },
   {
     id: "Treino D",
-    name: "Treino D",
+    name: "Workout D",
     iconType: {
       type: "material" as const,
       name: "arm-flex-outline" as MaterialIconNames,
@@ -97,7 +101,7 @@ const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
   },
   {
     id: "Treino E",
-    name: "Treino E",
+    name: "Workout E",
     iconType: {
       type: "material" as const,
       name: "arm-flex-outline" as MaterialIconNames,
@@ -108,7 +112,7 @@ const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
   },
   {
     id: "Treino F",
-    name: "Treino F",
+    name: "Workout F",
     iconType: {
       type: "material" as const,
       name: "arm-flex-outline" as MaterialIconNames,
@@ -119,7 +123,7 @@ const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
   },
   {
     id: "Treino G",
-    name: "Treino G",
+    name: "Workout G",
     iconType: {
       type: "material" as const,
       name: "arm-flex-outline" as MaterialIconNames,
@@ -278,6 +282,7 @@ const WorkoutConfigSheet = forwardRef<
     { onWorkoutConfigured, selectedDate, onDismiss },
     ref: ForwardedRef<BottomSheetModal>
   ) => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const userId = user?.uid || "anonymous";
     const { theme } = useTheme();
@@ -287,6 +292,14 @@ const WorkoutConfigSheet = forwardRef<
       saveAvailableWorkoutTypes,
       getAvailableWorkoutTypes,
     } = useWorkoutContext();
+
+    // Referência interna para o bottom sheet
+    const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+
+    // Expor a referência para o componente pai
+    useImperativeHandle(ref, () => {
+      return bottomSheetModalRef.current!;
+    });
 
     // Estados
     const [availableWorkoutTypes, setAvailableWorkoutTypes] = useState<
@@ -381,7 +394,7 @@ const WorkoutConfigSheet = forwardRef<
 
     const onSaveCustomWorkout = useCallback(() => {
       if (customWorkout.name.trim() === "") {
-        Alert.alert("Erro", "Por favor, insira um nome para o treino.");
+        Alert.alert("Erro", t("workouts.configSheet.workoutNameError"));
         return;
       }
 
@@ -410,7 +423,7 @@ const WorkoutConfigSheet = forwardRef<
           name: "barbell-outline" as IoniconsNames,
         },
       });
-    }, [customWorkout]);
+    }, [customWorkout, t]);
 
     // Função para deletar treino
     const renderRightActions = useCallback(
@@ -420,15 +433,17 @@ const WorkoutConfigSheet = forwardRef<
             style={[styles.deleteButton, { backgroundColor: colors.danger }]}
             onPress={() => {
               Alert.alert(
-                "Confirmar exclusão",
-                `Tem certeza que deseja excluir o treino "${workout.name}"?`,
+                t("workouts.configSheet.deleteConfirmTitle"),
+                t("workouts.configSheet.deleteConfirmMessage", {
+                  name: workout.name,
+                }),
                 [
                   {
-                    text: "Cancelar",
+                    text: t("workouts.configSheet.cancelDeleteButton"),
                     style: "cancel",
                   },
                   {
-                    text: "Excluir",
+                    text: t("workouts.configSheet.deleteButton"),
                     style: "destructive",
                     onPress: () => {
                       setAvailableWorkoutTypes((prevWorkoutTypes) => {
@@ -450,7 +465,7 @@ const WorkoutConfigSheet = forwardRef<
           </TouchableOpacity>
         );
       },
-      [colors.danger]
+      [colors.danger, t]
     );
 
     const onCancelAddingCustomWorkout = () => {
@@ -473,50 +488,98 @@ const WorkoutConfigSheet = forwardRef<
     };
 
     const handleSaveWorkoutTypes = async () => {
-      try {
-        // Salvar localmente
-        await saveAvailableWorkoutTypes(availableWorkoutTypes);
+      // Obter os tipos de treino selecionados
+      const selectedWorkoutTypes = availableWorkoutTypes.filter(
+        (w) => w.selected
+      );
 
-        // Sincronizar com Firebase se o usuário estiver autenticado e não for anônimo
-        if (user && !user.isAnonymous) {
-          try {
-            const db = getFirestore();
-            const workoutsRef = doc(db, "users", user.uid, "workouts", "data");
+      // Verificar se há treinos selecionados
+      if (selectedWorkoutTypes.length === 0) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
 
-            await setDoc(
-              workoutsRef,
-              {
-                availableWorkoutTypes: availableWorkoutTypes,
-                lastUpdated: serverTimestamp(),
-              },
-              { merge: true }
-            );
+      // Fornecer feedback tátil de sucesso
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-            console.log("Tipos de treino sincronizados com Firebase");
-          } catch (firebaseError) {
-            console.error(
-              "Erro ao sincronizar tipos de treino com Firebase:",
-              firebaseError
-            );
+      // Notificar que a configuração foi concluída
+      onWorkoutConfigured?.(selectedWorkoutTypes);
+
+      // Fechar o modal com um pequeno atraso para garantir que o feedback seja percebido
+      setTimeout(() => {
+        if (bottomSheetModalRef.current) {
+          bottomSheetModalRef.current.dismiss();
+        }
+      }, 50);
+
+      // Executar as operações assíncronas em segundo plano após fechar o modal
+      setTimeout(async () => {
+        try {
+          // Salvar localmente
+          await saveAvailableWorkoutTypes(availableWorkoutTypes);
+
+          // Atualizar o contexto
+          updateWorkoutTypes(availableWorkoutTypes);
+
+          // Verificar conexão online antes de tentar sincronizar com Firebase
+          const isOnline = await OfflineStorage.isOnline();
+
+          // Sincronizar com Firebase apenas se estiver online e o usuário não for anônimo
+          if (isOnline && user && !user.isAnonymous) {
+            try {
+              const db = getFirestore();
+              const workoutsRef = doc(
+                db,
+                "users",
+                user.uid,
+                "workouts",
+                "data"
+              );
+
+              await setDoc(
+                workoutsRef,
+                {
+                  availableWorkoutTypes: availableWorkoutTypes,
+                  lastUpdated: serverTimestamp(),
+                },
+                { merge: true }
+              );
+
+              console.log("Tipos de treino sincronizados com Firebase");
+            } catch (firebaseError) {
+              console.error(
+                "Erro ao sincronizar tipos de treino com Firebase:",
+                firebaseError
+              );
+              // Continuar mesmo com erro no Firebase, pois os dados já foram salvos localmente
+            }
+          } else if (!isOnline) {
+            console.log("Dispositivo offline. Dados salvos apenas localmente.");
+          }
+        } catch (error) {
+          console.error("Erro ao salvar tipos de treino:", error);
+        }
+      }, 100);
+    };
+
+    // Função para quando o bottom sheet for fechado
+    const handleSheetChanges = useCallback(
+      (index: number) => {
+        // Quando o bottom sheet for fechado (index = -1)
+        if (index === -1) {
+          // Verificar se há treinos selecionados
+          const selectedWorkouts = availableWorkoutTypes.filter(
+            (workout) => workout.selected
+          );
+
+          if (selectedWorkouts.length > 0) {
+            // Se existem treinos selecionados, chamar o callback
+            onWorkoutConfigured?.(selectedWorkouts);
           }
         }
-
-        // Atualizar o contexto
-        updateWorkoutTypes(availableWorkoutTypes);
-
-        // Notificar que a configuração foi concluída
-        onWorkoutConfigured?.(availableWorkoutTypes);
-
-        // Fechar o modal
-        if (typeof ref === "function") {
-          ref(null);
-        } else if (ref?.current) {
-          ref.current.dismiss();
-        }
-      } catch (error) {
-        console.error("Erro ao salvar tipos de treino:", error);
-      }
-    };
+      },
+      [availableWorkoutTypes, onWorkoutConfigured]
+    );
 
     // Renderizar o formulário de adição de treino personalizado
     const renderCustomWorkoutForm = () => (
@@ -804,7 +867,7 @@ const WorkoutConfigSheet = forwardRef<
           ))
         ) : (
           <Text style={{ color: colors.text, textAlign: "center" }}>
-            Nenhum tipo de treino disponível
+            {t("workouts.configSheet.noWorkouts")}
           </Text>
         )}
       </View>
@@ -812,22 +875,24 @@ const WorkoutConfigSheet = forwardRef<
 
     return (
       <BottomSheetModal
-        ref={ref}
+        ref={bottomSheetModalRef}
         index={0}
         snapPoints={["70%"]}
         backgroundStyle={{ backgroundColor: colors.background }}
         handleIndicatorStyle={{ backgroundColor: colors.text + "50" }}
         onDismiss={onDismiss}
+        onChange={handleSheetChanges}
+        enablePanDownToClose
       >
         <View
           style={[styles.container, { backgroundColor: colors.background }]}
         >
           <View style={styles.header}>
             <Text style={[styles.title, { color: colors.text }]}>
-              Configurar Treinos
+              {t("workouts.configSheet.title")}
             </Text>
             <Text style={[styles.subtitle, { color: colors.text + "80" }]}>
-              Selecione e personalize seus treinos
+              {t("workouts.configSheet.subtitle")}
             </Text>
           </View>
 
@@ -852,7 +917,7 @@ const WorkoutConfigSheet = forwardRef<
               disabled={!availableWorkoutTypes.some((w) => w.selected)}
             >
               <Text style={styles.saveConfigButtonText}>
-                Salvar Configuração
+                {t("workouts.configSheet.saveButton")}
               </Text>
             </TouchableOpacity>
           </View>

@@ -28,6 +28,7 @@ import {
 } from "../../data/exerciseDatabase";
 import { debounce } from "lodash";
 import { v4 as uuidv4 } from "uuid";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.44;
@@ -311,6 +312,7 @@ export default function AddExerciseScreen() {
   const params = useLocalSearchParams();
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const { t } = useTranslation();
 
   // Extrair parâmetros da URL
   const workoutId = params.workoutId as string;
@@ -318,7 +320,8 @@ export default function AddExerciseScreen() {
   const workoutColor = (params.workoutColor as string) || colors.primary;
 
   // Contexto de treinos
-  const { addExerciseToWorkout, getWorkoutTypeById, workouts } = useWorkoutContext();
+  const { addExerciseToWorkout, getWorkoutTypeById, workouts } =
+    useWorkoutContext();
   const workoutType = getWorkoutTypeById(workoutId);
 
   // Estados
@@ -480,7 +483,7 @@ export default function AddExerciseScreen() {
       return (
         <View style={styles.centerContainer}>
           <Text style={[styles.emptyText, { color: colors.text }]}>
-            Nenhum exercício encontrado para "{searchQuery}"
+            {t("exercise.noExercisesFound")} "{searchQuery}"
           </Text>
           <TouchableOpacity
             style={[styles.addCustomButton, { backgroundColor: workoutColor }]}
@@ -496,7 +499,7 @@ export default function AddExerciseScreen() {
             }}
           >
             <Text style={styles.addCustomButtonText}>
-              Adicionar como novo exercício
+              {t("exercise.addAsNewExercise")}
             </Text>
           </TouchableOpacity>
         </View>
@@ -552,10 +555,10 @@ export default function AddExerciseScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Adicionar Exercício
+            {t("exercise.add")}
           </Text>
           <Text style={[styles.headerSubtitle, { color: colors.text + "80" }]}>
-            {workoutType?.name || "Treino"}
+            {workoutType?.name || t("training.title")}
           </Text>
         </View>
         <View style={{ width: 24 }} />
@@ -574,7 +577,7 @@ export default function AddExerciseScreen() {
         />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
-          placeholder="Buscar exercício..."
+          placeholder={t("exercise.search")}
           placeholderTextColor={colors.text + "80"}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -615,7 +618,7 @@ export default function AddExerciseScreen() {
                 },
               ]}
             >
-              Todos
+              {t("exercise.muscleGroups.all")}
             </Text>
           </TouchableOpacity>
 
@@ -660,7 +663,7 @@ export default function AddExerciseScreen() {
             style={styles.recentExercisesSection}
           >
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Exercícios Recentes
+              {t("exercise.recentExercises")}
             </Text>
 
             {recentExercises.map((exercise, index) => (

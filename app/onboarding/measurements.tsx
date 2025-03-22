@@ -2,17 +2,19 @@ import React, { useState } from "react";
 import { View, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import { useNutrition } from "../../context/NutritionContext";
 import { validateMeasurements } from "../../utils/validations";
 import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
 import Input from "../../components/common/Input";
+import { useTranslation } from "react-i18next";
 
 export default function MeasurementsScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
   const { nutritionInfo, updateNutritionInfo } = useNutrition();
+  const { t } = useTranslation();
 
   const [height, setHeight] = useState<string>(
     nutritionInfo.height ? nutritionInfo.height.toString() : ""
@@ -58,8 +60,8 @@ export default function MeasurementsScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <OnboardingLayout
-        title="Altura & peso"
-        subtitle="Isso será usado para calibrar seu plano personalizado"
+        title={t("onboarding.measurements.title")}
+        subtitle={t("onboarding.measurements.subtitle")}
         currentStep={4}
         totalSteps={10}
         onBack={handleBack}
@@ -69,7 +71,7 @@ export default function MeasurementsScreen() {
       >
         <View style={styles.inputsContainer}>
           <Input
-            label="Altura (cm)"
+            label={t("onboarding.measurements.height")}
             value={height}
             onChangeText={setHeight}
             placeholder="170"
@@ -78,7 +80,7 @@ export default function MeasurementsScreen() {
           />
 
           <Input
-            label="Peso (kg)"
+            label={t("onboarding.measurements.weight")}
             value={weight}
             onChangeText={setWeight}
             placeholder="70"

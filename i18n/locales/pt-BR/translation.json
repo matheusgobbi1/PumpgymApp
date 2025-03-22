@@ -1,0 +1,798 @@
+{
+  "login": {
+    "appName": "FitFolio",
+    "title": "Acompanhe seu progresso",
+    "subtitle": "Registre suas refeições e treinos para alcançar suas metas e uma vida mais saudável",
+    "startNow": "COMEÇAR AGORA",
+    "alreadyHaveAccount": "Já tem conta?",
+    "signIn": "Entrar",
+    "termsAndPolicy": "Ao continuar, você concorda com nossos",
+    "termsOfUse": "termos de uso",
+    "and": "e",
+    "privacyPolicy": "política de privacidade",
+    "bottomSheet": {
+      "welcomeBack": "Bem-vindo de volta",
+      "email": "Email",
+      "emailPlaceholder": "Seu endereço de email",
+      "password": "Senha",
+      "passwordPlaceholder": "Sua senha",
+      "forgotPassword": "Esqueceu sua senha?",
+      "loginButton": "ENTRAR",
+      "orContinueWith": "ou continue com",
+      "errorMessages": {
+        "invalidCredentials": "Email ou senha inválidos. Tente novamente.",
+        "emptyFields": "Por favor, preencha todos os campos.",
+        "networkError": "Erro de conexão. Verifique sua internet."
+      }
+    }
+  },
+  "language": {
+    "name": "Idioma",
+    "pt-BR": "Português",
+    "en-US": "Inglês"
+  },
+  "passwordStrength": {
+    "weak": "Fraca",
+    "medium": "Média",
+    "good": "Boa",
+    "strong": "Forte"
+  },
+  "months": {
+    "1": "Janeiro",
+    "2": "Fevereiro",
+    "3": "Março",
+    "4": "Abril",
+    "5": "Maio",
+    "6": "Junho",
+    "7": "Julho",
+    "8": "Agosto",
+    "9": "Setembro",
+    "10": "Outubro",
+    "11": "Novembro",
+    "12": "Dezembro"
+  },
+  "common": {
+    "measurements": {
+      "height": "Altura",
+      "weight": "Peso",
+      "cm": "cm",
+      "kg": "kg"
+    },
+    "nutrition": {
+      "calories": "Calorias",
+      "protein": "Proteína",
+      "carbs": "Carboidratos",
+      "fat": "Gorduras",
+      "water": "Água",
+      "macros": "Macronutrientes",
+      "dailyNeeds": "Necessidades Diárias",
+      "kcal": "kcal",
+      "grams": "g",
+      "liters": "L"
+    },
+    "goals": {
+      "lose": "Perder Peso",
+      "maintain": "Manter Peso",
+      "gain": "Ganhar Massa"
+    },
+    "activityLevels": {
+      "sedentary": "Sedentário",
+      "light": "Leve",
+      "moderate": "Moderado",
+      "intense": "Intenso",
+      "athlete": "Atleta"
+    },
+    "dietTypes": {
+      "classic": "Clássica",
+      "vegetarian": "Vegetariana",
+      "vegan": "Vegana",
+      "pescatarian": "Pescetariana"
+    },
+    "error": "Erro",
+    "delete": "Excluir",
+    "cancel": "Cancelar",
+    "copy": "Copiar",
+    "user": "Usuário",
+    "loading": "Carregando dados..."
+  },
+  "training": {
+    "title": "Seus treinos",
+    "menu": {
+      "editWorkouts": "Editar Treinos",
+      "muteNotifications": "Silenciar Notificações",
+      "enableNotifications": "Ativar Notificações",
+      "resetWorkouts": "Redefinir Treinos"
+    },
+    "stats": {
+      "exercises": "Exercícios",
+      "sets": "Séries",
+      "volume": "Volume",
+      "lastWorkout": "Último treino",
+      "progress": "Progresso",
+      "improvement": "Melhoria",
+      "decline": "Declínio",
+      "noChange": "Sem alteração",
+      "noComparisonText": "Não há exercícios do treino anterior para comparar.",
+      "evolutionByExercise": "Evolução por Exercício",
+      "statistics": "Estatísticas",
+      "comparingWith": "Comparando com",
+      "tapToCollapse": "Toque para recolher",
+      "tapToSeeDetails": "Toque para ver detalhes",
+      "previous": "Anterior",
+      "maxWeight": "Carga Máx.",
+      "seriesReps": "Séries × Reps",
+      "calories": "Calorias",
+      "totalVolume": "Volume Total",
+      "repetitions": "Repetições",
+      "increase": "Aumento",
+      "decrease": "Redução",
+      "firstWorkout": "Primeiro treino"
+    },
+    "addFirstExercise": "Adicione seu primeiro exercício",
+    "workoutCopiedSuccess": "Treino copiado com sucesso!",
+    "deleteExercise": "Excluir Exercício",
+    "deleteExerciseConfirm": "Tem certeza que deseja excluir este exercício? Esta ação não pode ser desfeita.",
+    "copyWorkout": "Copiar treino {{name}}",
+    "copyWorkoutFrom": "Deseja copiar o treino de {{date}}?",
+    "emptyState": {
+      "title": "Nenhum treino para hoje",
+      "subtitle": "Configure seus treinos para começar a registrar seu progresso",
+      "configButton": "Configurar Treinos"
+    },
+    "tips": {
+      "organize": "Organize seus treinos por grupos musculares",
+      "track": "Registre exercícios, séries e repetições",
+      "progress": "Acompanhe sua evolução ao longo do tempo"
+    },
+    "workoutTypes": {
+      "title": "Escolha seu Treino",
+      "subtitle": "Selecione o tipo de treino que deseja realizar hoje"
+    },
+    "resetModal": {
+      "title": "Redefinir Treinos",
+      "message": "Tem certeza que deseja redefinir todos os tipos de treino? Esta ação não pode ser desfeita.",
+      "confirm": "Redefinir",
+      "cancel": "Cancelar"
+    },
+    "errors": {
+      "resetFailed": "Não foi possível redefinir os treinos. Tente novamente.",
+      "resetError": "Ocorreu um erro ao redefinir treinos. Tente reiniciar o aplicativo."
+    },
+    "workout": {
+      "exercises": "exercícios",
+      "sets": "séries",
+      "viewDetails": "Ver Detalhes"
+    }
+  },
+  "onboarding": {
+    "common": {
+      "next": "Próximo",
+      "back": "Voltar",
+      "skip": "Pular",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar",
+      "exitTitle": "Sair do onboarding?",
+      "exitMessage": "Se sair agora, seu progresso não será salvo.",
+      "step": "Passo {{current}} de {{total}}"
+    },
+    "gender": {
+      "title": "Qual é o seu gênero?",
+      "subtitle": "Isso nos ajuda a personalizar sua experiência",
+      "options": {
+        "male": "Masculino",
+        "female": "Feminino",
+        "other": "Outro"
+      },
+      "exitAlert": {
+        "title": "Sair do onboarding",
+        "message": "Tem certeza que deseja voltar para a tela de login? Seu progresso não será salvo.",
+        "cancel": "Cancelar",
+        "confirm": "Voltar para login"
+      }
+    },
+    "trainingFrequency": {
+      "title": "Com que frequência você se exercita?",
+      "subtitle": "Escolha a opção que melhor descreve seu nível atual",
+      "options": {
+        "sedentary": {
+          "title": "Sedentário",
+          "description": "Pouco ou nenhum exercício"
+        },
+        "light": {
+          "title": "Exercício Leve",
+          "description": "Exercício leve 1-3 dias por semana"
+        },
+        "moderate": {
+          "title": "Exercício Moderado",
+          "description": "Exercício moderado 3-5 dias por semana"
+        },
+        "intense": {
+          "title": "Exercício Intenso",
+          "description": "Exercício intenso 6-7 dias por semana"
+        }
+      }
+    },
+    "birthDate": {
+      "title": "Quando você nasceu?",
+      "subtitle": "Isso será usado para calibrar seu plano personalizado",
+      "month": "Mês",
+      "day": "Dia",
+      "year": "Ano",
+      "validation": {
+        "tooYoung": "Você precisa ter pelo menos 14 anos para usar o app",
+        "tooOld": "A idade máxima permitida é 100 anos"
+      }
+    },
+    "measurements": {
+      "title": "Altura & peso",
+      "subtitle": "Isso será usado para calibrar seu plano personalizado",
+      "height": "Altura (cm)",
+      "weight": "Peso (kg)",
+      "validation": {
+        "invalidHeight": "Por favor, insira uma altura válida",
+        "invalidWeight": "Por favor, insira um peso válido",
+        "heightRange": "A altura deve estar entre 120 e 250cm",
+        "weightRange": "O peso deve estar entre 30 e 300kg"
+      }
+    },
+    "goal": {
+      "title": "Qual seu objetivo?",
+      "subtitle": "Isso será usado para calibrar seu plano personalizado",
+      "options": {
+        "lose": {
+          "title": "Perder Peso",
+          "description": "Reduzir gordura corporal"
+        },
+        "maintain": {
+          "title": "Manter Peso",
+          "description": "Manter composição corporal atual"
+        },
+        "gain": {
+          "title": "Ganhar Massa",
+          "description": "Aumentar massa muscular"
+        }
+      }
+    },
+    "weightGoal": {
+      "title": "Qual é o seu peso ideal?",
+      "subtitle": "Defina uma meta realista para alcançar seus objetivos",
+      "targetWeight": "Peso meta (kg)",
+      "weightDifference": {
+        "gain": "Ganhar {{weight}} kg",
+        "lose": "Perder {{weight}} kg",
+        "maintain": "Manter o peso atual",
+        "gainDescription": "Você precisará aumentar sua ingestão calórica",
+        "loseDescription": "Você precisará reduzir sua ingestão calórica",
+        "maintainDescription": "Continue com sua ingestão calórica atual",
+        "gainRecommendation": "Recomendamos ganho de 0.5kg por semana",
+        "loseRecommendation": "Recomendamos perda de 0.5kg por semana",
+        "maintainRecommendation": "Manter o peso é uma ótima meta!"
+      },
+      "validation": {
+        "invalidTargetWeight": "Por favor, insira um peso meta válido",
+        "weightRangeError": "A meta deve estar entre {{min}}% e +{{max}}% do seu peso atual"
+      }
+    },
+    "weightChangeRate": {
+      "title": "Velocidade da mudança",
+      "subtitle": "Ajuste a velocidade para atingir seu objetivo de forma sustentável",
+      "projection": {
+        "gainTitle": "Projeção de Ganho",
+        "lossTitle": "Projeção de Perda",
+        "weightChange": "{{weight}}kg em {{weeks}} semanas",
+        "today": "Hoje",
+        "goal": "Meta",
+        "weeks": "{{weeks}} semanas"
+      },
+      "speed": {
+        "title": "Velocidade {{speedType}}",
+        "value": "{{rate}}kg por semana",
+        "verySlowType": "Conservadora",
+        "moderateType": "Moderada",
+        "fastType": "Acelerada",
+        "veryFastType": "Agressiva",
+        "presets": {
+          "slow": "Lenta",
+          "moderate": "Moderada",
+          "fast": "Rápida",
+          "intense": "Intensa"
+        }
+      },
+      "info": {
+        "currentWeight": "Peso Atual",
+        "targetWeight": "Peso Meta",
+        "targetDate": "Data Prevista",
+        "gainProjection": "Você ganhará {{weight}}kg em aproximadamente {{weeks}} semanas com uma velocidade {{speedType}}. Atenção: isso é apenas uma projeção, o resultado final pode variar de acordo com sua dieta, treino e muitos outros fatores.",
+        "lossProjection": "Você perderá {{weight}}kg em aproximadamente {{weeks}} semanas com uma velocidade {{speedType}}. Atenção: isso é apenas uma projeção, o resultado final pode variar de acordo com sua dieta, treino e muitos outros fatores."
+      }
+    },
+    "dietType": {
+      "title": "Qual seu tipo de dieta?",
+      "subtitle": "Isso será usado para calibrar seu plano personalizado",
+      "options": {
+        "classic": {
+          "title": "Clássica",
+          "description": "Inclui todos os grupos alimentares"
+        },
+        "pescatarian": {
+          "title": "Pescetariana",
+          "description": "Vegetais, ovos, laticínios e peixes"
+        },
+        "vegetarian": {
+          "title": "Vegetariana",
+          "description": "Sem carnes, mas inclui ovos e laticínios"
+        },
+        "vegan": {
+          "title": "Vegana",
+          "description": "Apenas alimentos de origem vegetal"
+        }
+      }
+    },
+    "referral": {
+      "title": "Onde você ouviu falar de nós?",
+      "subtitle": "",
+      "options": {
+        "instagram": "Instagram",
+        "facebook": "Facebook",
+        "tiktok": "TikTok",
+        "youtube": "Youtube",
+        "google": "Google"
+      }
+    },
+    "loading": {
+      "title": "Preparando seu Plano",
+      "subtitle": "Calculando as melhores recomendações para você",
+      "steps": {
+        "metabolism": {
+          "title": "Calculando Metabolismo",
+          "description": "Analisando suas necessidades energéticas com Mifflin-St Jeor",
+          "detail": "BMR + TDEE"
+        },
+        "macros": {
+          "title": "Ajustando Macros",
+          "description": "Otimizando proteínas, carboidratos e gorduras",
+          "detail": "P/C/G"
+        },
+        "hydration": {
+          "title": "Plano de Hidratação",
+          "description": "Calculando necessidade hídrica diária",
+          "detail": "H2O"
+        },
+        "healthScore": {
+          "title": "Health Score",
+          "description": "Avaliando seus indicadores de saúde",
+          "detail": "Score"
+        },
+        "recommendations": {
+          "title": "Recomendações",
+          "description": "Gerando seu plano personalizado",
+          "detail": "Plano"
+        }
+      }
+    }
+  },
+  "summary": {
+    "title": "Seu Plano Personalizado",
+    "profile": {
+      "title": "Perfil",
+      "activityLevel": "Nível de Atividade"
+    },
+    "goal": {
+      "title": "Objetivo",
+      "target": "Meta: {{weight}}kg"
+    },
+    "healthScore": {
+      "title": "Health Score",
+      "excellent": "Excelente! Continue assim!",
+      "good": "Bom! Pode melhorar ainda mais!",
+      "needsImprovement": "Vamos melhorar seus hábitos!"
+    },
+    "dailyNeeds": {
+      "title": "Necessidades Diárias",
+      "calories": {
+        "title": "Calorias Diárias",
+        "deficit": "Déficit calórico para perda de peso",
+        "surplus": "Superávit calórico para ganho de massa",
+        "maintenance": "Manutenção do peso atual"
+      },
+      "water": {
+        "title": "Água Recomendada",
+        "glasses": "{{count}} copos de 200ml"
+      },
+      "macros": {
+        "perKg": "{{value}}g/kg",
+        "calories": "{{value}} kcal",
+        "percentage": "{{value}}%"
+      }
+    },
+    "info": "Plano calculado com base no seu perfil. Ajuste a qualquer momento nas configurações.",
+    "tip": {
+      "title": "Dica do dia",
+      "lose": "Beba um copo de água antes das refeições para ajudar a controlar o apetite e melhorar a digestão.",
+      "gain": "Adicione uma fonte de proteína de qualidade em todas as suas refeições para otimizar o ganho de massa muscular.",
+      "maintain": "Mantenha um diário alimentar para acompanhar seu progresso e identificar padrões que podem ser melhorados."
+    },
+    "startJourney": "Iniciar Jornada",
+    "error": "Ocorreu um erro ao salvar suas informações. Tente novamente."
+  },
+  "completeRegistration": {
+    "title": {
+      "step1": "Quase lá!",
+      "step2": "Crie sua senha"
+    },
+    "subtitle": {
+      "step1": "Complete seu cadastro para salvar seu plano nutricional personalizado",
+      "step2": "Escolha uma senha segura para proteger sua conta"
+    },
+    "form": {
+      "name": {
+        "label": "Nome",
+        "placeholder": "Seu nome completo"
+      },
+      "email": {
+        "label": "Email",
+        "placeholder": "Seu email"
+      },
+      "password": {
+        "label": "Senha",
+        "placeholder": "Sua senha"
+      },
+      "confirmPassword": {
+        "label": "Confirmar Senha",
+        "placeholder": "Confirme sua senha"
+      }
+    },
+    "buttons": {
+      "continue": "Continuar",
+      "back": "Voltar",
+      "createAccount": "Criar Conta"
+    },
+    "socialAuth": {
+      "continueWith": "ou continue com"
+    },
+    "terms": {
+      "agreement": "Ao criar uma conta, você concorda com nossos",
+      "termsOfService": "Termos de Serviço",
+      "and": "e",
+      "privacyPolicy": "Política de Privacidade"
+    },
+    "errors": {
+      "emailInUse": "Este email já está em uso. Por favor, use outro email.",
+      "invalidEmail": "Email inválido",
+      "weakPassword": "Senha muito fraca",
+      "generic": "Ocorreu um erro ao completar o registro. Tente novamente."
+    }
+  },
+  "exercise": {
+    "add": "Adicionar Exercício",
+    "edit": "Editar Exercício",
+    "search": "Buscar exercício...",
+    "recentExercises": "Exercícios Recentes",
+    "noExercisesFound": "Nenhum exercício encontrado para",
+    "addAsNewExercise": "Adicionar como novo exercício",
+    "allCategories": "Todos",
+    "muscleGroups": {
+      "all": "Todos",
+      "chest": "Peito",
+      "back": "Costas",
+      "legs": "Pernas",
+      "shoulders": "Ombros",
+      "arms": "Braços",
+      "abs": "Abdômen",
+      "cardio": "Cardio"
+    },
+    "sets": "Séries",
+    "series": "série",
+    "noSets": "Sem séries",
+    "setsDetails": "Detalhes das Séries",
+    "reps": "reps",
+    "howTo": "Como fazer",
+    "configuration": "Configuração",
+    "addSet": "Adicionar Série",
+    "notes": "Observações",
+    "notesPlaceholder": "Adicione observações sobre o exercício...",
+    "addToWorkout": "Adicionar ao",
+    "cardioConfig": "Configuração do Cardio",
+    "duration": "Duração",
+    "intensity": "Intensidade",
+    "intensityLevels": {
+      "low": "Baixa",
+      "medium": "Média",
+      "high": "Alta"
+    },
+    "setNumber": "Série",
+    "repetitions": "Repetições",
+    "weight": "Carga (kg)"
+  },
+  "yesterday": "Ontem",
+  "minutes": "minutos",
+  "nutrition": {
+    "title": "Suas refeições",
+    "menu": {
+      "editMeals": "Editar Refeições",
+      "resetMeals": "Redefinir Refeições"
+    },
+    "resetModal": {
+      "title": "Redefinir Refeições",
+      "message": "Tem certeza que deseja redefinir todos os tipos de refeição? Esta ação não pode ser desfeita.",
+      "confirm": "Redefinir",
+      "cancel": "Cancelar"
+    },
+    "errors": {
+      "configFailed": "Não foi possível configurar as refeições. Tente novamente.",
+      "configError": "Ocorreu um erro ao configurar refeições. Tente novamente.",
+      "resetFailed": "Não foi possível redefinir as refeições. Tente novamente.",
+      "resetError": "Ocorreu um erro ao redefinir refeições. Tente reiniciar o aplicativo."
+    },
+    "deleteFood": "Excluir Alimento",
+    "deleteFoodConfirm": "Tem certeza que deseja excluir este alimento? Esta ação não pode ser desfeita.",
+    "deleteMeal": "Excluir Refeição",
+    "deleteMealConfirm": "Tem certeza que deseja excluir a refeição \"{{name}}\"? Esta ação não pode ser desfeita.",
+    "copyMeal": "Copiar {{name}} do dia anterior",
+    "copyMealFrom": "Deseja copiar a refeição de {{date}}?",
+    "noPreviousMeals": "Não há refeições anteriores para copiar.",
+    "meal": "refeição",
+    "configureToStart": "Configure suas refeições para começar",
+    "noPreviousMealTitle": "Nenhuma refeição anterior",
+    "dailyProgress": "Progresso Diário",
+    "configureMacrosMessage": "Configure suas metas de macronutrientes para acompanhar seu progresso diário",
+    "configureTargets": "Configurar Metas",
+    "loading": "Carregando...",
+    "excess": "Excesso",
+    "remaining": "Restam",
+    "configSheet": {
+      "title": "Configure suas Refeições",
+      "subtitle": "Selecione as refeições que deseja acompanhar",
+      "confirm": "Confirmar"
+    },
+    "mealTypes": {
+      "breakfast": "Café da Manhã",
+      "morning_snack": "Lanche da Manhã",
+      "lunch": "Almoço",
+      "afternoon_snack": "Lanche da Tarde",
+      "dinner": "Jantar",
+      "supper": "Ceia",
+      "snack": "Lanche"
+    },
+    "addFood": {
+      "title": "Adicionar Alimento",
+      "searchPlaceholder": "Buscar alimento...",
+      "scanCode": "Escanear Código",
+      "quickAdd": "Adição Rápida",
+      "recentlyAdded": "Adicionados Recentemente",
+      "clear": "Limpar",
+      "noFoodFound": "Nenhum alimento encontrado",
+      "searchError": "Erro ao buscar alimentos. Tente novamente."
+    },
+    "foodDetails": {
+      "title": "Detalhes do Alimento",
+      "quantity": "Quantidade",
+      "totalCalories": "Calorias Totais",
+      "additionalInfo": "Informações Adicionais",
+      "fiber": "Fibras",
+      "caloricDistribution": "Distribuição Calórica",
+      "addToMeal": "Adicionar à Refeição",
+      "updateMeal": "Atualizar Refeição",
+      "foodNotFound": "Alimento não encontrado",
+      "loadError": "Erro ao carregar detalhes do alimento",
+      "genericError": "Erro ao carregar alimento",
+      "tryAgain": "Tentar Novamente"
+    },
+    "common": {
+      "gender": {
+        "male": "Masculino",
+        "female": "Feminino",
+        "other": "Outro"
+      },
+      "activityLevels": {
+        "sedentary": "Sedentário",
+        "light": "Leve",
+        "moderate": "Moderado",
+        "intense": "Intenso",
+        "athlete": "Atleta"
+      },
+      "dietTypes": {
+        "classic": "Clássico",
+        "pescatarian": "Pescetariano",
+        "vegetarian": "Vegetariano",
+        "vegan": "Vegano"
+      },
+      "goals": {
+        "lose": "Perder peso",
+        "maintain": "Manter peso",
+        "gain": "Ganhar peso"
+      },
+      "macros": {
+        "balanced": "Equilibrado",
+        "highProtein": "Rico em proteínas",
+        "highFat": "Rico em gorduras",
+        "lowCarb": "Baixo carboidrato"
+      }
+    },
+    "mealCard": {
+      "addFirstFood": "Adicione seu primeiro alimento",
+      "copySuccess": "Refeição copiada com sucesso!",
+      "protein": "Proteína",
+      "carbs": "Carboidratos",
+      "fat": "Gordura",
+      "kcal": "kcal",
+      "g": "g",
+      "portion": "Porção",
+      "copyMealTitle": "Copiar refeição anterior",
+      "copyMealMessage": "Deseja copiar os alimentos desta refeição de uma data anterior?",
+      "copyButton": "Copiar",
+      "cancelButton": "Cancelar",
+      "chooseDateMessage": "Escolha uma data para copiar a refeição:",
+      "confirmCopy": "Confirmar cópia",
+      "noMealsFound": "Nenhuma refeição anterior encontrada",
+      "deleteConfirmTitle": "Excluir refeição",
+      "deleteConfirmMessage": "Tem certeza que deseja excluir esta refeição? Todos os alimentos serão removidos.",
+      "deleteFoodTitle": "Excluir alimento",
+      "deleteFoodMessage": "Tem certeza que deseja excluir este alimento?"
+    }
+  },
+  "home": {
+    "greeting": {
+      "morning": "Bom dia",
+      "afternoon": "Boa tarde",
+      "evening": "Boa noite"
+    },
+    "reminders": "Diário",
+    "progress": "Progresso",
+    "stats": {
+      "steps": "Passos",
+      "daily": "Diários",
+      "target": "Meta",
+      "current": "Atual",
+      "waterIntake": "Consumo de Água",
+      "glasses": "Copos",
+      "pedometerNotAvailable": "Pedômetro não disponível",
+      "connect": "Conectar"
+    },
+    "chart": {
+      "dailyCalories": "Calorias Diárias",
+      "last7Days": "Últimos 7 dias",
+      "last14Days": "Últimos 14 dias",
+      "lastMonth": "Último mês",
+      "noNutritionData": "Adicione refeições para ver dados de nutrição",
+      "average": "Média",
+      "today": "Hoje",
+      "maximum": "Máximo"
+    }
+  },
+  "dailyReminders": {
+    "title": "Lembretes Diários",
+    "subtitle": "{{count}} lembretes hoje",
+    "emptyState": {
+      "text": "Adicione seu primeiro lembrete"
+    },
+    "deleteModal": {
+      "title": "Excluir Lembrete",
+      "message": "Tem certeza que deseja excluir este lembrete? Esta ação não pode ser desfeita.",
+      "confirmText": "Excluir",
+      "cancelText": "Cancelar"
+    }
+  },
+  "profile": {
+    "title": "Perfil",
+    "header": {
+      "planNotConfigured": "Plano não configurado",
+      "planActive": "Plano ativo",
+      "planIncomplete": "Plano incompleto",
+      "user": "Usuário"
+    },
+    "options": {
+      "notifications": "Notificações",
+      "privacyAndSecurity": "Privacidade e Segurança",
+      "aboutUs": "Sobre Nós",
+      "helpAndSupport": "Ajuda e Suporte",
+      "lightMode": "Modo Claro",
+      "darkMode": "Modo Escuro",
+      "logout": "Sair"
+    },
+    "logoutModal": {
+      "title": "Sair da conta",
+      "message": "Tem certeza que deseja sair da sua conta? Você precisará fazer login novamente para acessar seus dados.",
+      "confirmText": "Sair",
+      "cancelText": "Cancelar"
+    },
+    "footer": {
+      "appName": "FitFolio",
+      "version": "Versão"
+    },
+    "infoCard": {
+      "biometricData": "Dados Biométricos",
+      "years": "anos",
+      "gender": {
+        "male": "Masculino",
+        "female": "Feminino",
+        "other": "Outro",
+        "notSpecified": "Não informado"
+      },
+      "measures": "Medidas",
+      "goal": "Objetivo",
+      "height": "Altura",
+      "weight": "Peso",
+      "mainGoal": "Objetivo Principal",
+      "goals": {
+        "lose": "Perder peso",
+        "maintain": "Manter peso",
+        "gain": "Ganhar peso",
+        "notSpecified": "Não informado"
+      },
+      "current": "Atual",
+      "target": "Meta",
+      "completed": "concluído",
+      "heightError": "Por favor, insira uma altura válida",
+      "weightError": "Por favor, insira um peso válido",
+      "targetWeightError": "Por favor, defina seu peso atual primeiro"
+    },
+    "nutritionCard": {
+      "nutritionPlan": "Plano Nutricional",
+      "dailyNeeds": "Necessidades Diárias",
+      "targetCalories": "Calorias Alvo",
+      "configure": "Configurar",
+      "customize": "Personalizar",
+      "calories": "Calorias",
+      "protein": "Proteína",
+      "carbs": "Carboidratos",
+      "fat": "Gordura",
+      "water": "Água",
+      "caloriesNotConfigured": "Suas calorias diárias ainda não foram configuradas",
+      "setupNutrition": "Configure seu plano nutricional para ver suas necessidades diárias.",
+      "nutritionSetup": "Configurar Nutrição",
+      "cancel": "Cancelar",
+      "save": "Salvar",
+      "caloriesError": "O valor deve estar entre 800 e 5000",
+      "proteinError": "O valor deve estar entre 10% e 60%",
+      "carbsError": "O valor deve estar entre 10% e 70%",
+      "fatError": "O valor deve estar entre 10% e 70%",
+      "distributionError": "A distribuição total deve ser exatamente 100%",
+      "total": "Total",
+      "glasses": "copos",
+      "caloriesDistribution": "Distribuição Calórica"
+    }
+  },
+  "workouts": {
+    "configSheet": {
+      "title": "Configurar Treinos",
+      "subtitle": "Selecione e personalize seus treinos",
+      "saveButton": "Salvar Configuração",
+      "addCustomWorkout": "Adicionar Treino Personalizado",
+      "noWorkouts": "Nenhum tipo de treino disponível",
+      "customizeWorkout": "Personalizar Treino",
+      "cancelButton": "Cancelar",
+      "saveCustomWorkout": "Salvar",
+      "deleteConfirmTitle": "Confirmar exclusão",
+      "deleteConfirmMessage": "Tem certeza que deseja excluir o treino \"{name}\"?",
+      "deleteButton": "Excluir",
+      "cancelDeleteButton": "Cancelar",
+      "workoutName": "Nome do Treino",
+      "workoutNameError": "Por favor, insira um nome para o treino",
+      "chooseIcon": "Escolha um ícone",
+      "chooseColor": "Escolha uma cor"
+    },
+    "context": {
+      "categories": {
+        "strength": "Força",
+        "cardio": "Cardio",
+        "flexibility": "Flexibilidade",
+        "balance": "Equilíbrio"
+      },
+      "defaultWorkouts": {
+        "workoutA": "Treino A",
+        "workoutB": "Treino B",
+        "workoutC": "Treino C",
+        "workoutD": "Treino D",
+        "workoutE": "Treino E",
+        "workoutF": "Treino F",
+        "workoutG": "Treino G"
+      },
+      "errors": {
+        "loadFailed": "Falha ao carregar treinos",
+        "saveFailed": "Falha ao salvar treinos",
+        "syncFailed": "Falha ao sincronizar com a nuvem"
+      }
+    }
+  }
+} 

@@ -1,0 +1,798 @@
+{
+  "login": {
+    "appName": "FitFolio",
+    "title": "Track your progress",
+    "subtitle": "Record your meals and workouts to achieve your goals and a healthier life",
+    "startNow": "START NOW",
+    "alreadyHaveAccount": "Already have an account?",
+    "signIn": "Sign In",
+    "termsAndPolicy": "By continuing, you agree to our",
+    "termsOfUse": "terms of use",
+    "and": "and",
+    "privacyPolicy": "privacy policy",
+    "bottomSheet": {
+      "welcomeBack": "Welcome back",
+      "email": "Email",
+      "emailPlaceholder": "Your email address",
+      "password": "Password",
+      "passwordPlaceholder": "Your password",
+      "forgotPassword": "Forgot your password?",
+      "loginButton": "SIGN IN",
+      "orContinueWith": "or continue with",
+      "errorMessages": {
+        "invalidCredentials": "Invalid email or password. Please try again.",
+        "emptyFields": "Please fill in all fields.",
+        "networkError": "Connection error. Check your internet."
+      }
+    }
+  },
+  "language": {
+    "name": "Language",
+    "pt-BR": "Portuguese",
+    "en-US": "English"
+  },
+  "passwordStrength": {
+    "weak": "Weak",
+    "medium": "Medium",
+    "good": "Good",
+    "strong": "Strong"
+  },
+  "months": {
+    "1": "January",
+    "2": "February",
+    "3": "March",
+    "4": "April",
+    "5": "May",
+    "6": "June",
+    "7": "July",
+    "8": "August",
+    "9": "September",
+    "10": "October",
+    "11": "November",
+    "12": "December"
+  },
+  "common": {
+    "measurements": {
+      "height": "Height",
+      "weight": "Weight",
+      "cm": "cm",
+      "kg": "kg"
+    },
+    "nutrition": {
+      "calories": "Calories",
+      "protein": "Protein",
+      "carbs": "Carbs",
+      "fat": "Fat",
+      "water": "Water",
+      "macros": "Macronutrients",
+      "dailyNeeds": "Daily Needs",
+      "kcal": "kcal",
+      "grams": "g",
+      "liters": "L"
+    },
+    "goals": {
+      "lose": "Lose Weight",
+      "maintain": "Maintain Weight",
+      "gain": "Gain Mass"
+    },
+    "activityLevels": {
+      "sedentary": "Sedentary",
+      "light": "Light",
+      "moderate": "Moderate",
+      "intense": "Intense",
+      "athlete": "Athlete"
+    },
+    "dietTypes": {
+      "classic": "Classic",
+      "vegetarian": "Vegetarian",
+      "vegan": "Vegan",
+      "pescatarian": "Pescatarian"
+    },
+    "error": "Error",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "copy": "Copy",
+    "user": "User",
+    "loading": "Loading data..."
+  },
+  "training": {
+    "title": "Your workouts",
+    "menu": {
+      "editWorkouts": "Edit Workouts",
+      "muteNotifications": "Mute Notifications",
+      "enableNotifications": "Enable Notifications",
+      "resetWorkouts": "Reset Workouts"
+    },
+    "stats": {
+      "exercises": "Exercises",
+      "sets": "Sets",
+      "volume": "Volume",
+      "lastWorkout": "Last workout",
+      "progress": "Progress",
+      "improvement": "Improvement",
+      "decline": "Decline",
+      "noChange": "No change",
+      "noComparisonText": "There are no exercises from the previous workout to compare.",
+      "evolutionByExercise": "Evolution by Exercise",
+      "statistics": "Statistics",
+      "comparingWith": "Comparing with",
+      "tapToCollapse": "Tap to collapse",
+      "tapToSeeDetails": "Tap to see details",
+      "previous": "Previous",
+      "maxWeight": "Max Weight",
+      "seriesReps": "Sets × Reps",
+      "calories": "Calories",
+      "totalVolume": "Total Volume",
+      "repetitions": "Repetitions",
+      "increase": "Increase",
+      "decrease": "Decrease",
+      "firstWorkout": "First workout"
+    },
+    "emptyState": {
+      "title": "No workout for today",
+      "subtitle": "Configure your workouts to start tracking your progress",
+      "configButton": "Configure Workouts"
+    },
+    "tips": {
+      "organize": "Organize your workouts by muscle groups",
+      "track": "Record exercises, sets, and reps",
+      "progress": "Track your evolution over time"
+    },
+    "workoutTypes": {
+      "title": "Choose your Workout",
+      "subtitle": "Select the type of workout you want to do today"
+    },
+    "resetModal": {
+      "title": "Reset Workouts",
+      "message": "Are you sure you want to reset all workout types? This action cannot be undone.",
+      "confirm": "Reset",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "resetFailed": "Could not reset workouts. Please try again.",
+      "resetError": "An error occurred while resetting workouts. Try restarting the app."
+    },
+    "workout": {
+      "exercises": "exercises",
+      "sets": "sets",
+      "viewDetails": "View Details"
+    },
+    "addFirstExercise": "Add your first exercise",
+    "workoutCopiedSuccess": "Workout copied successfully!",
+    "deleteExercise": "Delete Exercise",
+    "deleteExerciseConfirm": "Are you sure you want to delete this exercise? This action cannot be undone.",
+    "copyWorkout": "Copy workout {{name}}",
+    "copyWorkoutFrom": "Do you want to copy the workout from {{date}}?"
+  },
+  "onboarding": {
+    "common": {
+      "next": "Next",
+      "back": "Back",
+      "skip": "Skip",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "exitTitle": "Exit onboarding?",
+      "exitMessage": "If you exit now, your progress will not be saved.",
+      "step": "Step {{current}} of {{total}}"
+    },
+    "gender": {
+      "title": "What is your gender?",
+      "subtitle": "This helps us personalize your experience",
+      "options": {
+        "male": "Male",
+        "female": "Female",
+        "other": "Other"
+      },
+      "exitAlert": {
+        "title": "Exit Onboarding",
+        "message": "Are you sure you want to go back to the login screen? Your progress will not be saved.",
+        "cancel": "Cancel",
+        "confirm": "Back to login"
+      }
+    },
+    "trainingFrequency": {
+      "title": "How often do you exercise?",
+      "subtitle": "Choose the option that best describes your current level",
+      "options": {
+        "sedentary": {
+          "title": "Sedentary",
+          "description": "Little to no exercise"
+        },
+        "light": {
+          "title": "Light Exercise",
+          "description": "Light exercise 1-3 days per week"
+        },
+        "moderate": {
+          "title": "Moderate Exercise",
+          "description": "Moderate exercise 3-5 days per week"
+        },
+        "intense": {
+          "title": "Intense Exercise",
+          "description": "Intense exercise 6-7 days per week"
+        }
+      }
+    },
+    "birthDate": {
+      "title": "When were you born?",
+      "subtitle": "This will be used to calibrate your personalized plan",
+      "month": "Month",
+      "day": "Day",
+      "year": "Year",
+      "validation": {
+        "tooYoung": "You must be at least 14 years old to use the app",
+        "tooOld": "The maximum allowed age is 100 years"
+      }
+    },
+    "measurements": {
+      "title": "Height & weight",
+      "subtitle": "This will be used to calibrate your personalized plan",
+      "height": "Height (cm)",
+      "weight": "Weight (kg)",
+      "validation": {
+        "invalidHeight": "Please enter a valid height",
+        "invalidWeight": "Please enter a valid weight",
+        "heightRange": "Height must be between 120 and 250cm",
+        "weightRange": "Weight must be between 30 and 300kg"
+      }
+    },
+    "goal": {
+      "title": "What is your goal?",
+      "subtitle": "This will be used to calibrate your personalized plan",
+      "options": {
+        "lose": {
+          "title": "Lose Weight",
+          "description": "Reduce body fat"
+        },
+        "maintain": {
+          "title": "Maintain Weight",
+          "description": "Maintain current body composition"
+        },
+        "gain": {
+          "title": "Gain Mass",
+          "description": "Increase muscle mass"
+        }
+      }
+    },
+    "weightGoal": {
+      "title": "What is your ideal weight?",
+      "subtitle": "Set a realistic goal to achieve your objectives",
+      "targetWeight": "Target weight (kg)",
+      "weightDifference": {
+        "gain": "Gain {{weight}} kg",
+        "lose": "Lose {{weight}} kg",
+        "maintain": "Maintain current weight",
+        "gainDescription": "You'll need to increase your caloric intake",
+        "loseDescription": "You'll need to reduce your caloric intake",
+        "maintainDescription": "Continue with your current caloric intake",
+        "gainRecommendation": "We recommend gaining 0.5kg per week",
+        "loseRecommendation": "We recommend losing 0.5kg per week",
+        "maintainRecommendation": "Maintaining weight is a great goal!"
+      },
+      "validation": {
+        "invalidTargetWeight": "Please enter a valid target weight",
+        "weightRangeError": "The goal must be between {{min}}% and +{{max}}% of your current weight"
+      }
+    },
+    "weightChangeRate": {
+      "title": "Change Rate",
+      "subtitle": "Adjust the rate to achieve your goal sustainably",
+      "projection": {
+        "gainTitle": "Gain Projection",
+        "lossTitle": "Loss Projection",
+        "weightChange": "{{weight}}kg in {{weeks}} weeks",
+        "today": "Today",
+        "goal": "Goal",
+        "weeks": "{{weeks}} weeks"
+      },
+      "speed": {
+        "title": "{{speedType}} Speed",
+        "value": "{{rate}}kg per week",
+        "verySlowType": "Conservative",
+        "moderateType": "Moderate",
+        "fastType": "Accelerated",
+        "veryFastType": "Aggressive",
+        "presets": {
+          "slow": "Slow",
+          "moderate": "Moderate",
+          "fast": "Fast",
+          "intense": "Intense"
+        }
+      },
+      "info": {
+        "currentWeight": "Current Weight",
+        "targetWeight": "Target Weight",
+        "targetDate": "Expected Date",
+        "gainProjection": "You will gain {{weight}}kg in approximately {{weeks}} weeks with a {{speedType}} rate. Note: this is just a projection, the final result may vary according to your diet, training, and many other factors.",
+        "lossProjection": "You will lose {{weight}}kg in approximately {{weeks}} weeks with a {{speedType}} rate. Note: this is just a projection, the final result may vary according to your diet, training, and many other factors."
+      }
+    },
+    "dietType": {
+      "title": "What's your diet type?",
+      "subtitle": "This will be used to calibrate your personalized plan",
+      "options": {
+        "classic": {
+          "title": "Classic",
+          "description": "Includes all food groups"
+        },
+        "pescatarian": {
+          "title": "Pescatarian",
+          "description": "Vegetables, eggs, dairy and fish"
+        },
+        "vegetarian": {
+          "title": "Vegetarian",
+          "description": "No meat, but includes eggs and dairy"
+        },
+        "vegan": {
+          "title": "Vegan",
+          "description": "Only plant-based foods"
+        }
+      }
+    },
+    "referral": {
+      "title": "Where did you hear about us?",
+      "subtitle": "",
+      "options": {
+        "instagram": "Instagram",
+        "facebook": "Facebook",
+        "tiktok": "TikTok",
+        "youtube": "YouTube",
+        "google": "Google"
+      }
+    },
+    "loading": {
+      "title": "Preparing Your Plan",
+      "subtitle": "Calculating the best recommendations for you",
+      "steps": {
+        "metabolism": {
+          "title": "Calculating Metabolism",
+          "description": "Analyzing your energy needs with Mifflin-St Jeor",
+          "detail": "BMR + TDEE"
+        },
+        "macros": {
+          "title": "Adjusting Macros",
+          "description": "Optimizing proteins, carbohydrates and fats",
+          "detail": "P/C/F"
+        },
+        "hydration": {
+          "title": "Hydration Plan",
+          "description": "Calculating daily water needs",
+          "detail": "H2O"
+        },
+        "healthScore": {
+          "title": "Health Score",
+          "description": "Evaluating your health indicators",
+          "detail": "Score"
+        },
+        "recommendations": {
+          "title": "Recommendations",
+          "description": "Generating your personalized plan",
+          "detail": "Plan"
+        }
+      }
+    }
+  },
+  "summary": {
+    "title": "Your Personalized Plan",
+    "profile": {
+      "title": "Profile",
+      "activityLevel": "Activity Level"
+    },
+    "goal": {
+      "title": "Goal",
+      "target": "Target: {{weight}}kg"
+    },
+    "healthScore": {
+      "title": "Health Score",
+      "excellent": "Excellent! Keep it up!",
+      "good": "Good! You can improve even more!",
+      "needsImprovement": "Let's improve your habits!"
+    },
+    "dailyNeeds": {
+      "title": "Daily Needs",
+      "calories": {
+        "title": "Daily Calories",
+        "deficit": "Caloric deficit for weight loss",
+        "surplus": "Caloric surplus for mass gain",
+        "maintenance": "Maintenance of current weight"
+      },
+      "water": {
+        "title": "Recommended Water",
+        "glasses": "{{count}} glasses of 200ml"
+      },
+      "macros": {
+        "perKg": "{{value}}g/kg",
+        "calories": "{{value}} kcal",
+        "percentage": "{{value}}%"
+      }
+    },
+    "info": "Plan calculated based on your profile. Adjust at any time in settings.",
+    "tip": {
+      "title": "Tip of the day",
+      "lose": "Drink a glass of water before meals to help control appetite and improve digestion.",
+      "gain": "Add a quality protein source to all your meals to optimize muscle mass gain.",
+      "maintain": "Keep a food diary to track your progress and identify patterns that can be improved."
+    },
+    "startJourney": "Start Journey",
+    "error": "An error occurred while saving your information. Please try again."
+  },
+  "completeRegistration": {
+    "title": {
+      "step1": "Almost there!",
+      "step2": "Create your password"
+    },
+    "subtitle": {
+      "step1": "Complete your registration to save your personalized nutrition plan",
+      "step2": "Choose a secure password to protect your account"
+    },
+    "form": {
+      "name": {
+        "label": "Name",
+        "placeholder": "Your full name"
+      },
+      "email": {
+        "label": "Email",
+        "placeholder": "Your email"
+      },
+      "password": {
+        "label": "Password",
+        "placeholder": "Your password"
+      },
+      "confirmPassword": {
+        "label": "Confirm Password",
+        "placeholder": "Confirm your password"
+      }
+    },
+    "buttons": {
+      "continue": "Continue",
+      "back": "Back",
+      "createAccount": "Create Account"
+    },
+    "socialAuth": {
+      "continueWith": "or continue with"
+    },
+    "terms": {
+      "agreement": "By creating an account, you agree to our",
+      "termsOfService": "Terms of Service",
+      "and": "and",
+      "privacyPolicy": "Privacy Policy"
+    },
+    "errors": {
+      "emailInUse": "This email is already in use. Please use another email.",
+      "invalidEmail": "Invalid email",
+      "weakPassword": "Password too weak",
+      "generic": "An error occurred while completing registration. Please try again."
+    }
+  },
+  "exercise": {
+    "add": "Add Exercise",
+    "edit": "Edit Exercise",
+    "search": "Search exercise...",
+    "recentExercises": "Recent Exercises",
+    "noExercisesFound": "No exercises found for",
+    "addAsNewExercise": "Add as new exercise",
+    "allCategories": "All",
+    "muscleGroups": {
+      "all": "All",
+      "chest": "Chest",
+      "back": "Back",
+      "legs": "Legs",
+      "shoulders": "Shoulders",
+      "arms": "Arms",
+      "abs": "Abs",
+      "cardio": "Cardio"
+    },
+    "sets": "sets",
+    "reps": "reps",
+    "howTo": "How to do it",
+    "configuration": "Configuration",
+    "series": "set",
+    "addSet": "Add Set",
+    "notes": "Notes",
+    "notesPlaceholder": "Add notes about the exercise...",
+    "addToWorkout": "Add to",
+    "cardioConfig": "Cardio Configuration",
+    "duration": "Duration (minutes)",
+    "intensity": "Intensity",
+    "intensityLevels": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "setNumber": "Set",
+    "repetitions": "Repetitions",
+    "weight": "Weight (kg)",
+    "noSets": "No sets",
+    "setsDetails": "Sets Details"
+  },
+  "yesterday": "Yesterday",
+  "minutes": "minutes",
+  "nutrition": {
+    "title": "Your meals",
+    "menu": {
+      "editMeals": "Edit Meals",
+      "resetMeals": "Reset Meals"
+    },
+    "resetModal": {
+      "title": "Reset Meals",
+      "message": "Are you sure you want to reset all meal types? This action cannot be undone.",
+      "confirm": "Reset",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "configFailed": "Could not configure meals. Please try again.",
+      "configError": "An error occurred while configuring meals. Please try again.",
+      "resetFailed": "Could not reset meals. Please try again.",
+      "resetError": "An error occurred while resetting meals. Try restarting the app."
+    },
+    "deleteFood": "Delete Food",
+    "deleteFoodConfirm": "Are you sure you want to delete this food? This action cannot be undone.",
+    "deleteMeal": "Delete Meal",
+    "deleteMealConfirm": "Are you sure you want to delete the \"{{name}}\" meal? This action cannot be undone.",
+    "copyMeal": "Copy {{name}} from previous day",
+    "copyMealFrom": "Do you want to copy the meal from {{date}}?",
+    "noPreviousMeals": "There are no previous meals to copy.",
+    "meal": "meal",
+    "configureToStart": "Configure your meals to get started",
+    "noPreviousMealTitle": "No previous meal",
+    "dailyProgress": "Daily Progress",
+    "configureMacrosMessage": "Configure your macronutrient targets to track your daily progress",
+    "configureTargets": "Configure Targets",
+    "loading": "Loading...",
+    "excess": "Excess",
+    "remaining": "Remaining",
+    "configSheet": {
+      "title": "Configure your Meals",
+      "subtitle": "Select the meals you want to track",
+      "confirm": "Confirm"
+    },
+    "mealTypes": {
+      "breakfast": "Breakfast",
+      "morning_snack": "Morning Snack",
+      "lunch": "Lunch",
+      "afternoon_snack": "Afternoon Snack",
+      "dinner": "Dinner",
+      "supper": "Supper",
+      "snack": "Snack"
+    },
+    "addFood": {
+      "title": "Add Food",
+      "searchPlaceholder": "Search food...",
+      "scanCode": "Scan Code",
+      "quickAdd": "Quick Add",
+      "recentlyAdded": "Recently Added",
+      "clear": "Clear",
+      "noFoodFound": "No food found",
+      "searchError": "Error searching for food. Try again."
+    },
+    "foodDetails": {
+      "title": "Food Details",
+      "quantity": "Quantity",
+      "totalCalories": "Total Calories",
+      "additionalInfo": "Additional Information",
+      "fiber": "Fiber",
+      "caloricDistribution": "Caloric Distribution",
+      "addToMeal": "Add to Meal",
+      "updateMeal": "Update Meal",
+      "foodNotFound": "Food not found",
+      "loadError": "Error loading food details",
+      "genericError": "Error loading food",
+      "tryAgain": "Try Again"
+    },
+    "common": {
+      "gender": {
+        "male": "Male",
+        "female": "Female",
+        "other": "Other"
+      },
+      "activityLevels": {
+        "sedentary": "Sedentary",
+        "light": "Light",
+        "moderate": "Moderate",
+        "intense": "Intense",
+        "athlete": "Athlete"
+      },
+      "dietTypes": {
+        "classic": "Classic",
+        "pescatarian": "Pescatarian",
+        "vegetarian": "Vegetarian",
+        "vegan": "Vegan"
+      },
+      "goals": {
+        "lose": "Lose weight",
+        "maintain": "Maintain weight",
+        "gain": "Gain weight"
+      },
+      "macros": {
+        "balanced": "Balanced",
+        "highProtein": "High protein",
+        "highFat": "High fat",
+        "lowCarb": "Low carb"
+      }
+    },
+    "mealCard": {
+      "addFirstFood": "Add your first food",
+      "copySuccess": "Meal copied successfully!",
+      "protein": "Protein",
+      "carbs": "Carbs",
+      "fat": "Fat",
+      "kcal": "kcal",
+      "g": "g",
+      "portion": "Portion",
+      "copyMealTitle": "Copy previous meal",
+      "copyMealMessage": "Do you want to copy the foods from this meal from a previous date?",
+      "copyButton": "Copy",
+      "cancelButton": "Cancel",
+      "chooseDateMessage": "Choose a date to copy the meal from:",
+      "confirmCopy": "Confirm Copy",
+      "noMealsFound": "No previous meals found",
+      "deleteConfirmTitle": "Delete meal",
+      "deleteConfirmMessage": "Are you sure you want to delete this meal? All foods will be removed.",
+      "deleteFoodTitle": "Delete food",
+      "deleteFoodMessage": "Are you sure you want to delete this food?"
+    }
+  },
+  "home": {
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "reminders": "Diary",
+    "progress": "Progress",
+    "stats": {
+      "steps": "Steps",
+      "daily": "Daily",
+      "target": "Target",
+      "current": "Current",
+      "waterIntake": "Water Intake",
+      "glasses": "Glasses",
+      "pedometerNotAvailable": "Pedometer not available",
+      "connect": "Connect"
+    },
+    "chart": {
+      "dailyCalories": "Daily Calories",
+      "last7Days": "Last 7 days",
+      "last14Days": "Last 14 days",
+      "lastMonth": "Last month",
+      "noNutritionData": "Add meals to see nutrition data",
+      "average": "Average",
+      "today": "Today",
+      "maximum": "Maximum"
+    }
+  },
+  "dailyReminders": {
+    "title": "Daily Reminders",
+    "subtitle": "{{count}} reminders today",
+    "emptyState": {
+      "text": "Add your first reminder"
+    },
+    "deleteModal": {
+      "title": "Delete Reminder",
+      "message": "Are you sure you want to delete this reminder? This action cannot be undone.",
+      "confirmText": "Delete",
+      "cancelText": "Cancel"
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "header": {
+      "planNotConfigured": "Plan not configured",
+      "planActive": "Active plan",
+      "planIncomplete": "Incomplete plan",
+      "user": "User"
+    },
+    "options": {
+      "notifications": "Notifications",
+      "privacyAndSecurity": "Privacy and Security",
+      "aboutUs": "About Us",
+      "helpAndSupport": "Help and Support",
+      "lightMode": "Light Mode",
+      "darkMode": "Dark Mode",
+      "logout": "Logout"
+    },
+    "logoutModal": {
+      "title": "Logout",
+      "message": "Are you sure you want to log out? You will need to log in again to access your data.",
+      "confirmText": "Logout",
+      "cancelText": "Cancel"
+    },
+    "footer": {
+      "appName": "FitFolio",
+      "version": "Version"
+    },
+    "infoCard": {
+      "biometricData": "Biometric Data",
+      "years": "years",
+      "gender": {
+        "male": "Male",
+        "female": "Female",
+        "other": "Other",
+        "notSpecified": "Not specified"
+      },
+      "measures": "Measures",
+      "goal": "Goal",
+      "height": "Height",
+      "weight": "Weight",
+      "mainGoal": "Main Goal",
+      "goals": {
+        "lose": "Lose weight",
+        "maintain": "Maintain weight",
+        "gain": "Gain weight",
+        "notSpecified": "Not specified"
+      },
+      "current": "Current",
+      "target": "Target",
+      "completed": "completed",
+      "heightError": "Please enter a valid height",
+      "weightError": "Please enter a valid weight",
+      "targetWeightError": "Please set your current weight first"
+    },
+    "nutritionCard": {
+      "nutritionPlan": "Nutrition Plan",
+      "dailyNeeds": "Daily Needs",
+      "targetCalories": "Target Calories",
+      "configure": "Configure",
+      "customize": "Customize",
+      "calories": "Calories",
+      "protein": "Protein",
+      "carbs": "Carbs",
+      "fat": "Fat",
+      "water": "Water",
+      "caloriesNotConfigured": "Your daily calories have not been configured yet",
+      "setupNutrition": "Set up your nutrition plan to see your daily needs.",
+      "nutritionSetup": "Setup Nutrition",
+      "cancel": "Cancel",
+      "save": "Save",
+      "caloriesError": "Value must be between 800 and 5000",
+      "proteinError": "Value must be between 10% and 60%",
+      "carbsError": "Value must be between 10% and 70%",
+      "fatError": "Value must be between 10% and 70%",
+      "distributionError": "Total distribution must be exactly 100%",
+      "total": "Total",
+      "glasses": "glasses",
+      "caloriesDistribution": "Caloric Distribution"
+    }
+  },
+  "workouts": {
+    "configSheet": {
+      "title": "Configure Workouts",
+      "subtitle": "Select and customize your workouts",
+      "saveButton": "Save Configuration",
+      "addCustomWorkout": "Add Custom Workout",
+      "noWorkouts": "No workout types available",
+      "customizeWorkout": "Customize Workout",
+      "cancelButton": "Cancel",
+      "saveCustomWorkout": "Save",
+      "deleteConfirmTitle": "Confirm deletion",
+      "deleteConfirmMessage": "Are you sure you want to delete workout \"{name}\"?",
+      "deleteButton": "Delete",
+      "cancelDeleteButton": "Cancel",
+      "workoutName": "Workout Name",
+      "workoutNameError": "Please enter a name for the workout",
+      "chooseIcon": "Choose an icon",
+      "chooseColor": "Choose a color"
+    },
+    "context": {
+      "categories": {
+        "strength": "Strength",
+        "cardio": "Cardio",
+        "flexibility": "Flexibility",
+        "balance": "Balance"
+      },
+      "defaultWorkouts": {
+        "workoutA": "Workout A",
+        "workoutB": "Workout B",
+        "workoutC": "Workout C",
+        "workoutD": "Workout D",
+        "workoutE": "Workout E",
+        "workoutF": "Workout F",
+        "workoutG": "Workout G"
+      },
+      "errors": {
+        "loadFailed": "Failed to load workouts",
+        "saveFailed": "Failed to save workouts",
+        "syncFailed": "Failed to sync with cloud"
+      }
+    }
+  }
+} 

@@ -14,6 +14,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useNutrition } from "../../context/NutritionContext";
 import { validateBirthDate } from "../../utils/validations";
 import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
+import { useTranslation } from "react-i18next";
 
 const { height } = Dimensions.get("window");
 const ITEM_HEIGHT = 52;
@@ -23,6 +24,7 @@ export default function BirthDateScreen() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { nutritionInfo, updateNutritionInfo } = useNutrition();
+  const { t } = useTranslation();
 
   // Definir estados iniciais como null para indicar que nenhuma opção está selecionada
   const [selectedMonth, setSelectedMonth] = useState<number | null>(
@@ -82,19 +84,20 @@ export default function BirthDateScreen() {
     router.back();
   };
 
+  // Obter nomes dos meses a partir das traduções
   const months = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro",
+    t("months.1"),
+    t("months.2"),
+    t("months.3"),
+    t("months.4"),
+    t("months.5"),
+    t("months.6"),
+    t("months.7"),
+    t("months.8"),
+    t("months.9"),
+    t("months.10"),
+    t("months.11"),
+    t("months.12"),
   ];
 
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -133,8 +136,8 @@ export default function BirthDateScreen() {
 
   return (
     <OnboardingLayout
-      title="Quando você nasceu?"
-      subtitle="Isso será usado para calibrar seu plano personalizado"
+      title={t("onboarding.birthDate.title")}
+      subtitle={t("onboarding.birthDate.subtitle")}
       currentStep={3}
       totalSteps={10}
       onBack={handleBack}
@@ -151,7 +154,7 @@ export default function BirthDateScreen() {
             key={`month-label-${theme}`}
             style={[styles.dateLabel, { color: colors.text }]}
           >
-            Mês
+            {t("onboarding.birthDate.month")}
           </Text>
           <View
             key={`month-picker-container-${theme}`}
@@ -224,7 +227,7 @@ export default function BirthDateScreen() {
             key={`day-label-${theme}`}
             style={[styles.dateLabel, { color: colors.text }]}
           >
-            Dia
+            {t("onboarding.birthDate.day")}
           </Text>
           <View
             key={`day-picker-container-${theme}`}
@@ -293,7 +296,7 @@ export default function BirthDateScreen() {
             key={`year-label-${theme}`}
             style={[styles.dateLabel, { color: colors.text }]}
           >
-            Ano
+            {t("onboarding.birthDate.year")}
           </Text>
           <View
             key={`year-picker-container-${theme}`}

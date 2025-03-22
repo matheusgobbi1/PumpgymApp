@@ -30,6 +30,9 @@ import { MotiView } from "moti";
 import { Easing } from "react-native-reanimated";
 import { useMeals } from "../../context/MealContext";
 import ButtonNew from "../common/ButtonNew";
+import { useTranslation } from "react-i18next";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { KEYS } from "../../constants/keys";
 
 const { width } = Dimensions.get("window");
 
@@ -107,6 +110,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
     const insets = useSafeAreaInsets();
     const { mealTypes: existingMealTypes } = useMeals();
     const [isLoading, setIsLoading] = useState(true);
+    const { t } = useTranslation();
 
     // Ref para o bottom sheet
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
@@ -322,7 +326,9 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                 </View>
                 <View style={styles.mealInfo}>
                   <Text style={[styles.mealName, { color: colors.text }]}>
-                    {meal.name}
+                    {t(`nutrition.mealTypes.${meal.id}`, {
+                      defaultValue: meal.name,
+                    })}
                   </Text>
                 </View>
                 <View style={styles.checkboxContainer}>
@@ -347,7 +353,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
           </MotiView>
         );
       },
-      [colors, theme, toggleMealSelection]
+      [colors, theme, toggleMealSelection, t]
     );
 
     // Adicionar um componente de carregamento
@@ -358,7 +364,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
         >
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.text }]}>
-            Carregando...
+            {t("nutrition.loading")}
           </Text>
         </View>
       );
@@ -390,10 +396,10 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
         >
           <View style={styles.header}>
             <Text style={[styles.title, { color: colors.text }]}>
-              Configure suas Refeições
+              {t("nutrition.configSheet.title")}
             </Text>
             <Text style={[styles.subtitle, { color: colors.text + "80" }]}>
-              Selecione as refeições que deseja acompanhar
+              {t("nutrition.configSheet.subtitle")}
             </Text>
           </View>
 
@@ -416,7 +422,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
             ]}
           >
             <ButtonNew
-              title="Confirmar"
+              title={t("nutrition.configSheet.confirm")}
               onPress={confirmMealConfig}
               variant="primary"
               iconName="checkmark-outline"

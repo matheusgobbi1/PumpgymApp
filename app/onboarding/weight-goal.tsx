@@ -15,12 +15,14 @@ import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
 import Input from "../../components/common/Input";
 import { MotiView } from "moti";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 
 export default function WeightGoalScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { nutritionInfo, updateNutritionInfo } = useNutrition();
+  const { t } = useTranslation();
 
   const [targetWeight, setTargetWeight] = useState<string>(
     nutritionInfo.targetWeight ? nutritionInfo.targetWeight.toString() : ""
@@ -133,8 +135,8 @@ export default function WeightGoalScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <OnboardingLayout
-        title="Qual é o seu peso ideal?"
-        subtitle="Defina uma meta realista para alcançar seus objetivos"
+        title={t("onboarding.weightGoal.title")}
+        subtitle={t("onboarding.weightGoal.subtitle")}
         currentStep={6}
         totalSteps={10}
         onBack={handleBack}
@@ -144,7 +146,7 @@ export default function WeightGoalScreen() {
       >
         <View style={styles.inputContainer}>
           <Input
-            label="Peso meta (kg)"
+            label={t("onboarding.weightGoal.targetWeight")}
             value={targetWeight}
             onChangeText={updateWeightDifference}
             placeholder="70"
@@ -211,10 +213,14 @@ export default function WeightGoalScreen() {
                 ]}
               >
                 {isDifferencePositive()
-                  ? `Ganhar ${weightDifference} kg`
+                  ? t("onboarding.weightGoal.weightDifference.gain", {
+                      weight: weightDifference,
+                    })
                   : isDifferenceNegative()
-                  ? `Perder ${getAbsoluteDifference()} kg`
-                  : "Manter o peso atual"}
+                  ? t("onboarding.weightGoal.weightDifference.lose", {
+                      weight: getAbsoluteDifference(),
+                    })
+                  : t("onboarding.weightGoal.weightDifference.maintain")}
               </Text>
 
               <Text
@@ -224,10 +230,12 @@ export default function WeightGoalScreen() {
                 ]}
               >
                 {isDifferencePositive()
-                  ? "Você precisará aumentar sua ingestão calórica"
+                  ? t("onboarding.weightGoal.weightDifference.gainDescription")
                   : isDifferenceNegative()
-                  ? "Você precisará reduzir sua ingestão calórica"
-                  : "Continue com sua ingestão calórica atual"}
+                  ? t("onboarding.weightGoal.weightDifference.loseDescription")
+                  : t(
+                      "onboarding.weightGoal.weightDifference.maintainDescription"
+                    )}
               </Text>
 
               <View
@@ -257,10 +265,16 @@ export default function WeightGoalScreen() {
                   ]}
                 >
                   {isDifferencePositive()
-                    ? "Recomendamos ganho de 0.5kg por semana"
+                    ? t(
+                        "onboarding.weightGoal.weightDifference.gainRecommendation"
+                      )
                     : isDifferenceNegative()
-                    ? "Recomendamos perda de 0.5kg por semana"
-                    : "Manter o peso é uma ótima meta!"}
+                    ? t(
+                        "onboarding.weightGoal.weightDifference.loseRecommendation"
+                      )
+                    : t(
+                        "onboarding.weightGoal.weightDifference.maintainRecommendation"
+                      )}
                 </Text>
               </View>
             </MotiView>

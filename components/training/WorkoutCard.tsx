@@ -38,6 +38,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useAuth } from "../../context/AuthContext";
 import ConfirmationModal from "../ui/ConfirmationModal";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 
@@ -83,6 +84,7 @@ export default function WorkoutCard({
   const { user } = useAuth();
   const userId = user?.uid || "no-user";
   const { selectedDate, copyWorkoutFromDate } = useWorkoutContext();
+  const { t } = useTranslation();
 
   // Usar useRef para armazenar os workouts em vez de extraí-los do contexto
   // e causar rerenderizações em cascata
@@ -214,7 +216,7 @@ export default function WorkoutCard({
 
     // Verificar se é ontem
     if (isYesterday(dateString)) {
-      return `Ontem (${date.toLocaleDateString("pt-BR", {
+      return `${t("yesterday")} (${date.toLocaleDateString("pt-BR", {
         weekday: "long",
         day: "2-digit",
         month: "2-digit",
@@ -253,15 +255,15 @@ export default function WorkoutCard({
     }
 
     try {
-      await copyWorkoutFromDate(
-        selectedSourceDate,
-        selectedDate,
-        workout.id,
-        workout.id
-      );
-
+      // Fornecer feedback tátil de sucesso
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setShowCopyWorkoutModal(false);
+
+      // Fechar o modal com um pequeno atraso para garantir que o feedback seja percebido
+      setTimeout(() => {
+        setShowCopyWorkoutModal(false);
+      }, 50);
+
+      // Mostrar mensagem de sucesso
       setShowCopySuccess(true);
 
       // Esconder a mensagem após 3 segundos
@@ -269,10 +271,25 @@ export default function WorkoutCard({
         setShowCopySuccess(false);
       }, 3000);
 
-      // Recarregar a página atual
-      setTimeout(() => {
-        router.push("/training");
-      }, 1000);
+      // Executar a operação assíncrona em segundo plano
+      setTimeout(async () => {
+        try {
+          await copyWorkoutFromDate(
+            selectedSourceDate,
+            selectedDate,
+            workout.id,
+            workout.id
+          );
+
+          // Recarregar a página atual
+          setTimeout(() => {
+            router.push("/training");
+          }, 500);
+        } catch (error) {
+          console.error("Erro ao copiar treino:", error);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        }
+      }, 100);
     } catch (error) {
       console.error("Erro ao copiar treino:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -515,33 +532,6 @@ export default function WorkoutCard({
           style={styles.exerciseItemContent}
         >
           <View style={styles.exerciseItemLeft}>
-            <View
-              style={[
-                styles.exerciseIconContainer,
-                { backgroundColor: workout.color + "20" },
-              ]}
-            >
-              {/* Determinar qual biblioteca de ícones usar com base no nome */}
-              {workout.icon.includes("material-") ? (
-                <MaterialCommunityIcons
-                  name={workout.icon.replace("material-", "") as any}
-                  size={16}
-                  color={workout.color}
-                />
-              ) : workout.icon.includes("fa5-") ? (
-                <FontAwesome5
-                  name={workout.icon.replace("fa5-", "") as any}
-                  size={16}
-                  color={workout.color}
-                />
-              ) : (
-                <Ionicons
-                  name={workout.icon as any}
-                  size={16}
-                  color={workout.color}
-                />
-              )}
-            </View>
             <View style={styles.exerciseTextContainer}>
               <Animated.Text
                 entering={FadeIn.delay(exerciseIndex * 100 + 100).duration(400)}
@@ -557,12 +547,16 @@ export default function WorkoutCard({
                   ]}
                 >
                   {exercise.category === "cardio"
-                    ? `${exercise.cardioDuration} min • Intensidade ${exercise.cardioIntensity}/10`
+                    ? `${exercise.cardioDuration} min • ${t(
+                        "exercise.intensityLevels.medium"
+                      )} ${exercise.cardioIntensity}/10`
                     : exercise.sets && exercise.sets.length > 0
                     ? `${exercise.sets.length} ${
-                        exercise.sets.length === 1 ? "série" : "séries"
+                        exercise.sets.length === 1
+                          ? t("exercise.series", { count: 1 })
+                          : t("exercise.series", { count: 2 })
                       }`
-                    : "Sem séries"}
+                    : t("exercise.noSets")}
                 </Text>
               </View>
             </View>
@@ -588,7 +582,7 @@ export default function WorkoutCard({
                         { color: colors.text + "99" },
                       ]}
                     >
-                      C{" "}
+                      {t("exercise.weight").charAt(0)}{" "}
                     </Text>
                     {exercise.sets && exercise.sets.length > 0
                       ? exercise.sets[0].weight
@@ -611,7 +605,7 @@ export default function WorkoutCard({
                         { color: colors.text + "99" },
                       ]}
                     >
-                      R{" "}
+                      {t("exercise.reps").charAt(0)}{" "}
                     </Text>
                     {exercise.sets && exercise.sets.length > 0
                       ? exercise.sets[0].reps
@@ -634,7 +628,7 @@ export default function WorkoutCard({
                         { color: colors.text + "99" },
                       ]}
                     >
-                      S{" "}
+                      {t("exercise.sets").charAt(0)}{" "}
                     </Text>
                     {exercise.sets ? exercise.sets.length : 0}
                   </Text>
@@ -679,7 +673,7 @@ export default function WorkoutCard({
             >
               <View style={styles.setsHeader}>
                 <Text style={[styles.setsHeaderText, { color: colors.text }]}>
-                  Detalhes das Séries
+                  {t("exercise.setsDetails")}
                 </Text>
               </View>
               <View style={styles.setsGrid}>
@@ -690,7 +684,7 @@ export default function WorkoutCard({
                       { color: colors.text + "99" },
                     ]}
                   >
-                    Série
+                    {t("exercise.setNumber")}
                   </Text>
                   <Text
                     style={[
@@ -698,7 +692,7 @@ export default function WorkoutCard({
                       { color: colors.text + "99" },
                     ]}
                   >
-                    Peso
+                    {t("exercise.weight")}
                   </Text>
                   <Text
                     style={[
@@ -706,7 +700,7 @@ export default function WorkoutCard({
                       { color: colors.text + "99" },
                     ]}
                   >
-                    Reps
+                    {t("exercise.reps")}
                   </Text>
                 </View>
                 {exercise.sets.map((set, setIndex) => (
@@ -733,7 +727,7 @@ export default function WorkoutCard({
             style={[styles.notesContainer, { backgroundColor: colors.light }]}
           >
             <Text style={[styles.notesTitle, { color: colors.text }]}>
-              Notas:
+              {t("exercise.notes")}:
             </Text>
             <Text style={[styles.notesText, { color: colors.text + "99" }]}>
               {exercise.notes}
@@ -757,10 +751,10 @@ export default function WorkoutCard({
                   { color: colors.text + "99" },
                 ]}
               >
-                Duração:
+                {t("exercise.duration")}:
               </Text>
               <Text style={[styles.cardioDetailValue, { color: colors.text }]}>
-                {exercise.cardioDuration} minutos
+                {exercise.cardioDuration} {t("minutes")}
               </Text>
             </View>
 
@@ -771,7 +765,7 @@ export default function WorkoutCard({
                   { color: colors.text + "99" },
                 ]}
               >
-                Intensidade:
+                {t("exercise.intensity")}:
               </Text>
               <Text style={[styles.cardioDetailValue, { color: colors.text }]}>
                 {exercise.cardioIntensity}/10
@@ -781,7 +775,7 @@ export default function WorkoutCard({
             {exercise.notes && (
               <>
                 <Text style={[styles.notesTitle, { color: colors.text }]}>
-                  Notas:
+                  {t("exercise.notes")}:
                 </Text>
                 <Text style={[styles.notesText, { color: colors.text + "99" }]}>
                   {exercise.notes}
@@ -867,7 +861,7 @@ export default function WorkoutCard({
                           { color: colors.text + "70" },
                         ]}
                       >
-                        volume
+                        {t("training.stats.volume").toLowerCase()}
                       </Text>
                     </Text>
                   </View>
@@ -956,7 +950,7 @@ export default function WorkoutCard({
                     <Text
                       style={[styles.emptyText, { color: colors.text + "50" }]}
                     >
-                      Adicione seu primeiro exercício
+                      {t("training.addFirstExercise")}
                     </Text>
                   </LinearGradient>
                 </MotiView>
@@ -984,7 +978,7 @@ export default function WorkoutCard({
                       { color: workout.color },
                     ]}
                   >
-                    Treino copiado com sucesso!
+                    {t("training.workoutCopiedSuccess")}
                   </Text>
                 </MotiView>
               )}
@@ -996,18 +990,38 @@ export default function WorkoutCard({
       {/* Modal de confirmação para excluir exercício */}
       <ConfirmationModal
         visible={showDeleteExerciseModal}
-        title="Excluir Exercício"
-        message="Tem certeza que deseja excluir este exercício? Esta ação não pode ser desfeita."
-        confirmText="Excluir"
-        cancelText="Cancelar"
+        title={t("training.deleteExercise")}
+        message={t("training.deleteExerciseConfirm")}
+        confirmText={t("common.delete")}
+        cancelText={t("common.cancel")}
         confirmType="danger"
         icon="trash-outline"
         onConfirm={async () => {
-          if (selectedExerciseId) {
-            await onDeleteExercise(selectedExerciseId);
-          }
-          setShowDeleteExerciseModal(false);
-          setSelectedExerciseId("");
+          // Fornecer feedback tátil de aviso
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+
+          // Armazenar o ID do exercício para uso após fechar o modal
+          const exerciseIdToDelete = selectedExerciseId;
+
+          // Fechar o modal com um pequeno atraso para garantir que o feedback seja percebido
+          setTimeout(() => {
+            setShowDeleteExerciseModal(false);
+            setSelectedExerciseId("");
+          }, 50);
+
+          // Executar a operação assíncrona em segundo plano após o modal fechar
+          setTimeout(async () => {
+            if (exerciseIdToDelete) {
+              try {
+                await onDeleteExercise(exerciseIdToDelete);
+              } catch (error) {
+                console.error("Erro ao excluir exercício:", error);
+                Haptics.notificationAsync(
+                  Haptics.NotificationFeedbackType.Error
+                );
+              }
+            }
+          }, 100);
         }}
         onCancel={() => {
           setShowDeleteExerciseModal(false);
@@ -1018,10 +1032,12 @@ export default function WorkoutCard({
       {/* Modal para copiar treino de data anterior */}
       <ConfirmationModal
         visible={showCopyWorkoutModal}
-        title={`Copiar treino ${workout.name}`}
-        message={`Deseja copiar o treino de ${formatDate(selectedSourceDate)}?`}
-        confirmText="Copiar"
-        cancelText="Cancelar"
+        title={t("training.copyWorkout", { name: workout.name })}
+        message={t("training.copyWorkoutFrom", {
+          date: formatDate(selectedSourceDate),
+        })}
+        confirmText={t("common.copy")}
+        cancelText={t("common.cancel")}
         confirmType="primary"
         icon="copy-outline"
         onConfirm={handleCopyWorkout}
@@ -1037,12 +1053,12 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   firstExerciseItem: {
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
   lastExerciseItem: {
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
   },
   exerciseItemContent: {
     padding: 16,
@@ -1055,20 +1071,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
   },
-  exerciseIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
   exerciseTextContainer: {
     flex: 1,
   },
   exerciseName: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
     marginBottom: 4,
   },
   exerciseDetailsContainer: {
@@ -1076,35 +1084,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   exerciseDetails: {
-    fontSize: 11,
+    fontSize: 12,
+    letterSpacing: -0.1,
   },
   exerciseRightContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
   },
   exerciseIndicators: {
     flexDirection: "row",
-    gap: 20,
+    gap: 14,
   },
   exerciseIndicator: {
     alignItems: "center",
-    width: 32,
+    width: 36,
   },
   indicatorBar: {
     width: 16,
-    height: 3,
-    borderRadius: 1.5,
+    height: 4,
+    borderRadius: 2,
     marginBottom: 4,
   },
   indicatorValue: {
-    fontSize: 10,
-    fontWeight: "500",
+    fontSize: 11,
+    fontWeight: "700",
     textAlign: "center",
   },
   indicatorLabel: {
-    fontSize: 10,
-    fontWeight: "400",
+    fontSize: 9,
+    fontWeight: "600",
+    marginRight: 2,
   },
   cardioContainer: {
     flexDirection: "row",
@@ -1114,18 +1124,20 @@ const styles = StyleSheet.create({
   cardioText: {
     fontSize: 12,
     fontWeight: "500",
+    letterSpacing: -0.1,
   },
   setsDetailsContainer: {
-    padding: 12,
+    padding: 16,
     borderTopWidth: 1,
     borderTopColor: "rgba(0,0,0,0.05)",
   },
   setsHeader: {
-    marginBottom: 8,
+    marginBottom: 10,
   },
   setsHeaderText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "600",
+    letterSpacing: -0.2,
   },
   setsGrid: {
     gap: 8,
@@ -1134,82 +1146,88 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 8,
+    marginBottom: 4,
   },
   setsGridHeaderText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "500",
     width: 50,
     textAlign: "center",
+    letterSpacing: -0.1,
   },
   setRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     backgroundColor: "rgba(0,0,0,0.02)",
-    borderRadius: 6,
+    borderRadius: 10,
   },
   setNumber: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "600",
     width: 50,
     textAlign: "center",
   },
   setWeight: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "600",
     width: 50,
     textAlign: "center",
   },
   setReps: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "600",
     width: 50,
     textAlign: "center",
   },
   notesContainer: {
-    padding: 12,
+    padding: 16,
     borderTopWidth: 1,
     borderTopColor: "rgba(0,0,0,0.05)",
   },
   notesTitle: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "600",
-    marginBottom: 4,
+    marginBottom: 6,
+    letterSpacing: -0.2,
   },
   notesText: {
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 13,
+    lineHeight: 20,
+    letterSpacing: -0.1,
   },
   cardioDetailsContainer: {
-    padding: 12,
+    padding: 16,
     borderTopWidth: 1,
     borderTopColor: "rgba(0,0,0,0.05)",
   },
   cardioDetailRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   cardioDetailLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "500",
+    letterSpacing: -0.1,
   },
   cardioDetailValue: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
+    letterSpacing: -0.1,
   },
 
   // Estilos para o Swipeable
   swipeableContainer: {
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: "hidden",
     marginBottom: 16,
   },
 
   // Estilos originais do card
   workoutCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: {
@@ -1217,15 +1235,14 @@ const styles = StyleSheet.create({
       height: 2,
     },
     shadowOpacity: 0.05,
-    shadowRadius: 6,
+    shadowRadius: 8,
     elevation: 3,
   },
   workoutContent: {
-    padding: 20,
-    paddingBottom: 20,
+    padding: 16,
   },
   headerTouchable: {
-    marginBottom: 14,
+    marginBottom: 12,
   },
   workoutHeader: {
     flexDirection: "row",
@@ -1237,25 +1254,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   workoutIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   workoutTitle: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: -0.3,
   },
   exerciseCount: {
     fontSize: 12,
     marginTop: 2,
+    letterSpacing: -0.1,
   },
   volumeValue: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
-    marginTop: 2,
+    marginTop: 3,
   },
   volumeLabel: {
     fontSize: 11,
@@ -1264,24 +1288,27 @@ const styles = StyleSheet.create({
   actionButtonsContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
   },
   headerActionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    backgroundColor: "transparent",
-    borderColor: "transparent",
+    borderWidth: 0,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   progressContainer: {
-    height: 3,
+    height: 4,
     flexDirection: "row",
-    borderRadius: 1.5,
+    borderRadius: 2,
     overflow: "hidden",
-    marginBottom: 18,
+    marginBottom: 16,
   },
   progressBar: {
     height: "100%",
@@ -1291,49 +1318,52 @@ const styles = StyleSheet.create({
   },
   exercisesList: {
     marginVertical: 0,
-    marginHorizontal: -20, // Estender além do padding do card
+    marginHorizontal: -16, // Ajustado para o novo padding do card
   },
   emptyContainer: {
-    marginVertical: 12,
-    borderRadius: 10,
+    marginVertical: 16,
+    borderRadius: 16,
     overflow: "hidden",
   },
   emptyGradient: {
-    padding: 24,
+    padding: 28,
     alignItems: "center",
     justifyContent: "center",
   },
   emptyText: {
-    fontSize: 13,
+    fontSize: 14,
     textAlign: "center",
+    fontWeight: "500",
+    letterSpacing: -0.3,
   },
   successMessage: {
     flexDirection: "row",
     alignItems: "center",
     padding: 10,
-    borderRadius: 8,
+    borderRadius: 12,
     marginTop: 10,
     marginBottom: 10,
     alignSelf: "center",
   },
   successMessageText: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
     marginLeft: 6,
+    letterSpacing: -0.2,
   },
   swipeAction: {
     justifyContent: "center",
     alignItems: "center",
     width: 70,
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
   },
   deleteAction: {
     justifyContent: "center",
     alignItems: "center",
     width: 70,
     height: "100%",
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 16,
   },
 });

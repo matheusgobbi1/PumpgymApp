@@ -23,6 +23,7 @@ import * as Haptics from "expo-haptics";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useWorkoutContext } from "../../context/WorkoutContext";
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 
@@ -53,6 +54,7 @@ export default function HomeScreen() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const router = useRouter();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"lembretes" | "progresso">(
     "lembretes"
   );
@@ -190,7 +192,7 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              Lembretes
+              {t("home.reminders")}
             </Text>
           </Pressable>
 
@@ -216,7 +218,7 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              Progresso
+              {t("home.progress")}
             </Text>
           </Pressable>
         </View>

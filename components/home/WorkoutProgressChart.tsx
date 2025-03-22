@@ -36,6 +36,7 @@ import { useWorkoutContext } from "../../context/WorkoutContext";
 import { Exercise } from "../../context/WorkoutContext";
 import { WorkoutType } from "../../components/training/WorkoutConfigSheet";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 
@@ -125,6 +126,7 @@ const ExerciseCard = ({
   formatValue: (value: number) => string;
 }) => {
   const { theme } = useTheme();
+  const { t } = useTranslation();
 
   let currentValue = 0;
   let previousValue = 0;
@@ -225,6 +227,7 @@ export default function WorkoutProgressChart({
 }: WorkoutProgressChartProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const { t } = useTranslation();
   const {
     workouts,
     workoutTypes,
@@ -755,16 +758,16 @@ export default function WorkoutProgressChart({
   const formatValue = useCallback(
     (value: number) => {
       if (selectedChartType === "weight") {
-        return `${value} kg`;
+        return `${value} ${t("common.measurements.kg")}`;
       } else if (selectedChartType === "calories") {
-        return `${value} kcal`;
+        return `${value} ${t("common.nutrition.kcal")}`;
       } else if (selectedChartType === "volume") {
-        return `${value} kg`;
+        return `${value} ${t("common.measurements.kg")}`;
       } else {
         return `${value}`;
       }
     },
-    [selectedChartType]
+    [selectedChartType, t]
   );
 
   // Verificar se há exercícios para mostrar
@@ -776,13 +779,13 @@ export default function WorkoutProgressChart({
   // Título do gráfico com base no tipo selecionado
   const getChartTitle = useCallback(() => {
     if (selectedChartType === "weight") {
-      return "Progressão de Peso";
+      return t("training.stats.progress");
     } else if (selectedChartType === "calories") {
-      return "Calorias Totais do Treino";
+      return t("training.stats.calories");
     } else {
-      return "Progressão de Volume";
+      return t("training.stats.totalVolume");
     }
-  }, [selectedChartType]);
+  }, [selectedChartType, t]);
 
   // Função para mudar o período de histórico com feedback tátil
   const changeHistoryPeriod = useCallback((period: HistoryPeriod) => {
@@ -827,7 +830,10 @@ export default function WorkoutProgressChart({
         // Criar um exercício virtual para representar os totais
         const virtualExercise: Exercise = {
           id: type === "calories" ? "calories_total" : "volume_total",
-          name: type === "calories" ? "Calorias Totais" : "Volume Total",
+          name:
+            type === "calories"
+              ? t("training.stats.calories")
+              : t("training.stats.totalVolume"),
           sets: [],
         };
 
@@ -840,7 +846,7 @@ export default function WorkoutProgressChart({
         updateChartData();
       }, 100);
     },
-    [updateChartData, todayExercises]
+    [updateChartData, todayExercises, t]
   );
 
   // Renderizar cada exercício na lista (extraído para evitar problemas de dependência cíclica)

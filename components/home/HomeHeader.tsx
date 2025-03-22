@@ -11,9 +11,9 @@ import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import { useAuth } from "../../context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, enUS } from "date-fns/locale";
 import ContextMenu, { MenuAction } from "../shared/ContextMenu";
+import { useTranslation } from "react-i18next";
 
 interface HomeHeaderProps {
   onProfilePress?: () => void;
@@ -39,6 +39,7 @@ export default function HomeHeader({
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { user } = useAuth();
+  const { t, i18n } = useTranslation();
   const [greeting, setGreeting] = useState("");
   const [currentDate, setCurrentDate] = useState("");
 
@@ -47,18 +48,28 @@ export default function HomeHeader({
     // Definir a saudação com base na hora do dia
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) {
-      setGreeting("Bom dia");
+      setGreeting(t("home.greeting.morning"));
     } else if (hour >= 12 && hour < 18) {
-      setGreeting("Boa tarde");
+      setGreeting(t("home.greeting.afternoon"));
     } else {
-      setGreeting("Boa noite");
+      setGreeting(t("home.greeting.evening"));
     }
   }
 
   // Inicializar a data atual
   if (currentDate === "") {
     const today = new Date();
-    const formattedDate = format(today, "EEEE, d 'de' MMMM");
+
+    // Usar toLocaleDateString em vez de date-fns format para evitar problemas de compatibilidade
+    let options: Intl.DateTimeFormatOptions;
+    if (i18n.language === "pt-BR") {
+      options = { weekday: "long", day: "numeric", month: "long" };
+    } else {
+      options = { weekday: "long", month: "long", day: "numeric" };
+    }
+
+    const formattedDate = today.toLocaleDateString(i18n.language, options);
+
     setCurrentDate(
       formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1)
     );
@@ -80,7 +91,7 @@ export default function HomeHeader({
             {greeting},
           </Text>
           <Text style={[styles.userName, { color: colors.text }]}>
-            {user?.displayName?.split(" ")[0] || "Usuário"}
+            {user?.displayName?.split(" ")[0] || t("common.user")}
           </Text>
           {title ? (
             <Text

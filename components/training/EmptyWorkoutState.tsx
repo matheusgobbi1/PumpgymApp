@@ -17,6 +17,7 @@ import { useWorkoutContext } from "../../context/WorkoutContext";
 import Colors from "../../constants/Colors";
 import { WorkoutType } from "./WorkoutConfigSheet";
 import WorkoutIcon from "../shared/WorkoutIcon";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 
@@ -117,6 +118,7 @@ function EmptyWorkoutState({
 }: EmptyWorkoutStateProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const { t } = useTranslation();
   const workoutContext = useWorkoutContext();
   const { selectedDate } = workoutContext;
   const availableWorkoutTypes = workoutContext.availableWorkoutTypes || [];
@@ -179,12 +181,11 @@ function EmptyWorkoutState({
       </View>
 
       <Text style={[styles.title, { color: colors.text }]}>
-        Configure seus Treinos
+        {t("training.emptyState.title")}
       </Text>
 
       <Text style={[styles.description, { color: colors.text + "80" }]}>
-        Personalize seus treinos para acompanhar seu progresso de forma
-        eficiente.
+        {t("training.emptyState.subtitle")}
       </Text>
 
       <View style={styles.buttonContainer}>
@@ -199,7 +200,9 @@ function EmptyWorkoutState({
             end={{ x: 1, y: 1 }}
             style={styles.buttonGradient}
           >
-            <Text style={styles.buttonText}>Configurar Treinos</Text>
+            <Text style={styles.buttonText}>
+              {t("training.emptyState.configButton")}
+            </Text>
             <Ionicons name="arrow-forward" size={20} color="white" />
           </LinearGradient>
         </TouchableOpacity>
@@ -208,17 +211,17 @@ function EmptyWorkoutState({
       <View style={styles.tipsContainer}>
         <TipItem
           icon="checkmark-circle-outline"
-          text="Organize seus treinos por grupos musculares"
+          text={t("training.tips.organize")}
           color={colors.primary}
         />
         <TipItem
           icon="checkmark-circle-outline"
-          text="Registre exercícios, séries e repetições"
+          text={t("training.tips.track")}
           color={colors.primary}
         />
         <TipItem
           icon="checkmark-circle-outline"
-          text="Acompanhe sua evolução ao longo do tempo"
+          text={t("training.tips.progress")}
           color={colors.primary}
         />
       </View>
@@ -230,11 +233,11 @@ function EmptyWorkoutState({
     return (
       <>
         <Text style={[styles.title, { color: colors.text }]}>
-          Escolha seu Treino
+          {t("training.workoutTypes.title")}
         </Text>
 
         <Text style={[styles.description, { color: colors.text + "80" }]}>
-          Selecione o tipo de treino que deseja realizar hoje.
+          {t("training.workoutTypes.subtitle")}
         </Text>
 
         <View style={styles.workoutTypesContainer}>

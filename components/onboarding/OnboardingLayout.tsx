@@ -20,6 +20,7 @@ import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
 import Button from "../common/Button";
 import OnboardingHeader from "./OnboardingHeader";
+import { useTranslation } from "react-i18next";
 
 // Habilitar LayoutAnimation para Android
 if (
@@ -49,7 +50,7 @@ export default function OnboardingLayout({
   totalSteps,
   onBack,
   onNext,
-  nextButtonTitle = "Próximo",
+  nextButtonTitle,
   nextButtonDisabled = false,
   children,
   error,
@@ -57,12 +58,17 @@ export default function OnboardingLayout({
   const { theme } = useTheme();
   const colors = Colors[theme];
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [footerHeight] = useState(
     new Animated.Value(
       Platform.OS === "ios" ? Math.max(insets.bottom + 24, 40) : 48
     )
   );
+
+  // Definir texto do botão "Próximo"
+  const buttonTitle = nextButtonTitle || t("onboarding.common.next");
 
   // Configurar animação de layout
   const configureLayoutAnimation = () => {
@@ -193,7 +199,7 @@ export default function OnboardingLayout({
           ]}
         >
           <Button
-            title={nextButtonTitle}
+            title={buttonTitle}
             onPress={onNext}
             disabled={nextButtonDisabled}
             hapticFeedback={
