@@ -96,39 +96,6 @@ const MealCardComponent = ({
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
-  // Função para calcular a porcentagem de cada macronutriente
-  const calculateMacroPercentage = useCallback(
-    (macro: number, total: number) => {
-      if (!total) return 0;
-      return (macro / total) * 100;
-    },
-    []
-  );
-
-  // Calcular calorias de cada macronutriente
-  const proteinCalories = mealTotals.protein * 4;
-  const carbsCalories = mealTotals.carbs * 4;
-  const fatCalories = mealTotals.fat * 9;
-
-  // Calcular porcentagens
-  const proteinPercentage = calculateMacroPercentage(
-    proteinCalories,
-    mealTotals.calories
-  );
-  const carbsPercentage = calculateMacroPercentage(
-    carbsCalories,
-    mealTotals.calories
-  );
-  const fatPercentage = calculateMacroPercentage(
-    fatCalories,
-    mealTotals.calories
-  );
-
-  // Cores dos macronutrientes usando as cores do tema
-  const proteinColor = "#FF3D7F"; // Rosa vibrante
-  const carbsColor = "#0ABDE3"; // Azul brilhante
-  const fatColor = "#FEC93D"; // Amarelo ouro vibrante
-
   // Função para navegar para a tela de detalhes do alimento para edição
   const navigateToFoodDetails = useCallback(
     (food: Food) => {
@@ -272,57 +239,21 @@ const MealCardComponent = ({
               </View>
             </View>
 
-            <View style={styles.macroIndicators}>
-              {/* Proteína */}
-              <View style={styles.macroIndicator}>
-                <View
-                  style={[styles.macroBar, { backgroundColor: proteinColor }]}
-                />
-                <View style={styles.macroValueContainer}>
-                  <Text
-                    style={[styles.macroLabel, { color: colors.text + "99" }]}
-                  >
-                    P
-                  </Text>
-                  <Text style={[styles.macroValue, { color: colors.text }]}>
-                    {food.protein}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Carboidratos */}
-              <View style={styles.macroIndicator}>
-                <View
-                  style={[styles.macroBar, { backgroundColor: carbsColor }]}
-                />
-                <View style={styles.macroValueContainer}>
-                  <Text
-                    style={[styles.macroLabel, { color: colors.text + "99" }]}
-                  >
-                    C
-                  </Text>
-                  <Text style={[styles.macroValue, { color: colors.text }]}>
-                    {food.carbs}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Gorduras */}
-              <View style={styles.macroIndicator}>
-                <View
-                  style={[styles.macroBar, { backgroundColor: fatColor }]}
-                />
-                <View style={styles.macroValueContainer}>
-                  <Text
-                    style={[styles.macroLabel, { color: colors.text + "99" }]}
-                  >
-                    G
-                  </Text>
-                  <Text style={[styles.macroValue, { color: colors.text }]}>
-                    {food.fat}
-                  </Text>
-                </View>
-              </View>
+            <View style={styles.macroValues}>
+              <Text style={[styles.macroText, { color: colors.text + "80" }]}>
+                P{" "}
+                <Text style={[styles.macroNumber, { color: colors.text }]}>
+                  {food.protein}
+                </Text>
+                {"   "}C{" "}
+                <Text style={[styles.macroNumber, { color: colors.text }]}>
+                  {food.carbs}
+                </Text>
+                {"   "}G{" "}
+                <Text style={[styles.macroNumber, { color: colors.text }]}>
+                  {food.fat}
+                </Text>
+              </Text>
             </View>
           </View>
           {foodIndex < foods.length - 1 && (
@@ -333,15 +264,7 @@ const MealCardComponent = ({
         </View>
       </Swipeable>
     ),
-    [
-      colors,
-      foods.length,
-      renderLeftActions,
-      renderRightActions,
-      proteinColor,
-      carbsColor,
-      fatColor,
-    ]
+    [colors, foods.length, renderLeftActions, renderRightActions]
   );
 
   const handleAddFood = useCallback(
@@ -510,37 +433,6 @@ const MealCardComponent = ({
               </View>
             </TouchableOpacity>
 
-            {foods.length > 0 && (
-              <View
-                style={[
-                  styles.macroProgressContainer,
-                  { backgroundColor: colors.border },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.macroProgressBar,
-                    { backgroundColor: proteinColor + "CC" },
-                    { width: `${proteinPercentage}%` },
-                  ]}
-                />
-                <View
-                  style={[
-                    styles.macroProgressBar,
-                    { backgroundColor: carbsColor + "CC" },
-                    { width: `${carbsPercentage}%` },
-                  ]}
-                />
-                <View
-                  style={[
-                    styles.macroProgressBar,
-                    { backgroundColor: fatColor + "CC" },
-                    { width: `${fatPercentage}%` },
-                  ]}
-                />
-              </View>
-            )}
-
             <View style={styles.foodsContainer}>
               {foods.length > 0 ? (
                 <View key={`foods-list-${meal.id}`} style={styles.foodsList}>
@@ -687,16 +579,6 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  macroProgressContainer: {
-    height: 4,
-    flexDirection: "row",
-    borderRadius: 2,
-    overflow: "hidden",
-    marginBottom: 16,
-  },
-  macroProgressBar: {
-    height: "100%",
-  },
   foodsContainer: {
     minHeight: 50,
   },
@@ -739,32 +621,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: -0.1,
   },
-  macroIndicators: {
-    flexDirection: "row",
-    gap: 14,
+  macroValues: {
+    alignItems: "flex-end",
   },
-  macroIndicator: {
-    alignItems: "center",
-    width: 36,
-  },
-  macroBar: {
-    width: 16,
-    height: 4,
-    borderRadius: 2,
-    marginBottom: 4,
-  },
-  macroValueContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  macroLabel: {
-    fontSize: 9,
-    fontWeight: "600",
-    marginRight: 2,
-  },
-  macroValue: {
+  macroText: {
     fontSize: 11,
+    fontWeight: "400",
+  },
+  macroNumber: {
+    fontSize: 13,
     fontWeight: "700",
+    color: "#000",
   },
   emptyContainer: {
     marginVertical: 12,

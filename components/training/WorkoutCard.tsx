@@ -391,73 +391,21 @@ export default function WorkoutCard({
             {exercise.category !== "cardio" &&
             exercise.sets &&
             exercise.sets.length > 0 ? (
-              <View style={styles.exerciseIndicators}>
-                {/* Carga (Weight) */}
-                <View style={styles.exerciseIndicator}>
-                  <View
-                    style={[
-                      styles.indicatorBar,
-                      { backgroundColor: colors.danger || "#FF3B30" },
-                    ]}
-                  />
-                  <Text style={[styles.indicatorValue, { color: colors.text }]}>
-                    <Text
-                      style={[
-                        styles.indicatorLabel,
-                        { color: colors.text + "99" },
-                      ]}
-                    >
-                      {t("exercise.weight").charAt(0)}{" "}
-                    </Text>
-                    {exercise.sets && exercise.sets.length > 0
-                      ? exercise.sets[0].weight
-                      : 0}
+              <View style={styles.macroValues}>
+                <Text style={[styles.macroText, { color: colors.text + "80" }]}>
+                  W{" "}
+                  <Text style={[styles.macroNumber, { color: colors.text }]}>
+                    {exercise.sets[0].weight}
                   </Text>
-                </View>
-
-                {/* Repetições (Reps) */}
-                <View style={styles.exerciseIndicator}>
-                  <View
-                    style={[
-                      styles.indicatorBar,
-                      { backgroundColor: colors.primary || "#2196F3" },
-                    ]}
-                  />
-                  <Text style={[styles.indicatorValue, { color: colors.text }]}>
-                    <Text
-                      style={[
-                        styles.indicatorLabel,
-                        { color: colors.text + "99" },
-                      ]}
-                    >
-                      {t("exercise.reps").charAt(0)}{" "}
-                    </Text>
-                    {exercise.sets && exercise.sets.length > 0
-                      ? exercise.sets[0].reps
-                      : 0}
+                  {"   "}R{" "}
+                  <Text style={[styles.macroNumber, { color: colors.text }]}>
+                    {exercise.sets[0].reps}
                   </Text>
-                </View>
-
-                {/* Séries (Sets) */}
-                <View style={styles.exerciseIndicator}>
-                  <View
-                    style={[
-                      styles.indicatorBar,
-                      { backgroundColor: colors.success || "#4CAF50" },
-                    ]}
-                  />
-                  <Text style={[styles.indicatorValue, { color: colors.text }]}>
-                    <Text
-                      style={[
-                        styles.indicatorLabel,
-                        { color: colors.text + "99" },
-                      ]}
-                    >
-                      {t("exercise.sets").charAt(0)}{" "}
-                    </Text>
+                  {"   "}S{" "}
+                  <Text style={[styles.macroNumber, { color: colors.text }]}>
                     {exercise.sets ? exercise.sets.length : 0}
                   </Text>
-                </View>
+                </Text>
               </View>
             ) : (
               <View style={styles.cardioContainer}>
@@ -604,6 +552,12 @@ export default function WorkoutCard({
             )}
           </View>
         )}
+
+        {exerciseIndex < exercises.length - 1 && (
+          <View
+            style={[styles.separator, { backgroundColor: colors.border }]}
+          />
+        )}
       </View>
     </Swipeable>
   );
@@ -729,23 +683,6 @@ export default function WorkoutCard({
                 </View>
               </View>
             </TouchableOpacity>
-
-            {exercises.length > 0 && (
-              <View
-                style={[
-                  styles.progressContainer,
-                  { backgroundColor: colors.border },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.progressBar,
-                    { backgroundColor: workout.color },
-                    { width: `100%` },
-                  ]}
-                />
-              </View>
-            )}
 
             <View style={styles.exercisesContainer}>
               {exercises.length > 0 ? (
@@ -908,29 +845,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  exerciseIndicators: {
-    flexDirection: "row",
-    gap: 14,
+  macroValues: {
+    alignItems: "flex-end",
   },
-  exerciseIndicator: {
-    alignItems: "center",
-    width: 36,
-  },
-  indicatorBar: {
-    width: 16,
-    height: 4,
-    borderRadius: 2,
-    marginBottom: 4,
-  },
-  indicatorValue: {
+  macroText: {
     fontSize: 11,
-    fontWeight: "700",
-    textAlign: "center",
+    fontWeight: "400",
   },
-  indicatorLabel: {
-    fontSize: 9,
-    fontWeight: "600",
-    marginRight: 2,
+  macroNumber: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#000",
   },
   cardioContainer: {
     flexDirection: "row",
@@ -1033,6 +958,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: -0.1,
   },
+  separator: {
+    height: 1,
+    opacity: 0.3,
+    marginHorizontal: 16,
+  },
 
   // Estilos para o Swipeable
   swipeableContainer: {
@@ -1118,16 +1048,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 1,
-  },
-  progressContainer: {
-    height: 4,
-    flexDirection: "row",
-    borderRadius: 2,
-    overflow: "hidden",
-    marginBottom: 16,
-  },
-  progressBar: {
-    height: "100%",
   },
   exercisesContainer: {
     minHeight: 50,
