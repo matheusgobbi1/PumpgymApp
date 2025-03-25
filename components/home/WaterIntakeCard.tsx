@@ -1,4 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+} from "react";
 import {
   View,
   Text,
@@ -6,15 +12,13 @@ import {
   TouchableOpacity,
   Dimensions,
 } from "react-native";
-import { MotiView } from "moti";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeIn } from "react-native-reanimated";
 import { useNutrition } from "../../context/NutritionContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { format, isToday } from "date-fns";
+import { format, isToday, subDays } from "date-fns";
 import { useAuth } from "../../context/AuthContext";
 import { KEYS } from "../../constants/keys";
 import { useTranslation } from "react-i18next";
@@ -22,115 +26,193 @@ import { useTranslation } from "react-i18next";
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 48) / 2; // Metade da largura da tela menos o padding
 
+// Criar um objeto para armazenar os dados de água globalmente (para compartilhar entre componentes)
+export const waterDataManager = {
+  waterData: {} as { [date: string]: number },
+
+  // Método para obter os dados de água
+  getWaterData: () => {
+    return { ...waterDataManager.waterData };
+  },
+
+  // Método para definir dados de água para uma data específica
+  setWaterDataForDate: (date: string, amount: number) => {
+    waterDataManager.waterData[date] = amount;
+  },
+};
+
 export default function WaterIntakeCard() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { nutritionInfo } = useNutrition();
   const { user } = useAuth();
   const { t } = useTranslation();
+  const lastCheckDateRef = useRef(new Date());
 
   // Estados para gerenciar a ingestão de água
   const [waterIntake, setWaterIntake] = useState(0);
-  const [lastCheckDate, setLastCheckDate] = useState(new Date());
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [waterHistory, setWaterHistory] = useState<{ [date: string]: number }>(
+    {}
+  );
 
   // Meta diária de água (em mL) do contexto de nutrição ou valor padrão
   const dailyGoal = nutritionInfo.waterIntake || 2000;
   const cupSize = 100; // Tamanho do copo em mL
 
-  // Função para salvar o consumo de água
-  const saveWaterIntake = async (intake: number) => {
-    if (!user) return;
-
-    try {
-      const today = format(new Date(), "yyyy-MM-dd");
-      const storageKey = `${KEYS.WATER_INTAKE}_${user.uid}_${today}`;
-      await AsyncStorage.setItem(storageKey, JSON.stringify(intake));
-    } catch (error) {
-      console.error("Erro ao salvar consumo de água:", error);
-    }
-  };
-
-  // Função para carregar o consumo de água
-  const loadWaterIntake = async () => {
-    if (!user) return;
-
-    try {
-      const today = format(new Date(), "yyyy-MM-dd");
-      const storageKey = `${KEYS.WATER_INTAKE}_${user.uid}_${today}`;
-      const data = await AsyncStorage.getItem(storageKey);
-
-      if (data) {
-        const savedIntake = JSON.parse(data);
-        setWaterIntake(savedIntake);
-      } else {
-        // Se não houver dados para hoje, resetar para zero
-        setWaterIntake(0);
-      }
-    } catch (error) {
-      console.error("Erro ao carregar consumo de água:", error);
-    }
-  };
-
-  // Verificar se é um novo dia e resetar se necessário
-  const checkNewDay = () => {
-    const now = new Date();
-    if (!isToday(lastCheckDate)) {
-      setWaterIntake(0);
-      setLastCheckDate(now);
-      // Carregar dados do novo dia (provavelmente zero)
-      loadWaterIntake();
-    }
-  };
-
-  // Carregar dados ao iniciar o componente
-  useEffect(() => {
-    loadWaterIntake();
-    setLastCheckDate(new Date());
+  // Chave de armazenamento para o usuário atual
+  const storageKey = useMemo(() => {
+    if (!user) return null;
+    const today = format(new Date(), "yyyy-MM-dd");
+    return `${KEYS.WATER_INTAKE}_${user.uid}_${today}`;
   }, [user]);
 
-  // Verificar se é um novo dia ao retornar do background
-  const interval = setInterval(checkNewDay, 60000); // Verificar a cada minuto
+  // Função para gerar a chave de armazenamento para uma data específica
+  const getStorageKeyForDate = useCallback(
+    (date: string) => {
+      if (!user) return null;
+      return `${KEYS.WATER_INTAKE}_${user.uid}_${date}`;
+    },
+    [user]
+  );
 
-  useEffect(() => {
-    return () => clearInterval(interval);
+  // Função para verificar se é um novo dia
+  const checkNewDay = useCallback(() => {
+    const now = new Date();
+    const lastCheck = lastCheckDateRef.current;
+
+    if (!isToday(lastCheck)) {
+      setWaterIntake(0);
+      lastCheckDateRef.current = now;
+    }
   }, []);
 
+  // Função para salvar o consumo de água
+  const saveWaterIntake = useCallback(
+    async (intake: number) => {
+      if (!storageKey) return;
+
+      try {
+        await AsyncStorage.setItem(storageKey, JSON.stringify(intake));
+
+        // Atualizar o histórico local
+        const today = format(new Date(), "yyyy-MM-dd");
+        setWaterHistory((prev) => ({
+          ...prev,
+          [today]: intake,
+        }));
+
+        // Atualizar o gerenciador global de dados de água
+        waterDataManager.setWaterDataForDate(today, intake);
+      } catch (error) {
+        console.error("Erro ao salvar consumo de água:", error);
+      }
+    },
+    [storageKey]
+  );
+
+  // Carregar o histórico de consumo de água dos últimos 14 dias
+  const loadWaterHistory = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const today = new Date();
+      const waterData: { [date: string]: number } = {};
+
+      // Carregar dados dos últimos 14 dias
+      for (let i = 0; i < 14; i++) {
+        const checkDate = subDays(today, i);
+        const dateStr = format(checkDate, "yyyy-MM-dd");
+        const storageKey = getStorageKeyForDate(dateStr);
+
+        if (storageKey) {
+          const data = await AsyncStorage.getItem(storageKey);
+          if (data) {
+            const intake = JSON.parse(data);
+            waterData[dateStr] = intake;
+
+            // Atualizar o gerenciador global
+            waterDataManager.setWaterDataForDate(dateStr, intake);
+          }
+        }
+      }
+
+      setWaterHistory(waterData);
+      return waterData;
+    } catch (error) {
+      console.error("Erro ao carregar histórico de água:", error);
+      return {};
+    }
+  }, [user, getStorageKeyForDate]);
+
+  // Função para carregar o consumo de água - usando apenas um useEffect
+  useEffect(() => {
+    const loadWaterIntake = async () => {
+      if (!storageKey) return;
+
+      try {
+        const data = await AsyncStorage.getItem(storageKey);
+
+        if (data) {
+          const savedIntake = JSON.parse(data);
+          setWaterIntake(savedIntake);
+
+          // Atualizar o gerenciador global
+          const today = format(new Date(), "yyyy-MM-dd");
+          waterDataManager.setWaterDataForDate(today, savedIntake);
+        } else {
+          setWaterIntake(0);
+        }
+
+        setIsInitialized(true);
+        lastCheckDateRef.current = new Date();
+
+        // Configurar verificação periódica para novo dia
+        const intervalId = setInterval(checkNewDay, 60000); // Verificar a cada minuto
+
+        return () => clearInterval(intervalId);
+      } catch (error) {
+        console.error("Erro ao carregar consumo de água:", error);
+        setIsInitialized(true);
+      }
+    };
+
+    loadWaterIntake();
+
+    // Carregar histórico de água
+    loadWaterHistory();
+  }, [storageKey, checkNewDay, loadWaterHistory]);
+
   // Função para adicionar um copo de água
-  const addWater = () => {
+  const addWater = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const newIntake = Math.min(waterIntake + cupSize, dailyGoal);
     setWaterIntake(newIntake);
     saveWaterIntake(newIntake);
-  };
+  }, [waterIntake, dailyGoal, cupSize, saveWaterIntake]);
 
   // Função para remover um copo de água
-  const removeWater = () => {
+  const removeWater = useCallback(() => {
     if (waterIntake >= cupSize) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const newIntake = waterIntake - cupSize;
       setWaterIntake(newIntake);
       saveWaterIntake(newIntake);
     }
-  };
+  }, [waterIntake, cupSize, saveWaterIntake]);
 
   // Calcular a porcentagem de progresso
-  const getProgress = () => {
-    const progress = (waterIntake / dailyGoal) * 100;
-    return Math.min(progress, 100);
-  };
+  const progress = useMemo(() => {
+    return Math.min((waterIntake / dailyGoal) * 100, 100);
+  }, [waterIntake, dailyGoal]);
 
   // Formatar o volume de água para exibição
-  const formatWater = (volume: number) => {
-    return `${(volume / 1000).toFixed(1)}L`;
-  };
+  const formattedWater = useMemo(() => {
+    return `${(waterIntake / 1000).toFixed(1)}`;
+  }, [waterIntake]);
 
   return (
-    <MotiView
-      style={[styles.container, { backgroundColor: colors.light }]}
-      from={{ opacity: 0, translateY: 20 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{ type: "timing", duration: 500 }}
-    >
+    <View style={[styles.container, { backgroundColor: colors.card }]}>
       <View style={styles.header}>
         <View style={styles.titleContainer}>
           <View
@@ -148,10 +230,7 @@ export default function WaterIntakeCard() {
       </View>
 
       <View style={styles.content}>
-        <Animated.View
-          entering={FadeIn.duration(500)}
-          style={styles.waterContainer}
-        >
+        <View style={styles.waterContainer}>
           {/* Área principal com consumo e controles */}
           <View style={styles.mainContent}>
             {/* Layout lateral com botões */}
@@ -175,7 +254,7 @@ export default function WaterIntakeCard() {
               {/* Contagem de água centralizada */}
               <View style={styles.waterCountContainer}>
                 <Text style={[styles.waterCount, { color: colors.text }]}>
-                  {formatWater(waterIntake)}
+                  {formattedWater}
                 </Text>
               </View>
 
@@ -200,31 +279,29 @@ export default function WaterIntakeCard() {
 
             {/* Meta */}
             <View style={styles.goalContainer}>
-              <Text style={[styles.goalText, { color: colors.text + "80" }]}>
-                {t("home.stats.target")}: {formatWater(dailyGoal)}
+              <Text style={[styles.goalText, { color: colors.text + "60" }]}>
+                {t("home.stats.target")}: {(dailyGoal / 1000).toFixed(1)}L
               </Text>
             </View>
-          </View>
 
-          {/* Progress bar na base do card */}
-          <View style={styles.progressBarContainer}>
+            {/* Barra de progresso */}
             <View
-              style={[styles.progressBarBg, { backgroundColor: colors.border }]}
+              style={[
+                styles.progressContainer,
+                { backgroundColor: colors.text + "10" },
+              ]}
             >
               <View
                 style={[
-                  styles.progressBarFill,
-                  {
-                    backgroundColor: "#0096FF",
-                    width: `${getProgress()}%`,
-                  },
+                  styles.progressFill,
+                  { width: `${progress}%`, backgroundColor: "#0096FF" },
                 ]}
               />
             </View>
           </View>
-        </Animated.View>
+        </View>
       </View>
-    </MotiView>
+    </View>
   );
 }
 
@@ -308,18 +385,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  progressBarContainer: {
-    width: "100%",
-    marginTop: 10,
-  },
-  progressBarBg: {
+  progressContainer: {
     width: "100%",
     height: 6,
     borderRadius: 3,
     overflow: "hidden",
-    position: "relative",
+    marginTop: 10,
   },
-  progressBarFill: {
+  progressFill: {
     height: "100%",
     position: "absolute",
     left: 0,

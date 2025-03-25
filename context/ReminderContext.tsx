@@ -28,6 +28,7 @@ export const REMINDER_ICONS = [
   { name: "bed", label: "Dormir", color: "#78909C" },
   { name: "walk", label: "Caminhar", color: "#FF7043" },
   { name: "scale", label: "Peso", color: "#9C27B0" },
+  { name: "heart-pulse", label: "Saúde", color: "#E91E63" },
 ];
 
 const BASE_STORAGE_KEY = "@fitfolio_reminders";

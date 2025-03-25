@@ -129,6 +129,7 @@ const ExerciseCard = ({
 }) => {
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const { t } = useTranslation();
 
   return (
     <MotiView
@@ -175,7 +176,7 @@ const ExerciseCard = ({
           style={[styles.exerciseName, { color: colors.text }]}
           numberOfLines={2}
         >
-          {exercise.name}
+          {t(`exercises.exercises.${exercise.id}`)}
         </Text>
 
         <View style={styles.exerciseDetails}>
@@ -188,7 +189,7 @@ const ExerciseCard = ({
             <Text
               style={[styles.exerciseDetailText, { color: colors.text + "80" }]}
             >
-              {exercise.muscle}
+              {t(`exercises.muscles.${exercise.muscle}`)}
             </Text>
           </View>
 
@@ -201,7 +202,7 @@ const ExerciseCard = ({
             <Text
               style={[styles.exerciseDetailText, { color: colors.text + "80" }]}
             >
-              {exercise.equipment}
+              {t(`exercises.equipment.${exercise.equipment}`)}
             </Text>
           </View>
         </View>
@@ -232,7 +233,7 @@ const ExerciseCard = ({
               },
             ]}
           >
-            {exercise.difficulty}
+            {t(`exercises.difficulty.${exercise.difficulty}`)}
           </Text>
         </View>
       </TouchableOpacity>
@@ -250,6 +251,7 @@ const MuscleGroupFilter = ({
 }) => {
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const { t } = useTranslation();
 
   return (
     <ScrollView
@@ -273,7 +275,7 @@ const MuscleGroupFilter = ({
             },
           ]}
         >
-          Todos
+          {t("exercise.muscleGroups.all")}
         </Text>
       </TouchableOpacity>
 
@@ -299,7 +301,7 @@ const MuscleGroupFilter = ({
               },
             ]}
           >
-            {muscle}
+            {t(`exercises.muscles.${muscle}`)}
           </Text>
         </TouchableOpacity>
       ))}
@@ -520,12 +522,14 @@ export default function AddExerciseScreen() {
         >
           <View style={styles.exerciseInfo}>
             <Text style={[styles.exerciseName, { color: colors.text }]}>
-              {exercise.name}
+              {t(`exercises.exercises.${exercise.id}`)}
             </Text>
             <Text
               style={[styles.exerciseCategory, { color: colors.text + "80" }]}
             >
-              {exercise.muscle} • {exercise.equipment} • {exercise.difficulty}
+              {t(`exercises.muscles.${exercise.muscle}`)} •{" "}
+              {t(`exercises.equipment.${exercise.equipment}`)} •{" "}
+              {t(`exercises.difficulty.${exercise.difficulty}`)}
             </Text>
           </View>
           <TouchableOpacity
@@ -644,7 +648,7 @@ export default function AddExerciseScreen() {
                   },
                 ]}
               >
-                {muscle}
+                {t(`exercises.muscles.${muscle}`)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -685,7 +689,6 @@ export default function AddExerciseScreen() {
                       name: exercise.name,
                       muscle: exercise.notes?.split(" - ")[0] || "",
                       equipment: exercise.notes?.split(" - ")[1] || "",
-                      description: "",
                       difficulty: "intermediário",
                       category: exercise.category || "força",
                     })

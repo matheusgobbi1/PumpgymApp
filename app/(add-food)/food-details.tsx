@@ -731,7 +731,7 @@ export default function FoodDetailsScreen() {
                     ]}
                   >
                     <Ionicons
-                      name="flame-outline"
+                      name="flame"
                       size={26}
                       color={mealColor}
                     />

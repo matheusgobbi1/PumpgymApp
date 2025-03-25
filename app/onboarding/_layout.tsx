@@ -91,7 +91,7 @@ export default function OnboardingLayout() {
             headerLeft: () => null,
             animation: "fade",
             navigationBarHidden: true,
-            presentation: "transparentModal",
+            presentation: "modal",
           }}
         />
         <Stack.Screen
@@ -99,6 +99,7 @@ export default function OnboardingLayout() {
           options={{
             gestureEnabled: false,
             headerBackVisible: false,
+            presentation: "modal",
             headerLeft: () => null,
           }}
         />

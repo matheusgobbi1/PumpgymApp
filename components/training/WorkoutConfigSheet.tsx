@@ -15,8 +15,14 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  Keyboard,
+  Dimensions,
 } from "react-native";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import {
+  BottomSheetModal,
+  BottomSheetBackdrop,
+  BottomSheetBackdropProps,
+} from "@gorhom/bottom-sheet";
 import {
   Ionicons,
   MaterialCommunityIcons,
@@ -35,6 +41,7 @@ import { KEYS } from "../../constants/keys";
 import { useAuth } from "../../context/AuthContext";
 import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import Input from "../common/Input";
+import ButtonNew from "../common/ButtonNew";
 import { useTranslation } from "react-i18next";
 import { OfflineStorage } from "../../services/OfflineStorage";
 
@@ -295,6 +302,36 @@ const WorkoutConfigSheet = forwardRef<
 
     // Referência interna para o bottom sheet
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+
+    // Estado para controlar os snapPoints do BottomSheet
+    const [snapPoints, setSnapPoints] = useState<(string | number)[]>(["70%"]);
+
+    // Estado para rastrear se o teclado está visível
+    const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
+    // Adicionar listeners para o teclado
+    useEffect(() => {
+      const keyboardDidShowListener = Keyboard.addListener(
+        "keyboardDidShow",
+        () => {
+          setKeyboardVisible(true);
+          setSnapPoints(["90%"]);
+        }
+      );
+      const keyboardDidHideListener = Keyboard.addListener(
+        "keyboardDidHide",
+        () => {
+          setKeyboardVisible(false);
+          setSnapPoints(["70%"]);
+        }
+      );
+
+      // Cleanup
+      return () => {
+        keyboardDidShowListener.remove();
+        keyboardDidHideListener.remove();
+      };
+    }, []);
 
     // Expor a referência para o componente pai
     useImperativeHandle(ref, () => {
@@ -563,22 +600,26 @@ const WorkoutConfigSheet = forwardRef<
     };
 
     // Função para quando o bottom sheet for fechado
-    const handleSheetChanges = useCallback(
-      (index: number) => {
-        // Quando o bottom sheet for fechado (index = -1)
-        if (index === -1) {
-          // Verificar se há treinos selecionados
-          const selectedWorkouts = availableWorkoutTypes.filter(
-            (workout) => workout.selected
-          );
+    const handleSheetChanges = useCallback((index: number) => {
+      // Quando o bottom sheet for fechado (index = -1), não fazemos nada
+      // Remover a chamada ao callback para não criar os tipos de treino automaticamente
+      if (index === -1) {
+        // Apenas fechamos o modal sem criar treinos
+        // O usuário precisa explicitamente clicar em "Salvar" para criar os treinos
+      }
+    }, []);
 
-          if (selectedWorkouts.length > 0) {
-            // Se existem treinos selecionados, chamar o callback
-            onWorkoutConfigured?.(selectedWorkouts);
-          }
-        }
-      },
-      [availableWorkoutTypes, onWorkoutConfigured]
+    // Função para renderizar o backdrop (fundo escurecido)
+    const renderBackdrop = useCallback(
+      (props: BottomSheetBackdropProps) => (
+        <BottomSheetBackdrop
+          {...props}
+          disappearsOnIndex={-1}
+          appearsOnIndex={0}
+          opacity={0.5}
+        />
+      ),
+      []
     );
 
     // Renderizar o formulário de adição de treino personalizado
@@ -727,37 +768,34 @@ const WorkoutConfigSheet = forwardRef<
         </View>
 
         <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={[
-              styles.button,
-              styles.cancelButton,
-              {
-                backgroundColor: colors.background,
-                borderColor: colors.border,
-              },
-            ]}
+          <ButtonNew
+            title={t("workouts.configSheet.cancelButton", {
+              defaultValue: "Cancelar",
+            })}
             onPress={onCancelAddingCustomWorkout}
-          >
-            <Text style={[styles.buttonText, { color: colors.text }]}>
-              Cancelar
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.button,
-              styles.saveButton,
-              { backgroundColor: customWorkout.color },
-            ]}
+            variant="outline"
+            size="medium"
+            style={styles.cancelButton}
+            hapticFeedback="impact"
+            fullWidth={false}
+          />
+
+          <ButtonNew
+            title={t("workouts.configSheet.saveEditButton", {
+              defaultValue: "Salvar Alterações",
+            })}
             onPress={onSaveCustomWorkout}
-          >
-            <Text style={styles.saveButtonText}>Salvar Alterações</Text>
-            <Ionicons
-              name="checkmark-circle"
-              size={20}
-              color="#FFF"
-              style={styles.saveButtonIcon}
-            />
-          </TouchableOpacity>
+            variant="primary"
+            style={{
+              ...styles.saveButton,
+              backgroundColor: customWorkout.color,
+            }}
+            textStyle={styles.saveButtonText}
+            hapticFeedback="notification"
+            size="medium"
+            rounded={true}
+            fullWidth={false}
+          />
         </View>
       </MotiView>
     );
@@ -791,9 +829,9 @@ const WorkoutConfigSheet = forwardRef<
                     styles.workoutItem,
                     { backgroundColor: colors.card },
                     item.selected && {
-                      backgroundColor: item.color + "08",
+                      backgroundColor: item.color + "15",
                       borderWidth: 1,
-                      borderColor: item.color + "30",
+                      borderColor: item.color + "50",
                     },
                   ]}
                   onPress={() => {
@@ -808,7 +846,20 @@ const WorkoutConfigSheet = forwardRef<
                       item.selected && { backgroundColor: "transparent" },
                     ]}
                   >
-                    <View style={styles.workoutIconContainer}>
+                    <View
+                      style={[
+                        styles.workoutIconContainer,
+                        {
+                          backgroundColor: item.selected
+                            ? item.color + "30"
+                            : colors.background + "90",
+                          borderWidth: 1,
+                          borderColor: item.selected
+                            ? item.color
+                            : colors.border + "40",
+                        },
+                      ]}
+                    >
                       <WorkoutIcon
                         iconType={item.iconType}
                         size={24}
@@ -817,49 +868,28 @@ const WorkoutConfigSheet = forwardRef<
                     </View>
                     <View style={styles.workoutInfo}>
                       <Text
-                        style={[styles.workoutName, { color: colors.text }]}
+                        style={[
+                          styles.workoutName,
+                          {
+                            color: colors.text,
+                            fontWeight: item.selected ? "700" : "600",
+                          },
+                        ]}
                       >
                         {item.name}
                       </Text>
                     </View>
-                    <View style={styles.workoutActions}>
-                      <TouchableOpacity
-                        style={[
-                          styles.editButton,
-                          { backgroundColor: item.color + "20" },
-                        ]}
-                        onPress={() => startEditingWorkout(item)}
-                      >
-                        <Ionicons
-                          name="create-outline"
-                          size={18}
-                          color={item.color}
-                        />
-                      </TouchableOpacity>
-                      <View style={styles.workoutSelection}>
-                        <View
-                          style={[
-                            styles.checkbox,
-                            {
-                              borderColor: item.selected
-                                ? item.color
-                                : colors.border,
-                              backgroundColor: item.selected
-                                ? item.color
-                                : "transparent",
-                            },
-                          ]}
-                        >
-                          {item.selected && (
-                            <Ionicons
-                              name="checkmark"
-                              size={16}
-                              color="white"
-                            />
-                          )}
-                        </View>
-                      </View>
-                    </View>
+                    <TouchableOpacity
+                      style={styles.editButton}
+                      onPress={() => startEditingWorkout(item)}
+                      hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                    >
+                      <Ionicons
+                        name="ellipsis-vertical"
+                        size={20}
+                        color={colors.text + "70"}
+                      />
+                    </TouchableOpacity>
                   </View>
                 </TouchableOpacity>
               </MotiView>
@@ -877,12 +907,13 @@ const WorkoutConfigSheet = forwardRef<
       <BottomSheetModal
         ref={bottomSheetModalRef}
         index={0}
-        snapPoints={["70%"]}
+        snapPoints={snapPoints}
         backgroundStyle={{ backgroundColor: colors.background }}
         handleIndicatorStyle={{ backgroundColor: colors.text + "50" }}
         onDismiss={onDismiss}
         onChange={handleSheetChanges}
         enablePanDownToClose
+        backdropComponent={renderBackdrop}
       >
         <View
           style={[styles.container, { backgroundColor: colors.background }]}
@@ -905,22 +936,25 @@ const WorkoutConfigSheet = forwardRef<
               : renderWorkoutTypesList()}
           </ScrollView>
 
-          <View style={[styles.footer, { borderTopColor: colors.border }]}>
-            <TouchableOpacity
-              style={[
-                styles.saveConfigButton,
-                { backgroundColor: colors.primary },
-                !availableWorkoutTypes.some((w) => w.selected) &&
-                  styles.saveConfigButtonDisabled,
-              ]}
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "spring", damping: 15 }}
+            style={[styles.footer, { borderTopColor: colors.border }]}
+          >
+            <ButtonNew
+              title={t("workouts.configSheet.saveButton")}
               onPress={handleSaveWorkoutTypes}
+              variant="primary"
               disabled={!availableWorkoutTypes.some((w) => w.selected)}
-            >
-              <Text style={styles.saveConfigButtonText}>
-                {t("workouts.configSheet.saveButton")}
-              </Text>
-            </TouchableOpacity>
-          </View>
+              style={styles.saveConfigButton}
+              textStyle={styles.saveConfigButtonText}
+              hapticFeedback="notification"
+              size="large"
+              rounded={true}
+              elevation={3}
+            />
+          </MotiView>
         </View>
       </BottomSheetModal>
     );
@@ -951,21 +985,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   footer: {
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 27,
     borderTopWidth: 1,
   },
   saveConfigButton: {
-    padding: 16,
-    borderRadius: 12,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
   },
   saveConfigButtonDisabled: {
     opacity: 0.5,
   },
   saveConfigButtonText: {
     color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+  },
+  saveButtonIcon: {
+    marginLeft: 8,
   },
   workoutChip: {
     flexDirection: "row",
@@ -1016,7 +1060,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    minHeight: 80,
+    minHeight: 70,
   },
   workoutIconContainer: {
     width: 48,
@@ -1029,16 +1073,18 @@ const styles = StyleSheet.create({
   workoutInfo: {
     flex: 1,
   },
-  workoutSelection: {
-    marginLeft: 12,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    justifyContent: "center",
+  selectedIndicator: {
+    flexDirection: "row",
     alignItems: "center",
+    marginTop: 4,
+  },
+  selectedText: {
+    fontSize: 12,
+    marginLeft: 4,
+    fontWeight: "500",
+  },
+  editButton: {
+    padding: 4,
   },
   scrollContent: {
     flex: 1,
@@ -1054,6 +1100,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 2,
+    maxWidth: "92%",
+    alignSelf: "center",
+    width: "92%",
   },
   customWorkoutHeader: {
     flexDirection: "row",
@@ -1099,12 +1148,14 @@ const styles = StyleSheet.create({
   colorList: {
     flexDirection: "row",
     paddingVertical: 8,
+    flexWrap: "wrap",
   },
   colorOption: {
     width: 38,
     height: 38,
     borderRadius: 19,
     marginRight: 12,
+    marginBottom: 12,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1128,6 +1179,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginTop: 8,
     paddingVertical: 4,
+    flexWrap: "wrap",
   },
   iconItem: {
     width: 50,
@@ -1151,11 +1203,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
+    marginBottom: 12,
   },
   actionButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 8,
+    flexWrap: "wrap",
   },
   button: {
     flex: 1,
@@ -1166,23 +1220,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   cancelButton: {
+    flex: 0.48,
     marginRight: 10,
     borderWidth: 1,
   },
   saveButton: {
-    marginLeft: 10,
+    flex: 0.48,
+    marginLeft: 0,
+    height: 48,
+    borderRadius: 24,
   },
   buttonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
+    textAlign: "center",
   },
   saveButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
     color: "#fff",
-  },
-  saveButtonIcon: {
-    marginLeft: 8,
+    textAlign: "center",
   },
   emptyState: {
     alignItems: "center",
@@ -1285,15 +1342,6 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   deleteButton: {
-    padding: 8,
-    borderRadius: 8,
-  },
-  workoutActions: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 12,
-  },
-  editButton: {
     padding: 8,
     borderRadius: 8,
   },

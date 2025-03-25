@@ -15,7 +15,6 @@ import {
   ScrollView,
   FlatList,
 } from "react-native";
-import { MotiView } from "moti";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import {
@@ -24,12 +23,6 @@ import {
   FontAwesome5,
 } from "@expo/vector-icons";
 import { BarChart, LineChart } from "react-native-chart-kit";
-import Animated, {
-  FadeIn,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
 import { format, subDays, isToday, isAfter, isBefore, isEqual } from "date-fns";
 import * as Haptics from "expo-haptics";
 import { useWorkoutContext } from "../../context/WorkoutContext";
@@ -37,6 +30,22 @@ import { Exercise } from "../../context/WorkoutContext";
 import { WorkoutType } from "../../components/training/WorkoutConfigSheet";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
+import InfoModal, { InfoItem } from "../common/InfoModal";
+
+/**
+ * WorkoutProgressChart - Componente refatorado para exibir progresso de treinos
+ *
+ * Correções implementadas:
+ * 1. Substituição de múltiplos useEffect por hooks mais apropriados para melhor previsibilidade
+ * 2. Simplificação da lógica de atualização do gráfico
+ * 3. Correção na seleção automática de exercícios ao mudar o tipo de gráfico
+ * 4. Melhoria na lógica de filtragem de histórico por período
+ * 5. Melhor sincronização entre mudança de tipo de gráfico e atualização dos dados
+ * 6. Correção da interface para o modo calorias/volume que não estavam funcionando corretamente
+ * 7. Resposta reativa às alterações no WorkoutContext (adição/remoção de exercícios)
+ * 8. Correção do problema de não atualizar ao adicionar novos exercícios
+ * 9. Melhor manipulação de estados vazios e estados de erro
+ */
 
 const { width } = Dimensions.get("window");
 
@@ -45,8 +54,12 @@ type ChartType = "weight" | "calories" | "volume";
 // Período de visualização do histórico
 type HistoryPeriod = "1m" | "6m" | "all";
 
+/**
+ * Props do componente WorkoutProgressChart
+ */
 interface WorkoutProgressChartProps {
-  onPress?: () => void;
+  onPress: () => void; // Função para navegar para a tela de detalhes
+  router?: any; // Router para navegação para outras telas
 }
 
 // Função para obter o ícone correto com base no tipo
@@ -150,7 +163,7 @@ const ExerciseCard = ({
   const isPositive = percentChange > 0;
 
   return (
-    <MotiView
+    <View
       key={`exercise-${exercise.id}`}
       style={[
         styles.exerciseCard,
@@ -164,9 +177,6 @@ const ExerciseCard = ({
             : colors.primary,
         },
       ]}
-      from={{ opacity: 0, translateY: 10 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{ type: "timing", duration: 300, delay: index * 100 }}
     >
       <View style={styles.exerciseCardHeader}>
         <Text
@@ -194,7 +204,7 @@ const ExerciseCard = ({
       <Text style={[styles.exerciseValue, { color: colors.text }]}>
         {formatValue(currentValue)}
       </Text>
-    </MotiView>
+    </View>
   );
 };
 
@@ -224,6 +234,7 @@ const parseISODate = (dateString: string) => {
 
 export default function WorkoutProgressChart({
   onPress,
+  router,
 }: WorkoutProgressChartProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
@@ -267,19 +278,22 @@ export default function WorkoutProgressChart({
     labels: [],
     datasets: [{ data: [] }],
   });
+
+  // Substituir isLoadingRef por estado para melhor previsibilidade
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [initialMount, setInitialMount] = useState(true);
 
-  // Altura animada do card
-  const cardHeight = useSharedValue(230);
+  // Adicionando estado para controlar a visibilidade do modal de informações
+  const [infoModalVisible, setInfoModalVisible] = useState(false);
 
-  // useAnimatedStyle deve ser chamado diretamente no nível superior, não dentro de useMemo
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      height: cardHeight.value,
-    };
-  });
+  // Verificar se há exercícios para mostrar
+  const hasExercises = useMemo(
+    () => Array.isArray(todayExercises) && todayExercises.length > 0,
+    [todayExercises]
+  );
+
+  // Altura constante para evitar o efeito de "piscada"
+  const fixedHeight = !hasExercises ? 190 : 260;
 
   // Memoizar as funções de cálculo para evitar recriações
   const calculateVolume = useCallback((exercise: Exercise) => {
@@ -331,7 +345,8 @@ export default function WorkoutProgressChart({
           cutoffDate = subDays(today, 180);
           break;
         default:
-          cutoffDate = subDays(today, 30);
+          // Para "all", usar uma data bem antiga para incluir tudo
+          cutoffDate = new Date(2000, 0, 1);
       }
 
       return (history || []).filter((item) => {
@@ -342,7 +357,7 @@ export default function WorkoutProgressChart({
     [selectedHistoryPeriod]
   );
 
-  // Memoizar a função getExerciseHistory para evitar recriações e problemas de referência
+  // Memoizar a função getExerciseHistory
   const getExerciseHistory = useCallback(
     async (
       exerciseName: string,
@@ -362,7 +377,7 @@ export default function WorkoutProgressChart({
           const exercisesForDate = workouts[date][workoutTypeId];
           if (!exercisesForDate) continue;
 
-          if (isCaloriesTotal || selectedChartType === "calories") {
+          if (isCaloriesTotal) {
             // Para calorias, calculamos o total do treino inteiro
             let totalCalories = 0;
 
@@ -398,7 +413,7 @@ export default function WorkoutProgressChart({
               date,
               value: Math.round(totalCalories),
             });
-          } else if (isVolumeTotal || selectedChartType === "volume") {
+          } else if (isVolumeTotal) {
             // Para volume total, somamos o volume de todos os exercícios do treino
             let totalVolume = 0;
 
@@ -442,116 +457,26 @@ export default function WorkoutProgressChart({
         return dateA.getTime() - dateB.getTime();
       });
     },
-    [workouts, selectedChartType, calculateMaxWeight]
+    [workouts, calculateMaxWeight]
   );
 
   // Memoizar a função para atualizar os dados do gráfico
   const updateChartData = useCallback(() => {
-    // Se for tipo de gráfico de calorias ou volume, usamos os históricos específicos
-    if (selectedChartType === "calories" || selectedChartType === "volume") {
-      const historyKey =
-        selectedChartType === "calories" ? "calories_total" : "volume_total";
-      const history = workoutHistory[historyKey] || [];
-      const filteredHistory = filterHistoryByPeriod(history);
+    // Determinar qual histórico usar baseado no tipo de gráfico
+    let historyToUse: WorkoutHistoryData[] = [];
+    let historyKey = "";
 
-      if (filteredHistory.length === 0) {
-        setChartData({
-          labels: [],
-          datasets: [{ data: [0] }],
-        });
-        return;
-      }
-
-      // Preparar dados para o gráfico
-      const labels = filteredHistory.map((item) => {
-        const date = parseISODate(item.date);
-        return format(date, "dd/MM");
-      });
-
-      // Limitar o número de labels para evitar sobreposição
-      const maxLabels = 6;
-      const finalLabels =
-        labels.length <= maxLabels
-          ? labels
-          : labels.filter(
-              (_, i) =>
-                i === 0 ||
-                i === labels.length - 1 ||
-                i % Math.ceil(labels.length / maxLabels) === 0
-            );
-
-      const values = filteredHistory.map((item) => item.value);
-
-      setChartData({
-        labels: finalLabels,
-        datasets: [
-          {
-            data: values.length > 0 ? values : [0],
-            color: () => colors.primary,
-            strokeWidth: 2,
-          },
-        ],
-      });
-      return;
+    // Lógica simplificada e centralizada para determinar qual gráfico mostrar
+    if (selectedChartType === "calories") {
+      historyKey = "calories_total";
+    } else if (selectedChartType === "volume") {
+      historyKey = "volume_total";
+    } else if (selectedExercise) {
+      historyKey = selectedExercise.id;
     }
 
-    // Para exercícios virtuais selecionados, usar o histórico correspondente
-    if (
-      selectedExercise?.id === "calories_total" ||
-      selectedExercise?.id === "volume_total"
-    ) {
-      const history = workoutHistory[selectedExercise.id] || [];
-      const filteredHistory = filterHistoryByPeriod(history);
-
-      if (filteredHistory.length === 0) {
-        setChartData({
-          labels: [],
-          datasets: [{ data: [0] }],
-        });
-        return;
-      }
-
-      const labels = filteredHistory.map((item) =>
-        format(parseISODate(item.date), "dd/MM")
-      );
-      const maxLabels = 6;
-      const finalLabels =
-        labels.length <= maxLabels
-          ? labels
-          : labels.filter(
-              (_, i) =>
-                i === 0 ||
-                i === labels.length - 1 ||
-                i % Math.ceil(labels.length / maxLabels) === 0
-            );
-
-      const values = filteredHistory.map((item) => item.value);
-
-      setChartData({
-        labels: finalLabels,
-        datasets: [
-          {
-            data: values.length > 0 ? values : [0],
-            color: () => colors.primary,
-            strokeWidth: 2,
-          },
-        ],
-      });
-      return;
-    }
-
-    // Para tipo de gráfico de peso, precisamos de um exercício específico
-    if (!selectedExercise || !workoutHistory[selectedExercise.id]) {
-      setChartData({
-        labels: [],
-        datasets: [{ data: [0] }],
-      });
-      return;
-    }
-
-    // Filtrar histórico pelo período selecionado
-    const history = workoutHistory[selectedExercise.id] || [];
-    const filteredHistory = filterHistoryByPeriod(history);
+    historyToUse = workoutHistory[historyKey] || [];
+    const filteredHistory = filterHistoryByPeriod(historyToUse);
 
     if (filteredHistory.length === 0) {
       setChartData({
@@ -564,7 +489,6 @@ export default function WorkoutProgressChart({
     // Preparar dados para o gráfico
     const labels = filteredHistory.map((item) => {
       const date = parseISODate(item.date);
-      // Formatar data de forma mais compacta
       return format(date, "dd/MM");
     });
 
@@ -601,152 +525,159 @@ export default function WorkoutProgressChart({
     selectedChartType,
   ]);
 
-  // Memoizar a função loadData para evitar recriações
-  const loadData = useCallback(async () => {
-    setIsLoading(true);
+  // Função para inicializar os dados
+  const initData = useCallback(async () => {
     try {
-      // Obter a data de hoje formatada para São Paulo, Brasil
-      // Usar uma abordagem mais segura para obter a data atual
+      setIsLoading(true);
+
+      // Obter a data de hoje formatada
       const today = new Date();
       const todayFormatted = format(today, "yyyy-MM-dd");
 
       // Obter os treinos de hoje
       const todaysWorkouts = getWorkoutsForDate(todayFormatted);
 
+      // Se não houver treinos, resetar o estado
+      if (!todaysWorkouts || Object.keys(todaysWorkouts).length === 0) {
+        resetState();
+        setIsLoading(false);
+        setIsInitialized(true);
+        return;
+      }
+
       // Verificar se há treinos para hoje
-      if (todaysWorkouts && Object.keys(todaysWorkouts).length > 0) {
-        // Pegar o primeiro treino do dia
-        const workoutId = Object.keys(todaysWorkouts)[0];
+      // Pegar o primeiro treino do dia
+      const workoutId = Object.keys(todaysWorkouts)[0];
 
-        // Obter o tipo de treino
-        const workoutType = getWorkoutTypeById(workoutId);
+      // Obter o tipo de treino
+      const workoutType = getWorkoutTypeById(workoutId);
 
-        if (workoutType) {
-          setTodayWorkout({
-            id: workoutId,
-            name: workoutType.name,
-            iconType: workoutType.iconType,
-            color: workoutType.color,
-          });
+      if (workoutType) {
+        setTodayWorkout({
+          id: workoutId,
+          name: workoutType.name,
+          iconType: workoutType.iconType,
+          color: workoutType.color,
+        });
 
-          // Obter exercícios para este treino
-          const exercisesForWorkout = getExercisesForWorkout(workoutId);
+        // Obter exercícios para este treino
+        const exercisesForWorkout = getExercisesForWorkout(workoutId);
 
-          if (exercisesForWorkout && exercisesForWorkout.length > 0) {
-            setTodayExercises(exercisesForWorkout);
+        if (exercisesForWorkout && exercisesForWorkout.length > 0) {
+          setTodayExercises(exercisesForWorkout);
 
-            // Carregar histórico de treinos para cada exercício
-            const history: { [exerciseId: string]: WorkoutHistoryData[] } = {};
+          // Carregar histórico de treinos para cada exercício
+          const history: { [exerciseId: string]: WorkoutHistoryData[] } = {};
 
-            // Para cada exercício, buscar seu histórico
-            for (const exercise of exercisesForWorkout) {
-              if (exercise && exercise.id) {
-                history[exercise.id] = await getExerciseHistory(
-                  exercise.name,
-                  workoutId
-                );
-              }
-            }
-
-            // Adicionar histórico específico para calorias e volume
-            if (exercisesForWorkout[0]) {
-              // Criar históricos especiais para calorias e volume
-              const caloriesHistory = await getExerciseHistory(
-                "calories_total",
+          // Para cada exercício, buscar seu histórico
+          for (const exercise of exercisesForWorkout) {
+            if (exercise && exercise.id) {
+              history[exercise.id] = await getExerciseHistory(
+                exercise.name,
                 workoutId
               );
-              const volumeHistory = await getExerciseHistory(
-                "volume_total",
-                workoutId
-              );
-
-              // Adicionar ao histórico com IDs especiais
-              history["calories_total"] = caloriesHistory;
-              history["volume_total"] = volumeHistory;
             }
+          }
 
-            // Atualizar o estado com o histórico carregado
-            setWorkoutHistory(history);
+          // Adicionar histórico específico para calorias e volume
+          if (exercisesForWorkout[0]) {
+            // Criar históricos especiais para calorias e volume
+            const caloriesHistory = await getExerciseHistory(
+              "calories_total",
+              workoutId
+            );
+            const volumeHistory = await getExerciseHistory(
+              "volume_total",
+              workoutId
+            );
 
-            // Selecionar automaticamente o primeiro exercício
-            if (exercisesForWorkout[0]) {
-              setSelectedExercise(exercisesForWorkout[0]);
-            }
+            // Adicionar ao histórico com IDs especiais
+            history["calories_total"] = caloriesHistory;
+            history["volume_total"] = volumeHistory;
+          }
+
+          // Atualizar o estado com o histórico carregado
+          setWorkoutHistory(history);
+
+          // Definir o exercício selecionado com base no tipo de gráfico atual
+          if (selectedChartType === "calories") {
+            const virtualExercise: Exercise = {
+              id: "calories_total",
+              name: t("training.stats.calories"),
+              sets: [],
+            };
+            setSelectedExercise(virtualExercise);
+          } else if (selectedChartType === "volume") {
+            const virtualExercise: Exercise = {
+              id: "volume_total",
+              name: t("training.stats.totalVolume"),
+              sets: [],
+            };
+            setSelectedExercise(virtualExercise);
           } else {
-            resetState();
+            // Para weight, não selecionamos nenhum exercício automaticamente
+            setSelectedExercise(null);
           }
         } else {
-          resetState();
+          // Se não houver exercícios, resetar para estado sem exercícios
+          setTodayExercises([]);
+          setWorkoutHistory({});
+          setSelectedExercise(null);
+          setChartData({
+            labels: [],
+            datasets: [{ data: [] }],
+          });
         }
       } else {
-        // Limpar dados se não houver treinos hoje
+        // Se não houver tipo de treino, resetar o estado
         resetState();
       }
     } catch (error) {
       console.error("Erro ao carregar dados do treino:", error);
-      // Em caso de erro, limpar os dados para evitar estado inconsistente
       resetState();
     } finally {
       setIsLoading(false);
+      setIsInitialized(true);
     }
   }, [
     getWorkoutsForDate,
     getWorkoutTypeById,
     getExercisesForWorkout,
     getExerciseHistory,
+    t,
+    selectedChartType,
     resetState,
+    workouts,
   ]);
 
-  // Efeito para atualizar o gráfico quando o tipo de gráfico ou período de histórico mudar
+  // Inicializar dados na montagem do componente
   useEffect(() => {
-    // Utilizar uma flag para evitar múltiplas atualizações em sequência
-    const timer = setTimeout(() => {
+    if (!isInitialized) {
+      initData();
+    }
+  }, [isInitialized, initData]);
+
+  // Atualizar o gráfico quando dados relevantes mudarem
+  useEffect(() => {
+    if (isInitialized) {
       updateChartData();
-    }, 50);
+    }
+  }, [
+    isInitialized,
+    updateChartData,
+    selectedChartType,
+    selectedHistoryPeriod,
+    selectedExercise,
+    workoutHistory,
+  ]);
 
-    return () => clearTimeout(timer);
-  }, [selectedChartType, selectedHistoryPeriod, updateChartData]);
-
-  // Carregar dados quando o componente montar - usando um ref para garantir que só executa uma vez
-  const initialLoadRef = useRef(false);
-
+  // Adicionar um efeito para reinicializar os dados quando os workouts mudarem
   useEffect(() => {
-    if (!initialLoadRef.current) {
-      initialLoadRef.current = true;
-      const initializeComponent = async () => {
-        await loadData();
-        // Garantir que o gráfico seja atualizado após carregar os dados
-        setTimeout(() => {
-          updateChartData();
-          setIsInitialized(true);
-        }, 300);
-      };
-      initializeComponent();
+    if (isInitialized) {
+      // Forçar a reinicialização dos dados quando workouts mudar
+      initData();
     }
-  }, [loadData, updateChartData]);
-
-  // Efeito para animar a altura do card
-  useEffect(() => {
-    const emptyStateHeight = 180; // Altura padrão para o estado vazio
-
-    // Se não tiver exercícios ou estiver carregando, usar altura fixa
-    if (todayExercises.length === 0 || isLoading) {
-      cardHeight.value = emptyStateHeight;
-      return;
-    }
-
-    // Só alterar a altura após os dados estarem carregados
-    if (!isLoading) {
-      if (initialMount) {
-        cardHeight.value = isExpanded ? 650 : 220;
-        setInitialMount(false);
-      } else {
-        cardHeight.value = withTiming(isExpanded ? 750 : 220, {
-          duration: 300,
-        });
-      }
-    }
-  }, [isExpanded, todayExercises.length, isLoading, initialMount]);
+  }, [workouts, isInitialized, initData]);
 
   // Função para alternar entre expandido e recolhido
   const toggleExpand = useCallback(() => {
@@ -768,12 +699,6 @@ export default function WorkoutProgressChart({
       }
     },
     [selectedChartType, t]
-  );
-
-  // Verificar se há exercícios para mostrar
-  const hasExercises = useMemo(
-    () => Array.isArray(todayExercises) && todayExercises.length > 0,
-    [todayExercises]
   );
 
   // Título do gráfico com base no tipo selecionado
@@ -809,47 +734,87 @@ export default function WorkoutProgressChart({
     [selectedExercise]
   );
 
-  // Selecionar automaticamente o primeiro exercício quando o tipo de gráfico mudar
-  useEffect(() => {
-    // Remover essa função ou implementá-la de maneira diferente
-    // Esse efeito está causando um loop infinito de renderização
-    // quando combinado com outros efeitos que atualizam o gráfico
-  }, []);
-
-  // Adicione esta função
+  // Função para mudar o tipo de gráfico
   const changeChartType = useCallback(
     (type: ChartType) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      // Atualizar o tipo de gráfico
       setSelectedChartType(type);
 
-      // Se o tipo for calorias ou volume e temos exercícios, selecionar o primeiro
-      if (
-        (type === "calories" || type === "volume") &&
-        todayExercises?.length > 0
-      ) {
-        // Criar um exercício virtual para representar os totais
-        const virtualExercise: Exercise = {
-          id: type === "calories" ? "calories_total" : "volume_total",
-          name:
-            type === "calories"
-              ? t("training.stats.calories")
-              : t("training.stats.totalVolume"),
+      // IMPORTANTE: Selecionar o exercício apropriado com base no novo tipo
+      // Esta parte evita a confusão quando alternar entre diferentes tipos de gráfico
+      if (type === "calories") {
+        const caloriesExercise: Exercise = {
+          id: "calories_total",
+          name: t("training.stats.calories"),
           sets: [],
         };
-
-        // Usar o exercício virtual em vez do primeiro exercício real
-        setSelectedExercise(virtualExercise);
+        setSelectedExercise(caloriesExercise);
+      } else if (type === "volume") {
+        const volumeExercise: Exercise = {
+          id: "volume_total",
+          name: t("training.stats.totalVolume"),
+          sets: [],
+        };
+        setSelectedExercise(volumeExercise);
+      } else if (type === "weight") {
+        // Para tipo weight, não selecionamos nenhum exercício automaticamente
+        setSelectedExercise(null);
       }
-
-      // Forçar atualização do gráfico imediatamente
-      setTimeout(() => {
-        updateChartData();
-      }, 100);
     },
-    [updateChartData, todayExercises, t]
+    [t, todayExercises]
   );
 
-  // Renderizar cada exercício na lista (extraído para evitar problemas de dependência cíclica)
+  // Abrir o modal de informações
+  const openInfoModal = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setInfoModalVisible(true);
+  }, []);
+
+  // Preparar itens de informações para o modal
+  const workoutInfoItems = useMemo<InfoItem[]>(
+    () => [
+      {
+        title: t("home.workout.progressInfo.overview.title"),
+        description: t("home.workout.progressInfo.overview.description"),
+        icon: "analytics-outline",
+        iconType: "ionicons",
+        color: colors.primary,
+      },
+      {
+        title: t("home.workout.progressInfo.weight.title"),
+        description: t("home.workout.progressInfo.weight.description"),
+        icon: "barbell-outline",
+        iconType: "ionicons",
+        color: colors.success,
+      },
+      {
+        title: t("home.workout.progressInfo.volume.title"),
+        description: t("home.workout.progressInfo.volume.description"),
+        icon: "stats-chart-outline",
+        iconType: "ionicons",
+        color: colors.warning,
+      },
+      {
+        title: t("home.workout.progressInfo.filters.title"),
+        description: t("home.workout.progressInfo.filters.description"),
+        icon: "filter-outline",
+        iconType: "ionicons",
+        color: colors.danger,
+      },
+      {
+        title: t("home.workout.progressInfo.tips.title"),
+        description: t("home.workout.progressInfo.tips.description"),
+        icon: "bulb-outline",
+        iconType: "ionicons",
+        color: colors.info,
+      },
+    ],
+    [t, colors]
+  );
+
+  // Renderizar cada exercício na lista
   const renderExerciseItem = useCallback(
     ({ item: exercise, index }: { item: Exercise; index: number }) => {
       if (!exercise || !todayWorkout) return null;
@@ -911,16 +876,7 @@ export default function WorkoutProgressChart({
             },
           ]}
         >
-          <MotiView
-            style={styles.exerciseCard}
-            from={{ opacity: 0, translateY: 10 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{
-              type: "timing",
-              duration: 500,
-              delay: index * 100,
-            }}
-          >
+          <View style={styles.exerciseCard}>
             <View style={styles.exerciseCardHeader}>
               <Text
                 style={[styles.exerciseName, { color: colors.text }]}
@@ -955,7 +911,7 @@ export default function WorkoutProgressChart({
             <Text style={[styles.exerciseValue, { color: colors.text }]}>
               {formatValue(currentValue)}
             </Text>
-          </MotiView>
+          </View>
         </TouchableOpacity>
       );
     },
@@ -977,57 +933,44 @@ export default function WorkoutProgressChart({
   // Renderizar a lista de exercícios em lista horizontal
   const renderExerciseList = useMemo(() => {
     // Se não houver exercícios ou estiver carregando, não renderizar nada
-    if (!todayExercises || todayExercises.length === 0 || isLoading)
+    if (!todayExercises || todayExercises.length === 0 || !isInitialized)
       return null;
 
     // Se não tiver contexto de treino para mostrar, não renderizar nada
     if (!todayWorkout) return null;
 
-    // Para outros tipos de gráfico, mostrar a lista normal de exercícios
     return (
       <View style={styles.exerciseListContainer}>
         <View style={styles.exerciseListHeader}>
           <Text style={[styles.exerciseListTitle, { color: colors.text }]}>
             {selectedChartType === "calories"
-              ? "Calorias queimadas neste treino"
+              ? t("home.workout.burnedCalories")
               : selectedChartType === "volume"
-              ? "Volume total do treino"
-              : "Selecione para ver a progressão"}
+              ? t("home.workout.totalVolume")
+              : t("home.workout.selectToSeeProgress")}
           </Text>
         </View>
         {selectedChartType === "calories" || selectedChartType === "volume" ? (
           <View style={{ paddingHorizontal: 4 }}>
-            <TouchableOpacity
+            <View
               style={[
                 styles.exerciseCardTouchable,
                 {
-                  backgroundColor: colors.card,
                   width: "100%",
-                },
-                selectedExercise && {
                   borderColor: colors.primary,
                   backgroundColor: colors.primary + "10",
                 },
               ]}
             >
-              <MotiView
-                style={[styles.exerciseCard, { width: "100%" }]}
-                from={{ opacity: 0, translateY: 10 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                transition={{
-                  type: "timing",
-                  duration: 500,
-                  delay: 100,
-                }}
-              >
+              <View style={[styles.exerciseCard, { width: "100%" }]}>
                 <View style={styles.exerciseCardHeader}>
                   <Text
                     style={[styles.exerciseName, { color: colors.text }]}
                     numberOfLines={1}
                   >
                     {selectedChartType === "calories"
-                      ? "Calorias Totais"
-                      : "Volume Total"}
+                      ? t("home.workout.totalCalories")
+                      : t("home.workout.totalVolumeTitle")}
                   </Text>
 
                   {/* Mostrar comparação com treino anterior */}
@@ -1083,7 +1026,7 @@ export default function WorkoutProgressChart({
                           { color: colors.text + "60" },
                         ]}
                       >
-                        Novo
+                        {t("home.workout.new")}
                       </Text>
                     );
                   })()}
@@ -1100,8 +1043,8 @@ export default function WorkoutProgressChart({
                       : getWorkoutTotals(todayWorkout.id).totalVolume
                   )}
                 </Text>
-              </MotiView>
-            </TouchableOpacity>
+              </View>
+            </View>
           </View>
         ) : (
           <FlatList
@@ -1119,486 +1062,495 @@ export default function WorkoutProgressChart({
     todayExercises,
     colors.text,
     renderExerciseItem,
-    isLoading,
+    isInitialized,
     todayWorkout,
     selectedChartType,
     selectedExercise,
     colors.card,
     colors.primary,
-    handleSelectExercise,
     getWorkoutTotals,
     getPreviousWorkoutTotals,
     formatValue,
   ]);
 
-  // Se o componente ainda não foi inicializado, aplicar a mesma altura fixa
-  if (!isInitialized) {
-    return (
+  // Renderização - usar um container com altura fixa para evitar a piscada
+  return (
+    <>
       <View
         style={[
           styles.container,
           {
             backgroundColor: colors.light,
-            height: 180, // Exatamente a mesma altura do NutritionProgressChart
+            height: isExpanded ? "auto" : fixedHeight,
           },
         ]}
-      />
-    );
-  }
-
-  return (
-    <Animated.View
-      style={[
-        styles.container,
-        { backgroundColor: colors.light },
-        !hasExercises ? { height: 180 } : animatedStyle,
-      ]}
-    >
-      <Pressable
-        style={styles.pressableArea}
-        onPress={hasExercises ? toggleExpand : undefined}
-        android_ripple={
-          hasExercises
-            ? { color: colors.text + "10", borderless: true }
-            : undefined
-        }
       >
-        <View style={styles.header}>
-          <View style={styles.titleContainer}>
-            {todayWorkout && (
-              <View
-                style={[
-                  styles.iconContainer,
-                  {
-                    backgroundColor:
-                      todayWorkout.color + "20" || colors.primary + "20",
-                  },
-                ]}
-              >
-                <WorkoutIcon
-                  iconType={todayWorkout.iconType}
-                  size={18}
-                  color={todayWorkout.color || colors.primary}
-                />
-              </View>
-            )}
-            <View>
-              <Text style={[styles.title, { color: colors.text }]}>
-                {todayWorkout ? todayWorkout.name : "Treino de Hoje"}
-              </Text>
-              <Text style={[styles.subtitle, { color: colors.text + "80" }]}>
-                {hasExercises
-                  ? `${todayExercises.length} exercício${
-                      todayExercises.length !== 1 ? "s" : ""
-                    }`
-                  : "Nenhum exercício registrado"}
-              </Text>
-            </View>
-          </View>
+        {/* Adicionar o componente InfoModal */}
+        <InfoModal
+          visible={infoModalVisible}
+          title={t("home.workout.progressInfo.title")}
+          subtitle={t("home.workout.progressInfo.subtitle")}
+          infoItems={workoutInfoItems}
+          onClose={() => setInfoModalVisible(false)}
+          topIcon={{
+            name: "fitness",
+            type: "ionicons",
+            color: colors.primary,
+            backgroundColor: colors.primary + "20",
+          }}
+        />
 
-          <View style={styles.headerRight}>
-            <TouchableOpacity
-              style={[
-                styles.infoButton,
-                { backgroundColor: colors.primary + "20" },
-              ]}
-              onPress={onPress}
-            >
-              <Ionicons
-                name="information-circle-outline"
-                size={20}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
-
-            {hasExercises && (
-              <TouchableOpacity
-                style={[
-                  styles.expandButton,
-                  { backgroundColor: colors.text + "10" },
-                ]}
-                onPress={toggleExpand}
-              >
-                <Ionicons
-                  name={isExpanded ? "chevron-up" : "chevron-down"}
-                  size={20}
-                  color={colors.text + "80"}
-                />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        {/* Conteúdo principal */}
-        {!hasExercises ? (
-          <View style={styles.emptyContainer}>
-            <LinearGradient
-              colors={[colors.light, colors.background]}
-              style={styles.emptyGradient}
-            >
-              <Text style={[styles.emptyText, { color: colors.text + "50" }]}>
-                Nenhum exercício registrado hoje
-              </Text>
-            </LinearGradient>
-          </View>
-        ) : (
-          <>
-            <View style={styles.progressContainer}>
-              {/* Renderizar exercícios em lista horizontal logo após o header */}
-              {renderExerciseList}
-
-              {/* Indicador de expansão - visível apenas quando não expandido */}
-              {!isExpanded && (
-                <View style={styles.expandIndicator}>
-                  <View
-                    style={[
-                      styles.expandDot,
-                      { backgroundColor: colors.primary + "40" },
-                    ]}
-                  />
-                  <View
-                    style={[
-                      styles.expandDot,
-                      { backgroundColor: colors.primary + "40" },
-                    ]}
-                  />
-                  <View
-                    style={[
-                      styles.expandDot,
-                      { backgroundColor: colors.primary + "40" },
-                    ]}
-                  />
-                </View>
-              )}
-            </View>
-          </>
-        )}
-      </Pressable>
-
-      {/* Conteúdo que fica fora do Pressable */}
-      {hasExercises && (
-        <>
-          {/* Mostrar o título e os botões de seleção apenas quando expandido */}
-          {isExpanded && (
+        <Pressable
+          style={styles.pressableArea}
+          onPress={isInitialized && hasExercises ? toggleExpand : undefined}
+          android_ripple={
+            hasExercises
+              ? {
+                  color: colors.text + "10",
+                  borderless: true,
+                }
+              : null
+          }
+        >
+          {isInitialized ? (
             <>
-              <View style={styles.progressHeader}>
-                <Text style={[styles.progressTitle, { color: colors.text }]}>
-                  {getChartTitle()}
-                </Text>
-                <Text
-                  style={[
-                    styles.progressSubtitle,
-                    { color: colors.text + "60" },
-                  ]}
-                >
-                  {selectedChartType === "calories"
-                    ? "Histórico de calorias queimadas nos treinos"
-                    : selectedChartType === "volume"
-                    ? "Histórico de volume total levantado"
-                    : selectedExercise
-                    ? selectedExercise.name
-                    : "Selecione um exercício"}
-                </Text>
-              </View>
-
-              {/* Seletor de tipo de gráfico */}
-              <View style={styles.chartTypeSelector}>
-                <TouchableOpacity
-                  style={[
-                    styles.chartTypeButton,
-                    selectedChartType === "weight" && [
-                      styles.selectedChartType,
-                      { backgroundColor: colors.primary + "20" },
-                    ],
-                  ]}
-                  onPress={() => changeChartType("weight")}
-                >
-                  <Text
-                    style={[
-                      styles.chartTypeText,
-                      { color: colors.text + "80" },
-                      selectedChartType === "weight" && {
-                        color: colors.primary,
-                        fontWeight: "600",
-                      },
-                    ]}
-                  >
-                    Peso
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.chartTypeButton,
-                    selectedChartType === "calories" && [
-                      styles.selectedChartType,
-                      { backgroundColor: colors.primary + "20" },
-                    ],
-                  ]}
-                  onPress={() => changeChartType("calories")}
-                >
-                  <Text
-                    style={[
-                      styles.chartTypeText,
-                      { color: colors.text + "80" },
-                      selectedChartType === "calories" && {
-                        color: colors.primary,
-                        fontWeight: "600",
-                      },
-                    ]}
-                  >
-                    Calorias
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.chartTypeButton,
-                    selectedChartType === "volume" && [
-                      styles.selectedChartType,
-                      { backgroundColor: colors.primary + "20" },
-                    ],
-                  ]}
-                  onPress={() => changeChartType("volume")}
-                >
-                  <Text
-                    style={[
-                      styles.chartTypeText,
-                      { color: colors.text + "80" },
-                      selectedChartType === "volume" && {
-                        color: colors.primary,
-                        fontWeight: "600",
-                      },
-                    ]}
-                  >
-                    Volume
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Seletor de período de histórico */}
-              <View style={styles.comparisonContainer}>
-                <Text style={[styles.comparisonTitle, { color: colors.text }]}>
-                  Período:
-                </Text>
-                <View style={styles.comparisonSelector}>
-                  <TouchableOpacity
-                    style={[
-                      styles.comparisonButton,
-                      selectedHistoryPeriod === "1m" && [
-                        styles.selectedComparison,
-                        { backgroundColor: colors.primary + "20" },
-                      ],
-                    ]}
-                    onPress={() => changeHistoryPeriod("1m")}
-                  >
-                    <Text
+              <View style={styles.header}>
+                <View style={styles.titleContainer}>
+                  {todayWorkout ? (
+                    <View
                       style={[
-                        styles.comparisonText,
-                        { color: colors.text + "80" },
-                        selectedHistoryPeriod === "1m" && {
-                          color: colors.primary,
-                          fontWeight: "600",
+                        styles.iconContainer,
+                        {
+                          backgroundColor:
+                            todayWorkout.color + "20" || colors.primary + "20",
                         },
                       ]}
                     >
-                      1 Mês
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.comparisonButton,
-                      selectedHistoryPeriod === "6m" && [
-                        styles.selectedComparison,
-                        { backgroundColor: colors.primary + "20" },
-                      ],
-                    ]}
-                    onPress={() => changeHistoryPeriod("6m")}
-                  >
-                    <Text
+                      <WorkoutIcon
+                        iconType={todayWorkout.iconType}
+                        size={18}
+                        color={todayWorkout.color || colors.primary}
+                      />
+                    </View>
+                  ) : (
+                    <View
                       style={[
-                        styles.comparisonText,
-                        { color: colors.text + "80" },
-                        selectedHistoryPeriod === "6m" && {
-                          color: colors.primary,
-                          fontWeight: "600",
+                        styles.iconContainer,
+                        {
+                          backgroundColor: colors.danger + "20",
                         },
                       ]}
                     >
-                      6 Meses
+                      <Ionicons
+                        name="alert-circle-outline"
+                        size={18}
+                        color={colors.danger}
+                      />
+                    </View>
+                  )}
+                  <View>
+                    <Text style={[styles.title, { color: colors.text }]}>
+                      {todayWorkout
+                        ? todayWorkout.name
+                        : t("home.workout.todaysWorkout")}
                     </Text>
-                  </TouchableOpacity>
+                    <Text
+                      style={[styles.subtitle, { color: colors.text + "80" }]}
+                    >
+                      {hasExercises
+                        ? `${todayExercises.length} ${
+                            todayExercises.length !== 1
+                              ? t("home.workout.exercises")
+                              : t("home.workout.exercise")
+                          }`
+                        : t("home.workout.noExercisesToday")}
+                    </Text>
+                  </View>
+                </View>
 
+                <View style={styles.headerRight}>
                   <TouchableOpacity
                     style={[
-                      styles.comparisonButton,
-                      selectedHistoryPeriod === "all" && [
-                        styles.selectedComparison,
-                        { backgroundColor: colors.primary + "20" },
-                      ],
+                      styles.infoButton,
+                      { backgroundColor: colors.primary + "20" },
                     ]}
-                    onPress={() => changeHistoryPeriod("all")}
+                    onPress={openInfoModal}
                   >
-                    <Text
-                      style={[
-                        styles.comparisonText,
-                        { color: colors.text + "80" },
-                        selectedHistoryPeriod === "all" && {
-                          color: colors.primary,
-                          fontWeight: "600",
-                        },
-                      ]}
-                    >
-                      Todos
-                    </Text>
+                    <Ionicons
+                      name="information-circle-outline"
+                      size={20}
+                      color={colors.primary}
+                    />
                   </TouchableOpacity>
+
+                  {/* Botão de expansão - se houver exercícios */}
+                  {hasExercises && (
+                    <TouchableOpacity
+                      style={[
+                        styles.expandButton,
+                        { backgroundColor: colors.text + "10" },
+                      ]}
+                      onPress={toggleExpand}
+                    >
+                      <Ionicons
+                        name={isExpanded ? "chevron-up" : "chevron-down"}
+                        size={20}
+                        color={colors.text + "80"}
+                      />
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
 
-              {/* Gráfico (visível apenas quando expandido) */}
-              <View style={styles.expandedSection}>
-                <View style={styles.sectionDivider} />
-
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                  Histórico de Progresso
-                </Text>
-
-                {((selectedChartType === "calories" ||
-                  selectedChartType === "volume") &&
-                  Object.values(workoutHistory).length > 0) ||
-                (selectedExercise &&
-                  workoutHistory[selectedExercise.id]?.length > 0) ? (
-                  <View style={styles.chartContainer}>
-                    <LineChart
-                      data={chartData}
-                      width={width - 40}
-                      height={220}
-                      yAxisLabel=""
-                      yAxisSuffix={
-                        selectedChartType === "calories" ? " kcal" : " kg"
-                      }
-                      chartConfig={{
-                        backgroundColor: colors.chartBackground,
-                        backgroundGradientFrom: colors.chartGradientStart,
-                        backgroundGradientTo: colors.chartGradientEnd,
-                        decimalPlaces: 0,
-                        color: () => colors.primary,
-                        labelColor: () => colors.text + "80",
-                        style: {
-                          borderRadius: 16,
-                        },
-                        propsForDots: {
-                          r: "5",
-                          strokeWidth: "2",
-                          stroke: colors.primary,
-                          fill: colors.chartDotFill,
-                        },
-                        fillShadowGradientFrom: colors.primary,
-                        fillShadowGradientTo: "rgba(255, 255, 255, 0)",
-                        propsForBackgroundLines: {
-                          strokeDasharray: "5, 5",
-                          stroke: colors.chartGrid,
-                        },
-                      }}
-                      style={{
-                        marginVertical: 16,
-                        borderRadius: 16,
-                        padding: 10,
-                        backgroundColor: colors.chartBackground,
-                        shadowColor: colors.text,
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.1,
-                        shadowRadius: 4,
-                        elevation: 3,
-                      }}
-                      bezier
-                      withInnerLines={false}
-                      fromZero={true}
-                      segments={4}
+              {/* Conteúdo principal */}
+              {!hasExercises ? (
+                <View style={styles.emptyContainer}>
+                  <LinearGradient
+                    colors={[colors.light, colors.background]}
+                    style={styles.emptyGradient}
+                  >
+                    <Ionicons
+                      name="barbell-outline"
+                      size={20}
+                      color={colors.text + "30"}
+                      style={{ marginBottom: 6 }}
                     />
-                    <View style={styles.legendContainer}>
-                      <View style={styles.legendItem}>
-                        <View
+                    <Text
+                      style={[styles.emptyText, { color: colors.text + "50" }]}
+                    >
+                      {t("home.workout.noExercisesToday")}
+                    </Text>
+                  </LinearGradient>
+                </View>
+              ) : (
+                <>
+                  <View style={styles.progressContainer}>
+                    {/* Seletores agrupados antes dos cards */}
+                    <View style={styles.selectorsContainer}>
+                      {/* Seletor de tipo de gráfico */}
+                      <View
+                        style={[
+                          styles.chartTypeSelector,
+                          { flex: 2, marginRight: 8 },
+                        ]}
+                      >
+                        <TouchableOpacity
                           style={[
-                            styles.legendDot,
-                            {
-                              backgroundColor: colors.primary,
-                              borderWidth: 2,
-                              borderColor: colors.primary,
-                            },
+                            styles.chartTypeButton,
+                            selectedChartType === "weight" && [
+                              styles.selectedChartType,
+                              { backgroundColor: colors.primary + "20" },
+                            ],
                           ]}
-                        />
-                        <Text
-                          style={[
-                            styles.legendText,
-                            { color: colors.text + "80" },
-                          ]}
+                          onPress={() => changeChartType("weight")}
                         >
-                          {selectedChartType === "weight"
-                            ? "Peso máximo por treino"
-                            : selectedChartType === "calories"
-                            ? "Calorias queimadas por treino"
-                            : selectedChartType === "volume"
-                            ? "Volume total por treino"
-                            : "Valor por treino"}
-                        </Text>
+                          <Text
+                            style={[
+                              styles.chartTypeText,
+                              { color: colors.text + "80" },
+                              selectedChartType === "weight" && {
+                                color: colors.primary,
+                                fontWeight: "600",
+                              },
+                            ]}
+                          >
+                            {t("home.workout.chartTypes.weight")}
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[
+                            styles.chartTypeButton,
+                            selectedChartType === "calories" && [
+                              styles.selectedChartType,
+                              { backgroundColor: colors.primary + "20" },
+                            ],
+                          ]}
+                          onPress={() => changeChartType("calories")}
+                        >
+                          <Text
+                            style={[
+                              styles.chartTypeText,
+                              { color: colors.text + "80" },
+                              selectedChartType === "calories" && {
+                                color: colors.primary,
+                                fontWeight: "600",
+                              },
+                            ]}
+                          >
+                            {t("home.workout.chartTypes.calories")}
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[
+                            styles.chartTypeButton,
+                            selectedChartType === "volume" && [
+                              styles.selectedChartType,
+                              { backgroundColor: colors.primary + "20" },
+                            ],
+                          ]}
+                          onPress={() => changeChartType("volume")}
+                        >
+                          <Text
+                            style={[
+                              styles.chartTypeText,
+                              { color: colors.text + "80" },
+                              selectedChartType === "volume" && {
+                                color: colors.primary,
+                                fontWeight: "600",
+                              },
+                            ]}
+                          >
+                            {t("home.workout.chartTypes.volume")}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Seletor de período */}
+                      <View style={[styles.chartTypeSelector, { flex: 1 }]}>
+                        <TouchableOpacity
+                          style={[
+                            styles.chartTypeButton,
+                            selectedHistoryPeriod === "1m" && [
+                              styles.selectedChartType,
+                              { backgroundColor: colors.primary + "20" },
+                            ],
+                          ]}
+                          onPress={() => changeHistoryPeriod("1m")}
+                        >
+                          <Text
+                            style={[
+                              styles.chartTypeText,
+                              { color: colors.text + "80" },
+                              selectedHistoryPeriod === "1m" && {
+                                color: colors.primary,
+                                fontWeight: "600",
+                              },
+                            ]}
+                          >
+                            {t("home.workout.periods.month1")}
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[
+                            styles.chartTypeButton,
+                            selectedHistoryPeriod === "6m" && [
+                              styles.selectedChartType,
+                              { backgroundColor: colors.primary + "20" },
+                            ],
+                          ]}
+                          onPress={() => changeHistoryPeriod("6m")}
+                        >
+                          <Text
+                            style={[
+                              styles.chartTypeText,
+                              { color: colors.text + "80" },
+                              selectedHistoryPeriod === "6m" && {
+                                color: colors.primary,
+                                fontWeight: "600",
+                              },
+                            ]}
+                          >
+                            {t("home.workout.periods.month6")}
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[
+                            styles.chartTypeButton,
+                            selectedHistoryPeriod === "all" && [
+                              styles.selectedChartType,
+                              { backgroundColor: colors.primary + "20" },
+                            ],
+                          ]}
+                          onPress={() => changeHistoryPeriod("all")}
+                        >
+                          <Text
+                            style={[
+                              styles.chartTypeText,
+                              { color: colors.text + "80" },
+                              selectedHistoryPeriod === "all" && {
+                                color: colors.primary,
+                                fontWeight: "600",
+                              },
+                            ]}
+                          >
+                            {t("home.workout.periods.all")}
+                          </Text>
+                        </TouchableOpacity>
                       </View>
                     </View>
+
+                    {/* Renderizar exercícios em lista horizontal */}
+                    {renderExerciseList}
+
+                    {/* Indicador de expansão - visível apenas quando não expandido */}
+                    {!isExpanded && (
+                      <View style={styles.expandIndicator}>
+                        <View
+                          style={[
+                            styles.expandDot,
+                            { backgroundColor: colors.primary + "40" },
+                          ]}
+                        />
+                        <View
+                          style={[
+                            styles.expandDot,
+                            { backgroundColor: colors.primary + "40" },
+                          ]}
+                        />
+                        <View
+                          style={[
+                            styles.expandDot,
+                            { backgroundColor: colors.primary + "40" },
+                          ]}
+                        />
+                      </View>
+                    )}
                   </View>
-                ) : (
+
+                  {/* Código do gráfico - integrado no container principal */}
+                  {isExpanded && (
+                    <View style={styles.expandedSection}>
+                      <View style={styles.sectionDivider} />
+
+                      {chartData.labels.length > 0 &&
+                      chartData.datasets[0].data.length > 0 ? (
+                        <View style={styles.chartContainer}>
+                          <LineChart
+                            data={chartData}
+                            width={width - 40}
+                            height={220}
+                            yAxisLabel=""
+                            yAxisSuffix={
+                              selectedChartType === "calories" ? " kcal" : " kg"
+                            }
+                            chartConfig={{
+                              backgroundColor: colors.chartBackground,
+                              backgroundGradientFrom: colors.chartGradientStart,
+                              backgroundGradientTo: colors.chartGradientEnd,
+                              decimalPlaces: 0,
+                              color: () => colors.primary,
+                              labelColor: () => colors.text + "80",
+                              style: {
+                                borderRadius: 16,
+                              },
+                              propsForDots: {
+                                r: "5",
+                                strokeWidth: "2",
+                                stroke: colors.primary,
+                                fill: colors.chartDotFill,
+                              },
+                              fillShadowGradientFrom: colors.primary,
+                              fillShadowGradientTo: "rgba(255, 255, 255, 0)",
+                              propsForBackgroundLines: {
+                                strokeDasharray: "5, 5",
+                                stroke: colors.chartGrid,
+                              },
+                            }}
+                            style={{
+                              marginVertical: 8,
+                              borderRadius: 16,
+                              padding: 10,
+                              backgroundColor: colors.chartBackground,
+                              shadowColor: colors.text,
+                              shadowOffset: { width: 0, height: 2 },
+                              shadowOpacity: 0.1,
+                              shadowRadius: 4,
+                              elevation: 3,
+                            }}
+                            bezier
+                            withInnerLines={false}
+                            fromZero={true}
+                            segments={4}
+                          />
+                        </View>
+                      ) : (
+                        <View
+                          style={[
+                            styles.noDataContainer,
+                            {
+                              backgroundColor: colors.chartBackground,
+                              borderRadius: 16,
+                              shadowColor: colors.text,
+                              shadowOffset: { width: 0, height: 2 },
+                              shadowOpacity: 0.1,
+                              shadowRadius: 4,
+                              elevation: 3,
+                            },
+                          ]}
+                        >
+                          <Ionicons
+                            name="analytics-outline"
+                            size={40}
+                            color={colors.primary + "60"}
+                          />
+                          <Text
+                            style={[
+                              styles.noDataText,
+                              { color: colors.text + "80", marginTop: 12 },
+                            ]}
+                          >
+                            {selectedChartType === "calories" ||
+                            selectedChartType === "volume"
+                              ? `${t("home.workout.noHistoricalData")} ${
+                                  selectedChartType === "calories"
+                                    ? t(
+                                        "home.workout.chartTypes.calories"
+                                      ).toLowerCase()
+                                    : t(
+                                        "home.workout.chartTypes.volume"
+                                      ).toLowerCase()
+                                }`
+                              : selectedExercise
+                              ? `${t("home.workout.noHistoricalData")} ${t(
+                                  "home.workout.exercise"
+                                )}`
+                              : t("home.workout.selectExercise")}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </>
+              )}
+            </>
+          ) : (
+            // Conteúdo de carregamento
+            <View style={styles.loadingContainer}>
+              <View style={styles.header}>
+                <View style={styles.titleContainer}>
                   <View
                     style={[
-                      styles.noDataContainer,
-                      {
-                        backgroundColor: colors.chartBackground,
-                        borderRadius: 16,
-                        shadowColor: colors.text,
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.1,
-                        shadowRadius: 4,
-                        elevation: 3,
-                      },
+                      styles.iconContainer,
+                      { backgroundColor: colors.primary + "20" },
                     ]}
                   >
                     <Ionicons
-                      name="analytics-outline"
-                      size={40}
-                      color={colors.primary + "60"}
+                      name="barbell-outline"
+                      size={18}
+                      color={colors.primary}
                     />
-                    <Text
-                      style={[
-                        styles.noDataText,
-                        { color: colors.text + "80", marginTop: 12 },
-                      ]}
-                    >
-                      {selectedChartType === "calories" ||
-                      selectedChartType === "volume"
-                        ? `Não há dados históricos para ${
-                            selectedChartType === "calories"
-                              ? "calorias"
-                              : "volume"
-                          }`
-                        : selectedExercise
-                        ? "Não há dados históricos para este exercício"
-                        : "Selecione um exercício para ver o histórico"}
+                  </View>
+                  <View>
+                    <Text style={[styles.title, { color: colors.text }]}>
+                      {t("home.workout.todaysWorkout")}
                     </Text>
                     <Text
-                      style={[
-                        styles.noDataSubText,
-                        { color: colors.text + "60", marginTop: 8 },
-                      ]}
+                      style={[styles.subtitle, { color: colors.text + "80" }]}
                     >
-                      Complete mais treinos para visualizar seu progresso
+                      {t("home.workout.loading")}
                     </Text>
                   </View>
-                )}
+                </View>
               </View>
-            </>
+            </View>
           )}
-        </>
-      )}
-    </Animated.View>
+        </Pressable>
+      </View>
+    </>
   );
 }
 
@@ -1672,32 +1624,24 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   emptyGradient: {
-    padding: 24,
+    padding: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   emptyText: {
     fontSize: 13,
     textAlign: "center",
+    opacity: 0.8,
   },
   progressContainer: {
     width: "100%",
   },
-  progressHeader: {
+  selectorsContainer: {
+    flexDirection: "row",
     marginBottom: 12,
-    marginTop: 8,
-  },
-  progressTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  progressSubtitle: {
-    fontSize: 12,
-    marginTop: 2,
   },
   chartTypeSelector: {
     flexDirection: "row",
-    marginBottom: 12,
     borderRadius: 10,
     backgroundColor: "rgba(0,0,0,0.05)",
     padding: 3,
@@ -1716,7 +1660,7 @@ const styles = StyleSheet.create({
   },
   exerciseListContainer: {
     marginTop: 4,
-    marginBottom: 16,
+    marginBottom: 8,
   },
   exerciseListHeader: {
     flexDirection: "row",
@@ -1727,9 +1671,6 @@ const styles = StyleSheet.create({
   exerciseListTitle: {
     fontSize: 16,
     fontWeight: "600",
-  },
-  exerciseListSubtitle: {
-    fontSize: 13,
   },
   exerciseListContent: {
     paddingRight: 16,
@@ -1761,59 +1702,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "500",
   },
-  viewMoreButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderStyle: "dashed",
-  },
-  viewMoreText: {
-    fontSize: 13,
-    fontWeight: "500",
-    marginRight: 4,
-  },
-  chartContainer: {
-    alignItems: "center",
-    marginTop: 8,
-  },
-  legendContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 8,
-    paddingHorizontal: 16,
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: 16,
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 6,
-  },
-  legendText: {
-    fontSize: 12,
-  },
-  expandedSection: {
-    marginTop: 16,
-  },
-  sectionDivider: {
-    height: 1,
-    backgroundColor: "rgba(0,0,0,0.05)",
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
   expandIndicator: {
     flexDirection: "row",
     justifyContent: "center",
@@ -1830,48 +1718,15 @@ const styles = StyleSheet.create({
   pressableArea: {
     width: "100%",
   },
-  comparisonContainer: {
-    marginTop: 12,
-    marginBottom: 12,
-  },
-  comparisonTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  comparisonSelector: {
-    flexDirection: "row",
-    borderRadius: 10,
+  expandedSection: {},
+  sectionDivider: {
+    height: 1,
     backgroundColor: "rgba(0,0,0,0.05)",
-    padding: 3,
+    marginBottom: 10,
   },
-  comparisonButton: {
-    flex: 1,
-    paddingVertical: 6,
+  chartContainer: {
     alignItems: "center",
-    borderRadius: 8,
-  },
-  selectedComparison: {
-    borderRadius: 8,
-  },
-  comparisonText: {
-    fontSize: 12,
-  },
-  exerciseCardTouchable: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "transparent",
-    marginRight: 12,
-  },
-  filterButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginLeft: 8,
-  },
-  filterButtonText: {
-    fontSize: 12,
-    fontWeight: "600",
+    marginTop: 8,
   },
   noDataContainer: {
     height: 220,
@@ -1885,8 +1740,14 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "600",
   },
-  noDataSubText: {
-    fontSize: 14,
-    textAlign: "center",
+  loadingContainer: {
+    flex: 1,
+    padding: 16,
+  },
+  exerciseCardTouchable: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "transparent",
+    marginRight: 12,
   },
 });

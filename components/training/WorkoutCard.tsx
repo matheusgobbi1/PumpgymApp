@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useState,
-  useRef,
-  useEffect,
-  useMemo,
-} from "react";
+import React, { useCallback, useState, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -14,14 +8,12 @@ import {
   Platform,
   UIManager,
   LayoutAnimation,
-  Alert,
 } from "react-native";
 import {
   Ionicons,
   MaterialCommunityIcons,
   FontAwesome5,
 } from "@expo/vector-icons";
-import { MotiView } from "moti";
 import { Swipeable } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "../../context/ThemeContext";
@@ -30,12 +22,6 @@ import Colors from "../../constants/Colors";
 import { Exercise } from "../../context/WorkoutContext";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, {
-  FadeInRight,
-  FadeIn,
-  FadeInDown,
-  Easing,
-} from "react-native-reanimated";
 import { useAuth } from "../../context/AuthContext";
 import ConfirmationModal from "../ui/ConfirmationModal";
 import { useTranslation } from "react-i18next";
@@ -108,17 +94,6 @@ export default function WorkoutCard({
   const [showCopyWorkoutModal, setShowCopyWorkoutModal] = useState(false);
   const [selectedSourceDate, setSelectedSourceDate] = useState<string>("");
   const [showCopySuccess, setShowCopySuccess] = useState(false);
-
-  // Estado para notificações de progresso
-  const [progressNotification, setProgressNotification] = useState<{
-    visible: boolean;
-    message: string;
-    type: "success" | "info";
-  }>({
-    visible: false,
-    message: "",
-    type: "success",
-  });
 
   // Função para resetar os exercícios expandidos
   const resetExpandedExercises = useCallback(() => {
@@ -361,152 +336,6 @@ export default function WorkoutCard({
     </TouchableOpacity>
   );
 
-  // Função para verificar e notificar progresso
-  const checkForProgress = useCallback(
-    (currentExercise: Exercise, previousExercise: Exercise) => {
-      // Desativamos essa funcionalidade para manter apenas as notificações de PR
-      return false;
-    },
-    [notificationsEnabled]
-  );
-
-  // Função que verifica se um exercício atingiu um novo recorde pessoal (PR)
-  const checkForPersonalRecord = useCallback(
-    (currentExercise: Exercise, previousExercise: Exercise) => {
-      // Se as notificações estiverem desativadas, não verificar PRs
-      if (!notificationsEnabled) return false;
-
-      if (!previousExercise || !currentExercise) return false;
-
-      // Verificar apenas para exercícios de força (não cardio)
-      if (
-        currentExercise.category !== "cardio" &&
-        currentExercise.sets &&
-        previousExercise.sets
-      ) {
-        // Para verificar PRs, precisamos encontrar a carga máxima por repetição
-        // Um PR legítimo é quando a pessoa levanta mais peso para o mesmo número de repetições,
-        // ou faz mais repetições com o mesmo peso
-
-        // Mapear cargas e repetições do treino atual
-        const currentSets = currentExercise.sets.map((set) => ({
-          weight: set.weight,
-          reps: set.reps,
-        }));
-
-        // Mapear cargas e repetições do treino anterior
-        const previousSets = previousExercise.sets.map((set) => ({
-          weight: set.weight,
-          reps: set.reps,
-        }));
-
-        // Verificar PR de força: mais peso nas mesmas reps
-        for (const currentSet of currentSets) {
-          // Procurar um set no treino anterior com as mesmas repetições
-          const matchingPrevSet = previousSets.find(
-            (prevSet) => prevSet.reps === currentSet.reps
-          );
-
-          if (matchingPrevSet && currentSet.weight > matchingPrevSet.weight) {
-            // Novo PR detectado - mais peso nas mesmas repetições!
-            const increase = currentSet.weight - matchingPrevSet.weight;
-            const percentIncrease = Math.round(
-              (increase / matchingPrevSet.weight) * 100
-            );
-
-            // Apenas feedback tátil para PRs
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-            return true;
-          }
-        }
-
-        // Verificar PR de resistência: mais repetições com o mesmo peso
-        for (const currentSet of currentSets) {
-          // Procurar um set no treino anterior com o mesmo peso
-          const matchingPrevSets = previousSets.filter(
-            (prevSet) => prevSet.weight === currentSet.weight
-          );
-
-          if (matchingPrevSets.length > 0) {
-            // Encontrar o maior número de repetições feito com este peso no treino anterior
-            const maxPrevReps = Math.max(
-              ...matchingPrevSets.map((set) => set.reps)
-            );
-
-            if (currentSet.reps > maxPrevReps) {
-              // Novo PR detectado - mais repetições no mesmo peso!
-              const increase = currentSet.reps - maxPrevReps;
-
-              // Apenas feedback tátil para PRs
-              Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success
-              );
-
-              return true;
-            }
-          }
-        }
-      }
-
-      return false;
-    },
-    [notificationsEnabled]
-  );
-
-  // Modificar o useEffect existente para verificar PRs - OTIMIZADO
-  useEffect(() => {
-    // Se as notificações estiverem desativadas, não verificar PRs nem progresso
-    if (!notificationsEnabled) return;
-
-    if (!workoutsRef.current || !previousDatesWithWorkout.length) return;
-
-    const mostRecentDate = getMostRecentWorkoutDate();
-    if (!mostRecentDate) return;
-
-    // Obter exercícios do treino mais recente
-    const previousWorkoutExercises =
-      workoutsRef.current[mostRecentDate]?.[workout.id] || [];
-
-    // Verificar cada exercício atual em relação ao anterior - apenas uma vez
-    const checkExercises = () => {
-      for (const currentExercise of exercises) {
-        // Encontrar o exercício correspondente no treino anterior
-        const previousExercise = previousWorkoutExercises.find(
-          (ex: Exercise) =>
-            ex.name.toLowerCase() === currentExercise.name.toLowerCase()
-        );
-
-        if (previousExercise) {
-          // Primeiro verificar PRs, que são mais importantes
-          const hasPR = checkForPersonalRecord(
-            currentExercise,
-            previousExercise
-          );
-          if (hasPR) break; // Mostrar apenas uma notificação por vez
-
-          // Se não houver PR, verificar progresso geral
-          const hasProgress = checkForProgress(
-            currentExercise,
-            previousExercise
-          );
-          if (hasProgress) break; // Mostrar apenas uma notificação por vez
-        }
-      }
-    };
-
-    // Só executar a verificação uma vez quando os dados estiverem prontos
-    checkExercises();
-  }, [
-    exercises,
-    previousDatesWithWorkout,
-    getMostRecentWorkoutDate,
-    checkForProgress,
-    checkForPersonalRecord,
-    notificationsEnabled,
-    workout.id,
-  ]);
-
   // Função para renderizar um exercício
   const renderExerciseItem = (exercise: Exercise, exerciseIndex: number) => (
     <Swipeable
@@ -517,8 +346,7 @@ export default function WorkoutCard({
       overshootRight={false}
       overshootLeft={false}
     >
-      <Animated.View
-        entering={FadeInRight.delay(exerciseIndex * 100).duration(300)}
+      <View
         style={[
           styles.exerciseItemContainer,
           { backgroundColor: colors.light },
@@ -533,12 +361,9 @@ export default function WorkoutCard({
         >
           <View style={styles.exerciseItemLeft}>
             <View style={styles.exerciseTextContainer}>
-              <Animated.Text
-                entering={FadeIn.delay(exerciseIndex * 100 + 100).duration(400)}
-                style={[styles.exerciseName, { color: colors.text }]}
-              >
+              <Text style={[styles.exerciseName, { color: colors.text }]}>
                 {exercise.name}
-              </Animated.Text>
+              </Text>
               <View style={styles.exerciseDetailsContainer}>
                 <Text
                   style={[
@@ -662,10 +487,7 @@ export default function WorkoutCard({
           exercise.sets &&
           exercise.category !== "cardio" &&
           exercise.sets.length > 0 && (
-            <MotiView
-              from={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              transition={{ type: "timing", duration: 300 }}
+            <View
               style={[
                 styles.setsDetailsContainer,
                 { backgroundColor: colors.light },
@@ -717,13 +539,12 @@ export default function WorkoutCard({
                   </View>
                 ))}
               </View>
-            </MotiView>
+            </View>
           )}
 
         {/* Exibir notas do exercício quando expandido */}
         {expandedExercises[exercise.id] && exercise.notes && (
-          <Animated.View
-            entering={FadeInDown.duration(300)}
+          <View
             style={[styles.notesContainer, { backgroundColor: colors.light }]}
           >
             <Text style={[styles.notesTitle, { color: colors.text }]}>
@@ -732,13 +553,12 @@ export default function WorkoutCard({
             <Text style={[styles.notesText, { color: colors.text + "99" }]}>
               {exercise.notes}
             </Text>
-          </Animated.View>
+          </View>
         )}
 
         {/* Exibir detalhes do cardio quando expandido */}
         {expandedExercises[exercise.id] && exercise.category === "cardio" && (
-          <Animated.View
-            entering={FadeInDown.duration(300)}
+          <View
             style={[
               styles.cardioDetailsContainer,
               { backgroundColor: colors.light },
@@ -782,9 +602,9 @@ export default function WorkoutCard({
                 </Text>
               </>
             )}
-          </Animated.View>
+          </View>
         )}
-      </Animated.View>
+      </View>
     </Swipeable>
   );
 
@@ -795,12 +615,9 @@ export default function WorkoutCard({
         overshootRight={false}
         containerStyle={styles.swipeableContainer}
       >
-        <MotiView
+        <View
           key={`workout-card-${workout.id}`}
           style={[styles.workoutCard, { backgroundColor: colors.light }]}
-          from={{ opacity: 0, translateY: 20 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "spring", delay: index * 100 }}
         >
           <View style={styles.workoutContent}>
             <TouchableOpacity
@@ -867,6 +684,7 @@ export default function WorkoutCard({
                   </View>
                 </View>
                 <View style={styles.actionButtonsContainer}>
+                  {/* Botão de copiar treino */}
                   {getMostRecentWorkoutDate() && (
                     <TouchableOpacity
                       style={[
@@ -937,31 +755,29 @@ export default function WorkoutCard({
                   )}
                 </View>
               ) : (
-                <MotiView
-                  from={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ type: "timing", duration: 500 }}
-                  style={styles.emptyContainer}
-                >
+                <View style={styles.emptyContainer}>
                   <LinearGradient
                     colors={[colors.light, colors.background]}
                     style={styles.emptyGradient}
                   >
+                    <Ionicons
+                      name="barbell-outline"
+                      size={20}
+                      color={colors.text + "30"}
+                      style={{ marginBottom: 6 }}
+                    />
                     <Text
                       style={[styles.emptyText, { color: colors.text + "50" }]}
                     >
                       {t("training.addFirstExercise")}
                     </Text>
                   </LinearGradient>
-                </MotiView>
+                </View>
               )}
 
               {/* Mensagem de sucesso após copiar treino */}
               {showCopySuccess && (
-                <MotiView
-                  from={{ opacity: 0, translateY: 10 }}
-                  animate={{ opacity: 1, translateY: 0 }}
-                  exit={{ opacity: 0, translateY: 10 }}
+                <View
                   style={[
                     styles.successMessage,
                     { backgroundColor: workout.color + "20" },
@@ -980,11 +796,11 @@ export default function WorkoutCard({
                   >
                     {t("training.workoutCopiedSuccess")}
                   </Text>
-                </MotiView>
+                </View>
               )}
             </View>
           </View>
-        </MotiView>
+        </View>
       </Swipeable>
 
       {/* Modal de confirmação para excluir exercício */}
@@ -1321,20 +1137,19 @@ const styles = StyleSheet.create({
     marginHorizontal: -16, // Ajustado para o novo padding do card
   },
   emptyContainer: {
-    marginVertical: 16,
-    borderRadius: 16,
+    marginVertical: 12,
+    borderRadius: 10,
     overflow: "hidden",
   },
   emptyGradient: {
-    padding: 28,
+    padding: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 13,
     textAlign: "center",
-    fontWeight: "500",
-    letterSpacing: -0.3,
+    opacity: 0.8,
   },
   successMessage: {
     flexDirection: "row",

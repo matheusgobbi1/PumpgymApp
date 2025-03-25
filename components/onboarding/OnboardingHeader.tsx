@@ -44,6 +44,7 @@ export default function OnboardingHeader({
         {
           paddingTop: insets.top > 0 ? insets.top : 16,
           height: (insets.top > 0 ? insets.top : 16) + 56, // Altura base + insets
+          backgroundColor: colors.background,
         },
       ]}
     >
@@ -69,6 +70,7 @@ export default function OnboardingHeader({
                     backgroundColor:
                       index < currentStep ? colors.primary : colors.border,
                     marginRight: index < totalSteps - 1 ? 8 : 0,
+                    width: totalSteps > 8 ? 16 : 24, // Ajustar tamanho para muitas etapas
                   },
                 ]}
               />
@@ -87,6 +89,8 @@ const styles = StyleSheet.create({
   container: {
     width: "100%",
     paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.05)",
   },
   contentContainer: {
     flexDirection: "row",
@@ -110,6 +114,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+    flexWrap: "wrap",
   },
   spacer: {
     width: 40,

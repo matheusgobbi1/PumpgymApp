@@ -21,7 +21,11 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomSheetModal, BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import {
+  BottomSheetModal,
+  BottomSheetBackdrop,
+  BottomSheetBackdropProps,
+} from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
@@ -100,11 +104,10 @@ const DEFAULT_MEAL_TYPES: MealType[] = [
 
 interface MealConfigSheetProps {
   onMealConfigured: (meals: MealType[]) => void;
-  onDismiss?: () => void;
 }
 
 const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
-  ({ onMealConfigured, onDismiss }, ref) => {
+  ({ onMealConfigured }, ref) => {
     const { theme } = useTheme();
     const colors = Colors[theme];
     const insets = useSafeAreaInsets();
@@ -205,21 +208,26 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
     }, []);
 
     // Função para quando o bottom sheet for fechado
-    const handleSheetChanges = useCallback(
-      (index: number) => {
-        // Quando o bottom sheet for fechado (index = -1)
-        if (index === -1) {
-          // Verificar se há refeições selecionadas e se foram configuradas
-          const selectedMeals = mealTypes.filter((meal) => meal.selected);
-          const selectedCount = selectedMeals.length;
+    const handleSheetChanges = useCallback((index: number) => {
+      // Quando o bottom sheet for fechado (index = -1), não fazemos nada
+      // Remover a chamada ao callback para não criar refeições automaticamente
+      if (index === -1) {
+        // Apenas fechamos o modal sem criar refeições
+        // O usuário precisa explicitamente clicar em "Confirmar" para criar as refeições
+      }
+    }, []);
 
-          if (selectedCount > 0) {
-            // Se houver refeições configuradas, chama o callback imediatamente
-            onMealConfigured(selectedMeals);
-          }
-        }
-      },
-      [mealTypes, onMealConfigured]
+    // Função para renderizar o backdrop (fundo escurecido)
+    const renderBackdrop = useCallback(
+      (props: BottomSheetBackdropProps) => (
+        <BottomSheetBackdrop
+          {...props}
+          disappearsOnIndex={-1}
+          appearsOnIndex={0}
+          opacity={0.5}
+        />
+      ),
+      []
     );
 
     // Função para selecionar/deselecionar uma refeição
@@ -294,9 +302,9 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                 styles.mealCard,
                 { backgroundColor: colors.card },
                 meal.selected && {
-                  backgroundColor: meal.color + "08",
+                  backgroundColor: meal.color + "15",
                   borderWidth: 1,
-                  borderColor: meal.color + "30",
+                  borderColor: meal.color + "50",
                 },
               ]}
               onPress={() => toggleMealSelection(meal.id)}
@@ -313,8 +321,12 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                     styles.mealIconContainer,
                     {
                       backgroundColor: meal.selected
-                        ? meal.color + "20"
-                        : "rgba(255, 255, 255, 0.2)",
+                        ? meal.color + "30"
+                        : colors.background + "90",
+                      borderWidth: 1,
+                      borderColor: meal.selected
+                        ? meal.color
+                        : colors.border + "40",
                     },
                   ]}
                 >
@@ -325,29 +337,31 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                   />
                 </View>
                 <View style={styles.mealInfo}>
-                  <Text style={[styles.mealName, { color: colors.text }]}>
+                  <Text
+                    style={[
+                      styles.mealName,
+                      {
+                        color: colors.text,
+                        fontWeight: meal.selected ? "700" : "600",
+                      },
+                    ]}
+                  >
                     {t(`nutrition.mealTypes.${meal.id}`, {
                       defaultValue: meal.name,
                     })}
                   </Text>
                 </View>
-                <View style={styles.checkboxContainer}>
-                  <View
-                    style={[
-                      styles.checkbox,
-                      {
-                        borderColor: meal.selected ? meal.color : colors.border,
-                      },
-                      meal.selected && {
-                        backgroundColor: meal.color,
-                      },
-                    ]}
-                  >
-                    {meal.selected && (
-                      <Ionicons name="checkmark" size={16} color="white" />
-                    )}
-                  </View>
-                </View>
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={() => {}}
+                  hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                >
+                  <Ionicons
+                    name="ellipsis-vertical"
+                    size={20}
+                    color={colors.text + "70"}
+                  />
+                </TouchableOpacity>
               </View>
             </TouchableOpacity>
           </MotiView>
@@ -387,7 +401,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
         keyboardBehavior="interactive"
         keyboardBlurBehavior="none"
         onChange={handleSheetChanges}
-        onDismiss={onDismiss}
+        backdropComponent={renderBackdrop}
       >
         <KeyboardAvoidingView
           style={[styles.container, { paddingBottom: insets.bottom }]}
@@ -414,7 +428,10 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
             </View>
           </ScrollView>
 
-          <View
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "spring", damping: 15 }}
             style={[
               styles.footer,
               { borderTopColor: colors.text + "10" },
@@ -425,13 +442,15 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
               title={t("nutrition.configSheet.confirm")}
               onPress={confirmMealConfig}
               variant="primary"
-              iconName="checkmark-outline"
-              iconPosition="right"
               disabled={!hasMealsSelected}
               style={styles.confirmButton}
+              textStyle={styles.confirmButtonText}
               hapticFeedback="notification"
+              size="large"
+              rounded={true}
+              elevation={3}
             />
-          </View>
+          </MotiView>
         </KeyboardAvoidingView>
       </BottomSheetModal>
     );
@@ -480,13 +499,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    minHeight: 80,
+    minHeight: 70,
   },
   mealIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
@@ -499,30 +517,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  checkboxContainer: {
-    marginLeft: 8,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    justifyContent: "center",
-    alignItems: "center",
+  editButton: {
+    padding: 4,
   },
   footer: {
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingVertical: 27,
     borderTopWidth: 1,
     borderTopColor: "rgba(0, 0, 0, 0.1)",
     backgroundColor: Colors.light.background,
   },
   confirmButton: {
-    height: 50,
-    borderRadius: 12,
+    height: 56,
+    borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
   },
   confirmButtonDisabled: {
     opacity: 0.5,
@@ -530,7 +543,8 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     color: "white",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
+    letterSpacing: -0.3,
   },
   loadingContainer: {
     flex: 1,

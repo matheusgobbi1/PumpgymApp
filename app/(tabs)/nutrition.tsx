@@ -38,7 +38,6 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import ConfirmationModal from "../../components/ui/ConfirmationModal";
 import ContextMenu, { MenuAction } from "../../components/shared/ContextMenu";
 import HomeHeader from "../../components/home/HomeHeader";
-import { BlurView } from "expo-blur";
 import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
@@ -122,9 +121,6 @@ export default function NutritionScreen() {
 
   // Estado para controlar a visibilidade do modal de confirmação
   const [resetModalVisible, setResetModalVisible] = useState(false);
-
-  // Estado para controlar a visibilidade do MealConfigSheet
-  const [isMealConfigVisible, setIsMealConfigVisible] = useState(false);
 
   // Novo estado para gerenciar modais
   const [modalInfo, setModalInfo] = useState({
@@ -228,7 +224,6 @@ export default function NutritionScreen() {
   // Função para abrir o bottom sheet de configuração de refeições
   const openMealConfigSheet = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsMealConfigVisible(true);
 
     // Verificar se a referência existe antes de chamar o método present
     if (mealConfigSheetRef.current) {
@@ -245,7 +240,6 @@ export default function NutritionScreen() {
       if (params?.openMealConfig === "true") {
         setTimeout(() => {
           if (mealConfigSheetRef.current) {
-            setIsMealConfigVisible(true);
             mealConfigSheetRef.current.present();
             router.replace("/nutrition");
           } else {
@@ -257,11 +251,6 @@ export default function NutritionScreen() {
       }
     }
   }, [mealConfigSheetRef, params, router]);
-
-  // Função para fechar o bottom sheet de configuração de refeições
-  const closeMealConfigSheet = useCallback(() => {
-    setIsMealConfigVisible(false);
-  }, []);
 
   // Tentar abrir o bottom sheet se o parâmetro estiver presente
   // Isso é executado uma vez durante a renderização inicial
@@ -309,9 +298,6 @@ export default function NutritionScreen() {
 
           // Feedback tátil de sucesso
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-          // Fechar o bottom sheet
-          closeMealConfigSheet();
         } else {
           // Notificar erro se não for bem-sucedido
           Alert.alert(t("common.error"), t("nutrition.errors.configFailed"));
@@ -323,7 +309,7 @@ export default function NutritionScreen() {
         Alert.alert(t("common.error"), t("nutrition.errors.configError"));
       }
     },
-    [updateMealTypes, saveMeals, closeMealConfigSheet, t]
+    [updateMealTypes, saveMeals, t]
   );
 
   // Função para redefinir as refeições
@@ -535,8 +521,10 @@ export default function NutritionScreen() {
           <HomeHeader
             title={t("nutrition.title")}
             count={totalMeals}
-            iconName="restaurant-outline"
+            iconName="silverware-fork-knife"
+            iconType="material"
             iconColor={colors.primary}
+            iconBackgroundColor={colors.primary + "15"}
             showContextMenu={true}
             menuActions={menuActions}
             menuVisible={isMenuVisible}
@@ -558,7 +546,6 @@ export default function NutritionScreen() {
             ref={mealConfigSheetRef}
             onMealConfigured={handleMealConfigured}
             key={`meal-config-configured-${mealConfigKey}-${theme}`}
-            onDismiss={closeMealConfigSheet}
           />
         </View>
 
@@ -574,15 +561,6 @@ export default function NutritionScreen() {
           onConfirm={confirmResetMealTypes}
           onCancel={() => setResetModalVisible(false)}
         />
-
-        {/* Blur overlay quando o MealConfigSheet estiver visível - posicionado fora do SafeAreaView */}
-        {isMealConfigVisible && (
-          <BlurView
-            intensity={theme === "dark" ? 50 : 80}
-            tint={theme === "dark" ? "dark" : "light"}
-            style={styles.blurContainer}
-          />
-        )}
       </SafeAreaView>
     );
   }
@@ -600,8 +578,10 @@ export default function NutritionScreen() {
           <HomeHeader
             title={t("nutrition.title")}
             count={totalMeals}
-            iconName="restaurant-outline"
+            iconName="silverware-fork-knife"
+            iconType="material"
             iconColor={colors.primary}
+            iconBackgroundColor={colors.primary + "15"}
             showContextMenu={true}
             menuActions={menuActions}
             menuVisible={isMenuVisible}
@@ -623,7 +603,6 @@ export default function NutritionScreen() {
             ref={mealConfigSheetRef}
             onMealConfigured={handleMealConfigured}
             key={`meal-config-configured-${mealConfigKey}-${theme}`}
-            onDismiss={closeMealConfigSheet}
           />
         </View>
 
@@ -639,15 +618,6 @@ export default function NutritionScreen() {
           onConfirm={confirmResetMealTypes}
           onCancel={() => setResetModalVisible(false)}
         />
-
-        {/* Blur overlay quando o MealConfigSheet estiver visível - posicionado fora do SafeAreaView */}
-        {isMealConfigVisible && (
-          <BlurView
-            intensity={theme === "dark" ? 50 : 80}
-            tint={theme === "dark" ? "dark" : "light"}
-            style={styles.blurContainer}
-          />
-        )}
       </SafeAreaView>
     );
   }
@@ -661,8 +631,10 @@ export default function NutritionScreen() {
         <HomeHeader
           title={t("nutrition.title")}
           count={totalMeals}
-          iconName="restaurant-outline"
+          iconName="silverware-fork-knife"
+          iconType="material"
           iconColor={colors.primary}
+          iconBackgroundColor={colors.primary + "15"}
           showContextMenu={true}
           menuActions={menuActions}
           menuVisible={isMenuVisible}
@@ -708,7 +680,6 @@ export default function NutritionScreen() {
           ref={mealConfigSheetRef}
           onMealConfigured={handleMealConfigured}
           key={`meal-config-configured-${mealConfigKey}-${theme}`}
-          onDismiss={closeMealConfigSheet}
         />
 
         {/* Renderizar modais fora do ScrollView */}
@@ -727,15 +698,6 @@ export default function NutritionScreen() {
           onCancel={() => setResetModalVisible(false)}
         />
       </View>
-
-      {/* Blur overlay quando o MealConfigSheet estiver visível - posicionado fora do SafeAreaView */}
-      {isMealConfigVisible && (
-        <BlurView
-          intensity={theme === "dark" ? 50 : 80}
-          tint={theme === "dark" ? "dark" : "light"}
-          style={styles.blurContainer}
-        />
-      )}
     </SafeAreaView>
   );
 }
@@ -756,9 +718,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     marginBottom: 16,
-  },
-  blurContainer: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 50,
   },
 });

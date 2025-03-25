@@ -1,12 +1,12 @@
-import React, { useState, useEffect, memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
+  Image,
 } from "react-native";
-import { MotiView } from "moti";
 import { Ionicons } from "@expo/vector-icons";
 // Importar o tipo para os ícones do Ionicons
 import type { Icon } from "@expo/vector-icons/build/createIconSet";
@@ -19,7 +19,7 @@ import { WorkoutType } from "./WorkoutConfigSheet";
 import WorkoutIcon from "../shared/WorkoutIcon";
 import { useTranslation } from "react-i18next";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
 interface EmptyWorkoutStateProps {
   onWorkoutConfigured: (workouts: WorkoutType[]) => void;
@@ -64,49 +64,56 @@ const WorkoutTypeCard = memo(
     const iconColor = workoutType.color || colors.primary;
 
     return (
-      <MotiView
-        from={{ opacity: 0, translateY: 20 }}
-        animate={{ opacity: 1, translateY: 0 }}
-        transition={{
-          type: "timing",
-          duration: 350,
-          delay: index * 100,
-        }}
-        style={styles.workoutTypeCardContainer}
-      >
+      <View style={styles.workoutTypeCardContainer}>
         <TouchableOpacity
           style={[
             styles.workoutTypeCard,
             {
-              backgroundColor: iconColor + "10",
-              borderColor: iconColor + "40",
+              backgroundColor:
+                theme === "dark"
+                  ? `rgba(${parseInt(iconColor.slice(1, 3), 16)}, ${parseInt(
+                      iconColor.slice(3, 5),
+                      16
+                    )}, ${parseInt(iconColor.slice(5, 7), 16)}, 0.15)`
+                  : `rgba(${parseInt(iconColor.slice(1, 3), 16)}, ${parseInt(
+                      iconColor.slice(3, 5),
+                      16
+                    )}, ${parseInt(iconColor.slice(5, 7), 16)}, 0.08)`,
+              borderColor: `${iconColor}25`,
             },
           ]}
           onPress={onPress}
           activeOpacity={0.7}
         >
-          <View
-            style={[
-              styles.workoutTypeIconContainer,
-              { backgroundColor: iconColor + "20" },
-            ]}
+          <LinearGradient
+            colors={[`${iconColor}15`, `${iconColor}05`]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.workoutTypeGradient}
           >
-            <WorkoutIcon
-              iconType={
-                workoutType.iconType || {
-                  type: "ionicons",
-                  name: "barbell-outline",
+            <View
+              style={[
+                styles.workoutTypeIconContainer,
+                { backgroundColor: `${iconColor}20` },
+              ]}
+            >
+              <WorkoutIcon
+                iconType={
+                  workoutType.iconType || {
+                    type: "ionicons",
+                    name: "barbell-outline",
+                  }
                 }
-              }
-              size={24}
-              color={iconColor}
-            />
-          </View>
-          <Text style={[styles.workoutTypeName, { color: iconColor }]}>
-            {workoutType.name}
-          </Text>
+                size={32}
+                color={iconColor}
+              />
+            </View>
+            <Text style={[styles.workoutTypeName, { color: iconColor }]}>
+              {workoutType.name}
+            </Text>
+          </LinearGradient>
         </TouchableOpacity>
-      </MotiView>
+      </View>
     );
   }
 );
@@ -175,27 +182,40 @@ function EmptyWorkoutState({
 
   // Renderizar o estado quando não há tipos de treino configurados
   const renderNoWorkoutTypesState = () => (
-    <>
+    <View style={styles.emptyContainer}>
       <View style={styles.illustrationContainer}>
-        <Ionicons name="barbell-outline" size={80} color={colors.primary} />
+        <LinearGradient
+          colors={[`${colors.primary}40`, `${colors.primary}15`]}
+          style={styles.illustrationGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.iconInnerContainer}>
+            <Ionicons name="barbell-outline" size={64} color={colors.primary} />
+          </View>
+        </LinearGradient>
       </View>
 
-      <Text style={[styles.title, { color: colors.text }]}>
-        {t("training.emptyState.title")}
-      </Text>
+      <View>
+        <Text style={[styles.title, { color: colors.text }]}>
+          {t("training.emptyState.title")}
+        </Text>
+      </View>
 
-      <Text style={[styles.description, { color: colors.text + "80" }]}>
-        {t("training.emptyState.subtitle")}
-      </Text>
+      <View>
+        <Text style={[styles.description, { color: colors.text + "80" }]}>
+          {t("training.emptyState.subtitle")}
+        </Text>
+      </View>
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.button}
           onPress={openWorkoutConfig}
-          activeOpacity={0.8}
+          activeOpacity={0.9}
         >
           <LinearGradient
-            colors={[colors.primary, colors.primary]}
+            colors={[colors.primary, `${colors.primary}DD`]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.buttonGradient}
@@ -203,43 +223,16 @@ function EmptyWorkoutState({
             <Text style={styles.buttonText}>
               {t("training.emptyState.configButton")}
             </Text>
-            <Ionicons name="arrow-forward" size={20} color="white" />
           </LinearGradient>
         </TouchableOpacity>
       </View>
-
-      <View style={styles.tipsContainer}>
-        <TipItem
-          icon="checkmark-circle-outline"
-          text={t("training.tips.organize")}
-          color={colors.primary}
-        />
-        <TipItem
-          icon="checkmark-circle-outline"
-          text={t("training.tips.track")}
-          color={colors.primary}
-        />
-        <TipItem
-          icon="checkmark-circle-outline"
-          text={t("training.tips.progress")}
-          color={colors.primary}
-        />
-      </View>
-    </>
+    </View>
   );
 
   // Renderizar o estado quando há tipos de treino configurados
   const renderWorkoutTypesState = () => {
     return (
-      <>
-        <Text style={[styles.title, { color: colors.text }]}>
-          {t("training.workoutTypes.title")}
-        </Text>
-
-        <Text style={[styles.description, { color: colors.text + "80" }]}>
-          {t("training.workoutTypes.subtitle")}
-        </Text>
-
+      <View style={styles.workoutTypesStateContainer}>
         <View style={styles.workoutTypesContainer}>
           {selectedWorkoutTypes.map((workoutType, index) => (
             <WorkoutTypeCard
@@ -250,21 +243,22 @@ function EmptyWorkoutState({
             />
           ))}
         </View>
-      </>
+      </View>
     );
   };
 
   return (
-    <MotiView
-      style={styles.container}
-      from={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ type: "timing", duration: 300, delay: 100 }}
+    <View
+      style={
+        hasSelectedWorkoutTypes
+          ? styles.containerWithWorkouts
+          : styles.container
+      }
     >
       {hasSelectedWorkoutTypes
         ? renderWorkoutTypesState()
         : renderNoWorkoutTypesState()}
-    </MotiView>
+    </View>
   );
 }
 
@@ -273,43 +267,77 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingTop: height * 0.08,
   },
-  illustrationContainer: {
-    marginBottom: 30,
+  containerWithWorkouts: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "rgba(33, 150, 243, 0.1)",
+    paddingTop: 0, // Remove o padding superior quando há treinos
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  description: {
-    fontSize: 16,
-    textAlign: "center",
-    marginBottom: 30,
-    lineHeight: 24,
-  },
-  buttonContainer: {
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
     width: "100%",
-    marginBottom: 40,
+    maxWidth: 400,
+    marginTop: -height * 0.05,
   },
-  button: {
-    borderRadius: 16,
+  illustrationContainer: {
+    marginBottom: 35,
+    borderRadius: 30,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 10,
     },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
+    elevation: 10,
+  },
+  illustrationGradient: {
+    width: 130,
+    height: 130,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 30,
+  },
+  iconInnerContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 14,
+    letterSpacing: -0.5,
+  },
+  description: {
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 18,
+    maxWidth: 300,
+    lineHeight: 22,
+    fontWeight: "400",
+  },
+  buttonContainer: {
+    width: "100%",
+    maxWidth: 280,
+    alignItems: "center",
+  },
+  button: {
+    borderRadius: 18,
+    overflow: "hidden",
+    width: "100%",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   buttonGradient: {
     flexDirection: "row",
@@ -317,16 +345,68 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 16,
     paddingHorizontal: 24,
-    borderRadius: 16,
+    borderRadius: 18,
   },
   buttonText: {
     color: "white",
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "600",
     marginRight: 8,
   },
-  tipsContainer: {
+
+  workoutTypesStateContainer: {
+    flex: 1,
     width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    maxWidth: 550,
+    marginTop: 0,
+  },
+  workoutTypesContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+    paddingHorizontal: 10,
+  },
+  workoutTypeCardContainer: {
+    width: "48%",
+    maxWidth: 220,
+    margin: "1%",
+  },
+  workoutTypeCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    overflow: "hidden",
+    height: 170,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  workoutTypeGradient: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  workoutTypeIconContainer: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  workoutTypeName: {
+    fontSize: 17,
+    fontWeight: "700",
+    textAlign: "center",
+    letterSpacing: -0.3,
   },
   tipItem: {
     flexDirection: "row",
@@ -336,36 +416,6 @@ const styles = StyleSheet.create({
   tipText: {
     fontSize: 14,
     marginLeft: 8,
-  },
-  workoutTypesContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    width: "100%",
-    marginBottom: 20,
-  },
-  workoutTypeCardContainer: {
-    width: "50%",
-    padding: 8,
-  },
-  workoutTypeCard: {
-    borderRadius: 16,
-    padding: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    height: 140,
-  },
-  workoutTypeIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  workoutTypeName: {
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
   },
 });
 

@@ -9,6 +9,7 @@ export default {
     tabIconDefault: "#ccc",
     tabIconSelected: tintColorLight,
     primary: "#000000", // Cor preta (botão principal, ícones etc.)
+    black: "#000000",
     secondary: "#333333", // Cinza escuro
     accent: "#00BFFF", // Azul claro
     success: "#4BB543", // Verde
@@ -34,6 +35,7 @@ export default {
     tabIconDefault: "#ccc",
     tabIconSelected: tintColorDark,
     primary: "#BBBBBB", // Cinza médio (botão principal, ícones etc.)
+    black: "#000000",
     secondary: "#E0E0E0", // Cinza claro
     accent: "#00BFFF", // Azul claro
     success: "#4BB543", // Verde

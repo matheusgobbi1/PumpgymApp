@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Platform,
 } from "react-native";
-import { MotiView } from "moti";
 import {
   Ionicons,
   MaterialCommunityIcons,
@@ -43,20 +42,6 @@ export default function ProfileOptionsCard({
   // Estado para controlar a visibilidade do modal de confirmação
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
 
-  // Controle de animação - executar apenas uma vez
-  const [shouldAnimate, setShouldAnimate] = useState(true);
-  const animationExecuted = useRef(false);
-
-  useEffect(() => {
-    // Configurar a animação para ser executada apenas na primeira renderização
-    if (!animationExecuted.current) {
-      setShouldAnimate(true);
-      animationExecuted.current = true;
-    } else {
-      setShouldAnimate(false);
-    }
-  }, []);
-
   // Versão do aplicativo
   const appVersion = Constants.expoConfig?.version || "1.0.0";
 
@@ -77,16 +62,7 @@ export default function ProfileOptionsCard({
   };
 
   return (
-    <MotiView
-      from={
-        shouldAnimate
-          ? { opacity: 0, translateY: 10 }
-          : { opacity: 1, translateY: 0 }
-      }
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{ type: "spring", delay: 200 }}
-      style={styles.container}
-    >
+    <View style={styles.container}>
       {/* Opções do Perfil */}
       <View
         style={[styles.optionsContainer, { backgroundColor: colors.light }]}
@@ -313,7 +289,7 @@ export default function ProfileOptionsCard({
         }}
         onCancel={() => setLogoutModalVisible(false)}
       />
-    </MotiView>
+    </View>
   );
 }
 

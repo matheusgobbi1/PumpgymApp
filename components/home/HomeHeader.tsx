@@ -1,26 +1,33 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Platform,
   TouchableOpacity,
+  Dimensions,
 } from "react-native";
-import { MotiView } from "moti";
+import { MotiView, AnimatePresence } from "moti";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import { useAuth } from "../../context/AuthContext";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { ptBR, enUS } from "date-fns/locale";
 import ContextMenu, { MenuAction } from "../shared/ContextMenu";
 import { useTranslation } from "react-i18next";
+
+const { width } = Dimensions.get("window");
+
+type IconType = "ionicons" | "material";
 
 interface HomeHeaderProps {
   onProfilePress?: () => void;
   title?: string;
   count?: number;
-  iconName?: keyof typeof Ionicons.glyphMap;
+  iconName?: string;
+  iconType?: IconType;
   iconColor?: string;
+  iconBackgroundColor?: string;
   showContextMenu?: boolean;
   menuActions?: MenuAction[];
   menuVisible?: boolean;
@@ -30,8 +37,10 @@ export default function HomeHeader({
   onProfilePress,
   title,
   count = 0,
-  iconName = "flame-outline",
+  iconName = "fire",
+  iconType = "material",
   iconColor,
+  iconBackgroundColor,
   showContextMenu = false,
   menuActions = [],
   menuVisible = true,
@@ -40,28 +49,24 @@ export default function HomeHeader({
   const colors = Colors[theme];
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
-  const [greeting, setGreeting] = useState("");
-  const [currentDate, setCurrentDate] = useState("");
 
-  // Inicializar valores no render, sem useEffect
-  if (greeting === "") {
-    // Definir a saudação com base na hora do dia
+  // Usar useMemo para calcular saudação baseada na hora do dia
+  const greeting = useMemo(() => {
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) {
-      setGreeting(t("home.greeting.morning"));
+      return t("home.greeting.morning");
     } else if (hour >= 12 && hour < 18) {
-      setGreeting(t("home.greeting.afternoon"));
+      return t("home.greeting.afternoon");
     } else {
-      setGreeting(t("home.greeting.evening"));
+      return t("home.greeting.evening");
     }
-  }
+  }, [t]);
 
-  // Inicializar a data atual
-  if (currentDate === "") {
+  // Usar useMemo para formatar a data atual
+  const currentDate = useMemo(() => {
     const today = new Date();
-
-    // Usar toLocaleDateString em vez de date-fns format para evitar problemas de compatibilidade
     let options: Intl.DateTimeFormatOptions;
+
     if (i18n.language === "pt-BR") {
       options = { weekday: "long", day: "numeric", month: "long" };
     } else {
@@ -69,14 +74,36 @@ export default function HomeHeader({
     }
 
     const formattedDate = today.toLocaleDateString(i18n.language, options);
-
-    setCurrentDate(
-      formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1)
-    );
-  }
+    return formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+  }, [i18n.language]);
 
   // Cor do ícone (usar a fornecida ou a de aviso padrão)
-  const actualIconColor = iconColor || colors.warning;
+  const actualIconColor = iconColor || "#FF1F02";
+
+  // Cor de fundo do ícone (usar a fornecida ou padrão)
+  const actualIconBackgroundColor = iconBackgroundColor || "#FF6B6B15";
+
+  // Memoize a renderização do ícone para evitar recálculos
+  const iconElement = useMemo(() => {
+    if (iconType === "material") {
+      return (
+        <MaterialCommunityIcons
+          name={iconName as any}
+          size={16}
+          color={actualIconColor}
+        />
+      );
+    } else {
+      return (
+        <Ionicons name={iconName as any} size={16} color={actualIconColor} />
+      );
+    }
+  }, [iconType, iconName, actualIconColor]);
+
+  // Memoize o nome do usuário para garantir consistência
+  const userName = useMemo(() => {
+    return user?.displayName?.split(" ")[0] || t("common.user");
+  }, [user?.displayName, t]);
 
   return (
     <MotiView
@@ -86,30 +113,69 @@ export default function HomeHeader({
       style={styles.container}
     >
       <View style={styles.content}>
-        <View style={styles.userInfo}>
-          <Text style={[styles.greeting, { color: colors.text, opacity: 0.6 }]}>
-            {greeting},
-          </Text>
-          <Text style={[styles.userName, { color: colors.text }]}>
-            {user?.displayName?.split(" ")[0] || t("common.user")}
-          </Text>
-          {title ? (
+        <MotiView
+          style={styles.userInfo}
+          from={{ opacity: 0, translateX: -10 }}
+          animate={{ opacity: 1, translateX: 0 }}
+          transition={{ type: "timing", duration: 600, delay: 100 }}
+        >
+          <View style={styles.greetingRow}>
             <Text
-              style={[
-                styles.dateText,
-                { color: colors.primary, fontWeight: "600", opacity: 1 },
-              ]}
+              style={[styles.greeting, { color: colors.text, opacity: 0.6 }]}
+              numberOfLines={1}
             >
-              {title}
+              {greeting},
             </Text>
-          ) : (
             <Text
-              style={[styles.dateText, { color: colors.text, opacity: 0.7 }]}
+              style={[styles.userName, { color: colors.text }]}
+              numberOfLines={1}
             >
-              {currentDate}
+              {userName}
             </Text>
-          )}
-        </View>
+          </View>
+
+          <AnimatePresence>
+            {title ? (
+              <MotiView
+                key="title"
+                from={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ type: "timing", duration: 300 }}
+                style={styles.subtitleContainer}
+              >
+                <Text
+                  style={[
+                    styles.titleText,
+                    { color: colors.primary, fontWeight: "600", opacity: 1 },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {title}
+                </Text>
+              </MotiView>
+            ) : (
+              <MotiView
+                key="date"
+                from={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ type: "timing", duration: 300 }}
+                style={styles.subtitleContainer}
+              >
+                <Text
+                  style={[
+                    styles.dateText,
+                    { color: colors.text, opacity: 0.7 },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {currentDate}
+                </Text>
+              </MotiView>
+            )}
+          </AnimatePresence>
+        </MotiView>
 
         <View style={styles.rightContainer}>
           {count > 0 && (
@@ -117,15 +183,18 @@ export default function HomeHeader({
               from={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", delay: 200 }}
-              style={[
-                styles.streakContainer,
-                { backgroundColor: colors.primary + "20" },
-              ]}
             >
-              <Ionicons name={iconName} size={16} color={actualIconColor} />
-              <Text style={[styles.streakText, { color: colors.text }]}>
-                {count}
-              </Text>
+              <View
+                style={[
+                  styles.streakContainer,
+                  { backgroundColor: actualIconBackgroundColor },
+                ]}
+              >
+                {iconElement}
+                <Text style={[styles.streakText, { color: colors.text }]}>
+                  {count}
+                </Text>
+              </View>
             </MotiView>
           )}
 
@@ -171,40 +240,59 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: Platform.OS === "ios" ? 10 : 10,
     paddingBottom: 20,
+    height: Platform.OS === "ios" ? 90 : 80, // Garantir altura fixa
   },
   content: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    height: "100%",
   },
   userInfo: {
     flex: 1,
+    height: 60, // Altura fixa para a área de informações
+    justifyContent: "center",
+  },
+  greetingRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    flexWrap: "wrap",
+    height: 26, // Altura fixa para a linha de saudação
   },
   greeting: {
     fontSize: 13,
     fontWeight: "500",
+    marginRight: 5,
   },
   userName: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
-    marginTop: 2,
     letterSpacing: -0.5,
+  },
+  subtitleContainer: {
+    height: 20, // Altura fixa para o subtítulo
+    justifyContent: "center",
+  },
+  titleText: {
+    fontSize: 12,
+    fontWeight: "500",
   },
   dateText: {
     fontSize: 12,
-    marginTop: 2,
     fontWeight: "500",
   },
   rightContainer: {
     flexDirection: "row",
     alignItems: "center",
+    height: 50, // Altura fixa para o lado direito
+    minWidth: 50, // Garantir espaço mínimo mesmo sem elementos
   },
   streakContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    height: 36,
-    width: 38,
+    height: 38,
+    width: 40,
     borderRadius: 30,
     marginRight: 12,
   },
@@ -215,8 +303,16 @@ const styles = StyleSheet.create({
   },
   profileButton: {
     padding: 4,
+    height: 50,
+    width: 50,
+    alignItems: "center",
+    justifyContent: "center",
   },
   menuContainer: {
     padding: 4,
+    height: 50,
+    width: 50,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

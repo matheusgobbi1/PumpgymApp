@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Animated,
   LayoutAnimation,
   Platform,
   UIManager,
@@ -109,9 +108,10 @@ export default function TrainingStatsCard({
 
   const getProgressColor = useCallback(
     (progress: number) => {
-      if (progress >= 0 && progress <= 10) return colors.text + "80"; // Neutro
-      if (progress > 10) return colors.success || "#4CAF50"; // Positivo
-      return colors.danger || "#FF3B30"; // Negativo
+      // Usar cores do MacrosCard.tsx com a lógica específica para progresso
+      if (progress > 0) return colors.success || "#4CAF50"; // Aumento (verde)
+      if (progress == 0) return colors.text + "80"; // Sem alteração (cor de texto com opacidade)
+      return colors.danger || "#FF3B30"; // Diminuição (vermelho)
     },
     [colors.text, colors.success, colors.danger]
   );
@@ -136,6 +136,7 @@ export default function TrainingStatsCard({
         ? getProgressColor(progress)
         : colors.text + "80";
       const isExceeded = progress > 0;
+      const isMaintained = progress === 0;
 
       const displayProgress = Math.min(Math.abs(progress), 100);
 
@@ -145,16 +146,7 @@ export default function TrainingStatsCard({
         : colors.primary + "15"; // Usar a cor primária quando não há dados anteriores
 
       return (
-        <MotiView
-          key={`stat-${title}-${theme}`}
-          style={styles.statRow}
-          from={{ opacity: 0, translateX: -20 }}
-          animate={{ opacity: 1, translateX: 0 }}
-          transition={{
-            type: "spring",
-            delay: title === t("training.stats.totalVolume") ? 100 : 200,
-          }}
-        >
+        <View key={`stat-${title}-${theme}`} style={styles.statRow}>
           <View style={styles.statInfo}>
             <View style={styles.statHeader}>
               <View
@@ -177,7 +169,21 @@ export default function TrainingStatsCard({
                   {isLoading ? (
                     "Carregando..."
                   ) : hasPrevious ? (
-                    isExceeded ? (
+                    isMaintained ? (
+                      <>
+                        {t("training.stats.maintained", {
+                          fallback: "Manteve",
+                        })}{" "}
+                        <Text
+                          style={[
+                            styles.comparisonValue,
+                            { color: progressColor },
+                          ]}
+                        >
+                          {Math.abs(Math.round(progress))}%
+                        </Text>
+                      </>
+                    ) : isExceeded ? (
                       <>
                         {t("training.stats.increase")}{" "}
                         <Text
@@ -243,7 +249,7 @@ export default function TrainingStatsCard({
                   }`}
             </Text>
           </View>
-        </MotiView>
+        </View>
       );
     },
     [
@@ -323,19 +329,16 @@ export default function TrainingStatsCard({
           const progressColor = getProgressColor(volumeProgress);
 
           return (
-            <MotiView
+            <View
               key={`exercise-${currentExercise.id}-${index}`}
               style={[styles.exerciseCard, { backgroundColor: colors.card }]}
-              from={{ opacity: 0, translateY: 20 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: "spring", delay: index * 100 }}
             >
               <View style={styles.exerciseHeader}>
                 <View style={styles.exerciseNameContainer}>
                   <View
                     style={[
                       styles.exerciseIconContainer,
-                      { backgroundColor: workoutColor + "15" },
+                      { backgroundColor: progressColor + "15" },
                     ]}
                   >
                     <Ionicons
@@ -345,7 +348,7 @@ export default function TrainingStatsCard({
                           : "barbell-outline"
                       }
                       size={16}
-                      color={workoutColor}
+                      color={progressColor}
                     />
                   </View>
                   <Text style={[styles.exerciseName, { color: colors.text }]}>
@@ -353,7 +356,7 @@ export default function TrainingStatsCard({
                   </Text>
                 </View>
 
-                {previousExercise && volumeProgress !== 0 && (
+                {previousExercise && (
                   <View
                     style={[
                       styles.exerciseProgressBadge,
@@ -362,7 +365,11 @@ export default function TrainingStatsCard({
                   >
                     <Ionicons
                       name={
-                        volumeProgress > 0 ? "trending-up" : "trending-down"
+                        volumeProgress > 0
+                          ? "trending-up"
+                          : volumeProgress < 0
+                          ? "trending-down"
+                          : "remove-outline" // Ícone horizontal para "mantido"
                       }
                       size={14}
                       color={progressColor}
@@ -478,7 +485,7 @@ export default function TrainingStatsCard({
                   )}
                 </View>
               </View>
-            </MotiView>
+            </View>
           );
         })}
       </View>
@@ -542,12 +549,9 @@ export default function TrainingStatsCard({
 
   return (
     <TouchableOpacity activeOpacity={0.7} onPress={toggleExpand}>
-      <MotiView
+      <View
         key={`training-stats-card-${theme}`}
         style={[styles.container, { backgroundColor: colors.background }]}
-        from={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: "spring" }}
       >
         <View style={styles.headerContainer}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -567,14 +571,7 @@ export default function TrainingStatsCard({
         {statsContainer}
 
         {isExpanded && (
-          <MotiView
-            from={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            transition={{ type: "timing", duration: 300 }}
-            style={styles.expandedContent}
-          >
-            {exerciseComparison}
-          </MotiView>
+          <View style={styles.expandedContent}>{exerciseComparison}</View>
         )}
 
         <View style={styles.expandHintContainer}>
@@ -584,7 +581,7 @@ export default function TrainingStatsCard({
               : t("training.stats.tapToSeeDetails")}
           </Text>
         </View>
-      </MotiView>
+      </View>
     </TouchableOpacity>
   );
 }

@@ -8,19 +8,18 @@ import {
   TextInput,
   Alert,
 } from "react-native";
-import { MotiView } from "moti";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import { useNutrition } from "../../context/NutritionContext";
 import { useRouter } from "expo-router";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import Slider from "@react-native-community/slider";
 import { ErrorMessage } from "../common/ErrorMessage";
 import { ValidationResult } from "../../utils/validations";
 import { useTranslation } from "react-i18next";
+import InfoModal, { InfoItem } from "../common/InfoModal";
 
 const { width } = Dimensions.get("window");
 
@@ -35,12 +34,11 @@ export default function NutritionSummaryCard() {
   // Ref para o bottom sheet
   const customizeSheetRef = useRef<BottomSheetModal>(null);
 
-  // Controle de animação - executar apenas uma vez
-  const [shouldAnimate, setShouldAnimate] = useState(true);
-  const animationExecuted = useRef(false);
-
   // Estado para controlar o modo de edição inline
   const [isEditMode, setIsEditMode] = useState(false);
+
+  // Estado para controlar a visibilidade do InfoModal
+  const [isInfoModalVisible, setIsInfoModalVisible] = useState(false);
 
   // Estados para os valores em edição
   const [editCalories, setEditCalories] = useState(
@@ -53,6 +51,9 @@ export default function NutritionSummaryCard() {
     nutritionInfo.carbs?.toString() || ""
   );
   const [editFat, setEditFat] = useState(nutritionInfo.fat?.toString() || "");
+  const [editWaterIntake, setEditWaterIntake] = useState(
+    nutritionInfo.waterIntake?.toString() || ""
+  );
 
   // Estados para as porcentagens de macros
   const [proteinPercentage, setProteinPercentage] = useState(0);
@@ -64,17 +65,8 @@ export default function NutritionSummaryCard() {
   const [proteinError, setProteinError] = useState<string>("");
   const [carbsError, setCarbsError] = useState<string>("");
   const [fatError, setFatError] = useState<string>("");
+  const [waterIntakeError, setWaterIntakeError] = useState<string>("");
   const [macrosError, setMacrosError] = useState<string>("");
-
-  useEffect(() => {
-    // Configurar a animação para ser executada apenas na primeira renderização
-    if (!animationExecuted.current) {
-      setShouldAnimate(true);
-      animationExecuted.current = true;
-    } else {
-      setShouldAnimate(false);
-    }
-  }, []);
 
   // Atualizar os estados locais quando nutritionInfo mudar
   useEffect(() => {
@@ -88,6 +80,10 @@ export default function NutritionSummaryCard() {
       setEditProtein(nutritionInfo.protein.toString());
       setEditCarbs(nutritionInfo.carbs.toString());
       setEditFat(nutritionInfo.fat.toString());
+
+      if (nutritionInfo.waterIntake) {
+        setEditWaterIntake(nutritionInfo.waterIntake.toString());
+      }
 
       calculatePercentages(
         nutritionInfo.protein,
@@ -289,6 +285,7 @@ export default function NutritionSummaryCard() {
     setProteinError("");
     setCarbsError("");
     setFatError("");
+    setWaterIntakeError("");
     setMacrosError("");
 
     // Sair do modo de edição
@@ -304,6 +301,7 @@ export default function NutritionSummaryCard() {
     const isProteinValid = validateProtein(editProtein);
     const isCarbsValid = validateCarbs(editCarbs);
     const isFatValid = validateFat(editFat);
+    const isWaterIntakeValid = validateWaterIntake(editWaterIntake);
     const isMacrosDistributionValid = validateMacrosDistribution();
 
     // Se algum campo for inválido, não prosseguir
@@ -312,6 +310,7 @@ export default function NutritionSummaryCard() {
       !isProteinValid ||
       !isCarbsValid ||
       !isFatValid ||
+      !isWaterIntakeValid ||
       !isMacrosDistributionValid
     ) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -325,6 +324,7 @@ export default function NutritionSummaryCard() {
       protein: parseInt(editProtein),
       carbs: parseInt(editCarbs),
       fat: parseInt(editFat),
+      waterIntake: parseInt(editWaterIntake),
     });
 
     // Salvar no Firebase e AsyncStorage
@@ -357,8 +357,8 @@ export default function NutritionSummaryCard() {
   // Função para validar proteínas
   const validateProtein = (value: string): boolean => {
     const proteinValue = parseInt(value);
-    if (isNaN(proteinValue) || proteinValue < 10 || proteinValue > 60) {
-      setProteinError(t("profile.nutritionCard.proteinError"));
+    if (isNaN(proteinValue) || proteinValue < 10 || proteinValue > 300) {
+      setProteinError(`${t("profile.nutritionCard.proteinError")} (10-300g)`);
       return false;
     }
     setProteinError("");
@@ -368,8 +368,8 @@ export default function NutritionSummaryCard() {
   // Função para validar carboidratos
   const validateCarbs = (value: string): boolean => {
     const carbsValue = parseInt(value);
-    if (isNaN(carbsValue) || carbsValue < 10 || carbsValue > 70) {
-      setCarbsError(t("profile.nutritionCard.carbsError"));
+    if (isNaN(carbsValue) || carbsValue < 10 || carbsValue > 500) {
+      setCarbsError(`${t("profile.nutritionCard.carbsError")} (10-500g)`);
       return false;
     }
     setCarbsError("");
@@ -379,32 +379,147 @@ export default function NutritionSummaryCard() {
   // Função para validar gorduras
   const validateFat = (value: string): boolean => {
     const fatValue = parseInt(value);
-    if (isNaN(fatValue) || fatValue < 10 || fatValue > 70) {
-      setFatError(t("profile.nutritionCard.fatError"));
+    if (isNaN(fatValue) || fatValue < 10 || fatValue > 200) {
+      setFatError(`${t("profile.nutritionCard.fatError")} (10-200g)`);
       return false;
     }
     setFatError("");
     return true;
   };
 
+  // Função para validar a ingestão de água
+  const validateWaterIntake = (value: string): boolean => {
+    const waterValue = parseInt(value);
+    if (isNaN(waterValue) || waterValue < 500 || waterValue > 8000) {
+      setWaterIntakeError(t("profile.nutritionCard.waterIntakeError"));
+      return false;
+    }
+    setWaterIntakeError("");
+    return true;
+  };
+
   // Função para validar a distribuição de macronutrientes
   const validateMacrosDistribution = (): boolean => {
-    const total =
-      parseInt(editProtein) + parseInt(editCarbs) + parseInt(editFat);
-    if (total !== 100) {
+    // Calcular as porcentagens a partir dos valores em gramas
+    const proteinValue = parseInt(editProtein);
+    const carbsValue = parseInt(editCarbs);
+    const fatValue = parseInt(editFat);
+    const caloriesValue = parseInt(editCalories);
+
+    if (
+      isNaN(proteinValue) ||
+      isNaN(carbsValue) ||
+      isNaN(fatValue) ||
+      isNaN(caloriesValue)
+    ) {
       setMacrosError(t("profile.nutritionCard.distributionError"));
       return false;
     }
+
+    const proteinCalories = proteinValue * 4;
+    const carbsCalories = carbsValue * 4;
+    const fatCalories = fatValue * 9;
+    const totalCalories = proteinCalories + carbsCalories + fatCalories;
+
+    // Verificar se o total de calorias dos macros está próximo do valor de calorias definido
+    // Permitindo uma margem de erro de 5%
+    const difference = Math.abs(totalCalories - caloriesValue);
+    const percentDifference = (difference / caloriesValue) * 100;
+
+    if (percentDifference > 5) {
+      setMacrosError(
+        `${t(
+          "profile.nutritionCard.distributionError"
+        )} (${totalCalories.toFixed(0)} kcal vs ${caloriesValue} kcal)`
+      );
+      return false;
+    }
+
     setMacrosError("");
     return true;
   };
 
+  // Função para abrir o modal de informações
+  const handleInfoPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsInfoModalVisible(true);
+  };
+
+  // Função para fechar o modal de informações
+  const handleCloseInfoModal = () => {
+    setIsInfoModalVisible(false);
+  };
+
+  // Informações para o modal
+  const nutritionInfoItems: InfoItem[] = [
+    {
+      title: t("profile.nutritionCard.caloriesInfoTitle", "Calorias"),
+      description: t(
+        "profile.nutritionCard.caloriesInfoDesc",
+        "As calorias são a unidade de energia que seu corpo precisa para funcionar. Seu objetivo diário é baseado em sua idade, peso, altura, nível de atividade e objetivos de fitness. Um déficit calórico promove perda de peso, enquanto um superávit auxilia no ganho de massa muscular."
+      ),
+      icon: "fire",
+      iconType: "material",
+      color: "#FF1F02",
+    },
+    {
+      title: t("profile.nutritionCard.proteinInfoTitle", "Proteínas"),
+      description: t(
+        "profile.nutritionCard.proteinInfoDesc",
+        "Proteínas são essenciais para construção e reparo muscular. Recomenda-se de 1,6g a 2,2g por kg de peso corporal para quem pratica musculação regularmente. Boas fontes incluem carnes magras, ovos, laticínios, leguminosas e suplementos proteicos."
+      ),
+      icon: "food-steak",
+      iconType: "material",
+      color: "#EF476F",
+    },
+    {
+      title: t("profile.nutritionCard.carbsInfoTitle", "Carboidratos"),
+      description: t(
+        "profile.nutritionCard.carbsInfoDesc",
+        "Carboidratos são a principal fonte de energia para o corpo e são cruciais para performance em treinos. Priorize fontes complexas como arroz integral, batata doce, aveia e frutas. A quantidade ideal varia conforme seus objetivos e nível de atividade física."
+      ),
+      icon: "bread-slice",
+      iconType: "material",
+      color: "#118AB2",
+    },
+    {
+      title: t("profile.nutritionCard.fatInfoTitle", "Gorduras"),
+      description: t(
+        "profile.nutritionCard.fatInfoDesc",
+        "Gorduras são essenciais para produção hormonal e absorção de vitaminas. Priorize gorduras saudáveis como azeite, abacate, oleaginosas e peixes gordurosos. Idealmente, as gorduras devem representar entre 20-35% das calorias diárias."
+      ),
+      icon: "oil",
+      iconType: "material",
+      color: "#FFD166",
+    },
+    {
+      title: t("profile.nutritionCard.waterInfoTitle", "Água"),
+      description: t(
+        "profile.nutritionCard.waterInfoDesc",
+        "A hidratação adequada é crucial para todos os processos corporais, incluindo recuperação muscular e performance. Recomenda-se consumir de 35-45ml por kg de peso corporal diariamente, aumentando em dias de treino intenso ou calor."
+      ),
+      icon: "water",
+      iconType: "material",
+      color: "#0096FF",
+    },
+    {
+      title: t(
+        "profile.nutritionCard.macrosBalanceTitle",
+        "Distribuição de Macros"
+      ),
+      description: t(
+        "profile.nutritionCard.macrosBalanceDesc",
+        "O equilíbrio entre proteínas, carboidratos e gorduras é fundamental para atingir seus objetivos. Para hipertrofia, uma distribuição típica é 30% de proteínas, 40-50% de carboidratos e 20-30% de gorduras. Ajuste essa distribuição conforme seus resultados e necessidades específicas."
+      ),
+      icon: "chart-pie",
+      iconType: "material",
+      color: "#06D6A0",
+    },
+  ];
+
   // Renderizar o estado vazio (sem plano nutricional)
   const renderEmptyState = () => (
-    <Animated.View
-      entering={shouldAnimate ? FadeIn.duration(400) : undefined}
-      style={styles.emptyContainer}
-    >
+    <View style={styles.emptyContainer}>
       <View
         style={[
           styles.emptyIconContainer,
@@ -435,7 +550,7 @@ export default function NutritionSummaryCard() {
           {t("profile.nutritionCard.nutritionSetup")}
         </Text>
       </TouchableOpacity>
-    </Animated.View>
+    </View>
   );
 
   // Renderizar o cabeçalho com as calorias
@@ -489,19 +604,34 @@ export default function NutritionSummaryCard() {
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity
-            style={[
-              styles.customizeButton,
-              { backgroundColor: colors.text + "10" },
-            ]}
-            onPress={handleCustomizePress}
-          >
-            <Ionicons
-              name="options-outline"
-              size={20}
-              color={colors.text + "80"}
-            />
-          </TouchableOpacity>
+          <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity
+              style={[
+                styles.infoButton,
+                { backgroundColor: colors.text + "10" },
+              ]}
+              onPress={handleInfoPress}
+            >
+              <Ionicons
+                name="information-circle-outline"
+                size={20}
+                color={colors.text + "80"}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.customizeButton,
+                { backgroundColor: colors.text + "10" },
+              ]}
+              onPress={handleCustomizePress}
+            >
+              <Ionicons
+                name="options-outline"
+                size={20}
+                color={colors.text + "80"}
+              />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
     </View>
@@ -517,80 +647,111 @@ export default function NutritionSummaryCard() {
           {proteinError && <ErrorMessage message={proteinError} />}
           {carbsError && <ErrorMessage message={carbsError} />}
           {fatError && <ErrorMessage message={fatError} />}
+          {waterIntakeError && <ErrorMessage message={waterIntakeError} />}
           {macrosError && <ErrorMessage message={macrosError} />}
         </View>
       )}
 
-      <View style={styles.statsContainer}>
-        <Animated.View
-          entering={
-            isEditMode ? FadeInDown.duration(300).delay(100) : undefined
-          }
-          style={[
-            styles.statCard,
-            {
-              backgroundColor: isEditMode
-                ? "rgba(255,107,107,0.05)"
-                : colors.card,
-            },
-          ]}
-        >
-          <View style={styles.statCardContent}>
-            <View
-              style={[
-                styles.statIconContainer,
-                { backgroundColor: "#FF6B6B15" },
-              ]}
+      {/* Card de Calorias (Grande, no topo) */}
+      <View
+        style={[
+          styles.statCard,
+          styles.caloriesCard,
+          {
+            backgroundColor: isEditMode
+              ? "rgba(255,107,107,0.05)"
+              : colors.card,
+          },
+        ]}
+      >
+        <View style={styles.statCardContent}>
+          <View
+            style={[styles.statIconContainer, { backgroundColor: "#FF6B6B15" }]}
+          >
+            <MaterialCommunityIcons name="fire" size={18} color="#FF1F02" />
+          </View>
+          <View style={styles.statTextContainer}>
+            <Text
+              style={[styles.statLabel, { color: colors.text }]}
+              numberOfLines={1}
             >
-              <MaterialCommunityIcons name="fire" size={18} color="#FF1F02" />
-            </View>
-            <View style={styles.statTextContainer}>
-              <Text
-                style={[styles.statLabel, { color: colors.text }]}
-                numberOfLines={1}
-              >
-                {t("profile.nutritionCard.calories")}
-              </Text>
-              <View style={styles.editInputContainer}>
-                {isEditMode ? (
-                  <>
-                    <TextInput
-                      style={[
-                        styles.editInput,
-                        styles.caloriesInput,
-                        { color: colors.text },
-                        caloriesError ? styles.inputError : null,
-                      ]}
-                      value={editCalories}
-                      onChangeText={(value) => {
-                        setEditCalories(value);
-                        validateCalories(value);
-                      }}
-                      keyboardType="numeric"
-                      maxLength={5}
-                      selectTextOnFocus
-                    />
-                    <Text
-                      style={[styles.statUnit, { color: colors.text + "60" }]}
-                    >
-                      kcal
-                    </Text>
-                  </>
-                ) : (
-                  <Text style={[styles.statValue, { color: colors.text }]}>
-                    {nutritionInfo.calories}{" "}
-                    <Text
-                      style={[styles.statUnit, { color: colors.text + "60" }]}
-                    >
-                      kcal
-                    </Text>
+              {t("profile.nutritionCard.calories")}
+            </Text>
+            <View style={styles.editInputContainer}>
+              {isEditMode ? (
+                <>
+                  <TextInput
+                    style={[
+                      styles.editInput,
+                      styles.caloriesInput,
+                      { color: colors.text },
+                      caloriesError ? styles.inputError : null,
+                    ]}
+                    value={editCalories}
+                    onChangeText={(value) => {
+                      setEditCalories(value);
+                      validateCalories(value);
+                    }}
+                    keyboardType="numeric"
+                    maxLength={5}
+                    selectTextOnFocus
+                  />
+                  <Text
+                    style={[styles.statUnit, { color: colors.text + "60" }]}
+                  >
+                    kcal
                   </Text>
-                )}
-              </View>
+                </>
+              ) : (
+                <Text style={[styles.statValue, { color: colors.text }]}>
+                  {nutritionInfo.calories}{" "}
+                  <Text
+                    style={[styles.statUnit, { color: colors.text + "60" }]}
+                  >
+                    kcal
+                  </Text>
+                </Text>
+              )}
             </View>
           </View>
+        </View>
 
-          {isEditMode && (
+        {isEditMode && (
+          <>
+            <View style={styles.sliderContainer}>
+              <Slider
+                style={styles.miniSlider}
+                minimumValue={1200}
+                maximumValue={4000}
+                step={50}
+                value={parseInt(editCalories) || nutritionInfo.calories || 2000}
+                onValueChange={(value) => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  const newCalories = Math.round(value);
+                  setEditCalories(newCalories.toString());
+                  validateCalories(newCalories.toString());
+
+                  // Atualizar macros quando as calorias mudarem
+                  updateMacrosWhenCaloriesChange(newCalories);
+                }}
+                minimumTrackTintColor="#FF1F02"
+                maximumTrackTintColor={colors.border}
+                thumbTintColor="#FF1F02"
+              />
+              <View style={styles.caloriesSliderLabels}>
+                <Text
+                  style={[styles.sliderLabel, { color: colors.text + "60" }]}
+                >
+                  1200
+                </Text>
+                <Text
+                  style={[styles.sliderLabel, { color: colors.text + "60" }]}
+                >
+                  4000
+                </Text>
+              </View>
+            </View>
+
             <View style={styles.totalIndicatorContainer}>
               <Text style={styles.totalIndicatorLabel}>
                 {t("profile.nutritionCard.total")}:
@@ -601,18 +762,23 @@ export default function NutritionSummaryCard() {
                   isTotalValid() ? styles.totalValid : styles.totalInvalid,
                 ]}
               >
-                {proteinPercentage + carbsPercentage + fatPercentage}%
+                {Math.round(
+                  proteinPercentage + carbsPercentage + fatPercentage
+                )}
+                %
               </Text>
             </View>
-          )}
-        </Animated.View>
+          </>
+        )}
+      </View>
 
-        <Animated.View
-          entering={
-            isEditMode ? FadeInDown.duration(300).delay(150) : undefined
-          }
+      {/* Grid 2x2 para Macros e Água */}
+      <View style={styles.macroGridContainer}>
+        {/* Proteína */}
+        <View
           style={[
             styles.statCard,
+            styles.gridCard,
             {
               backgroundColor: isEditMode
                 ? "rgba(239,71,111,0.05)"
@@ -696,19 +862,18 @@ export default function NutritionSummaryCard() {
               />
               <View style={styles.percentageContainer}>
                 <Text style={[styles.percentageText, { color: "#EF476F" }]}>
-                  {proteinPercentage}%
+                  {Math.round(proteinPercentage)}%
                 </Text>
               </View>
             </View>
           )}
-        </Animated.View>
+        </View>
 
-        <Animated.View
-          entering={
-            isEditMode ? FadeInDown.duration(300).delay(200) : undefined
-          }
+        {/* Carboidratos */}
+        <View
           style={[
             styles.statCard,
+            styles.gridCard,
             {
               backgroundColor: isEditMode
                 ? "rgba(17,138,178,0.05)"
@@ -792,19 +957,18 @@ export default function NutritionSummaryCard() {
               />
               <View style={styles.percentageContainer}>
                 <Text style={[styles.percentageText, { color: "#118AB2" }]}>
-                  {carbsPercentage}%
+                  {Math.round(carbsPercentage)}%
                 </Text>
               </View>
             </View>
           )}
-        </Animated.View>
+        </View>
 
-        <Animated.View
-          entering={
-            isEditMode ? FadeInDown.duration(300).delay(250) : undefined
-          }
+        {/* Gorduras */}
+        <View
           style={[
             styles.statCard,
+            styles.gridCard,
             {
               backgroundColor: isEditMode
                 ? "rgba(255,209,102,0.05)"
@@ -884,12 +1048,108 @@ export default function NutritionSummaryCard() {
               />
               <View style={styles.percentageContainer}>
                 <Text style={[styles.percentageText, { color: "#FFD166" }]}>
-                  {fatPercentage}%
+                  {Math.round(fatPercentage)}%
                 </Text>
               </View>
             </View>
           )}
-        </Animated.View>
+        </View>
+
+        {/* Água */}
+        <View
+          style={[
+            styles.statCard,
+            styles.gridCard,
+            {
+              backgroundColor: isEditMode
+                ? "rgba(0,150,255,0.05)"
+                : colors.card,
+            },
+          ]}
+        >
+          <View style={styles.statCardContent}>
+            <View
+              style={[
+                styles.statIconContainer,
+                { backgroundColor: "#0096FF15" },
+              ]}
+            >
+              <MaterialCommunityIcons name="water" size={18} color="#0096FF" />
+            </View>
+            <View style={styles.statTextContainer}>
+              <Text
+                style={[styles.statLabel, { color: colors.text }]}
+                numberOfLines={1}
+              >
+                {t("common.nutrition.water")}
+              </Text>
+              <View style={styles.editInputContainer}>
+                {isEditMode ? (
+                  <>
+                    <TextInput
+                      style={[
+                        styles.editInput,
+                        { color: colors.text },
+                        waterIntakeError ? styles.inputError : null,
+                      ]}
+                      value={editWaterIntake}
+                      onChangeText={(value) => {
+                        setEditWaterIntake(value);
+                        validateWaterIntake(value);
+                      }}
+                      keyboardType="numeric"
+                      maxLength={5}
+                      selectTextOnFocus
+                    />
+                    <Text
+                      style={[styles.statUnit, { color: colors.text + "60" }]}
+                    >
+                      ml
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={[styles.statValue, { color: colors.text }]}>
+                    {nutritionInfo.waterIntake
+                      ? (nutritionInfo.waterIntake / 1000).toFixed(1)
+                      : "2.0"}
+                    <Text
+                      style={[styles.statUnit, { color: colors.text + "60" }]}
+                    >
+                      L
+                    </Text>
+                  </Text>
+                )}
+              </View>
+            </View>
+          </View>
+
+          {isEditMode && (
+            <View style={styles.sliderContainer}>
+              <Slider
+                style={styles.miniSlider}
+                minimumValue={1000}
+                maximumValue={6000}
+                step={100}
+                value={
+                  parseInt(editWaterIntake) || nutritionInfo.waterIntake || 2000
+                }
+                onValueChange={(value) => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setEditWaterIntake(Math.round(value).toString());
+                  validateWaterIntake(Math.round(value).toString());
+                }}
+                minimumTrackTintColor="#0096FF"
+                maximumTrackTintColor={colors.border}
+                thumbTintColor="#0096FF"
+              />
+              <View style={styles.percentageContainer}>
+                <Text style={[styles.percentageText, { color: "#0096FF" }]}>
+                  {parseFloat((parseInt(editWaterIntake) / 1000).toFixed(1))}L
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
       </View>
     </>
   );
@@ -993,40 +1253,57 @@ export default function NutritionSummaryCard() {
     ) : null;
 
   return (
-    <TouchableOpacity
-      style={styles.touchable}
-      activeOpacity={0.9}
-      disabled={!hasNutritionInfo || isEditMode}
-    >
-      <MotiView
-        from={
-          shouldAnimate
-            ? { opacity: 0, translateY: 10 }
-            : { opacity: 1, translateY: 0 }
-        }
-        animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: "spring", delay: 200 }}
-        style={[
-          styles.container,
-          { backgroundColor: colors.light },
-          isEditMode && styles.editModeContainer,
-        ]}
+    <>
+      <TouchableOpacity
+        style={styles.touchable}
+        activeOpacity={0.9}
+        disabled={!hasNutritionInfo || isEditMode}
       >
-        {!hasNutritionInfo ? (
-          renderEmptyState()
-        ) : (
-          <View
-            style={[
-              styles.contentContainer,
-              isEditMode && styles.editModeContentContainer,
-            ]}
-          >
-            {renderCaloriesHeader()}
-            {renderStatsCards()}
-          </View>
+        <View
+          style={[
+            styles.container,
+            { backgroundColor: colors.light },
+            isEditMode && styles.editModeContainer,
+          ]}
+        >
+          {!hasNutritionInfo ? (
+            renderEmptyState()
+          ) : (
+            <View
+              style={[
+                styles.contentContainer,
+                isEditMode && styles.editModeContentContainer,
+              ]}
+            >
+              {renderCaloriesHeader()}
+              {renderStatsCards()}
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+
+      {/* Modal Informativo */}
+      <InfoModal
+        visible={isInfoModalVisible}
+        title={t(
+          "profile.nutritionCard.nutritionInfoTitle",
+          "Guia Nutricional"
         )}
-      </MotiView>
-    </TouchableOpacity>
+        subtitle={t(
+          "profile.nutritionCard.nutritionInfoSubtitle",
+          "Entenda como cada componente nutricional afeta seu corpo e performance. Use estas informações para otimizar sua alimentação de acordo com seus objetivos."
+        )}
+        infoItems={nutritionInfoItems}
+        onClose={handleCloseInfoModal}
+        closeButtonText={t("common.gotIt", "Entendi")}
+        topIcon={{
+          name: "nutrition",
+          type: "material",
+          color: colors.primary,
+          backgroundColor: colors.primary + "20",
+        }}
+      />
+    </>
   );
 }
 
@@ -1086,15 +1363,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
+    flexDirection: "column",
     marginBottom: 16,
   },
   statCard: {
-    width: "48%",
     borderRadius: 12,
     padding: 12,
+    marginBottom: 12,
+  },
+  caloriesCard: {
+    width: "100%",
+    marginBottom: 16,
+  },
+  macroGridContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  gridCard: {
+    width: "48%",
     marginBottom: 12,
   },
   statCardContent: {
@@ -1313,15 +1600,6 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 16,
   },
-  caloriesEditCard: {
-    // Remover este estilo
-  },
-  macroEditCard: {
-    // Remover este estilo
-  },
-  statsContainerEdit: {
-    // Remover este estilo
-  },
   sliderContainer: {
     width: "100%",
     marginTop: 8,
@@ -1332,5 +1610,26 @@ const styles = StyleSheet.create({
   },
   errorsContainer: {
     marginBottom: 12,
+  },
+  caloriesSliderLabels: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  sliderLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  actionButtonsContainer: {
+    flexDirection: "row",
+  },
+  infoButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
   },
 });

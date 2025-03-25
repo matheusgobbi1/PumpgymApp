@@ -155,6 +155,13 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   >([]);
   const [loading, setLoading] = useState(false);
 
+  // Função para resetar o estado quando o usuário mudar
+  const resetState = useCallback(() => {
+    setWorkouts({});
+    setWorkoutTypes({});
+    setAvailableWorkoutTypes([]);
+  }, []);
+
   // Memoizar valores derivados do estado que são frequentemente acessados
   const workoutsForSelectedDate = useMemo(
     () => workouts[selectedDate] || {},
@@ -226,7 +233,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   );
 
   // Carregar treinos do AsyncStorage
-  const loadWorkouts = async (): Promise<boolean> => {
+  const loadWorkouts = useCallback(async (): Promise<boolean> => {
     try {
       setLoading(true);
 
@@ -311,7 +318,16 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, user, setWorkouts, setAvailableWorkoutTypes, setLoading]);
+
+  // Resetar o estado quando o usuário mudar - Movemos para depois da definição de loadWorkouts
+  useEffect(() => {
+    // Limpar dados do usuário anterior antes de carregar os novos
+    resetState();
+    // Carregar dados do novo usuário
+    loadWorkouts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]); // Dependência apenas no user.uid para evitar loops
 
   // Função para inicializar tipos de treino padrão
   const initializeDefaultWorkoutTypes = async () => {
@@ -482,54 +498,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       return false;
     }
   };
-
-  // Carregar dados ao montar o componente
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        console.log("Iniciando carregamento de dados...");
-
-        // Tentar carregar os dados várias vezes se necessário
-        let retryCount = 0;
-        const maxRetries = 3;
-        let success = false;
-
-        while (retryCount < maxRetries && !success) {
-          try {
-            // Carregar treinos e tipos de treino
-            success = await loadWorkouts();
-
-            if (success) {
-              console.log(
-                "Dados carregados com sucesso na tentativa",
-                retryCount + 1
-              );
-              break;
-            }
-
-            // Se não teve sucesso, esperar um pouco antes de tentar novamente
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            retryCount++;
-          } catch (error) {
-            console.error("Erro na tentativa", retryCount + 1, ":", error);
-            retryCount++;
-          }
-        }
-
-        if (!success) {
-          console.error(
-            "Falha ao carregar dados após",
-            maxRetries,
-            "tentativas"
-          );
-        }
-      } catch (error) {
-        console.error("Erro ao carregar dados:", error);
-      }
-    };
-
-    loadData();
-  }, [userId]);
 
   // Obter dados do treino de forma segura
   const getWorkoutDataSafely = () => {
@@ -1448,8 +1416,11 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           updatedWorkoutTypes[targetDate] = {};
         }
 
-        // Copiar o tipo de treino de origem para o destino
-        updatedWorkoutTypes[targetDate][targetWorkoutId] = sourceWorkoutType;
+        // Garantir que temos um tipo de treino válido antes de fazer a atribuição
+        if (sourceWorkoutType) {
+          // Copiar o tipo de treino de origem para o destino
+          updatedWorkoutTypes[targetDate][targetWorkoutId] = sourceWorkoutType;
+        }
 
         return updatedWorkoutTypes;
       });

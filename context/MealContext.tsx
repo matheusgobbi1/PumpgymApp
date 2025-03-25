@@ -99,11 +99,12 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   const [searchHistory, setSearchHistory] = useState<Food[]>([]);
 
   // Resetar o estado quando o usuário mudar
-  const resetState = () => {
+  const resetState = useCallback(() => {
     setMeals({});
     setMealTypes([]);
     setHasMealTypesConfigured(false);
-  };
+    setSearchHistory([]);
+  }, []);
 
   // Carregar refeições do usuário
   useEffect(() => {
@@ -116,6 +117,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       // Limpar dados quando não houver usuário (logout)
       resetState();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid]); // Usar user.uid como dependência para detectar mudança de usuário
 
   // Carregar histórico de busca
@@ -224,7 +226,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     }
   }, [selectedDate, user?.uid]);
 
-  const loadMeals = async () => {
+  const loadMeals = useCallback(async () => {
     try {
       if (!user) return;
 
@@ -301,9 +303,9 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       // Em caso de erro, garantir que os dados estejam limpos
       setMeals({});
     }
-  };
+  }, [user, selectedDate, setMeals]);
 
-  const loadMealTypes = async () => {
+  const loadMealTypes = useCallback(async () => {
     try {
       if (!user) return;
 
@@ -401,7 +403,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       setMealTypes([]);
       setHasMealTypesConfigured(false);
     }
-  };
+  }, [user, setMealTypes, setHasMealTypesConfigured]);
 
   const addMealType = async (id: string, name: string, icon: string) => {
     try {

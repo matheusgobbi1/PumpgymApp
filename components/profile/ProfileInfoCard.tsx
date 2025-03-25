@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import {
   TextInput,
   Alert,
 } from "react-native";
-import { MotiView, AnimatePresence } from "moti";
 import {
   Ionicons,
   MaterialCommunityIcons,
@@ -19,7 +18,6 @@ import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import { useNutrition, Gender, Goal } from "../../context/NutritionContext";
 import { differenceInYears } from "date-fns";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -68,20 +66,6 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
   const [heightError, setHeightError] = useState<string>("");
   const [weightError, setWeightError] = useState<string>("");
   const [targetWeightError, setTargetWeightError] = useState<string>("");
-
-  // Controle de animação - executar apenas uma vez
-  const [shouldAnimate, setShouldAnimate] = useState(true);
-  const animationExecuted = useRef(false);
-
-  useEffect(() => {
-    // Configurar a animação para ser executada apenas na primeira renderização
-    if (!animationExecuted.current) {
-      setShouldAnimate(true);
-      animationExecuted.current = true;
-    } else {
-      setShouldAnimate(false);
-    }
-  }, []);
 
   // Função para traduzir o gênero
   const translateGender = (gender?: Gender) => {
@@ -270,14 +254,7 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
       activeOpacity={0.9}
       disabled={isEditMode}
     >
-      <MotiView
-        from={
-          shouldAnimate
-            ? { opacity: 0, translateY: 10 }
-            : { opacity: 1, translateY: 0 }
-        }
-        animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: "spring", delay: 100 }}
+      <View
         style={[
           styles.container,
           { backgroundColor: colors.light },
@@ -430,11 +407,7 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
 
         {/* Conteúdo da Seção Perfil */}
         {activeSection === "perfil" && (
-          <Animated.View
-            entering={FadeIn.duration(300)}
-            exiting={FadeOut.duration(200)}
-            style={styles.sectionContent}
-          >
+          <View style={styles.sectionContent}>
             {/* Exibir erros de validação no topo */}
             {isEditMode && (
               <View style={styles.errorsContainer}>
@@ -589,16 +562,12 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
                 </View>
               </View>
             </View>
-          </Animated.View>
+          </View>
         )}
 
         {/* Conteúdo da Seção Objetivo */}
         {activeSection === "objetivo" && (
-          <Animated.View
-            entering={FadeIn.duration(300)}
-            exiting={FadeOut.duration(200)}
-            style={styles.sectionContent}
-          >
+          <View style={styles.sectionContent}>
             {/* Exibir erros de validação no topo */}
             {isEditMode && (
               <View style={styles.errorsContainer}>
@@ -744,9 +713,9 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
                 </View>
               )}
             </View>
-          </Animated.View>
+          </View>
         )}
-      </MotiView>
+      </View>
     </TouchableOpacity>
   );
 }

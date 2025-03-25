@@ -1,4 +1,5 @@
 import { Stack } from "expo-router";
+import { Platform } from "react-native";
 
 export default function AddExerciseLayout() {
   return (
@@ -15,8 +16,10 @@ export default function AddExerciseLayout() {
           headerShown: false,
           presentation: "modal",
           animation: "slide_from_bottom",
-          gestureEnabled: true,
           gestureDirection: "vertical",
+          contentStyle: { backgroundColor: "transparent" },
+          gestureEnabled: true,
+          fullScreenGestureEnabled: Platform.OS === "ios",
         }}
       />
     </Stack>

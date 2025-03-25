@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo, useCallback } from "react";
+import React, { memo, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,43 +6,23 @@ import {
   TouchableOpacity,
   Dimensions,
 } from "react-native";
-import { MotiView } from "moti";
 import { Ionicons } from "@expo/vector-icons";
-// Importar o tipo para os ícones do Ionicons
 import type { Icon } from "@expo/vector-icons/build/createIconSet";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import { MealType } from "../../context/MealContext";
+import { useTranslation } from "react-i18next";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
 interface EmptyNutritionStateProps {
   onMealConfigured: (meals: MealType[]) => void;
-  onOpenMealConfig: () => void; // Prop para abrir o bottom sheet
+  onOpenMealConfig: () => void;
 }
 
-// Tipo para os ícones do Ionicons
 type IoniconsNames = React.ComponentProps<typeof Ionicons>["name"];
-
-// Componentes memoizados para evitar re-renderizações desnecessárias
-const TipItem = memo(
-  ({
-    icon,
-    text,
-    color,
-  }: {
-    icon: IoniconsNames;
-    text: string;
-    color: string;
-  }) => (
-    <View style={styles.tipItem}>
-      <Ionicons name={icon} size={20} color={color} />
-      <Text style={[styles.tipText, { color: color + "70" }]}>{text}</Text>
-    </View>
-  )
-);
 
 function EmptyNutritionState({
   onMealConfigured,
@@ -50,17 +30,7 @@ function EmptyNutritionState({
 }: EmptyNutritionStateProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
-  const [isVisible, setIsVisible] = useState(false);
-
-  // Efeito para atrasar a animação inicial
-  useEffect(() => {
-    // Atrasar a animação para permitir que a UI seja renderizada primeiro
-    const timer = setTimeout(() => {
-      setIsVisible(true);
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, []);
+  const { t } = useTranslation();
 
   // Função para abrir o bottom sheet
   const openMealConfig = useCallback(() => {
@@ -69,61 +39,57 @@ function EmptyNutritionState({
   }, [onOpenMealConfig]);
 
   return (
-    <MotiView
-      style={styles.container}
-      from={{ opacity: 0 }}
-      animate={{ opacity: isVisible ? 1 : 0 }}
-      transition={{ type: "timing", duration: 300 }}
-    >
-      <View style={styles.illustrationContainer}>
-        <Ionicons name="restaurant-outline" size={80} color={colors.primary} />
-      </View>
-
-      <Text style={[styles.title, { color: colors.text }]}>
-        Configure suas Refeições
-      </Text>
-
-      <Text style={[styles.description, { color: colors.text + "80" }]}>
-        Personalize suas refeições diárias para acompanhar sua nutrição de forma
-        eficiente.
-      </Text>
-
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={openMealConfig}
-          activeOpacity={0.8}
-        >
+    <View style={styles.container}>
+      <View style={styles.emptyContainer}>
+        <View style={styles.illustrationContainer}>
           <LinearGradient
-            colors={[colors.primary, colors.primary]}
+            colors={[`${colors.primary}40`, `${colors.primary}15`]}
+            style={styles.illustrationGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.buttonGradient}
           >
-            <Text style={styles.buttonText}>Configurar Refeições</Text>
-            <Ionicons name="arrow-forward" size={20} color="white" />
+            <View style={styles.iconInnerContainer}>
+              <Ionicons
+                name="restaurant-outline"
+                size={64}
+                color={colors.primary}
+              />
+            </View>
           </LinearGradient>
-        </TouchableOpacity>
-      </View>
+        </View>
 
-      <View style={styles.tipsContainer}>
-        <TipItem
-          icon="checkmark-circle-outline"
-          text="Acompanhe suas calorias e macronutrientes"
-          color={colors.primary}
-        />
-        <TipItem
-          icon="checkmark-circle-outline"
-          text="Registre alimentos para cada refeição"
-          color={colors.primary}
-        />
-        <TipItem
-          icon="checkmark-circle-outline"
-          text="Visualize seu progresso diário"
-          color={colors.primary}
-        />
+        <View>
+          <Text style={[styles.title, { color: colors.text }]}>
+            {t("nutrition.emptyState.title")}
+          </Text>
+        </View>
+
+        <View>
+          <Text style={[styles.description, { color: colors.text + "80" }]}>
+            {t("nutrition.emptyState.subtitle")}
+          </Text>
+        </View>
+
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={openMealConfig}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={[colors.primary, `${colors.primary}DD`]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.buttonGradient}
+            >
+              <Text style={styles.buttonText}>
+                {t("nutrition.emptyState.configButton")}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </View>
-    </MotiView>
+    </View>
   );
 }
 
@@ -132,44 +98,72 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    
+    paddingHorizontal: 20,
+    paddingTop: height * 0.08,
   },
-  illustrationContainer: {
-    marginBottom: 30,
+  emptyContainer: {
     alignItems: "center",
     justifyContent: "center",
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "rgba(33, 150, 243, 0.1)",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  description: {
-    fontSize: 16,
-    textAlign: "center",
-    marginBottom: 30,
-    lineHeight: 24,
-  },
-  buttonContainer: {
     width: "100%",
-    marginBottom: 40,
+    maxWidth: 400,
+    marginTop: -height * 0.05,
   },
-  button: {
-    borderRadius: 16,
+  illustrationContainer: {
+    marginBottom: 35,
+    borderRadius: 30,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 10,
     },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
+    elevation: 10,
+  },
+  illustrationGradient: {
+    width: 130,
+    height: 130,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 30,
+  },
+  iconInnerContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 14,
+    letterSpacing: -0.5,
+  },
+  description: {
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 18,
+    maxWidth: 300,
+    lineHeight: 22,
+    fontWeight: "400",
+  },
+  buttonContainer: {
+    width: "100%",
+    maxWidth: 280,
+    alignItems: "center",
+  },
+  button: {
+    borderRadius: 18,
+    overflow: "hidden",
+    width: "100%",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   buttonGradient: {
     flexDirection: "row",
@@ -177,27 +171,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 16,
     paddingHorizontal: 24,
-    borderRadius: 16,
+    borderRadius: 18,
   },
   buttonText: {
     color: "white",
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "600",
     marginRight: 8,
   },
-  tipsContainer: {
-    width: "100%",
-  },
-  tipItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  tipText: {
-    fontSize: 14,
-    marginLeft: 8,
-  },
 });
 
-// Exportar o componente memoizado para evitar re-renderizações desnecessárias
 export default memo(EmptyNutritionState);

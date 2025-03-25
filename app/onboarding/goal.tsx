@@ -39,7 +39,7 @@ export default function GoalScreen() {
         <Ionicons
           name="trending-down-outline"
           size={28}
-          color={selectedGoal === "lose" ? "white" : colors.text}
+          color={selectedGoal === "lose" ? colors.primary : colors.text}
         />
       ),
     },
@@ -51,7 +51,7 @@ export default function GoalScreen() {
         <Ionicons
           name="reorder-two-outline"
           size={28}
-          color={selectedGoal === "maintain" ? "white" : colors.text}
+          color={selectedGoal === "maintain" ? colors.primary : colors.text}
         />
       ),
     },
@@ -63,7 +63,7 @@ export default function GoalScreen() {
         <Ionicons
           name="trending-up-outline"
           size={28}
-          color={selectedGoal === "gain" ? "white" : colors.text}
+          color={selectedGoal === "gain" ? colors.primary : colors.text}
         />
       ),
     },

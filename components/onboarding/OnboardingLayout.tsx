@@ -11,6 +11,7 @@ import {
   Animated,
   LayoutAnimation,
   UIManager,
+  Dimensions,
 } from "react-native";
 import {
   SafeAreaView,
@@ -29,6 +30,9 @@ if (
 ) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+
+// Obter altura da tela
+const { height: screenHeight } = Dimensions.get("window");
 
 interface OnboardingLayoutProps {
   title: string;
@@ -135,6 +139,9 @@ export default function OnboardingLayout({
     ? Math.max(insets.bottom, 16) // No iOS, usar o inset inferior ou pelo menos 16
     : 24; // No Android, usar um valor fixo maior
 
+  // Altura fixa para o cabeçalho, com base em ter ou não subtítulo
+  const headerHeight = subtitle ? 100 : 70;
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -163,12 +170,17 @@ export default function OnboardingLayout({
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.content}>
-            <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-            {subtitle && (
-              <Text style={[styles.subtitle, { color: colors.text }]}>
-                {subtitle}
+            {/* Cabeçalho com altura fixa */}
+            <View style={[styles.headerContainer, { height: headerHeight }]}>
+              <Text style={[styles.title, { color: colors.text }]}>
+                {title}
               </Text>
-            )}
+              {subtitle && (
+                <Text style={[styles.subtitle, { color: colors.text }]}>
+                  {subtitle}
+                </Text>
+              )}
+            </View>
 
             {error && (
               <View style={styles.errorContainer}>
@@ -176,6 +188,7 @@ export default function OnboardingLayout({
               </View>
             )}
 
+            {/* Conteúdo principal */}
             {children}
           </View>
         </ScrollView>
@@ -228,6 +241,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 20,
   },
+  headerContainer: {
+    justifyContent: "flex-start",
+    marginBottom: 20,
+  },
   title: {
     fontSize: 28,
     fontWeight: "bold",
@@ -235,9 +252,9 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    marginBottom: 30,
     opacity: 0.7,
     lineHeight: 22,
+    marginBottom: 8,
   },
   errorContainer: {
     backgroundColor: "#FFEBEE",

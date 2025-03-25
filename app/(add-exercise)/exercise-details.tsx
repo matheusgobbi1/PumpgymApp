@@ -8,14 +8,12 @@ import {
   TextInput,
   Image,
   Dimensions,
-  Animated,
   Platform,
   KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { MotiView } from "moti";
 import * as Haptics from "expo-haptics";
 import Slider from "@react-native-community/slider";
 import { useTheme } from "../../context/ThemeContext";
@@ -27,6 +25,7 @@ import {
 import Colors from "../../constants/Colors";
 import { ExerciseData, getExerciseById } from "../../data/exerciseDatabase";
 import { useTranslation } from "react-i18next";
+import { MotiView } from "moti";
 
 const { width } = Dimensions.get("window");
 
@@ -151,10 +150,7 @@ const SetCard = ({
   };
 
   return (
-    <MotiView
-      from={{ opacity: 0, translateY: 20 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{ type: "spring", damping: 15, delay: index * 100 }}
+    <View
       style={[
         styles.setCard,
         {
@@ -285,7 +281,7 @@ const SetCard = ({
           </View>
         </View>
       </View>
-    </MotiView>
+    </View>
   );
 };
 
@@ -303,6 +299,7 @@ const CardioCard = ({
 }) => {
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const { t } = useTranslation();
 
   const handleDurationChange = (value: number) => {
     onUpdate(value, intensity);
@@ -313,10 +310,7 @@ const CardioCard = ({
   };
 
   return (
-    <MotiView
-      from={{ opacity: 0, translateY: 20 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{ type: "spring", damping: 15 }}
+    <View
       style={[
         styles.cardioCard,
         {
@@ -334,7 +328,7 @@ const CardioCard = ({
           ]}
         >
           <Text style={[styles.cardioTitleText, { color }]}>
-            Configuração do Cardio
+            {t("exercise.cardioConfig.title")}
           </Text>
         </View>
       </View>
@@ -349,7 +343,7 @@ const CardioCard = ({
               style={styles.cardioMetricIcon}
             />
             <Text style={[styles.cardioMetricLabel, { color: colors.text }]}>
-              Duração (minutos)
+              {t("exercise.cardioConfig.duration")}
             </Text>
           </View>
           <Slider
@@ -364,7 +358,7 @@ const CardioCard = ({
             thumbTintColor={color}
           />
           <Text style={[styles.cardioMetricValue, { color: colors.text }]}>
-            {duration} min
+            {duration} {t("exercise.cardioConfig.minutes")}
           </Text>
         </View>
 
@@ -377,7 +371,7 @@ const CardioCard = ({
               style={styles.cardioMetricIcon}
             />
             <Text style={[styles.cardioMetricLabel, { color: colors.text }]}>
-              Intensidade
+              {t("exercise.cardioConfig.intensity")}
             </Text>
           </View>
           <Slider
@@ -393,18 +387,18 @@ const CardioCard = ({
           />
           <View style={styles.intensityLabels}>
             <Text style={[styles.intensityLabel, { color: colors.text }]}>
-              Baixa
+              {t("exercise.cardioConfig.intensityLevels.low")}
             </Text>
             <Text style={[styles.intensityLabel, { color: colors.text }]}>
-              Média
+              {t("exercise.cardioConfig.intensityLevels.medium")}
             </Text>
             <Text style={[styles.intensityLabel, { color: colors.text }]}>
-              Alta
+              {t("exercise.cardioConfig.intensityLevels.high")}
             </Text>
           </View>
         </View>
       </View>
-    </MotiView>
+    </View>
   );
 };
 
@@ -600,7 +594,7 @@ const ExerciseDetailsScreen = () => {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["bottom"]}
+      edges={["top", "bottom"]}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -623,53 +617,22 @@ const ExerciseDetailsScreen = () => {
 
         <ScrollView
           style={styles.content}
-          contentContainerStyle={styles.scrollViewContent}
+          contentContainerStyle={[
+            styles.scrollViewContent,
+            mode === "edit" && styles.scrollViewContentEdit,
+          ]}
           showsVerticalScrollIndicator={false}
         >
           {isLoading ? (
             <LoadingSkeleton />
           ) : (
             <>
-              <MotiView
-                from={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: "timing", duration: 400 }}
-                style={styles.exerciseHeader}
+              <View
+                style={[
+                  styles.exerciseHeader,
+                  mode === "edit" && styles.exerciseHeaderEdit,
+                ]}
               >
-                <View
-                  style={[
-                    styles.exerciseIconContainer,
-                    {
-                      backgroundColor: workoutColor + "15",
-                      borderColor: workoutColor + "30",
-                      borderWidth: 1,
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name={
-                      exercise?.muscle === "Peito"
-                        ? "fitness-outline"
-                        : exercise?.muscle === "Costas"
-                        ? "body-outline"
-                        : exercise?.muscle === "Pernas"
-                        ? "walk-outline"
-                        : exercise?.muscle === "Ombros"
-                        ? "barbell-outline"
-                        : exercise?.muscle === "Bíceps" ||
-                          exercise?.muscle === "Tríceps"
-                        ? "bicycle-outline"
-                        : exercise?.muscle === "Abdômen"
-                        ? "body-outline"
-                        : exercise?.muscle === "Cardio"
-                        ? "heart-outline"
-                        : "barbell-outline"
-                    }
-                    size={48}
-                    color={workoutColor}
-                  />
-                </View>
-
                 {isCustomExercise ? (
                   <View style={styles.customNameContainer}>
                     <TextInput
@@ -682,7 +645,7 @@ const ExerciseDetailsScreen = () => {
                           borderRadius: 12,
                         },
                       ]}
-                      placeholder="Nome do exercício"
+                      placeholder={t("exercise.exerciseNamePlaceholder")}
                       placeholderTextColor={colors.text + "60"}
                       value={customExerciseName}
                       onChangeText={setCustomExerciseName}
@@ -690,13 +653,24 @@ const ExerciseDetailsScreen = () => {
                     />
                   </View>
                 ) : (
-                  <Text style={[styles.exerciseName, { color: colors.text }]}>
-                    {exercise?.name}
+                  <Text
+                    style={[
+                      styles.exerciseName,
+                      { color: colors.text },
+                      mode === "edit" && styles.exerciseNameEdit,
+                    ]}
+                  >
+                    {exercise ? t(`exercises.exercises.${exercise.id}`) : ""}
                   </Text>
                 )}
 
                 {exercise && (
-                  <View style={styles.exerciseDetails}>
+                  <View
+                    style={[
+                      styles.exerciseDetails,
+                      mode === "edit" && styles.exerciseDetailsEdit,
+                    ]}
+                  >
                     <View
                       style={[
                         styles.exerciseDetailTag,
@@ -709,7 +683,7 @@ const ExerciseDetailsScreen = () => {
                           { color: workoutColor },
                         ]}
                       >
-                        {exercise.muscle}
+                        {t(`exercises.muscles.${exercise.muscle}`)}
                       </Text>
                     </View>
 
@@ -725,7 +699,7 @@ const ExerciseDetailsScreen = () => {
                           { color: workoutColor },
                         ]}
                       >
-                        {exercise.equipment}
+                        {t(`exercises.equipment.${exercise.equipment}`)}
                       </Text>
                     </View>
 
@@ -755,54 +729,30 @@ const ExerciseDetailsScreen = () => {
                           },
                         ]}
                       >
-                        {exercise.difficulty}
+                        {t(`exercises.difficulty.${exercise.difficulty}`)}
                       </Text>
                     </View>
                   </View>
                 )}
-              </MotiView>
+              </View>
 
-              {exercise && (
-                <MotiView
-                  from={{ opacity: 0, translateY: 15 }}
-                  animate={{ opacity: 1, translateY: 0 }}
-                  transition={{ type: "timing", duration: 400, delay: 100 }}
-                  style={[
-                    styles.descriptionContainer,
-                    {
-                      backgroundColor: colors.card,
-                      borderLeftWidth: 3,
-                      borderLeftColor: workoutColor,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[styles.descriptionTitle, { color: workoutColor }]}
-                  >
-                    Como fazer
-                  </Text>
-                  <Text
-                    style={[
-                      styles.descriptionText,
-                      { color: colors.text + "E6" },
-                    ]}
-                  >
-                    {exercise.description}
-                  </Text>
-                </MotiView>
-              )}
-
-              <MotiView
-                from={{ opacity: 0, translateY: 15 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                transition={{ type: "timing", duration: 400, delay: 200 }}
+              <View
                 style={[
                   styles.configContainer,
                   { backgroundColor: "transparent" },
+                  mode === "edit" && styles.configContainerEdit,
                 ]}
               >
-                <Text style={[styles.configTitle, { color: workoutColor }]}>
-                  {exercise?.category === "cardio" ? "Configuração" : "Séries"}
+                <Text
+                  style={[
+                    styles.configTitle,
+                    { color: workoutColor },
+                    mode === "edit" && styles.configTitleEdit,
+                  ]}
+                >
+                  {exercise?.category === "cardio"
+                    ? t("exercise.configuration")
+                    : t("exercise.sets")}
                 </Text>
 
                 {exercise?.category === "cardio" ? (
@@ -813,7 +763,12 @@ const ExerciseDetailsScreen = () => {
                     color={workoutColor}
                   />
                 ) : (
-                  <View style={styles.setsContainer}>
+                  <View
+                    style={[
+                      styles.setsContainer,
+                      mode === "edit" && styles.setsContainerEdit,
+                    ]}
+                  >
                     {sets.map((set, index) => (
                       <SetCard
                         key={set.id}
@@ -832,6 +787,7 @@ const ExerciseDetailsScreen = () => {
                           borderColor: workoutColor + "40",
                           backgroundColor: workoutColor + "10",
                         },
+                        mode === "edit" && styles.addSetButtonEdit,
                       ]}
                       onPress={addNewSet}
                     >
@@ -846,7 +802,7 @@ const ExerciseDetailsScreen = () => {
                           { color: workoutColor },
                         ]}
                       >
-                        Adicionar Série
+                        {t("exercise.addSet")}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -854,7 +810,7 @@ const ExerciseDetailsScreen = () => {
 
                 <View style={styles.notesContainer}>
                   <Text style={[styles.notesLabel, { color: workoutColor }]}>
-                    Observações
+                    {t("exercise.notes")}
                   </Text>
                   <TextInput
                     style={[
@@ -866,7 +822,7 @@ const ExerciseDetailsScreen = () => {
                         borderWidth: 1,
                       },
                     ]}
-                    placeholder="Adicione observações sobre o exercício..."
+                    placeholder={t("exercise.notesPlaceholder")}
                     placeholderTextColor={colors.text + "60"}
                     value={notes}
                     onChangeText={setNotes}
@@ -874,7 +830,7 @@ const ExerciseDetailsScreen = () => {
                     numberOfLines={3}
                   />
                 </View>
-              </MotiView>
+              </View>
             </>
           )}
         </ScrollView>
@@ -943,7 +899,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === "ios" ? 16 : 20,
+    paddingTop: Platform.OS === "ios" ? 8 : 16,
     paddingBottom: 16,
     borderBottomWidth: 0,
   },
@@ -965,6 +921,9 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     paddingBottom: 100,
     paddingTop: 10,
+  },
+  scrollViewContentEdit: {
+    paddingTop: 0,
   },
   headerBackground: {
     ...StyleSheet.absoluteFillObject,
@@ -994,7 +953,11 @@ const styles = StyleSheet.create({
   exerciseHeader: {
     alignItems: "center",
     paddingHorizontal: 20,
-    marginBottom: 32,
+    marginBottom: 20,
+  },
+  exerciseHeaderEdit: {
+    marginBottom: 10,
+    paddingHorizontal: 16,
   },
   exerciseIconContainer: {
     width: 100,
@@ -1010,7 +973,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   exerciseName: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "700",
     textAlign: "center",
     marginBottom: 16,
@@ -1018,8 +981,8 @@ const styles = StyleSheet.create({
   },
   customNameContainer: {
     width: "100%",
-    marginBottom: 16,
-    paddingHorizontal: 20,
+    marginBottom: 12,
+    paddingHorizontal: 10,
   },
   customNameInput: {
     fontSize: 18,
@@ -1066,13 +1029,13 @@ const styles = StyleSheet.create({
   },
   configContainer: {
     marginHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: 0,
     marginBottom: 24,
   },
   configTitle: {
     fontSize: 20,
     fontWeight: "700",
-    marginBottom: 20,
+    marginBottom: 16,
     letterSpacing: -0.5,
     paddingHorizontal: 4,
   },
@@ -1150,11 +1113,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    padding: 16,
-    borderRadius: 16,
+    padding: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderStyle: "dashed",
-    marginTop: 12,
+    marginTop: 10,
   },
   addSetButtonText: {
     fontSize: 15,
@@ -1162,19 +1125,20 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   notesContainer: {
+    marginTop: 12,
     marginBottom: 16,
   },
   notesLabel: {
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: 12,
+    marginBottom: 8,
     paddingHorizontal: 4,
   },
   notesInput: {
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 12,
+    padding: 12,
     fontSize: 15,
-    minHeight: 100,
+    minHeight: 80,
     textAlignVertical: "top",
   },
   bottomBar: {
@@ -1189,9 +1153,9 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.15,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 3,
   },
   addButtonText: {
     color: "#FFF",
@@ -1258,5 +1222,44 @@ const styles = StyleSheet.create({
   intensityLabel: {
     fontSize: 12,
     opacity: 0.7,
+  },
+  exerciseNameEdit: {
+    fontSize: 22,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 16,
+    letterSpacing: -0.5,
+  },
+  exerciseDetailsEdit: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 10,
+  },
+  descriptionContainerEdit: {
+    marginHorizontal: 10,
+    padding: 15,
+    marginBottom: 20,
+  },
+  descriptionTextEdit: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  configContainerEdit: {
+    marginTop: 0,
+    paddingTop: 0,
+  },
+  setsContainerEdit: {
+    marginBottom: 15,
+    gap: 8,
+  },
+  addSetButtonEdit: {
+    padding: 14,
+    marginTop: 8,
+  },
+  configTitleEdit: {
+    fontSize: 18,
+    marginBottom: 8,
+    paddingHorizontal: 4,
   },
 });

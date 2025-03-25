@@ -427,6 +427,12 @@ export default function DailyReminders() {
               colors={[colors.light, colors.background]}
               style={styles.emptyGradient}
             >
+              <MaterialCommunityIcons
+                name="bell-outline"
+                size={20}
+                color={colors.text + "30"}
+                style={{ marginBottom: 6 }}
+              />
               <Text style={[styles.emptyText, { color: colors.text + "50" }]}>
                 {t("dailyReminders.emptyState.text")}
               </Text>
@@ -496,7 +502,6 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 20,
     marginHorizontal: 16,
-    marginVertical: 8,
     marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: {
@@ -624,13 +629,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   emptyGradient: {
-    padding: 24,
+    padding: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   emptyText: {
     fontSize: 13,
     textAlign: "center",
+    opacity: 0.8,
   },
   loadingContainer: {
     padding: 15,

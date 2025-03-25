@@ -23,6 +23,7 @@ import { OfflineStorage } from "../../services/OfflineStorage";
 import { MotiView } from "moti";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
+import { BlurView } from "expo-blur";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -229,13 +230,14 @@ export default function SummaryScreen() {
         style={styles.content}
         showsVerticalScrollIndicator={false}
         removeClippedSubviews={false}
+        contentContainerStyle={{ paddingBottom: 24 }}
       >
         {/* Header */}
         <MotiView
           key={`header-${theme}`}
-          from={{ opacity: 0, translateY: -20 }}
+          from={{ opacity: 0, translateY: -30 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "timing", duration: 600 }}
+          transition={{ type: "spring", damping: 15 }}
         >
           <Text style={[styles.headerTitle, { color: colors.text }]}>
             {t("summary.title")}
@@ -248,7 +250,7 @@ export default function SummaryScreen() {
           style={styles.topCardsRow}
           from={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: "spring", delay: 200 }}
+          transition={{ type: "spring", damping: 15, delay: 200 }}
         >
           {/* Card de Perfil */}
           <MotiView
@@ -257,14 +259,14 @@ export default function SummaryScreen() {
               styles.profileCard,
               {
                 backgroundColor: theme === "dark" ? colors.dark : colors.light,
-                borderColor: colors.border,
-                borderWidth: 1,
+                borderColor: "transparent",
+                borderWidth: 0,
                 overflow: "hidden",
               },
             ]}
-            from={{ opacity: 0, translateX: -20 }}
+            from={{ opacity: 0, translateX: -30 }}
             animate={{ opacity: 1, translateX: 0 }}
-            transition={{ type: "spring", delay: 300 }}
+            transition={{ type: "spring", damping: 15, delay: 300 }}
           >
             <Text style={[styles.cardLabel, { color: colors.text }]}>
               {t("summary.profile.title")}
@@ -355,75 +357,12 @@ export default function SummaryScreen() {
           </MotiView>
         </MotiView>
 
-        {/* Health Score Card */}
-        <MotiView
-          key={`health-score-card-${theme}`}
-          style={[
-            styles.healthScoreCard,
-            {
-              backgroundColor: theme === "dark" ? colors.dark : colors.light,
-              borderColor: colors.border,
-              borderWidth: 1,
-              overflow: "hidden",
-            },
-          ]}
-          from={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: "spring", delay: 500 }}
-        >
-          <View
-            key={`health-score-content-${theme}`}
-            style={styles.healthScoreContent}
-          >
-            <CircularProgress
-              key={`health-score-progress-${theme}`}
-              value={nutritionInfo.healthScore || 0}
-              radius={32}
-              duration={1000}
-              progressValueColor={colors.text}
-              maxValue={10}
-              title=""
-              titleColor={colors.text}
-              titleStyle={{ fontSize: 8 }}
-              activeStrokeColor="#6C63FF"
-              inActiveStrokeColor={colors.border}
-              inActiveStrokeOpacity={0.2}
-              activeStrokeWidth={6}
-              inActiveStrokeWidth={6}
-              progressValueStyle={{ fontSize: 14, fontWeight: "bold" }}
-              valueSuffix="/10"
-              delay={0}
-            />
-            <View
-              key={`health-score-info-${theme}`}
-              style={styles.healthScoreInfo}
-            >
-              <Text style={[styles.healthScoreTitle, { color: colors.text }]}>
-                {t("summary.healthScore.title")}
-              </Text>
-              <Text style={[styles.healthScoreDesc, { color: colors.text }]}>
-                {nutritionInfo.healthScore && nutritionInfo.healthScore >= 7
-                  ? t("summary.healthScore.excellent")
-                  : nutritionInfo.healthScore && nutritionInfo.healthScore >= 5
-                  ? t("summary.healthScore.good")
-                  : t("summary.healthScore.needsImprovement")}
-              </Text>
-            </View>
-            <Ionicons
-              key={`health-score-icon-${theme}`}
-              name="fitness-outline"
-              size={24}
-              color="#6C63FF"
-            />
-          </View>
-        </MotiView>
-
         {/* Seção de Macros */}
         <MotiView
           key={`macros-section-${theme}`}
-          from={{ opacity: 0, translateY: 20 }}
+          from={{ opacity: 0, translateY: 30 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "timing", duration: 600, delay: 600 }}
+          transition={{ type: "spring", damping: 15, delay: 600 }}
         >
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             {t("common.nutrition.dailyNeeds")}
@@ -444,14 +383,14 @@ export default function SummaryScreen() {
               styles.caloriesCard,
               {
                 backgroundColor: theme === "dark" ? colors.dark : colors.light,
-                borderColor: colors.border,
-                borderWidth: 1,
+                borderColor: "transparent",
+                borderWidth: 0,
                 overflow: "hidden",
               },
             ]}
-            from={{ opacity: 0, scale: 0.95 }}
+            from={{ opacity: 0, scale: 0.92 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: "spring", delay: 800 }}
+            transition={{ type: "spring", damping: 15, delay: 800 }}
           >
             <View
               key={`calories-content-${theme}`}
@@ -460,21 +399,21 @@ export default function SummaryScreen() {
               <CircularProgress
                 key={`calories-progress-${theme}`}
                 value={100}
-                radius={32}
-                duration={300}
+                radius={40}
+                duration={800}
                 progressValueColor={colors.text}
                 maxValue={100}
                 title={formatNumber(nutritionInfo.calories)}
                 titleColor={colors.text}
-                titleStyle={{ fontSize: 14 }}
+                titleStyle={{ fontSize: 18, fontWeight: "bold" }}
                 activeStrokeColor={colors.primary}
                 inActiveStrokeColor={colors.border}
-                inActiveStrokeOpacity={0.2}
-                activeStrokeWidth={6}
-                inActiveStrokeWidth={6}
-                progressValueStyle={{ fontSize: 14, fontWeight: "bold" }}
+                inActiveStrokeOpacity={0.15}
+                activeStrokeWidth={10}
+                inActiveStrokeWidth={10}
+                progressValueStyle={{ fontSize: 16, fontWeight: "bold" }}
                 valueSuffix=""
-                delay={0}
+                delay={100}
                 showProgressValue={false}
               />
               <View key={`calories-info-${theme}`} style={styles.caloriesInfo}>
@@ -506,9 +445,9 @@ export default function SummaryScreen() {
           <MotiView
             key={`macro-row-${theme}`}
             style={styles.macroRow}
-            from={{ opacity: 0, translateY: 20 }}
+            from={{ opacity: 0, translateY: 30 }}
             animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: "timing", duration: 600, delay: 900 }}
+            transition={{ type: "spring", damping: 15, delay: 900 }}
           >
             {/* Card de Proteína */}
             <MotiView
@@ -518,14 +457,14 @@ export default function SummaryScreen() {
                 {
                   backgroundColor:
                     theme === "dark" ? colors.dark : colors.light,
-                  borderColor: colors.border,
-                  borderWidth: 1,
+                  borderColor: "transparent",
+                  borderWidth: 0,
                   overflow: "hidden",
                 },
               ]}
-              from={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: "spring", delay: 1000 }}
+              from={{ opacity: 0, scale: 0.9, translateY: 20 }}
+              animate={{ opacity: 1, scale: 1, translateY: 0 }}
+              transition={{ type: "spring", damping: 15, delay: 1000 }}
             >
               <View
                 key={`protein-content-${theme}`}
@@ -534,8 +473,8 @@ export default function SummaryScreen() {
                 <CircularProgress
                   key={`protein-progress-${theme}`}
                   value={macroPercentages.protein}
-                  radius={28}
-                  duration={300}
+                  radius={34}
+                  duration={600}
                   progressValueColor={colors.text}
                   maxValue={100}
                   title=""
@@ -543,12 +482,12 @@ export default function SummaryScreen() {
                   titleStyle={{ fontSize: 12 }}
                   activeStrokeColor="#FF6B6B"
                   inActiveStrokeColor={colors.border}
-                  inActiveStrokeOpacity={0.2}
-                  activeStrokeWidth={5}
-                  inActiveStrokeWidth={5}
-                  progressValueStyle={{ fontSize: 12, fontWeight: "bold" }}
+                  inActiveStrokeOpacity={0.15}
+                  activeStrokeWidth={8}
+                  inActiveStrokeWidth={8}
+                  progressValueStyle={{ fontSize: 14, fontWeight: "bold" }}
                   valueSuffix="%"
-                  delay={0}
+                  delay={200}
                   showProgressValue={true}
                 />
                 <View key={`protein-info-${theme}`} style={styles.macroInfo}>
@@ -565,20 +504,6 @@ export default function SummaryScreen() {
                     {formatNumber(nutritionInfo.protein)}
                     {t("common.nutrition.grams")}
                   </Text>
-                  <Text style={[styles.macroDesc, { color: colors.text }]}>
-                    {t("summary.dailyNeeds.macros.perKg", {
-                      value:
-                        nutritionInfo.protein && nutritionInfo.weight
-                          ? (
-                              nutritionInfo.protein / nutritionInfo.weight
-                            ).toFixed(1)
-                          : "0",
-                    })}{" "}
-                    •{" "}
-                    {t("summary.dailyNeeds.macros.calories", {
-                      value: Math.round(getMacroCalories.protein),
-                    })}
-                  </Text>
                 </View>
               </View>
             </MotiView>
@@ -591,21 +516,21 @@ export default function SummaryScreen() {
                 {
                   backgroundColor:
                     theme === "dark" ? colors.dark : colors.light,
-                  borderColor: colors.border,
-                  borderWidth: 1,
+                  borderColor: "transparent",
+                  borderWidth: 0,
                   overflow: "hidden",
                 },
               ]}
-              from={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: "spring", delay: 1100 }}
+              from={{ opacity: 0, scale: 0.9, translateY: 20 }}
+              animate={{ opacity: 1, scale: 1, translateY: 0 }}
+              transition={{ type: "spring", damping: 15, delay: 1100 }}
             >
               <View key={`carbs-content-${theme}`} style={styles.macroContent}>
                 <CircularProgress
                   key={`carbs-progress-${theme}`}
                   value={macroPercentages.carbs}
-                  radius={28}
-                  duration={300}
+                  radius={34}
+                  duration={600}
                   progressValueColor={colors.text}
                   maxValue={100}
                   title=""
@@ -613,12 +538,12 @@ export default function SummaryScreen() {
                   titleStyle={{ fontSize: 12 }}
                   activeStrokeColor="#4ECDC4"
                   inActiveStrokeColor={colors.border}
-                  inActiveStrokeOpacity={0.2}
-                  activeStrokeWidth={5}
-                  inActiveStrokeWidth={5}
-                  progressValueStyle={{ fontSize: 12, fontWeight: "bold" }}
+                  inActiveStrokeOpacity={0.15}
+                  activeStrokeWidth={8}
+                  inActiveStrokeWidth={8}
+                  progressValueStyle={{ fontSize: 14, fontWeight: "bold" }}
                   valueSuffix="%"
-                  delay={0}
+                  delay={200}
                   showProgressValue={true}
                 />
                 <View key={`carbs-info-${theme}`} style={styles.macroInfo}>
@@ -635,11 +560,6 @@ export default function SummaryScreen() {
                     {formatNumber(nutritionInfo.carbs)}
                     {t("common.nutrition.grams")}
                   </Text>
-                  <Text style={[styles.macroDesc, { color: colors.text }]}>
-                    {t("summary.dailyNeeds.macros.calories", {
-                      value: Math.round(getMacroCalories.carbs),
-                    })}
-                  </Text>
                 </View>
               </View>
             </MotiView>
@@ -652,21 +572,21 @@ export default function SummaryScreen() {
                 {
                   backgroundColor:
                     theme === "dark" ? colors.dark : colors.light,
-                  borderColor: colors.border,
-                  borderWidth: 1,
+                  borderColor: "transparent",
+                  borderWidth: 0,
                   overflow: "hidden",
                 },
               ]}
-              from={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: "spring", delay: 1200 }}
+              from={{ opacity: 0, scale: 0.9, translateY: 20 }}
+              animate={{ opacity: 1, scale: 1, translateY: 0 }}
+              transition={{ type: "spring", damping: 15, delay: 1200 }}
             >
               <View key={`fat-content-${theme}`} style={styles.macroContent}>
                 <CircularProgress
                   key={`fat-progress-${theme}`}
                   value={macroPercentages.fat}
-                  radius={28}
-                  duration={300}
+                  radius={34}
+                  duration={600}
                   progressValueColor={colors.text}
                   maxValue={100}
                   title=""
@@ -674,12 +594,12 @@ export default function SummaryScreen() {
                   titleStyle={{ fontSize: 12 }}
                   activeStrokeColor="#FFE66D"
                   inActiveStrokeColor={colors.border}
-                  inActiveStrokeOpacity={0.2}
-                  activeStrokeWidth={5}
-                  inActiveStrokeWidth={5}
-                  progressValueStyle={{ fontSize: 12, fontWeight: "bold" }}
+                  inActiveStrokeOpacity={0.15}
+                  activeStrokeWidth={8}
+                  inActiveStrokeWidth={8}
+                  progressValueStyle={{ fontSize: 14, fontWeight: "bold" }}
                   valueSuffix="%"
-                  delay={0}
+                  delay={200}
                   showProgressValue={true}
                 />
                 <View key={`fat-info-${theme}`} style={styles.macroInfo}>
@@ -696,11 +616,6 @@ export default function SummaryScreen() {
                     {formatNumber(nutritionInfo.fat)}
                     {t("common.nutrition.grams")}
                   </Text>
-                  <Text style={[styles.macroDesc, { color: colors.text }]}>
-                    {t("summary.dailyNeeds.macros.calories", {
-                      value: Math.round(getMacroCalories.fat),
-                    })}
-                  </Text>
                 </View>
               </View>
             </MotiView>
@@ -713,14 +628,14 @@ export default function SummaryScreen() {
               styles.waterCard,
               {
                 backgroundColor: theme === "dark" ? colors.dark : colors.light,
-                borderColor: colors.border,
-                borderWidth: 1,
+                borderColor: "transparent",
+                borderWidth: 0,
                 overflow: "hidden",
               },
             ]}
-            from={{ opacity: 0, translateY: 20 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: "spring", delay: 1300 }}
+            from={{ opacity: 0, scale: 0.92, translateY: 20 }}
+            animate={{ opacity: 1, scale: 1, translateY: 0 }}
+            transition={{ type: "spring", damping: 15, delay: 1300 }}
           >
             <View key={`water-content-${theme}`} style={styles.waterContent}>
               <Ionicons
@@ -758,14 +673,14 @@ export default function SummaryScreen() {
             styles.infoCard,
             {
               backgroundColor: theme === "dark" ? colors.dark : colors.light,
-              borderColor: colors.border,
-              borderWidth: 1,
+              borderColor: "transparent",
+              borderWidth: 0,
               overflow: "hidden",
             },
           ]}
-          from={{ opacity: 0, translateY: 20 }}
+          from={{ opacity: 0, translateY: 30 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "spring", delay: 1400 }}
+          transition={{ type: "spring", damping: 15, delay: 1400 }}
         >
           <Ionicons
             key={`info-icon-${theme}`}
@@ -775,44 +690,6 @@ export default function SummaryScreen() {
           />
           <Text style={[styles.infoText, { color: colors.text }]}>
             {t("summary.info")}
-          </Text>
-        </MotiView>
-
-        {/* Dica do dia */}
-        <MotiView
-          key={`tip-card-${theme}`}
-          style={[
-            styles.tipCard,
-            {
-              backgroundColor:
-                theme === "dark"
-                  ? "rgba(28, 154, 190, 0.15)"
-                  : "rgba(28, 154, 190, 0.1)",
-              borderColor: colors.primary,
-              borderWidth: 1,
-            },
-          ]}
-          from={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: "spring", delay: 1500 }}
-        >
-          <View key={`tip-header-${theme}`} style={styles.tipHeader}>
-            <Ionicons
-              key={`tip-icon-${theme}`}
-              name="bulb-outline"
-              size={20}
-              color={colors.primary}
-            />
-            <Text style={[styles.tipTitle, { color: colors.primary }]}>
-              {t("summary.tip.title")}
-            </Text>
-          </View>
-          <Text style={[styles.tipText, { color: colors.text }]}>
-            {nutritionInfo.goal === "lose"
-              ? t("summary.tip.lose")
-              : nutritionInfo.goal === "gain"
-              ? t("summary.tip.gain")
-              : t("summary.tip.maintain")}
           </Text>
         </MotiView>
 
@@ -835,9 +712,9 @@ export default function SummaryScreen() {
       <MotiView
         key={`footer-${theme}`}
         style={styles.footer}
-        from={{ opacity: 0, translateY: 20 }}
+        from={{ opacity: 0, translateY: 30 }}
         animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: "timing", duration: 600, delay: 1600 }}
+        transition={{ type: "spring", damping: 15, delay: 1600 }}
       >
         <TouchableOpacity
           key={`start-button-${theme}`}
@@ -846,6 +723,11 @@ export default function SummaryScreen() {
             {
               backgroundColor: colors.primary,
               opacity: loading ? 0.7 : 1,
+              shadowColor: colors.primary,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 10,
+              elevation: 10,
             },
           ]}
           onPress={handleStart}
@@ -858,9 +740,10 @@ export default function SummaryScreen() {
             <Text
               style={{
                 color: "white",
-                fontSize: 16,
-                fontWeight: "600",
+                fontSize: 18,
+                fontWeight: "700",
                 textAlign: "center",
+                letterSpacing: 0.5,
               }}
             >
               {t("summary.startJourney")}
@@ -878,297 +761,243 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingHorizontal: 24,
+    paddingTop: 20,
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 20,
+    fontSize: 28,
+    fontWeight: "700",
+    marginBottom: 24,
     textAlign: "center",
+    letterSpacing: -0.5,
   },
   topCardsRow: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 20,
+    gap: 16,
+    marginBottom: 24,
   },
   profileCard: {
     flex: 1,
-    borderRadius: 16,
-    padding: 12,
+    borderRadius: 20,
+    padding: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   goalCard: {
     flex: 1,
-    borderRadius: 16,
-    padding: 12,
+    borderRadius: 20,
+    padding: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   cardLabel: {
-    fontSize: 12,
+    fontSize: 13,
     opacity: 0.7,
-    marginBottom: 8,
+    marginBottom: 10,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   measurementRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   measurementItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
   },
   measurementDivider: {
     width: 1,
-    height: 16,
-    marginHorizontal: 8,
+    height: 18,
+    marginHorizontal: 10,
   },
   measurementText: {
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: 16,
+    fontWeight: "600",
   },
   profileSubValue: {
-    fontSize: 12,
+    fontSize: 13,
     textAlign: "center",
     opacity: 0.7,
   },
   goalContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginBottom: 4,
+    gap: 8,
+    marginBottom: 6,
   },
   goalText: {
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: 16,
+    fontWeight: "600",
   },
   goalTarget: {
-    fontSize: 12,
+    fontSize: 13,
     opacity: 0.7,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 16,
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 20,
+    letterSpacing: -0.3,
   },
   macrosContainer: {
-    gap: 12,
+    gap: 16,
   },
   caloriesCard: {
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   caloriesContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 16,
   },
   caloriesInfo: {
     flex: 1,
   },
   caloriesTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "600",
-    marginBottom: 3,
+    marginBottom: 4,
   },
   caloriesValue: {
-    fontSize: 17,
+    fontSize: 24,
     fontWeight: "700",
-    marginBottom: 3,
+    marginBottom: 4,
   },
   caloriesDesc: {
-    fontSize: 11,
+    fontSize: 13,
     opacity: 0.7,
-    lineHeight: 14,
+    lineHeight: 16,
   },
   macroRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 8,
+    gap: 12,
     flexWrap: screenWidth < 360 ? "wrap" : "nowrap",
-    marginBottom: 10,
+    marginBottom: 16,
   },
   macroCard: {
     flex: screenWidth < 360 ? 0 : 1,
     width: screenWidth < 360 ? "48%" : "auto",
-    borderRadius: 16,
-    padding: 10,
+    borderRadius: 20,
+    padding: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginBottom: screenWidth < 360 ? 8 : 0,
-    minHeight: 140,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    marginBottom: screenWidth < 360 ? 12 : 0,
+    minHeight: 160,
     justifyContent: "center",
   },
   macroContent: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 5,
+    paddingVertical: 8,
   },
   macroInfo: {
     alignItems: "center",
-    marginTop: 6,
-    paddingBottom: 5,
+    marginTop: 10,
+    paddingBottom: 6,
   },
   macroTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "600",
-    marginBottom: 2,
+    marginBottom: 3,
     textAlign: "center",
   },
   macroValue: {
-    fontSize: 15,
+    fontSize: 18,
     fontWeight: "700",
-    marginBottom: 2,
-  },
-  macroDesc: {
-    fontSize: 10,
-    opacity: 0.7,
-    textAlign: "center",
-    paddingHorizontal: 2,
+    marginBottom: 3,
   },
   infoCard: {
     flexDirection: "row",
-    padding: 12,
-    borderRadius: 16,
-    marginTop: 20,
+    padding: 18,
+    borderRadius: 20,
+    marginTop: 24,
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   infoText: {
     flex: 1,
-    marginLeft: 8,
-    fontSize: 12,
-    lineHeight: 16,
+    marginLeft: 10,
+    fontSize: 13,
+    lineHeight: 18,
   },
   errorContainer: {
     backgroundColor: "rgba(255, 0, 0, 0.1)",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
+    borderRadius: 16,
+    padding: 16,
+    marginVertical: 16,
   },
   errorText: {
     color: "red",
     textAlign: "center",
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: "500",
   },
   footer: {
     padding: 24,
-    paddingBottom: 32,
+    paddingBottom: Platform.OS === "ios" ? 8 : 0,
   },
   button: {
     width: "100%",
-    height: 56,
-    borderRadius: 28,
+    height: 60,
+    borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
   },
-  healthScoreCard: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  healthScoreContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  healthScoreInfo: {
-    flex: 1,
-  },
-  healthScoreTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  healthScoreDesc: {
-    fontSize: 12,
-    opacity: 0.7,
-  },
   waterCard: {
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 12,
+    borderRadius: 20,
+    padding: 20,
+    marginTop: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   waterContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 16,
   },
   waterInfo: {
     flex: 1,
   },
   waterTitle: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 6,
   },
   waterValue: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#4ECDC4",
-    marginBottom: 2,
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 4,
   },
   waterTip: {
-    fontSize: 12,
+    fontSize: 13,
     opacity: 0.7,
-  },
-  tipCard: {
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginTop: 16,
-    marginBottom: 16,
-    padding: 16,
-    overflow: "hidden",
-  },
-  tipHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  tipTitle: {
-    fontWeight: "600",
-    marginLeft: 8,
-    fontSize: 16,
-  },
-  tipText: {
-    fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 18,
   },
 });

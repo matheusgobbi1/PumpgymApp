@@ -8,17 +8,14 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { MotiView } from "moti";
 import { useRouter } from "expo-router";
 import { Food, useMeals } from "../../context/MealContext";
 import * as Haptics from "expo-haptics";
 import { Swipeable } from "react-native-gesture-handler";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, { FadeInRight } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import { useAuth } from "../../context/AuthContext";
-import ConfirmationModal from "../ui/ConfirmationModal";
 import { useTranslation } from "react-i18next";
 
 interface MealCardProps {
@@ -253,8 +250,7 @@ const MealCardComponent = ({
           }
         }}
       >
-        <Animated.View
-          entering={FadeInRight.delay(foodIndex * 100).duration(300)}
+        <View
           style={[
             styles.foodItemContainer,
             { backgroundColor: colors.light },
@@ -334,7 +330,7 @@ const MealCardComponent = ({
               style={[styles.separator, { backgroundColor: colors.border }]}
             />
           )}
-        </Animated.View>
+        </View>
       </Swipeable>
     ),
     [
@@ -427,12 +423,9 @@ const MealCardComponent = ({
         overshootRight={false}
         containerStyle={styles.swipeableContainer}
       >
-        <MotiView
+        <View
           key={`meal-card-${meal.id}-${index}`}
           style={[styles.mealCard, { backgroundColor: colors.light }]}
-          from={{ opacity: 0, translateY: 20 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "spring", delay: index * 100 }}
         >
           <View style={styles.mealContent}>
             <TouchableOpacity
@@ -556,32 +549,32 @@ const MealCardComponent = ({
                   )}
                 </View>
               ) : (
-                <MotiView
+                <View
                   key={`empty-container-${meal.id}`}
-                  from={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ type: "timing", duration: 500 }}
                   style={styles.emptyContainer}
                 >
                   <LinearGradient
                     colors={[colors.light, colors.background]}
                     style={styles.emptyGradient}
                   >
+                    <Ionicons
+                      name="restaurant-outline"
+                      size={20}
+                      color={colors.text + "30"}
+                      style={{ marginBottom: 6 }}
+                    />
                     <Text
                       style={[styles.emptyText, { color: colors.text + "50" }]}
                     >
                       Adicione seu primeiro alimento
                     </Text>
                   </LinearGradient>
-                </MotiView>
+                </View>
               )}
 
               {/* Mensagem de sucesso após copiar refeição */}
               {showCopySuccess && (
-                <MotiView
-                  from={{ opacity: 0, translateY: 10 }}
-                  animate={{ opacity: 1, translateY: 0 }}
-                  exit={{ opacity: 0, translateY: 10 }}
+                <View
                   style={[
                     styles.successMessage,
                     { backgroundColor: meal.color + "20" },
@@ -597,11 +590,11 @@ const MealCardComponent = ({
                   >
                     Refeição copiada com sucesso!
                   </Text>
-                </MotiView>
+                </View>
               )}
             </View>
           </View>
-        </MotiView>
+        </View>
       </Swipeable>
     </>
   );
@@ -774,20 +767,19 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   emptyContainer: {
-    marginVertical: 16,
-    borderRadius: 16,
+    marginVertical: 12,
+    borderRadius: 10,
     overflow: "hidden",
   },
   emptyGradient: {
-    padding: 28,
+    padding: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 13,
     textAlign: "center",
-    fontWeight: "500",
-    letterSpacing: -0.3,
+    opacity: 0.8,
   },
   swipeActionContainer: {
     height: "100%",

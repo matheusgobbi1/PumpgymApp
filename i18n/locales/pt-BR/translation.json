@@ -93,7 +93,54 @@
     "cancel": "Cancelar",
     "copy": "Copiar",
     "user": "Usuário",
-    "loading": "Carregando dados..."
+    "loading": "Carregando dados...",
+    "gotIt": "Entendi"
+  },
+  "reminders": {
+    "newReminder": "Novo Lembrete",
+    "editReminder": "Editar Lembrete",
+    "details": "Detalhes",
+    "icon": "Ícone",
+    "days": "Dias",
+    "reminderDetails": "Detalhes do Lembrete",
+    "title": "Título",
+    "titlePlaceholder": "Ex: Beber água",
+    "description": "Descrição (opcional)",
+    "descriptionPlaceholder": "Ex: 500ml a cada 2 horas",
+    "time": "Horário (opcional)",
+    "chooseTime": "Escolher horário",
+    "chooseIcon": "Escolha um ícone",
+    "weekDays": {
+      "sunday": "Domingo",
+      "monday": "Segunda",
+      "tuesday": "Terça",
+      "wednesday": "Quarta",
+      "thursday": "Quinta",
+      "friday": "Sexta",
+      "saturday": "Sábado",
+      "shortSunday": "D",
+      "shortMonday": "S",
+      "shortTuesday": "T",
+      "shortWednesday": "Q",
+      "shortThursday": "Q",
+      "shortFriday": "S",
+      "shortSaturday": "S"
+    },
+    "weekDaysSelection": "Dias da semana",
+    "tapToSelect": "Toque nos dias para selecionar",
+    "reminderScheduled": "Lembrete programado para {{count}} dia",
+    "reminderScheduled_plural": "Lembrete programado para {{count}} dias",
+    "saveChanges": "Salvar alterações",
+    "createReminder": "Criar lembrete",
+    "deleteReminder": "Excluir Lembrete",
+    "deleteConfirmation": "Tem certeza que deseja excluir este lembrete?",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "done": "Concluir",
+    "errors": {
+      "titleRequired": "Por favor, adicione um título para o lembrete.",
+      "daysRequired": "Por favor, selecione pelo menos um dia da semana."
+    }
   },
   "training": {
     "title": "Seus treinos",
@@ -126,7 +173,32 @@
       "repetitions": "Repetições",
       "increase": "Aumento",
       "decrease": "Redução",
+      "maintained": "Manteve",
       "firstWorkout": "Primeiro treino"
+    },
+    "progressInfo": {
+      "title": "Progresso de Treinos",
+      "subtitle": "Como acompanhar sua evolução",
+      "overview": {
+        "title": "Visão Geral do Progresso",
+        "description": "Este gráfico mostra sua evolução nos treinos ao longo do tempo, permitindo acompanhar seu desenvolvimento em diferentes métricas."
+      },
+      "weight": {
+        "title": "Progresso em Carga",
+        "description": "Mostra a evolução do peso máximo levantado em cada exercício ao longo do tempo."
+      },
+      "volume": {
+        "title": "Volume Total",
+        "description": "Calcula o volume total (peso × repetições) de seus treinos, um indicador importante para acompanhar o volume total de trabalho."
+      },
+      "filters": {
+        "title": "Filtros de Período",
+        "description": "Ajuste o período de tempo para visualizar seu progresso em intervalos que fazem sentido para seus objetivos."
+      },
+      "tips": {
+        "title": "Dicas de Uso",
+        "description": "Selecione exercícios específicos para ver seu progresso individual ou use as métricas gerais para uma visão mais ampla do seu desenvolvimento."
+      }
     },
     "addFirstExercise": "Adicione seu primeiro exercício",
     "workoutCopiedSuccess": "Treino copiado com sucesso!",
@@ -200,7 +272,7 @@
         },
         "light": {
           "title": "Exercício Leve",
-          "description": "Exercício leve 1-3 dias por semana"
+          "description": "Exercício leve 1-2 dias por semana"
         },
         "moderate": {
           "title": "Exercício Moderado",
@@ -329,7 +401,7 @@
       }
     },
     "referral": {
-      "title": "Onde você ouviu falar de nós?",
+      "title": "Onde você nos conheceu?",
       "subtitle": "",
       "options": {
         "instagram": "Instagram",
@@ -406,12 +478,6 @@
       }
     },
     "info": "Plano calculado com base no seu perfil. Ajuste a qualquer momento nas configurações.",
-    "tip": {
-      "title": "Dica do dia",
-      "lose": "Beba um copo de água antes das refeições para ajudar a controlar o apetite e melhorar a digestão.",
-      "gain": "Adicione uma fonte de proteína de qualidade em todas as suas refeições para otimizar o ganho de massa muscular.",
-      "maintain": "Mantenha um diário alimentar para acompanhar seu progresso e identificar padrões que podem ser melhorados."
-    },
     "startJourney": "Iniciar Jornada",
     "error": "Ocorreu um erro ao salvar suas informações. Tente novamente."
   },
@@ -492,14 +558,22 @@
     "notes": "Observações",
     "notesPlaceholder": "Adicione observações sobre o exercício...",
     "addToWorkout": "Adicionar ao",
-    "cardioConfig": "Configuração do Cardio",
-    "duration": "Duração",
-    "intensity": "Intensidade",
-    "intensityLevels": {
-      "low": "Baixa",
-      "medium": "Média",
-      "high": "Alta"
+    "progressSuggestion": {
+      "increaseReps": "Tente aumentar de {{current}} para {{target}} repetições no {{name}}",
+      "increaseWeight": "Experimente aumentar o peso de {{current}}kg para {{target}}kg no {{name}}"
     },
+    "cardioConfig": {
+      "title": "Configuração do Cardio",
+      "duration": "Duração (minutos)",
+      "intensity": "Intensidade",
+      "intensityLevels": {
+        "low": "Baixa",
+        "medium": "Média",
+        "high": "Alta"
+      },
+      "minutes": "min"
+    },
+    "exerciseNamePlaceholder": "Nome do exercício",
     "setNumber": "Série",
     "repetitions": "Repetições",
     "weight": "Carga (kg)"
@@ -517,6 +591,11 @@
       "message": "Tem certeza que deseja redefinir todos os tipos de refeição? Esta ação não pode ser desfeita.",
       "confirm": "Redefinir",
       "cancel": "Cancelar"
+    },
+    "emptyState": {
+      "title": "Nenhuma refeição configurada",
+      "subtitle": "Personalize suas refeições diárias para acompanhar sua nutrição de forma eficiente",
+      "configButton": "Configurar Refeições"
     },
     "errors": {
       "configFailed": "Não foi possível configurar as refeições. Tente novamente.",
@@ -629,6 +708,30 @@
       "deleteConfirmMessage": "Tem certeza que deseja excluir esta refeição? Todos os alimentos serão removidos.",
       "deleteFoodTitle": "Excluir alimento",
       "deleteFoodMessage": "Tem certeza que deseja excluir este alimento?"
+    },
+    "progressInfo": {
+      "title": "Consumo Calórico",
+      "subtitle": "Como monitorar e analisar seu consumo diário de calorias",
+      "overview": {
+        "title": "Visão Geral do Consumo Calórico",
+        "description": "Este gráfico mostra o seu consumo diário de calorias, permitindo analisar padrões e tendências ao longo do tempo."
+      },
+      "tracking": {
+        "title": "Acompanhamento de Calorias",
+        "description": "Registre todas as suas refeições diariamente para obter uma visão mais precisa do seu consumo calórico. A consistência é fundamental para identificar padrões."
+      },
+      "analysis": {
+        "title": "Como Analisar os Dados",
+        "description": "Observe as flutuações no consumo de calorias e correlacione com seus objetivos de saúde e fitness. Ajuste sua dieta conforme necessário para alcançar seus objetivos."
+      },
+      "periods": {
+        "title": "Períodos de Visualização",
+        "description": "Alterne entre diferentes períodos para analisar seu consumo calórico em curto e longo prazo. Cada visualização oferece perspectivas diferentes sobre seus hábitos alimentares."
+      },
+      "tips": {
+        "title": "Dicas para Alimentação Saudável",
+        "description": "Lembre-se que qualidade é tão importante quanto quantidade. Foque em alimentos nutritivos e variados, não apenas no total de calorias consumidas."
+      }
     }
   },
   "home": {
@@ -641,13 +744,51 @@
     "progress": "Progresso",
     "stats": {
       "steps": "Passos",
-      "daily": "Diários",
       "target": "Meta",
-      "current": "Atual",
-      "waterIntake": "Consumo de Água",
-      "glasses": "Copos",
-      "pedometerNotAvailable": "Pedômetro não disponível",
+      "pedometerNotAvailable": "Pedômetro não disponível neste dispositivo",
       "connect": "Conectar"
+    },
+    "consistency": {
+      "title": "Consistência",
+      "workouts": "Treinos",
+      "nutritions": "Nutrição",
+      "water": "Hidratação",
+      "steps": "Atividade",
+      "excellent": "Excelente",
+      "veryGood": "Muito Bom",
+      "good": "Bom",
+      "moderate": "Moderado",
+      "fair": "Regular",
+      "needsImprovement": "Precisa Melhorar",
+      "starting": "Iniciando",
+      "modal": {
+        "title": "Como calculamos seu score",
+        "subtitle": "Entenda como avaliamos sua consistência"
+      },
+      "explanation": {
+        "title": "O que é o score de consistência?",
+        "description": "O score de consistência é uma medida de quão regular você é nos seus hábitos de saúde, incluindo treinos, alimentação, hidratação e passos diários."
+      },
+      "calculation": {
+        "title": "Como calculamos",
+        "description": "Analisamos seus dados das últimas semanas para criar uma pontuação entre 0 e 100 que reflete sua regularidade."
+      },
+      "workout": {
+        "title": "Consistência de Treinos",
+        "description": "Baseado em quantos dias você treinou nas últimas semanas em relação ao seu histórico."
+      },
+      "nutrition": {
+        "title": "Consistência Alimentar",
+        "description": "Com que frequência você registra suas refeições diárias."
+      },
+      "hydration": {
+        "title": "Consistência de Hidratação",
+        "description": "Quão próximo você está de atingir sua meta diária de água."
+      },
+      "activity": {
+        "title": "Atividade Diária",
+        "description": "Baseado nos seus passos diários em relação à sua meta."
+      }
     },
     "chart": {
       "dailyCalories": "Calorias Diárias",
@@ -658,6 +799,112 @@
       "average": "Média",
       "today": "Hoje",
       "maximum": "Máximo"
+    },
+    "workout": {
+      "todaysWorkout": "Treino de Hoje",
+      "loading": "Carregando...",
+      "noExercisesToday": "Nenhum exercício registrado hoje",
+      "exercises": "exercícios",
+      "exercise": "exercício",
+      "selectToSeeProgress": "Selecione para ver a progressão",
+      "burnedCalories": "Calorias queimadas neste treino",
+      "totalVolume": "Volume total do treino",
+      "new": "Novo",
+      "chartTypes": {
+        "weight": "Peso",
+        "calories": "Calorias",
+        "volume": "Volume"
+      },
+      "periods": {
+        "month1": "1M",
+        "month6": "6M",
+        "all": "Tudo"
+      },
+      "noHistoricalData": "Não há dados históricos para",
+      "selectExercise": "Selecione um exercício para ver o histórico",
+      "totalCalories": "Calorias Totais",
+      "totalVolumeTitle": "Volume Total",
+      "progressInfo": {
+        "title": "Progresso dos Treinos",
+        "subtitle": "Como acompanhar sua evolução",
+        "overview": {
+          "title": "Visão Geral do Progresso",
+          "description": "Este gráfico mostra sua evolução nos treinos ao longo do tempo, permitindo acompanhar seu desenvolvimento em diferentes métricas."
+        },
+        "weight": {
+          "title": "Progresso em Carga",
+          "description": "Mostra a evolução do peso máximo levantado em cada exercício ao longo do tempo."
+        },
+        "volume": {
+          "title": "Volume Total",
+          "description": "Calcula o volume total (peso × repetições) de seus treinos, um indicador importante para acompanhar o volume total de trabalho."
+        },
+        "filters": {
+          "title": "Filtros de Período",
+          "description": "Ajuste o período de tempo para visualizar seu progresso em intervalos que fazem sentido para seus objetivos."
+        },
+        "tips": {
+          "title": "Dicas de Uso",
+          "description": "Selecione exercícios específicos para ver seu progresso individual ou use as métricas gerais para uma visão mais ampla do seu desenvolvimento."
+        }
+      }
+    }
+  },
+  "weightProgressChart": {
+    "title": "Evolução de Peso",
+    "periods": {
+      "month1": "1 mês",
+      "month3": "3 meses",
+      "month6": "6 meses",
+      "all": "Tudo"
+    },
+    "periodSubtitles": {
+      "month1": "Último mês",
+      "month3": "Últimos 3 meses",
+      "month6": "Últimos 6 meses",
+      "all": "Todo período"
+    },
+    "stats": {
+      "current": "Atual",
+      "target": "Meta",
+      "difference": "Diferença",
+      "notDefined": "Não definida",
+      "kg": "kg"
+    },
+    "chart": {
+      "loading": "Carregando dados...",
+      "noData": "Nenhum registro de peso encontrado",
+      "weightEvolution": "Evolução de Peso",
+      "weightTarget": "Meta de peso",
+      "legendWeight": "Peso (kg)"
+    },
+    "progressInfo": {
+      "title": "Acompanhamento de Peso",
+      "subtitle": "Como monitorar e analisar seu progresso de peso",
+      "overview": {
+        "title": "Visão Geral do Acompanhamento de Peso",
+        "description": "Este gráfico mostra sua evolução de peso ao longo do tempo, permitindo identificar padrões e tendências."
+      },
+      "tracking": {
+        "title": "Registrando seu Peso",
+        "description": "Registre seu peso diariamente para ter uma visão mais precisa de seu progresso. A consistência é fundamental para identificar padrões."
+      },
+      "indicators": {
+        "title": "Indicadores Principais",
+        "description": "O gráfico inclui seu peso atual, peso alvo (se definido) e a diferença desde o início do período selecionado."
+      },
+      "analysis": {
+        "title": "Como Analisar os Dados",
+        "description": "Observe as flutuações no peso e correlacione com seus objetivos de saúde e fitness. Ajuste sua dieta e rotina de exercícios conforme necessário para alcançar seus objetivos."
+      },
+      "periods": {
+        "title": "Períodos de Visualização",
+        "description": "Alterne entre diferentes períodos para analisar seu progresso de peso em curto e longo prazo. Cada visualização oferece perspectivas diferentes sobre seus hábitos."
+      },
+      "tips": {
+        "title": "Dicas para Gerenciamento de Peso",
+        "description": "Lembre-se de que o peso não é a única medida de saúde. Foque em uma alimentação balanceada, exercícios regulares e um estilo de vida saudável."
+      }
     }
   },
   "dailyReminders": {
@@ -750,7 +997,21 @@
       "distributionError": "A distribuição total deve ser exatamente 100%",
       "total": "Total",
       "glasses": "copos",
-      "caloriesDistribution": "Distribuição Calórica"
+      "caloriesDistribution": "Distribuição Calórica",
+      "nutritionInfoTitle": "Guia Nutricional",
+      "nutritionInfoSubtitle": "Entenda como cada componente nutricional afeta seu corpo e performance. Use estas informações para otimizar sua alimentação de acordo com seus objetivos.",
+      "caloriesInfoTitle": "Calorias",
+      "caloriesInfoDesc": "As calorias são a unidade de energia que seu corpo precisa para funcionar. Seu objetivo diário é baseado em sua idade, peso, altura, nível de atividade e objetivos de fitness. Um déficit calórico promove perda de peso, enquanto um superávit auxilia no ganho de massa muscular.",
+      "proteinInfoTitle": "Proteínas",
+      "proteinInfoDesc": "Proteínas são essenciais para construção e reparo muscular. Recomenda-se de 1,6g a 2,2g por kg de peso corporal para quem pratica musculação regularmente. Boas fontes incluem carnes magras, ovos, laticínios, leguminosas e suplementos proteicos.",
+      "carbsInfoTitle": "Carboidratos",
+      "carbsInfoDesc": "Carboidratos são a principal fonte de energia para o corpo e são cruciais para performance em treinos. Priorize fontes complexas como arroz integral, batata doce, aveia e frutas. A quantidade ideal varia conforme seus objetivos e nível de atividade física.",
+      "fatInfoTitle": "Gorduras",
+      "fatInfoDesc": "Gorduras são essenciais para produção hormonal e absorção de vitaminas. Priorize gorduras saudáveis como azeite, abacate, oleaginosas e peixes gordurosos. Idealmente, as gorduras devem representar entre 20-35% das calorias diárias.",
+      "waterInfoTitle": "Água",
+      "waterInfoDesc": "A hidratação adequada é crucial para todos os processos corporais, incluindo recuperação muscular e performance. Recomenda-se consumir de 35-45ml por kg de peso corporal diariamente, aumentando em dias de treino intenso ou calor.",
+      "macrosBalanceTitle": "Distribuição de Macros",
+      "macrosBalanceDesc": "O equilíbrio entre proteínas, carboidratos e gorduras é fundamental para atingir seus objetivos. Para hipertrofia, uma distribuição típica é 30% de proteínas, 40-50% de carboidratos e 20-30% de gorduras. Ajuste essa distribuição conforme seus resultados e necessidades específicas."
     }
   },
   "workouts": {
@@ -793,6 +1054,217 @@
         "saveFailed": "Falha ao salvar treinos",
         "syncFailed": "Falha ao sincronizar com a nuvem"
       }
+    }
+  },
+  "consistency": {
+    "start_tracking": "Comece a rastrear",
+    "empty_state_description": "Registre seus treinos, refeições e consumo de água para visualizar seu score de consistência",
+    "modal": {
+      "title": "Como calculamos seu score",
+      "subtitle": "Entenda como avaliamos sua consistência",
+      "formula": "Fórmula de cálculo",
+      "explanation": "Seu score de consistência é calculado com base em quatro fatores principais, cada um com um peso diferente na pontuação final:",
+      "period": "Período de análise",
+      "period_explanation": "A análise é baseada nos seus dados recentes, considerando:",
+      "days_workouts": "Dias (treinos)",
+      "days_nutrition": "Dias (nutrição)",
+      "days_water": "Dias (água)",
+      "tip": "Dica: Para melhorar seu score, mantenha a regularidade nas suas atividades."
+    },
+    "explanation": {
+      "title": "O que é o score de consistência?",
+      "description": "O score de consistência é uma medida de quão regular você é nos seus hábitos de saúde, incluindo treinos, alimentação, hidratação e passos diários."
+    },
+    "calculation": {
+      "title": "Como calculamos",
+      "description": "Analisamos seus dados das últimas semanas para criar uma pontuação entre 0 e 100 que reflete sua regularidade."
+    },
+    "workouts": {
+      "title": "Consistência de Treinos",
+      "description": "Baseado em quantos dias você treinou nas últimas semanas em relação ao seu histórico."
+    },
+    "nutrition": {
+      "title": "Consistência Alimentar",
+      "description": "Com que frequência você registra suas refeições diárias."
+    },
+    "hydration": {
+      "title": "Consistência de Hidratação",
+      "description": "Quão próximo você está de atingir sua meta diária de água."
+    },
+    "activity": {
+      "title": "Atividade Diária",
+      "description": "Baseado nos seus passos diários em relação à sua meta."
+    }
+  },
+  "exercises": {
+    "muscles": {
+      "Peito": "Peito",
+      "Costas": "Costas",
+      "Pernas": "Pernas",
+      "Ombros": "Ombros",
+      "Bíceps": "Bíceps",
+      "Tríceps": "Tríceps",
+      "Abdômen": "Abdômen",
+      "Glúteos": "Glúteos",
+      "Antebraço": "Antebraço",
+      "Panturrilha": "Panturrilha",
+      "Lombar": "Lombar",
+      "Trapézio": "Trapézio",
+      "Cardio": "Cardio",
+      "Corpo inteiro": "Corpo inteiro"
+    },
+    "equipment": {
+      "Barra": "Barra",
+      "Halteres": "Halteres",
+      "Máquina": "Máquina",
+      "Cabo": "Cabo",
+      "Kettlebell": "Kettlebell",
+      "Peso corporal": "Peso corporal",
+      "Elástico": "Elástico",
+      "Bola": "Bola",
+      "TRX": "TRX",
+      "Esteira": "Esteira",
+      "Bicicleta": "Bicicleta",
+      "Elíptico": "Elíptico",
+      "Sem equipamento": "Sem equipamento",
+      "Corda": "Corda",
+      "Caixa": "Caixa",
+      "Paralelas": "Paralelas",
+      "Roda": "Roda"
+    },
+    "difficulty": {
+      "iniciante": "Iniciante",
+      "intermediário": "Intermediário",
+      "avançado": "Avançado"
+    },
+    "category": {
+      "força": "Força",
+      "cardio": "Cardio",
+      "flexibilidade": "Flexibilidade",
+      "equilíbrio": "Equilíbrio"
+    },
+    "exercises": {
+      "ex001": "Supino Reto",
+      "ex002": "Supino Inclinado",
+      "ex003": "Crucifixo",
+      "ex004": "Flexão de Braço",
+      "ex005": "Supino Declinado",
+      "ex006": "Crucifixo Inclinado",
+      "ex007": "Flexão de Braço Diamante",
+      "ex008": "Puxada Frontal",
+      "ex009": "Remada Curvada",
+      "ex010": "Remada Unilateral",
+      "ex011": "Puxada Atrás da Nuca",
+      "ex012": "Remada na Máquina",
+      "ex013": "Puxada com Triângulo",
+      "ex014": "Remada Baixa",
+      "ex015": "Agachamento",
+      "ex016": "Leg Press",
+      "ex017": "Cadeira Extensora",
+      "ex018": "Cadeira Flexora",
+      "ex019": "Agachamento Búlgaro",
+      "ex020": "Cadeira Adutora",
+      "ex021": "Cadeira Abdutora",
+      "ex022": "Desenvolvimento",
+      "ex023": "Elevação Lateral",
+      "ex024": "Elevação Frontal",
+      "ex025": "Desenvolvimento Arnold",
+      "ex026": "Elevação Lateral na Máquina",
+      "ex027": "Remada Alta",
+      "ex028": "Rotação Externa",
+      "ex029": "Rosca Direta",
+      "ex030": "Rosca Alternada",
+      "ex031": "Rosca Martelo",
+      "ex032": "Rosca na Máquina",
+      "ex033": "Rosca Scott",
+      "ex034": "Rosca Concentrada",
+      "ex035": "Rosca com Corda",
+      "ex036": "Tríceps Corda",
+      "ex037": "Tríceps Testa",
+      "ex038": "Tríceps Francês",
+      "ex039": "Tríceps na Máquina",
+      "ex040": "Tríceps Banco",
+      "ex041": "Tríceps Unilateral",
+      "ex042": "Tríceps Extensão",
+      "ex043": "Abdominal Reto",
+      "ex044": "Prancha",
+      "ex045": "Abdominal Oblíquo",
+      "ex046": "Abdominal Infra",
+      "ex047": "Abdominal Bicicleta",
+      "ex048": "Prancha Lateral",
+      "ex049": "Abdominal com Rotação",
+      "ex050": "Corrida",
+      "ex051": "Pular Corda",
+      "ex052": "Burpee",
+      "ex053": "Agachamento com Salto",
+      "ex054": "Bicicleta Ergométrica",
+      "ex055": "Elíptico",
+      "ex056": "Mountain Climber",
+      "ex057": "Elevação Pélvica",
+      "ex058": "Agachamento Sumô",
+      "ex059": "Elevação de Panturrilha em Pé",
+      "ex060": "Elevação de Panturrilha Sentado",
+      "ex061": "Rosca de Punho",
+      "ex062": "Rosca Inversa",
+      "ex063": "Levantamento Terra",
+      "ex064": "Stiff",
+      "ex065": "Pullover",
+      "ex066": "Crucifixo Invertido",
+      "ex067": "Remada Cavalinho",
+      "ex068": "Desenvolvimento Militar",
+      "ex069": "Elevação Frontal com Barra",
+      "ex070": "Rosca Concentrada com Barra",
+      "ex071": "Tríceps Coice",
+      "ex072": "Tríceps Mergulho",
+      "ex073": "Abdominal V",
+      "ex074": "Abdominal Canivete",
+      "ex075": "Corrida Intervalada",
+      "ex076": "Sprints",
+      "ex077": "Corda Naval",
+      "ex078": "Box Jump",
+      "ex079": "Kettlebell Swing",
+      "ex080": "Turkish Get-Up",
+      "ex081": "Snatch",
+      "ex082": "Clean and Jerk",
+      "ex083": "Lunge com Barra",
+      "ex084": "Lunge com Halteres",
+      "ex085": "Step-Up",
+      "ex086": "Pistol Squat",
+      "ex087": "Calf Raise com Halteres",
+      "ex088": "Calf Raise na Máquina",
+      "ex089": "Farmers Walk",
+      "ex090": "Bear Crawl",
+      "ex091": "Plank to Push-Up",
+      "ex092": "Russian Twist",
+      "ex093": "Hollow Hold",
+      "ex094": "Hanging Leg Raise",
+      "ex095": "Dragon Flag",
+      "ex096": "Side Plank",
+      "ex097": "Windshield Wipers",
+      "ex098": "L-Sit",
+      "ex099": "Planche",
+      "ex100": "Muscle-Up",
+      "ex101": "Crossover",
+      "ex102": "Flexão com Inclinação",
+      "ex103": "Peck Deck",
+      "ex104": "Barra Fixa",
+      "ex105": "Remada Invertida",
+      "ex106": "Pulldown com Pegada Fechada",
+      "ex107": "Leg Curl",
+      "ex108": "Agachamento Hack",
+      "ex109": "Passada",
+      "ex110": "Desenvolvimento com Halteres",
+      "ex111": "Elevação Posterior",
+      "ex112": "Press Militar",
+      "ex113": "Rosca Concentrada",
+      "ex114": "Rosca Inclinada",
+      "ex115": "Rosca com Pegada Invertida",
+      "ex116": "Tríceps Testa com Halteres",
+      "ex117": "Tríceps no Banco",
+      "ex118": "Tríceps Pulldown",
+      "ex119": "Crunch na Bola",
+      "ex120": "Abdominal na Máquina",
+      "ex121": "Abdominal com Roda"
     }
   }
 } 

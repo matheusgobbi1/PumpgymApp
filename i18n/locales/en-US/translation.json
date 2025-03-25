@@ -93,7 +93,54 @@
     "cancel": "Cancel",
     "copy": "Copy",
     "user": "User",
-    "loading": "Loading data..."
+    "loading": "Loading data...",
+    "gotIt": "Got it"
+  },
+  "reminders": {
+    "newReminder": "New Reminder",
+    "editReminder": "Edit Reminder",
+    "details": "Details",
+    "icon": "Icon",
+    "days": "Days",
+    "reminderDetails": "Reminder Details",
+    "title": "Title",
+    "titlePlaceholder": "Ex: Drink water",
+    "description": "Description (optional)",
+    "descriptionPlaceholder": "Ex: 500ml every 2 hours",
+    "time": "Time (optional)",
+    "chooseTime": "Choose time",
+    "chooseIcon": "Choose an icon",
+    "weekDays": {
+      "sunday": "Sunday",
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "shortSunday": "S",
+      "shortMonday": "M",
+      "shortTuesday": "T",
+      "shortWednesday": "W",
+      "shortThursday": "T",
+      "shortFriday": "F",
+      "shortSaturday": "S"
+    },
+    "weekDaysSelection": "Weekdays",
+    "tapToSelect": "Tap on days to select",
+    "reminderScheduled": "Reminder scheduled for {{count}} day",
+    "reminderScheduled_plural": "Reminder scheduled for {{count}} days",
+    "saveChanges": "Save changes",
+    "createReminder": "Create reminder",
+    "deleteReminder": "Delete Reminder",
+    "deleteConfirmation": "Are you sure you want to delete this reminder?",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "done": "Done",
+    "errors": {
+      "titleRequired": "Please add a title for the reminder.",
+      "daysRequired": "Please select at least one day of the week."
+    }
   },
   "training": {
     "title": "Your workouts",
@@ -126,6 +173,7 @@
       "repetitions": "Repetitions",
       "increase": "Increase",
       "decrease": "Decrease",
+      "maintained": "Maintained",
       "firstWorkout": "First workout"
     },
     "emptyState": {
@@ -200,7 +248,7 @@
         },
         "light": {
           "title": "Light Exercise",
-          "description": "Light exercise 1-3 days per week"
+          "description": "Light exercise 1-2 days per week"
         },
         "moderate": {
           "title": "Moderate Exercise",
@@ -329,7 +377,7 @@
       }
     },
     "referral": {
-      "title": "Where did you hear about us?",
+      "title": "Where did you met us?",
       "subtitle": "",
       "options": {
         "instagram": "Instagram",
@@ -406,12 +454,6 @@
       }
     },
     "info": "Plan calculated based on your profile. Adjust at any time in settings.",
-    "tip": {
-      "title": "Tip of the day",
-      "lose": "Drink a glass of water before meals to help control appetite and improve digestion.",
-      "gain": "Add a quality protein source to all your meals to optimize muscle mass gain.",
-      "maintain": "Keep a food diary to track your progress and identify patterns that can be improved."
-    },
     "startJourney": "Start Journey",
     "error": "An error occurred while saving your information. Please try again."
   },
@@ -481,28 +523,32 @@
       "abs": "Abs",
       "cardio": "Cardio"
     },
-    "sets": "sets",
+    "sets": "Sets",
+    "series": "set",
+    "noSets": "No sets",
+    "setsDetails": "Sets Details",
     "reps": "reps",
     "howTo": "How to do it",
     "configuration": "Configuration",
-    "series": "set",
     "addSet": "Add Set",
     "notes": "Notes",
     "notesPlaceholder": "Add notes about the exercise...",
     "addToWorkout": "Add to",
-    "cardioConfig": "Cardio Configuration",
-    "duration": "Duration (minutes)",
-    "intensity": "Intensity",
-    "intensityLevels": {
-      "low": "Low",
-      "medium": "Medium",
-      "high": "High"
+    "cardioConfig": {
+      "title": "Cardio Configuration",
+      "duration": "Duration (minutes)",
+      "intensity": "Intensity",
+      "intensityLevels": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "minutes": "min"
     },
+    "exerciseNamePlaceholder": "Exercise name",
     "setNumber": "Set",
     "repetitions": "Repetitions",
-    "weight": "Weight (kg)",
-    "noSets": "No sets",
-    "setsDetails": "Sets Details"
+    "weight": "Weight (kg)"
   },
   "yesterday": "Yesterday",
   "minutes": "minutes",
@@ -517,6 +563,11 @@
       "message": "Are you sure you want to reset all meal types? This action cannot be undone.",
       "confirm": "Reset",
       "cancel": "Cancel"
+    },
+    "emptyState": {
+      "title": "No meals configured",
+      "subtitle": "Customize your daily meals to track your nutrition efficiently",
+      "configButton": "Configure Meals"
     },
     "errors": {
       "configFailed": "Could not configure meals. Please try again.",
@@ -629,6 +680,30 @@
       "deleteConfirmMessage": "Are you sure you want to delete this meal? All foods will be removed.",
       "deleteFoodTitle": "Delete food",
       "deleteFoodMessage": "Are you sure you want to delete this food?"
+    },
+    "progressInfo": {
+      "title": "Caloric Consumption",
+      "subtitle": "How to monitor and analyze your daily caloric intake",
+      "overview": {
+        "title": "Caloric Consumption Overview",
+        "description": "This chart shows your daily calorie consumption, allowing you to analyze patterns and trends over time."
+      },
+      "tracking": {
+        "title": "Calorie Tracking",
+        "description": "Record all your meals daily to get a more accurate view of your caloric intake. Consistency is key to identifying patterns."
+      },
+      "analysis": {
+        "title": "How to Analyze Data",
+        "description": "Observe fluctuations in calorie consumption and correlate with your health and fitness goals. Adjust your diet as needed to achieve your goals."
+      },
+      "periods": {
+        "title": "Viewing Periods",
+        "description": "Switch between different periods to analyze your caloric intake in the short and long term. Each view offers different perspectives on your eating habits."
+      },
+      "tips": {
+        "title": "Healthy Eating Tips",
+        "description": "Remember that quality is as important as quantity. Focus on nutritious and varied foods, not just the total calories consumed."
+      }
     }
   },
   "home": {
@@ -641,12 +716,8 @@
     "progress": "Progress",
     "stats": {
       "steps": "Steps",
-      "daily": "Daily",
       "target": "Target",
-      "current": "Current",
-      "waterIntake": "Water Intake",
-      "glasses": "Glasses",
-      "pedometerNotAvailable": "Pedometer not available",
+      "pedometerNotAvailable": "Pedometer not available on this device",
       "connect": "Connect"
     },
     "chart": {
@@ -658,7 +729,159 @@
       "average": "Average",
       "today": "Today",
       "maximum": "Maximum"
+    },
+    "workout": {
+      "todaysWorkout": "Today's Workout",
+      "loading": "Loading...",
+      "noExercisesToday": "No exercises recorded today",
+      "exercises": "exercises",
+      "exercise": "exercise",
+      "selectToSeeProgress": "Select to see progression",
+      "burnedCalories": "Calories burned in this workout",
+      "totalVolume": "Total workout volume",
+      "new": "New",
+      "chartTypes": {
+        "weight": "Weight",
+        "calories": "Calories",
+        "volume": "Volume"
+      },
+      "periods": {
+        "month1": "1M",
+        "month6": "6M",
+        "all": "All"
+      },
+      "noHistoricalData": "No historical data for",
+      "selectExercise": "Select an exercise to see history",
+      "totalCalories": "Total Calories",
+      "totalVolumeTitle": "Total Volume",
+      "progressInfo": {
+        "title": "Workout Progress",
+        "subtitle": "How to track your evolution",
+        "overview": {
+          "title": "Progress Overview",
+          "description": "This chart shows your workout evolution over time, allowing you to track your development across different metrics."
+        },
+        "weight": {
+          "title": "Weight Progress",
+          "description": "Shows the evolution of the maximum weight lifted in each exercise over time."
+        },
+        "volume": {
+          "title": "Total Volume",
+          "description": "Calculates the total volume (weight × repetitions) of your workouts, an important indicator to track total work volume."
+        },
+        "filters": {
+          "title": "Period Filters",
+          "description": "Adjust the time period to view your progress in intervals that make sense for your goals."
+        },
+        "tips": {
+          "title": "Usage Tips",
+          "description": "Select specific exercises to see individual progress or use general metrics for a broader view of your development."
+        }
+      }
+    },
+    "consistency": {
+      "title": "Consistency",
+      "workouts": "Workouts",
+      "nutritions": "Nutrition",
+      "water": "Hydration",
+      "steps": "Activity",
+      "excellent": "Excellent",
+      "veryGood": "Very Good",
+      "good": "Good",
+      "moderate": "Moderate",
+      "fair": "Fair",
+      "needsImprovement": "Needs Improvement",
+      "starting": "Starting",
+      "modal": {
+        "title": "How we calculate your score",
+        "subtitle": "Understand how we evaluate your consistency"
+      },
+      "explanation": {
+        "title": "What is the consistency score?",
+        "description": "The consistency score is a measure of how regular you are in your health habits, including workouts, nutrition, hydration, and daily steps."
+      },
+      "calculation": {
+        "title": "How we calculate",
+        "description": "We analyze your data from the last few weeks to create a score between 0 and 100 that reflects your regularity."
+      },
+      "workout": {
+        "title": "Workout Consistency",
+        "description": "Based on how many days you worked out in recent weeks relative to your history."
+      },
+      "nutrition": {
+        "title": "Nutritional Consistency",
+        "description": "How frequently you log your daily meals."
+      },
+      "hydration": {
+        "title": "Hydration Consistency",
+        "description": "How close you are to reaching your daily water goal."
+      },
+      "activity": {
+        "title": "Daily Activity",
+        "description": "Based on your daily steps relative to your goal."
+      }
     }
+  },
+  "weightProgressChart": {
+    "title": "Weight Progress",
+    "periodSubtitles": {
+      "month1": "Last month",
+      "month3": "Last 3 months",
+      "month6": "Last 6 months",
+      "all": "All history"
+    },
+    "periods": {
+      "month1": "1M",
+      "month3": "3M",
+      "month6": "6M",
+      "all": "All"
+    },
+    "stats": {
+      "current": "Current",
+      "target": "Target",
+      "difference": "Difference",
+      "kg": "kg",
+      "notDefined": "Not defined"
+    },
+    "chart": {
+      "noData": "Add weight measurements to see your progress over time",
+      "loading": "Loading data...",
+      "weightEvolution": "Weight Evolution",
+      "weightTarget": "Weight Target",
+      "legendWeight": "Weight"
+    },
+    "progressInfo": {
+      "title": "Weight Tracking",
+      "subtitle": "How to monitor and analyze your weight progress",
+      "overview": {
+        "title": "Weight Tracking Overview",
+        "description": "This chart shows your weight evolution over time, allowing you to identify patterns and trends."
+      },
+      "tracking": {
+        "title": "Recording Your Weight",
+        "description": "Record your weight daily for a more accurate view of your progress. Consistency is key to identifying patterns."
+      },
+      "indicators": {
+        "title": "Key Indicators",
+        "description": "The chart includes your current weight, target weight (if set), and the difference since the beginning of the selected period."
+      },
+      "analysis": {
+        "title": "How to Analyze Data",
+        "description": "Observe fluctuations in weight and correlate with your health and fitness goals. Adjust your diet and exercise routine as needed to achieve your goals."
+      },
+      "periods": {
+        "title": "Viewing Periods",
+        "description": "Switch between different periods to analyze your weight progress in the short and long term. Each view offers different perspectives on your habits."
+      },
+      "tips": {
+        "title": "Weight Management Tips",
+        "description": "Remember that weight is not the only measure of health. Focus on balanced nutrition, regular exercise, and a healthy lifestyle."
+      }
+    }
+  },
+  "consistency": {
+    "start_tracking": "Start tracking",
+    "empty_state_description": "Record your workouts, meals, and water intake to see your consistency score"
   },
   "dailyReminders": {
     "title": "Daily Reminders",
@@ -750,7 +973,21 @@
       "distributionError": "Total distribution must be exactly 100%",
       "total": "Total",
       "glasses": "glasses",
-      "caloriesDistribution": "Caloric Distribution"
+      "caloriesDistribution": "Caloric Distribution",
+      "nutritionInfoTitle": "Nutrition Guide",
+      "nutritionInfoSubtitle": "Understand how each nutritional component affects your body and performance. Use this information to optimize your diet according to your goals.",
+      "caloriesInfoTitle": "Calories",
+      "caloriesInfoDesc": "Calories are the unit of energy your body needs to function. Your daily target is based on your age, weight, height, activity level, and fitness goals. A caloric deficit promotes weight loss, while a surplus aids muscle gain.",
+      "proteinInfoTitle": "Protein",
+      "proteinInfoDesc": "Protein is essential for muscle building and repair. It's recommended to consume 1.6g to 2.2g per kg of body weight for those who regularly strength train. Good sources include lean meats, eggs, dairy products, legumes, and protein supplements.",
+      "carbsInfoTitle": "Carbohydrates",
+      "carbsInfoDesc": "Carbohydrates are the body's primary energy source and are crucial for workout performance. Prioritize complex sources like brown rice, sweet potatoes, oats, and fruits. The ideal amount varies according to your goals and level of physical activity.",
+      "fatInfoTitle": "Fats",
+      "fatInfoDesc": "Fats are essential for hormone production and vitamin absorption. Prioritize healthy fats such as olive oil, avocados, nuts, and fatty fish. Ideally, fats should represent between 20-35% of your daily calories.",
+      "waterInfoTitle": "Water",
+      "waterInfoDesc": "Proper hydration is crucial for all bodily processes, including muscle recovery and performance. It's recommended to consume 35-45ml per kg of body weight daily, increasing on days with intense workouts or hot weather.",
+      "macrosBalanceTitle": "Macronutrient Balance",
+      "macrosBalanceDesc": "The balance between protein, carbohydrates, and fats is fundamental to achieving your goals. For hypertrophy, a typical distribution is 30% protein, 40-50% carbohydrates, and 20-30% fats. Adjust this distribution according to your results and specific needs."
     }
   },
   "workouts": {
@@ -793,6 +1030,177 @@
         "saveFailed": "Failed to save workouts",
         "syncFailed": "Failed to sync with cloud"
       }
+    }
+  },
+  "exercises": {
+    "muscles": {
+      "Peito": "Chest",
+      "Costas": "Back",
+      "Pernas": "Legs",
+      "Ombros": "Shoulders",
+      "Bíceps": "Biceps",
+      "Tríceps": "Triceps",
+      "Abdômen": "Abs",
+      "Glúteos": "Glutes",
+      "Antebraço": "Forearm",
+      "Panturrilha": "Calves",
+      "Lombar": "Lower Back",
+      "Trapézio": "Trapezius",
+      "Cardio": "Cardio",
+      "Corpo inteiro": "Full Body"
+    },
+    "equipment": {
+      "Barra": "Barbell",
+      "Halteres": "Dumbbells",
+      "Máquina": "Machine",
+      "Cabo": "Cable",
+      "Kettlebell": "Kettlebell",
+      "Peso corporal": "Body Weight",
+      "Elástico": "Resistance Band",
+      "Bola": "Ball",
+      "TRX": "TRX",
+      "Esteira": "Treadmill",
+      "Bicicleta": "Bike",
+      "Elíptico": "Elliptical",
+      "Sem equipamento": "No Equipment",
+      "Corda": "Rope",
+      "Caixa": "Box",
+      "Paralelas": "Parallel Bars",
+      "Roda": "Wheel"
+    },
+    "difficulty": {
+      "iniciante": "Beginner",
+      "intermediário": "Intermediate",
+      "avançado": "Advanced"
+    },
+    "category": {
+      "força": "Strength",
+      "cardio": "Cardio",
+      "flexibilidade": "Flexibility",
+      "equilíbrio": "Balance"
+    },
+    "exercises": {
+      "ex001": "Bench Press",
+      "ex002": "Incline Bench Press",
+      "ex003": "Dumbbell Fly",
+      "ex004": "Push-Up",
+      "ex005": "Decline Bench Press",
+      "ex006": "Incline Dumbbell Fly",
+      "ex007": "Diamond Push-Up",
+      "ex008": "Lat Pulldown",
+      "ex009": "Bent Over Row",
+      "ex010": "Single-Arm Row",
+      "ex011": "Behind the Neck Pulldown",
+      "ex012": "Machine Row",
+      "ex013": "V-Bar Pulldown",
+      "ex014": "Low Row",
+      "ex015": "Squat",
+      "ex016": "Leg Press",
+      "ex017": "Leg Extension",
+      "ex018": "Leg Curl",
+      "ex019": "Bulgarian Split Squat",
+      "ex020": "Hip Adduction",
+      "ex021": "Hip Abduction",
+      "ex022": "Shoulder Press",
+      "ex023": "Lateral Raise",
+      "ex024": "Front Raise",
+      "ex025": "Arnold Press",
+      "ex026": "Machine Lateral Raise",
+      "ex027": "Upright Row",
+      "ex028": "External Rotation",
+      "ex029": "Barbell Curl",
+      "ex030": "Alternating Dumbbell Curl",
+      "ex031": "Hammer Curl",
+      "ex032": "Machine Curl",
+      "ex033": "Preacher Curl",
+      "ex034": "Concentration Curl",
+      "ex035": "Cable Rope Curl",
+      "ex036": "Tricep Rope Pushdown",
+      "ex037": "Skull Crusher",
+      "ex038": "French Press",
+      "ex039": "Machine Tricep Extension",
+      "ex040": "Bench Dips",
+      "ex041": "Single-Arm Tricep Extension",
+      "ex042": "Tricep Extension",
+      "ex043": "Crunch",
+      "ex044": "Plank",
+      "ex045": "Side Crunch",
+      "ex046": "Reverse Crunch",
+      "ex047": "Bicycle Crunch",
+      "ex048": "Side Plank",
+      "ex049": "Russian Twist",
+      "ex050": "Running",
+      "ex051": "Jump Rope",
+      "ex052": "Burpee",
+      "ex053": "Jump Squat",
+      "ex054": "Stationary Bike",
+      "ex055": "Elliptical",
+      "ex056": "Mountain Climber",
+      "ex057": "Hip Thrust",
+      "ex058": "Sumo Squat",
+      "ex059": "Standing Calf Raise",
+      "ex060": "Seated Calf Raise",
+      "ex061": "Wrist Curl",
+      "ex062": "Reverse Curl",
+      "ex063": "Deadlift",
+      "ex064": "Romanian Deadlift",
+      "ex065": "Pullover",
+      "ex066": "Reverse Fly",
+      "ex067": "T-Bar Row",
+      "ex068": "Military Press",
+      "ex069": "Barbell Front Raise",
+      "ex070": "Barbell Concentration Curl",
+      "ex071": "Tricep Kickback",
+      "ex072": "Tricep Dip",
+      "ex073": "V-Up",
+      "ex074": "Jackknife",
+      "ex075": "Interval Running",
+      "ex076": "Sprints",
+      "ex077": "Battle Rope",
+      "ex078": "Box Jump",
+      "ex079": "Kettlebell Swing",
+      "ex080": "Turkish Get-Up",
+      "ex081": "Snatch",
+      "ex082": "Clean and Jerk",
+      "ex083": "Barbell Lunge",
+      "ex084": "Dumbbell Lunge",
+      "ex085": "Step-Up",
+      "ex086": "Pistol Squat",
+      "ex087": "Dumbbell Calf Raise",
+      "ex088": "Machine Calf Raise",
+      "ex089": "Farmers Walk",
+      "ex090": "Bear Crawl",
+      "ex091": "Plank to Push-Up",
+      "ex092": "Russian Twist",
+      "ex093": "Hollow Hold",
+      "ex094": "Hanging Leg Raise",
+      "ex095": "Dragon Flag",
+      "ex096": "Side Plank",
+      "ex097": "Windshield Wipers",
+      "ex098": "L-Sit",
+      "ex099": "Planche",
+      "ex100": "Muscle-Up",
+      "ex101": "Cable Crossover",
+      "ex102": "Incline Push-Up",
+      "ex103": "Pec Deck",
+      "ex104": "Pull-Up",
+      "ex105": "Inverted Row",
+      "ex106": "Close-Grip Pulldown",
+      "ex107": "Leg Curl",
+      "ex108": "Hack Squat",
+      "ex109": "Walking Lunge",
+      "ex110": "Dumbbell Shoulder Press",
+      "ex111": "Rear Delt Raise",
+      "ex112": "Military Press",
+      "ex113": "Concentration Curl",
+      "ex114": "Incline Curl",
+      "ex115": "Reverse Grip Curl",
+      "ex116": "Dumbbell Skull Crusher",
+      "ex117": "Bench Tricep Extension",
+      "ex118": "Tricep Pulldown",
+      "ex119": "Stability Ball Crunch",
+      "ex120": "Machine Crunch",
+      "ex121": "Ab Wheel Rollout"
     }
   }
 } 

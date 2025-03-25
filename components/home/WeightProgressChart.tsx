@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,192 +9,184 @@ import {
 } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import { LineChart } from "react-native-chart-kit";
-import { format, subDays, isFirstDayOfMonth, getDate } from "date-fns";
-import { useMeals } from "../../context/MealContext";
+import { format, subMonths } from "date-fns";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
+import {
+  useNutrition,
+  WeightHistoryEntry,
+} from "../../context/NutritionContext";
 import { useTranslation } from "react-i18next";
 import InfoModal, { InfoItem } from "../common/InfoModal";
 
+/**
+ * Componente de gráfico de evolução de peso
+ *
+ * Modificações realizadas:
+ * 1. Implementação de internacionalização com i18next
+ * 2. Substituição de useEffect por useMemo para cálculo de altura do card
+ * 3. Otimização da renderização com melhor gerenciamento de estado
+ * 4. Adição de função auxiliar getPeriodSubtitle para centralizar a lógica de subtítulos
+ */
+
 const { width } = Dimensions.get("window");
 
-type Period = "7d" | "14d" | "30d";
+type Period = "1m" | "3m" | "6m" | "all";
 
-interface NutritionProgressChartProps {
+interface WeightProgressChartProps {
   onPress?: () => void;
+  refreshKey?: number; // Prop para forçar atualização
 }
 
-export default function NutritionProgressChart({
+export default function WeightProgressChart({
   onPress,
-}: NutritionProgressChartProps) {
+  refreshKey = 0,
+}: WeightProgressChartProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
-  const { meals, getDayTotals } = useMeals();
+  const { nutritionInfo, getWeightHistory } = useNutrition();
   const { t } = useTranslation();
 
-  const [selectedPeriod, setSelectedPeriod] = useState<Period>("7d");
-  const [caloriesData, setCaloriesData] = useState<number[]>([]);
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>("1m");
+  const [weightData, setWeightData] = useState<number[]>([]);
   const [labels, setLabels] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [cardHeight, setCardHeight] = useState(240);
 
   // Estado para controlar a visibilidade do modal de informações
   const [infoModalVisible, setInfoModalVisible] = useState(false);
-
-  // Efeito para atualizar a altura do card quando expandido/recolhido
-  useEffect(() => {
-    const emptyStateHeight = 190;
-    const hasData = !caloriesData.every((cal) => cal === 0);
-
-    if (!hasData) {
-      setCardHeight(emptyStateHeight);
-      return;
-    }
-
-    if (!isLoading) {
-      setCardHeight(isExpanded ? 500 : 240);
-    }
-  }, [isExpanded, caloriesData, isLoading]);
-
-  // Função auxiliar para substituir eachDayOfInterval
-  const getDaysInRange = (startDate: Date, endDate: Date) => {
-    const days = [];
-    let currentDate = new Date(startDate);
-
-    while (currentDate <= endDate) {
-      days.push(new Date(currentDate));
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    return days;
-  };
 
   // Função para processar dados sem alterar a data selecionada no contexto
   const processData = useCallback(async () => {
     setIsLoading(true);
 
-    // Usar abordagem segura para obter a data atual
+    // Obter o histórico de peso
+    const history = getWeightHistory();
+
+    if (!history || history.length === 0) {
+      setWeightData([]);
+      setLabels([]);
+      setIsLoading(false);
+      return;
+    }
+
+    // Ordenar entradas por data (mais antiga primeiro)
+    const sortedHistory = [...history].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    // Filtrar com base no período selecionado
     const today = new Date();
-    let daysToSubtract = 0;
+    let filteredHistory = sortedHistory;
 
-    // Determinar quantos dias subtrair com base no período
     switch (selectedPeriod) {
-      case "7d":
-        daysToSubtract = 6; // 7 dias (hoje + 6 dias anteriores)
+      case "1m":
+        const oneMonthAgo = subMonths(today, 1);
+        filteredHistory = sortedHistory.filter(
+          (entry) => new Date(entry.date) >= oneMonthAgo
+        );
         break;
-      case "14d":
-        daysToSubtract = 13; // 14 dias (hoje + 13 dias anteriores)
+      case "3m":
+        const threeMonthsAgo = subMonths(today, 3);
+        filteredHistory = sortedHistory.filter(
+          (entry) => new Date(entry.date) >= threeMonthsAgo
+        );
         break;
-      case "30d":
-        daysToSubtract = 29; // 30 dias (hoje + 29 dias anteriores)
+      case "6m":
+        const sixMonthsAgo = subMonths(today, 6);
+        filteredHistory = sortedHistory.filter(
+          (entry) => new Date(entry.date) >= sixMonthsAgo
+        );
         break;
+      // Para "all", não precisamos filtrar
     }
 
-    // Gerar intervalo de datas
-    const startDate = subDays(today, daysToSubtract);
-    const dateInterval = getDaysInRange(startDate, today);
+    // Preparar dados para o gráfico
+    const formattedData = filteredHistory.map((entry) => ({
+      weight: entry.weight,
+      date: format(new Date(entry.date), "dd/MM/yy"),
+    }));
 
-    // Formatar datas para labels e obter dados de calorias
-    const newLabels: string[] = [];
-    const newCaloriesData: number[] = [];
+    // Definir os dados do gráfico - sempre usar todos os pesos
+    setWeightData(formattedData.map((entry) => entry.weight));
 
-    // Processar cada data no intervalo
-    for (let i = 0; i < dateInterval.length; i++) {
-      const date = dateInterval[i];
-      // Formatar a data para o formato yyyy-MM-dd (usado no contexto de refeições)
-      const dateKey = format(date, "yyyy-MM-dd");
+    // Limitar o número de labels no eixo X para no máximo 5
+    // Isso evita que as datas fiquem sobrepostas e ilegíveis
+    const allLabels = formattedData.map((entry) => entry.date);
+    let visibleLabels = [];
 
-      // Formatar a data para exibição no gráfico
-      let displayFormat = "";
-
-      if (selectedPeriod === "7d") {
-        // Para 7 dias, mostrar o dia da semana abreviado
-        displayFormat = format(date, "EEE").substring(0, 3);
-      } else if (selectedPeriod === "14d") {
-        // Para 14 dias, mostrar apenas alguns dias para evitar amontoamento
-        // Mostrar a cada 2 dias ou dias específicos
-        if (i % 2 === 0 || i === dateInterval.length - 1) {
-          displayFormat = format(date, "dd/MM");
+    if (allLabels.length <= 5) {
+      // Se tiver 5 ou menos pontos, mostrar todos os labels
+      visibleLabels = allLabels;
+    } else {
+      // Calcular os índices para mostrar no máximo 5 labels distribuídos uniformemente
+      const interval = Math.ceil(allLabels.length / 5);
+      for (let i = 0; i < allLabels.length; i++) {
+        // Mostrar o primeiro, último e alguns intermediários (máximo 5 no total)
+        if (i === 0 || i === allLabels.length - 1 || i % interval === 0) {
+          visibleLabels[i] = allLabels[i];
         } else {
-          displayFormat = ""; // Rótulo vazio para dias intermediários
-        }
-      } else {
-        // Para 30 dias, mostrar apenas dias específicos
-        // Mostrar o primeiro dia do mês, a cada 5 dias e o último dia
-        if (
-          isFirstDayOfMonth(date) ||
-          getDate(date) % 5 === 0 ||
-          i === dateInterval.length - 1
-        ) {
-          displayFormat = format(date, "dd/MM");
-        } else {
-          displayFormat = ""; // Rótulo vazio para dias intermediários
+          visibleLabels[i] = ""; // Espaço vazio para manter alinhamento com os dados
         }
       }
-
-      newLabels.push(displayFormat);
-
-      // Verificar se há dados para esta data
-      const hasMealsForDate =
-        meals[dateKey] && Object.keys(meals[dateKey]).length > 0;
-
-      // Obter calorias totais para o dia
-      // Importante: Não alteramos a data selecionada no contexto
-      let dayCalories = 0;
-
-      if (hasMealsForDate) {
-        // Calcular calorias manualmente para esta data
-        const mealsForDate = meals[dateKey];
-        let totalCalories = 0;
-
-        Object.values(mealsForDate).forEach((foods: any) => {
-          foods.forEach((food: any) => {
-            if (food && food.calories) {
-              totalCalories += food.calories * (food.quantity || 1);
-            }
-          });
-        });
-
-        dayCalories = totalCalories;
-      }
-
-      newCaloriesData.push(dayCalories);
     }
 
-    setLabels(newLabels);
-    setCaloriesData(newCaloriesData);
+    setLabels(visibleLabels);
+
     setIsLoading(false);
-  }, [selectedPeriod, meals]);
+  }, [selectedPeriod, getWeightHistory]);
 
-  // Efeito para carregar dados quando o período mudar
+  // Efeito para carregar dados quando o período mudar ou quando houver atualização
   useEffect(() => {
     processData();
-  }, [processData]);
+  }, [processData, refreshKey, nutritionInfo.weight]);
+
+  // Remover o useMemo redundante e o segundo useEffect
+  const hasData = weightData.length > 0;
+
+  // Calcular a altura do card baseado nos dados e estado
+  const cardHeightValue = useMemo(() => {
+    const emptyStateHeight = 180; // Altura para o estado vazio
+
+    // Se não houver dados, definir uma altura fixa
+    if (!hasData) {
+      return emptyStateHeight;
+    }
+
+    // Só considerar expandido quando os dados estiverem carregados
+    if (!isLoading) {
+      return isExpanded ? 500 : 240;
+    }
+
+    return 240; // Altura padrão durante carregamento
+  }, [hasData, isExpanded, isLoading]);
 
   // Calcular estatísticas
-  const averageCalories =
-    caloriesData.length > 0
-      ? Math.round(
-          caloriesData.reduce((sum, val) => sum + val, 0) / caloriesData.length
+  const averageWeight =
+    weightData.length > 0
+      ? Number(
+          (
+            weightData.reduce((sum, val) => sum + val, 0) / weightData.length
+          ).toFixed(1)
         )
       : 0;
 
-  const maxCalories = caloriesData.length > 0 ? Math.max(...caloriesData) : 0;
+  const currentWeight = nutritionInfo.weight || 0;
 
-  const todayCalories =
-    caloriesData.length > 0 ? caloriesData[caloriesData.length - 1] : 0;
+  const startWeight = weightData.length > 0 ? weightData[0] : currentWeight;
 
-  // Configurar o gráfico com base no período selecionado
+  const weightDifference = Number((currentWeight - startWeight).toFixed(1));
+
+  // Configurar o gráfico
   const getChartConfig = () => {
     // Configuração base
     const baseConfig = {
       backgroundColor: colors.chartBackground,
       backgroundGradientFrom: colors.chartGradientStart,
       backgroundGradientTo: colors.chartGradientEnd,
-      decimalPlaces: 0,
+      decimalPlaces: 1,
       color: () => colors.primary,
       labelColor: () => colors.text + "80",
       style: {
@@ -212,29 +204,17 @@ export default function NutritionProgressChart({
         strokeDasharray: "5, 5",
         stroke: colors.chartGrid,
       },
+      // Configurações adicionais para melhorar a visualização das labels
+      propsForLabels: {
+        fontSize: 10,
+        fontWeight: "bold",
+      },
+      // Função para formatar labels do eixo X
+      // Retorna o label sem modificação se não for string vazia
+      formatXLabel: (label: string) => label,
     };
 
-    // Ajustes específicos para cada período
-    if (selectedPeriod === "7d") {
-      return {
-        ...baseConfig,
-        // Configuração padrão para 7 dias
-      };
-    } else if (selectedPeriod === "14d") {
-      return {
-        ...baseConfig,
-        // Reduzir o tamanho da fonte para 14 dias
-        labelFontSize: 10,
-      };
-    } else {
-      return {
-        ...baseConfig,
-        // Reduzir ainda mais o tamanho da fonte para 30 dias
-        labelFontSize: 9,
-        // Rotacionar os rótulos para economizar espaço
-        formatXLabel: (label: string) => label,
-      };
-    }
+    return baseConfig;
   };
 
   // Função para alternar entre expandido e recolhido
@@ -249,7 +229,21 @@ export default function NutritionProgressChart({
     setSelectedPeriod(period);
   };
 
-  const hasData = !caloriesData.every((cal) => cal === 0);
+  // Função para obter o subtítulo baseado no período selecionado
+  const getPeriodSubtitle = () => {
+    switch (selectedPeriod) {
+      case "1m":
+        return t("weightProgressChart.periodSubtitles.month1");
+      case "3m":
+        return t("weightProgressChart.periodSubtitles.month3");
+      case "6m":
+        return t("weightProgressChart.periodSubtitles.month6");
+      case "all":
+        return t("weightProgressChart.periodSubtitles.all");
+      default:
+        return t("weightProgressChart.periodSubtitles.month1");
+    }
+  };
 
   // Função para abrir o modal de informações
   const openInfoModal = useCallback(() => {
@@ -258,39 +252,41 @@ export default function NutritionProgressChart({
   }, []);
 
   // Itens de informação para o modal
-  const nutritionInfoItems = useMemo<InfoItem[]>(
+  const weightInfoItems = useMemo<InfoItem[]>(
     () => [
       {
-        title: t("nutrition.progressInfo.overview.title"),
-        description: t("nutrition.progressInfo.overview.description"),
-        icon: "nutrition",
-        iconType: "material",
+        title: t("weightProgressChart.progressInfo.overview.title"),
+        description: t("weightProgressChart.progressInfo.overview.description"),
+        icon: "trending-up-outline",
+        iconType: "ionicons",
         color: colors.primary,
       },
       {
-        title: t("nutrition.progressInfo.tracking.title"),
-        description: t("nutrition.progressInfo.tracking.description"),
-        icon: "pencil-outline",
-        iconType: "ionicons",
+        title: t("weightProgressChart.progressInfo.tracking.title"),
+        description: t("weightProgressChart.progressInfo.tracking.description"),
+        icon: "scale",
+        iconType: "material",
         color: colors.success,
       },
       {
-        title: t("nutrition.progressInfo.analysis.title"),
-        description: t("nutrition.progressInfo.analysis.description"),
+        title: t("weightProgressChart.progressInfo.indicators.title"),
+        description: t(
+          "weightProgressChart.progressInfo.indicators.description"
+        ),
         icon: "analytics-outline",
         iconType: "ionicons",
         color: colors.warning,
       },
       {
-        title: t("nutrition.progressInfo.periods.title"),
-        description: t("nutrition.progressInfo.periods.description"),
+        title: t("weightProgressChart.progressInfo.periods.title"),
+        description: t("weightProgressChart.progressInfo.periods.description"),
         icon: "calendar-outline",
         iconType: "ionicons",
         color: colors.danger,
       },
       {
-        title: t("nutrition.progressInfo.tips.title"),
-        description: t("nutrition.progressInfo.tips.description"),
+        title: t("weightProgressChart.progressInfo.tips.title"),
+        description: t("weightProgressChart.progressInfo.tips.description"),
         icon: "bulb-outline",
         iconType: "ionicons",
         color: colors.info,
@@ -303,19 +299,19 @@ export default function NutritionProgressChart({
     <View
       style={[
         styles.container,
-        { backgroundColor: colors.light, height: cardHeight },
+        { backgroundColor: colors.light, height: cardHeightValue },
       ]}
     >
       {/* Adicionar o componente InfoModal */}
       <InfoModal
         visible={infoModalVisible}
-        title={t("nutrition.progressInfo.title")}
-        subtitle={t("nutrition.progressInfo.subtitle")}
-        infoItems={nutritionInfoItems}
+        title={t("weightProgressChart.progressInfo.title")}
+        subtitle={t("weightProgressChart.progressInfo.subtitle")}
+        infoItems={weightInfoItems}
         onClose={() => setInfoModalVisible(false)}
         topIcon={{
-          name: "nutrition",
-          type: "material",
+          name: "scale",
+          type: "ionicons",
           color: colors.primary,
           backgroundColor: colors.primary + "20",
         }}
@@ -336,22 +332,14 @@ export default function NutritionProgressChart({
                 { backgroundColor: colors.primary + "20" },
               ]}
             >
-              <MaterialCommunityIcons
-                name="fire"
-                size={18}
-                color={colors.primary}
-              />
+              <FontAwesome5 name="weight" size={16} color={colors.primary} />
             </View>
             <View>
               <Text style={[styles.title, { color: colors.text }]}>
-                {t("home.chart.dailyCalories")}
+                {t("weightProgressChart.title")}
               </Text>
               <Text style={[styles.subtitle, { color: colors.text + "80" }]}>
-                {selectedPeriod === "7d"
-                  ? t("home.chart.last7Days")
-                  : selectedPeriod === "14d"
-                  ? t("home.chart.last14Days")
-                  : t("home.chart.lastMonth")}
+                {getPeriodSubtitle()}
               </Text>
             </View>
           </View>
@@ -395,76 +383,96 @@ export default function NutritionProgressChart({
               <TouchableOpacity
                 style={[
                   styles.periodButton,
-                  selectedPeriod === "7d" && [
+                  selectedPeriod === "1m" && [
                     styles.selectedPeriod,
                     { backgroundColor: colors.primary + "20" },
                   ],
                 ]}
-                onPress={() => handlePeriodChange("7d")}
+                onPress={() => handlePeriodChange("1m")}
               >
                 <Text
                   style={[
                     styles.periodText,
                     { color: colors.text + "80" },
-                    selectedPeriod === "7d" && {
+                    selectedPeriod === "1m" && {
                       color: colors.primary,
                       fontWeight: "600",
                     },
                   ]}
                 >
-                  7D
+                  {t("weightProgressChart.periods.month1")}
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[
                   styles.periodButton,
-                  selectedPeriod === "14d" && [
+                  selectedPeriod === "3m" && [
                     styles.selectedPeriod,
                     { backgroundColor: colors.primary + "20" },
                   ],
                 ]}
-                onPress={() => handlePeriodChange("14d")}
+                onPress={() => handlePeriodChange("3m")}
               >
                 <Text
                   style={[
                     styles.periodText,
                     { color: colors.text + "80" },
-                    selectedPeriod === "14d" && {
+                    selectedPeriod === "3m" && {
                       color: colors.primary,
                       fontWeight: "600",
                     },
                   ]}
                 >
-                  14D
+                  {t("weightProgressChart.periods.month3")}
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[
                   styles.periodButton,
-                  selectedPeriod === "30d" && [
+                  selectedPeriod === "6m" && [
                     styles.selectedPeriod,
                     { backgroundColor: colors.primary + "20" },
                   ],
                 ]}
-                onPress={() => handlePeriodChange("30d")}
+                onPress={() => handlePeriodChange("6m")}
               >
                 <Text
                   style={[
                     styles.periodText,
                     { color: colors.text + "80" },
-                    selectedPeriod === "30d" && {
+                    selectedPeriod === "6m" && {
                       color: colors.primary,
                       fontWeight: "600",
                     },
                   ]}
                 >
-                  {t("home.chart.lastMonth")
-                    .split(" ")[1]
-                    .charAt(0)
-                    .toUpperCase() +
-                    t("home.chart.lastMonth").split(" ")[1].slice(1)}
+                  {t("weightProgressChart.periods.month6")}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.periodButton,
+                  selectedPeriod === "all" && [
+                    styles.selectedPeriod,
+                    { backgroundColor: colors.primary + "20" },
+                  ],
+                ]}
+                onPress={() => handlePeriodChange("all")}
+              >
+                <Text
+                  style={[
+                    styles.periodText,
+                    { color: colors.text + "80" },
+                    selectedPeriod === "all" && {
+                      color: colors.primary,
+                      fontWeight: "600",
+                    },
+                  ]}
+                >
+                  {t("weightProgressChart.periods.all")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -475,14 +483,14 @@ export default function NutritionProgressChart({
                   style={[styles.statLabel, { color: colors.text }]}
                   numberOfLines={1}
                 >
-                  {t("home.chart.today")}
+                  {t("weightProgressChart.stats.current")}
                 </Text>
                 <Text style={[styles.statValue, { color: colors.text }]}>
-                  {todayCalories}{" "}
+                  {currentWeight}{" "}
                   <Text
                     style={[styles.statUnit, { color: colors.text + "60" }]}
                   >
-                    {t("common.nutrition.kcal")}
+                    {t("weightProgressChart.stats.kg")}
                   </Text>
                 </Text>
               </View>
@@ -492,15 +500,25 @@ export default function NutritionProgressChart({
                   style={[styles.statLabel, { color: colors.text }]}
                   numberOfLines={1}
                 >
-                  {t("home.chart.average")}
+                  {t("weightProgressChart.stats.target")}
                 </Text>
-                <Text style={[styles.statValue, { color: colors.text }]}>
-                  {averageCalories}{" "}
-                  <Text
-                    style={[styles.statUnit, { color: colors.text + "60" }]}
-                  >
-                    {t("common.nutrition.kcal")}
-                  </Text>
+                <Text style={[styles.statValue, { color: colors.primary }]}>
+                  {nutritionInfo.targetWeight ? (
+                    <>
+                      {nutritionInfo.targetWeight}{" "}
+                      <Text
+                        style={[styles.statUnit, { color: colors.text + "60" }]}
+                      >
+                        {t("weightProgressChart.stats.kg")}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text
+                      style={[styles.statUnit, { color: colors.text + "60" }]}
+                    >
+                      {t("weightProgressChart.stats.notDefined")}
+                    </Text>
+                  )}
                 </Text>
               </View>
 
@@ -509,14 +527,24 @@ export default function NutritionProgressChart({
                   style={[styles.statLabel, { color: colors.text }]}
                   numberOfLines={1}
                 >
-                  {t("home.chart.maximum")}
+                  {t("weightProgressChart.stats.difference")}
                 </Text>
-                <Text style={[styles.statValue, { color: colors.text }]}>
-                  {maxCalories}{" "}
+                <Text
+                  style={[
+                    styles.statValue,
+                    weightDifference < 0
+                      ? { color: "#EF476F" }
+                      : weightDifference > 0
+                      ? { color: "#06D6A0" }
+                      : { color: colors.text },
+                  ]}
+                >
+                  {weightDifference > 0 ? "+" : ""}
+                  {weightDifference}{" "}
                   <Text
                     style={[styles.statUnit, { color: colors.text + "60" }]}
                   >
-                    {t("common.nutrition.kcal")}
+                    {t("weightProgressChart.stats.kg")}
                   </Text>
                 </Text>
               </View>
@@ -551,14 +579,8 @@ export default function NutritionProgressChart({
               colors={[colors.light, colors.background]}
               style={styles.emptyGradient}
             >
-              <MaterialCommunityIcons
-                name="food-outline"
-                size={20}
-                color={colors.text + "30"}
-                style={{ marginBottom: 6 }}
-              />
               <Text style={[styles.emptyText, { color: colors.text + "50" }]}>
-                {t("home.chart.noNutritionData")}
+                {t("weightProgressChart.chart.noData")}
               </Text>
             </LinearGradient>
           </View>
@@ -573,16 +595,12 @@ export default function NutritionProgressChart({
 
             <View style={styles.expandedHeader}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                {t("home.chart.dailyCalories")}
+                {t("weightProgressChart.chart.weightEvolution")}
               </Text>
               <Text
                 style={[styles.sectionSubtitle, { color: colors.text + "60" }]}
               >
-                {selectedPeriod === "7d"
-                  ? t("home.chart.last7Days")
-                  : selectedPeriod === "14d"
-                  ? t("home.chart.last14Days")
-                  : t("home.chart.lastMonth")}
+                {getPeriodSubtitle()}
               </Text>
             </View>
 
@@ -591,7 +609,7 @@ export default function NutritionProgressChart({
                 <Text
                   style={[styles.loadingText, { color: colors.text + "60" }]}
                 >
-                  {t("common.loading")}
+                  {t("weightProgressChart.chart.loading")}
                 </Text>
               </View>
             ) : (
@@ -601,7 +619,7 @@ export default function NutritionProgressChart({
                     labels: labels,
                     datasets: [
                       {
-                        data: caloriesData,
+                        data: weightData.length > 0 ? weightData : [0],
                         color: () => colors.primary,
                         strokeWidth: 2,
                       },
@@ -623,9 +641,28 @@ export default function NutritionProgressChart({
                     elevation: 3,
                   }}
                   withInnerLines={false}
-                  fromZero={true}
                   segments={4}
                 />
+
+                {nutritionInfo.targetWeight && (
+                  <View style={styles.targetInfo}>
+                    <Text
+                      style={[
+                        styles.targetLabel,
+                        { color: colors.text + "80" },
+                      ]}
+                    >
+                      {t("weightProgressChart.chart.weightTarget")}:
+                    </Text>
+                    <Text
+                      style={[styles.targetValue, { color: colors.primary }]}
+                    >
+                      {nutritionInfo.targetWeight}{" "}
+                      {t("weightProgressChart.stats.kg")}
+                    </Text>
+                  </View>
+                )}
+
                 <View style={styles.legendContainer}>
                   <View style={styles.legendItem}>
                     <View
@@ -641,45 +678,13 @@ export default function NutritionProgressChart({
                     <Text
                       style={[styles.legendText, { color: colors.text + "80" }]}
                     >
-                      {t("home.chart.dailyCalories")}
+                      {t("weightProgressChart.chart.legendWeight")}
                     </Text>
                   </View>
                 </View>
               </View>
             )}
           </View>
-
-          {/* Informações estatísticas quando expandido */}
-          {isExpanded && (
-            <View style={styles.statsContainer}>
-              <View style={styles.statItem}>
-                <Text style={[styles.statLabel, { color: colors.text + "70" }]}>
-                  {t("home.chart.average")}
-                </Text>
-                <Text style={[styles.statValue, { color: colors.text }]}>
-                  {averageCalories} {t("common.nutrition.kcal")}
-                </Text>
-              </View>
-
-              <View style={styles.statItem}>
-                <Text style={[styles.statLabel, { color: colors.text + "70" }]}>
-                  {t("home.chart.today")}
-                </Text>
-                <Text style={[styles.statValue, { color: colors.text }]}>
-                  {todayCalories} {t("common.nutrition.kcal")}
-                </Text>
-              </View>
-
-              <View style={styles.statItem}>
-                <Text style={[styles.statLabel, { color: colors.text + "70" }]}>
-                  {t("home.chart.maximum")}
-                </Text>
-                <Text style={[styles.statValue, { color: colors.text }]}>
-                  {maxCalories} {t("common.nutrition.kcal")}
-                </Text>
-              </View>
-            </View>
-          )}
         </View>
       )}
     </View>
@@ -702,15 +707,14 @@ const styles = StyleSheet.create({
     elevation: 5,
     overflow: "hidden",
   },
+  pressableArea: {
+    width: "100%",
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
-  },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
   },
   titleContainer: {
     flexDirection: "row",
@@ -731,6 +735,10 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     marginTop: 2,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   infoButton: {
     width: 36,
@@ -767,9 +775,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-  expandedContent: {
-    marginTop: 8,
-  },
   statsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -795,13 +800,18 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginBottom: 4,
   },
-  loadingContainer: {
-    height: 180,
+  expandIndicator: {
+    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: 8,
+    marginTop: 4,
   },
-  loadingText: {
-    fontSize: 16,
+  expandDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    marginHorizontal: 2,
   },
   emptyContainer: {
     marginVertical: 12,
@@ -809,28 +819,15 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   emptyGradient: {
-    padding: 16,
+    padding: 24,
     alignItems: "center",
     justifyContent: "center",
   },
   emptyText: {
     fontSize: 13,
     textAlign: "center",
-    opacity: 0.8,
   },
-  addButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 10,
-    marginTop: 5,
-  },
-  addButtonText: {
-    color: "white",
-    fontWeight: "600",
-    fontSize: 15,
-  },
-  chartContainer: {
-    alignItems: "center",
+  expandedContent: {
     marginTop: 8,
   },
   expandedSection: {
@@ -852,21 +849,31 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
   },
-  expandIndicator: {
-    flexDirection: "row",
+  chartContainer: {
+    alignItems: "center",
+    marginTop: 8,
+  },
+  loadingContainer: {
+    height: 180,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 8,
-    marginTop: 4,
   },
-  expandDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    marginHorizontal: 2,
+  loadingText: {
+    fontSize: 16,
   },
-  pressableArea: {
-    width: "100%",
+  targetInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 16,
+  },
+  targetLabel: {
+    fontSize: 14,
+    fontWeight: "bold",
+    marginRight: 8,
+  },
+  targetValue: {
+    fontSize: 18,
+    fontWeight: "bold",
   },
   legendContainer: {
     flexDirection: "row",
@@ -887,10 +894,5 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 12,
-  },
-  statItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
   },
 });

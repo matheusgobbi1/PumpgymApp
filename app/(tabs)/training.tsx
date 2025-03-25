@@ -38,7 +38,6 @@ import ConfirmationModal from "../../components/ui/ConfirmationModal";
 import ContextMenu, { MenuAction } from "../../components/shared/ContextMenu";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import HomeHeader from "../../components/home/HomeHeader";
-import { BlurView } from "expo-blur";
 import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
@@ -175,8 +174,6 @@ export default function TrainingScreen() {
   // Estado para controlar a visibilidade do modal de confirmação
   const [resetModalVisible, setResetModalVisible] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  // Estado para controlar a visibilidade do WorkoutConfigSheet
-  const [isWorkoutConfigVisible, setIsWorkoutConfigVisible] = useState(false);
 
   // Estado para contar dias de treino
   const [trainingDays, setTrainingDays] = useState(0);
@@ -351,13 +348,7 @@ export default function TrainingScreen() {
   // Função para abrir o bottom sheet de configuração de treinos
   const openWorkoutConfigSheet = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsWorkoutConfigVisible(true);
     workoutConfigSheetRef.current?.present();
-  }, []);
-
-  // Função para fechar o bottom sheet de configuração de treinos
-  const closeWorkoutConfigSheet = useCallback(() => {
-    setIsWorkoutConfigVisible(false);
   }, []);
 
   // Efeito para abrir o WorkoutConfigSheet quando solicitado via parâmetro
@@ -365,7 +356,6 @@ export default function TrainingScreen() {
     if (params?.openWorkoutConfig === "true") {
       const timer = setTimeout(() => {
         if (workoutConfigSheetRef.current) {
-          setIsWorkoutConfigVisible(true);
           workoutConfigSheetRef.current.present();
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           router.replace("/training");
@@ -456,15 +446,12 @@ export default function TrainingScreen() {
         if (!success) {
           Alert.alert("Erro", "Falha ao atualizar tipos de treino.");
         }
-
-        // Fechar o modal
-        closeWorkoutConfigSheet();
       } catch (error) {
         console.error("Erro ao configurar treinos:", error);
         Alert.alert("Erro", "Ocorreu um erro ao configurar os treinos.");
       }
     },
-    [updateWorkoutTypes, closeWorkoutConfigSheet]
+    [updateWorkoutTypes]
   );
 
   // Função para redefinir os tipos de treino
@@ -639,9 +626,15 @@ export default function TrainingScreen() {
 
   // Função para verificar se o menu deve ser visível
   const isMenuVisible = useMemo(
-    () => hasConfiguredWorkouts && hasWorkoutsForSelectedDate,
-    [hasConfiguredWorkouts, hasWorkoutsForSelectedDate]
+    () => hasConfiguredWorkouts,
+    [hasConfiguredWorkouts]
   );
+
+  // Para debugging do estado de visibilidade do menu
+  useEffect(() => {
+    console.log("hasConfiguredWorkouts:", hasConfiguredWorkouts);
+    console.log("isMenuVisible:", isMenuVisible);
+  }, [hasConfiguredWorkouts, isMenuVisible]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -649,8 +642,10 @@ export default function TrainingScreen() {
         <HomeHeader
           title={t("training.title")}
           count={trainingDays}
-          iconName="barbell-outline"
+          iconName="dumbbell"
+          iconType="material"
           iconColor={colors.success}
+          iconBackgroundColor={colors.success + "15"}
           showContextMenu={true}
           menuActions={menuActions}
           menuVisible={isMenuVisible}
@@ -678,7 +673,6 @@ export default function TrainingScreen() {
         onWorkoutConfigured={handleWorkoutConfigured}
         selectedDate={getLocalDate(selectedDate)}
         key={`workout-config-${workoutConfigKey}-${theme}`}
-        onDismiss={closeWorkoutConfigSheet}
       />
 
       {/* Modal de confirmação para redefinir treinos */}
@@ -693,15 +687,6 @@ export default function TrainingScreen() {
         onConfirm={confirmResetWorkoutTypes}
         onCancel={() => setResetModalVisible(false)}
       />
-
-      {/* Blur overlay quando o WorkoutConfigSheet estiver visível - posicionado fora do SafeAreaView */}
-      {isWorkoutConfigVisible && (
-        <BlurView
-          intensity={theme === "dark" ? 50 : 80}
-          tint={theme === "dark" ? "dark" : "light"}
-          style={styles.blurContainer}
-        />
-      )}
     </SafeAreaView>
   );
 }
@@ -716,9 +701,5 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     padding: 16,
     paddingBottom: 100,
-  },
-  blurContainer: {
-    ...StyleSheet.absoluteFillObject, // Garante cobertura total da tela, incluindo notch
-    zIndex: 50,
   },
 });

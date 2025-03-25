@@ -51,6 +51,12 @@ export type MacroDistribution =
   | "high-fat"
   | "low-carb";
 
+// Interface para entradas do histórico de peso
+export interface WeightHistoryEntry {
+  date: string; // Data no formato ISO string
+  weight: number; // Peso em kg
+}
+
 export interface NutritionInfo {
   gender?: Gender;
   trainingFrequency?: TrainingFrequency;
@@ -71,9 +77,10 @@ export interface NutritionInfo {
   macros?: MacroDistribution;
   meals?: number;
   waterIntake?: number;
-  healthScore?: number;
   updatedAt?: string; // Data da última atualização
   _isModifiedLocally?: boolean; // Flag interna para controle
+  healthScore?: number;
+  weightHistory?: WeightHistoryEntry[]; // Histórico de pesos
 }
 
 interface NutritionContextType {
@@ -87,6 +94,7 @@ interface NutritionContextType {
   syncPendingData: () => Promise<any>;
   saveOnboardingStep: (step: string) => Promise<void>;
   getOnboardingStep: () => Promise<string | null>;
+  getWeightHistory: () => WeightHistoryEntry[];
 }
 
 const NutritionContext = createContext<NutritionContextType | undefined>(
@@ -116,11 +124,11 @@ const initialNutritionInfo: NutritionInfo = {
   macros: undefined,
   meals: undefined,
   waterIntake: 0,
-  healthScore: 0,
   calories: 0,
   protein: 0,
   carbs: 0,
   fat: 0,
+  weightHistory: [], // Explicitamente inicializado como array vazio
 };
 
 export const NutritionProvider = ({ children }: NutritionProviderProps) => {
@@ -164,6 +172,10 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
     if (user) {
       loadUserData();
     } else {
+      // Quando o usuário sair, limpar completamente o estado
+      console.log(
+        "[NutritionContext] Usuário saiu, limpando histórico e dados"
+      );
       resetNutritionInfo();
     }
   }, [user]);
@@ -226,6 +238,14 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
 
       // Se temos dados, processar e atualizar o estado
       if (userData) {
+        // Garantir que um novo usuário tenha um histórico vazio
+        if (isNewUser) {
+          console.log(
+            "[NutritionContext] Novo usuário detectado, inicializando histórico de peso vazio"
+          );
+          userData.weightHistory = []; // Inicializar com array vazio para novos usuários
+        }
+
         // Converter timestamps para Date
         if (userData.birthDate && typeof userData.birthDate === "string") {
           userData.birthDate = new Date(userData.birthDate);
@@ -235,15 +255,69 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         }
 
         setNutritionInfo(userData);
+      } else if (isNewUser) {
+        // Para um novo usuário sem dados, inicializar com valores padrão
+        console.log(
+          "[NutritionContext] Novo usuário sem dados, inicializando valores padrão"
+        );
+        setNutritionInfo({
+          ...initialNutritionInfo,
+          weightHistory: [], // Garantir que o histórico comece vazio
+        });
       }
     } catch (error) {
       // Erro ao carregar dados do usuário
+      console.error("[NutritionContext] Erro ao carregar dados:", error);
     }
   };
 
   const updateNutritionInfo = async (info: Partial<NutritionInfo>) => {
     // Criar uma cópia do estado atual para evitar problemas de referência
     const updatedInfo = { ...nutritionInfo, ...info };
+
+    // Se o peso foi atualizado, adicionar ao histórico de peso
+    if (info.weight && info.weight !== nutritionInfo.weight) {
+      console.log(
+        `[NutritionContext] Atualizando peso: ${nutritionInfo.weight} -> ${info.weight}`
+      );
+      console.log(
+        `[NutritionContext] isNewUser: ${isNewUser}, historicoAtual: ${
+          nutritionInfo.weightHistory ? nutritionInfo.weightHistory.length : 0
+        } entradas`
+      );
+
+      const newWeightEntry: WeightHistoryEntry = {
+        date: new Date().toISOString(),
+        weight: info.weight,
+      };
+
+      // Verificar se este é um novo usuário ou a primeira entrada de peso
+      const isFirstWeightEntry =
+        isNewUser ||
+        !updatedInfo.weightHistory ||
+        updatedInfo.weightHistory.length === 0;
+
+      if (isFirstWeightEntry) {
+        console.log(
+          "[NutritionContext] Inicializando histórico de peso para novo usuário"
+        );
+        updatedInfo.weightHistory = [newWeightEntry];
+      } else {
+        // Verificar se o último peso é diferente para evitar entradas duplicadas
+        const lastEntry = updatedInfo.weightHistory?.[0];
+        if (!lastEntry || lastEntry.weight !== info.weight) {
+          console.log(
+            "[NutritionContext] Adicionando nova entrada ao histórico de peso existente"
+          );
+          updatedInfo.weightHistory = [
+            newWeightEntry,
+            ...(updatedInfo.weightHistory || []),
+          ];
+        } else {
+          console.log("[NutritionContext] Ignorando entrada duplicada de peso");
+        }
+      }
+    }
 
     // Atualizar o estado com os novos valores
     setNutritionInfo(updatedInfo);
@@ -267,7 +341,11 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
 
   // Função para resetar as informações de nutrição
   const resetNutritionInfo = async () => {
-    setNutritionInfo(initialNutritionInfo);
+    // Garantir que o histórico de peso seja explicitamente limpo
+    setNutritionInfo({
+      ...initialNutritionInfo,
+      weightHistory: [], // Garantir que o histórico seja explicitamente vazio
+    });
 
     if (user) {
       await OfflineStorage.clearUserData(user.uid);
@@ -529,8 +607,7 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         targetDate.setDate(targetDate.getDate() + Math.round(weeksToGoal * 7));
       }
 
-      // Adicionar cálculos de Health Score e Water Intake
-      const healthScore = calculateHealthScore(nutritionInfo);
+      // Adicionar cálculo de Water Intake
       const waterIntake = calculateWaterIntake(nutritionInfo);
 
       // Atualizar o estado com os novos valores
@@ -540,7 +617,6 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         carbs: adjustedMacros.carbs,
         fat: adjustedMacros.fat,
         targetDate,
-        healthScore,
         waterIntake,
         activityLevel: trainingFrequency,
       });
@@ -553,7 +629,6 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         protein: 100,
         carbs: 200,
         fat: 70,
-        healthScore: 5,
         waterIntake: 2000,
       });
     }
@@ -773,6 +848,11 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
     return await OfflineStorage.getOnboardingStep();
   };
 
+  // Função para obter o histórico de peso
+  const getWeightHistory = () => {
+    return nutritionInfo.weightHistory || [];
+  };
+
   return (
     <NutritionContext.Provider
       value={{
@@ -786,6 +866,7 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         syncPendingData,
         saveOnboardingStep,
         getOnboardingStep,
+        getWeightHistory,
       }}
     >
       {children}

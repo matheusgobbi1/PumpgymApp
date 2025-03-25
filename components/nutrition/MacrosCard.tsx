@@ -64,7 +64,22 @@ export default function MacrosCard({
     return target - consumed;
   };
 
-  const getProgressColor = (percentage: number) => {
+  const getProgressColor = (
+    percentage: number,
+    consumed: number,
+    target: number,
+    isMacro: boolean
+  ) => {
+    // Para macros (proteína, carboidratos, gordura)
+    if (isMacro && consumed > target) {
+      return colors.danger || "#FF3B30";
+    }
+
+    // Para calorias (permitir 100 kcal de excesso)
+    if (!isMacro && consumed > target + 100) {
+      return colors.danger || "#FF3B30";
+    }
+
     if (percentage >= 90 && percentage <= 110)
       return colors.success || "#4CAF50";
     if (percentage < 90) return colors.primary;
@@ -75,29 +90,38 @@ export default function MacrosCard({
     title: string,
     icon: string,
     iconType: "ionicons" | "material",
-    iconColor: string,
     consumed: number,
     target: number,
     unit: string
   ) => {
     const progress = calculateProgress(consumed, target);
     const remaining = calculateRemaining(consumed, target);
-    const progressColor = getProgressColor(progress);
+    const isMacro = unit === "g"; // Verificar se é um macro (proteínas, carbos, gorduras) ou calorias
+    const progressColor = getProgressColor(progress, consumed, target, isMacro);
     const isExceeded = remaining < 0;
+
+    // Determinar a cor do ícone com base no status de progresso
+    let iconColor;
+
+    // Status de conclusão:
+    if (progress >= 90 && progress <= 110) {
+      // Ideal: entre 90% e 110% da meta
+      iconColor = colors.success || "#4CAF50";
+    } else if (progress < 90) {
+      // Abaixo: menos de 90% da meta
+      iconColor = colors.primary;
+    } else {
+      // Excesso: mais de 110% da meta
+      iconColor = colors.danger || "#FF3B30";
+    }
+
+    // Mostra excesso mesmo quando excede por 1g para macros ou 100kcal para calorias
+    const showExcess = isMacro ? consumed > target : consumed > target + 100;
 
     const displayProgress = Math.min(progress, 100);
 
     return (
-      <MotiView
-        key={`macro-${title}-${theme}`}
-        style={styles.macroRow}
-        from={{ opacity: 0, translateX: -20 }}
-        animate={{ opacity: 1, translateX: 0 }}
-        transition={{
-          type: "spring",
-          delay: title === t("common.nutrition.calories") ? 100 : 200,
-        }}
-      >
+      <View key={`macro-${title}-${theme}`} style={styles.macroRow}>
         <View style={styles.macroInfo}>
           <View style={styles.macroHeader}>
             <View
@@ -123,11 +147,14 @@ export default function MacrosCard({
               <Text style={[styles.remaining, { color: colors.text }]}>
                 {isLoading ? (
                   t("nutrition.loading")
-                ) : isExceeded ? (
+                ) : showExcess ? (
                   <>
                     {t("nutrition.excess")}{" "}
                     <Text
-                      style={[styles.remainingValue, { color: progressColor }]}
+                      style={[
+                        styles.remainingValue,
+                        { color: colors.danger || "#FF3B30" },
+                      ]}
                     >
                       {Math.abs(Math.round(remaining))}
                       {unit}
@@ -180,18 +207,15 @@ export default function MacrosCard({
               : `${Math.round(consumed)}/${Math.round(target)}${unit}`}
           </Text>
         </View>
-      </MotiView>
+      </View>
     );
   };
 
   return (
     <TouchableOpacity>
-      <MotiView
+      <View
         key={`macros-card-${theme}`}
         style={[styles.container, { backgroundColor: colors.background }]}
-        from={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: "spring" }}
       >
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           {t("nutrition.dailyProgress")}
@@ -223,7 +247,6 @@ export default function MacrosCard({
               t("common.nutrition.calories"),
               "flame-outline",
               "ionicons",
-              colors.primary,
               dayTotals.calories,
               nutritionInfo.calories || 0,
               "kcal"
@@ -232,7 +255,6 @@ export default function MacrosCard({
               t("common.nutrition.protein"),
               "food-steak",
               "material",
-              colors.primary,
               dayTotals.protein,
               nutritionInfo.protein || 0,
               "g"
@@ -241,7 +263,6 @@ export default function MacrosCard({
               t("common.nutrition.carbs"),
               "bread-slice",
               "material",
-              colors.primary,
               dayTotals.carbs,
               nutritionInfo.carbs || 0,
               "g"
@@ -250,14 +271,13 @@ export default function MacrosCard({
               t("common.nutrition.fat"),
               "oil",
               "material",
-              colors.primary,
               dayTotals.fat,
               nutritionInfo.fat || 0,
               "g"
             )}
           </View>
         )}
-      </MotiView>
+      </View>
     </TouchableOpacity>
   );
 }

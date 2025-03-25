@@ -171,7 +171,6 @@ export default function GenderScreen() {
     </OnboardingLayout>
   );
 }
-
 const styles = StyleSheet.create({
   optionsContainer: {
     marginTop: 20,
@@ -182,3 +181,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
+

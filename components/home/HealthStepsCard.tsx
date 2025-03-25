@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -8,13 +8,10 @@ import {
   Dimensions,
   Platform,
 } from "react-native";
-import { MotiView } from "moti";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeIn } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
 import { Pedometer } from "expo-sensors";
 import { useTranslation } from "react-i18next";
 
@@ -28,8 +25,9 @@ export default function HealthStepsCard() {
 
   // Estado para armazenar os passos
   const [steps, setSteps] = useState<number | null>(null);
-  const [isPedometerAvailable, setPedometerAvailable] =
-    useState<boolean>(false);
+  const [isPedometerAvailable, setPedometerAvailable] = useState<
+    boolean | null
+  >(null);
   const [loading, setLoading] = useState(true);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [subscription, setSubscription] = useState<any>(null);
@@ -38,13 +36,17 @@ export default function HealthStepsCard() {
   const dailyGoal = 10000;
 
   // Verificar disponibilidade do pedômetro e iniciar monitoramento
-  useEffect(() => {
+  React.useEffect(() => {
+    let isMounted = true;
+
     const checkPermissionAndAvailability = async () => {
       try {
         setLoading(true);
 
         // Verificar se o pedômetro está disponível
         const isAvailable = await Pedometer.isAvailableAsync();
+
+        if (!isMounted) return;
         setPedometerAvailable(isAvailable);
 
         if (!isAvailable) {
@@ -54,6 +56,8 @@ export default function HealthStepsCard() {
 
         // Verificar permissão
         const permission = await Pedometer.requestPermissionsAsync();
+
+        if (!isMounted) return;
         setHasPermission(permission.granted);
 
         if (permission.granted) {
@@ -69,10 +73,14 @@ export default function HealthStepsCard() {
           );
 
           const pastStepsResult = await Pedometer.getStepCountAsync(start, now);
+
+          if (!isMounted) return;
           setSteps(pastStepsResult?.steps || 0);
 
           // Iniciar monitoramento contínuo
-          const subscription = Pedometer.watchStepCount((result) => {
+          const sub = Pedometer.watchStepCount((result) => {
+            if (!isMounted) return;
+
             setSteps((prevSteps) => {
               // Se prevSteps for null, use o valor atual
               if (prevSteps === null) return result.steps;
@@ -82,12 +90,14 @@ export default function HealthStepsCard() {
             });
           });
 
-          setSubscription(subscription);
+          setSubscription(sub);
         }
       } catch (error) {
         console.error("Erro ao acessar pedômetro:", error);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -95,43 +105,68 @@ export default function HealthStepsCard() {
 
     // Limpar inscrição quando o componente for desmontado
     return () => {
+      isMounted = false;
       subscription?.remove();
     };
   }, []);
 
   // Função para conectar com o app de saúde
-  const handleConnectHealth = async () => {
+  const handleConnectHealth = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     if (isPedometerAvailable && !hasPermission) {
       try {
+        setLoading(true);
         const permission = await Pedometer.requestPermissionsAsync();
         setHasPermission(permission.granted);
+
+        if (permission.granted) {
+          // Se a permissão foi concedida, iniciar o monitoramento
+          const now = new Date();
+          const start = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+            0,
+            0,
+            0
+          );
+
+          const pastStepsResult = await Pedometer.getStepCountAsync(start, now);
+          setSteps(pastStepsResult?.steps || 0);
+
+          // Iniciar monitoramento contínuo
+          const sub = Pedometer.watchStepCount((result) => {
+            setSteps((prevSteps) => {
+              if (prevSteps === null) return result.steps;
+              return Math.max(prevSteps, result.steps);
+            });
+          });
+
+          setSubscription(sub);
+        }
       } catch (error) {
         console.error("Erro ao solicitar permissão:", error);
+      } finally {
+        setLoading(false);
       }
     }
-  };
+  }, [isPedometerAvailable, hasPermission]);
 
   // Função para formatar os passos
-  const formatSteps = (steps: number) => {
+  const formattedSteps = useMemo(() => {
+    if (steps === null) return "0";
     return steps >= 1000 ? `${(steps / 1000).toFixed(1)}k` : steps.toString();
-  };
+  }, [steps]);
 
   // Calcular progresso de 0 a 100
-  const getProgress = () => {
+  const progress = useMemo(() => {
     if (steps === null) return 0;
-    const progress = (steps / dailyGoal) * 100;
-    return Math.min(progress, 100);
-  };
+    return Math.min((steps / dailyGoal) * 100, 100);
+  }, [steps, dailyGoal]);
 
   return (
-    <MotiView
-      style={[styles.container, { backgroundColor: colors.light }]}
-      from={{ opacity: 0, translateY: 20 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{ type: "timing", duration: 500 }}
-    >
+    <View style={[styles.container, { backgroundColor: colors.light }]}>
       <View style={styles.header}>
         <View style={styles.titleContainer}>
           <View
@@ -185,50 +220,42 @@ export default function HealthStepsCard() {
             </Text>
           </TouchableOpacity>
         ) : (
-          <Animated.View
-            entering={FadeIn.duration(500)}
-            style={styles.stepsContainer}
-          >
+          <View style={styles.stepsContainer}>
             {/* Área principal com passos e meta */}
             <View style={styles.mainContent}>
               {/* Contagem de passos centralizada */}
               <View style={styles.stepsCountContainer}>
                 <Text style={[styles.stepsCount, { color: colors.text }]}>
-                  {steps !== null ? formatSteps(steps) : "0"}
+                  {formattedSteps}
                 </Text>
               </View>
 
               {/* Meta */}
               <View style={styles.goalContainer}>
-                <Text style={[styles.goalText, { color: colors.text + "80" }]}>
-                  {t("home.stats.target")}: {formatSteps(dailyGoal)}
+                <Text style={[styles.goalText, { color: colors.text + "60" }]}>
+                  {t("home.stats.target")}: {dailyGoal.toLocaleString()}
                 </Text>
               </View>
-            </View>
 
-            {/* Progress bar na base do card */}
-            <View style={styles.progressBarContainer}>
+              {/* Barra de progresso */}
               <View
                 style={[
-                  styles.progressBarBg,
-                  { backgroundColor: colors.border },
+                  styles.progressContainer,
+                  { backgroundColor: colors.text + "10" },
                 ]}
               >
                 <View
                   style={[
-                    styles.progressBarFill,
-                    {
-                      backgroundColor: "#4CAF50",
-                      width: `${getProgress()}%`,
-                    },
+                    styles.progressFill,
+                    { width: `${progress}%`, backgroundColor: "#4CAF50" },
                   ]}
                 />
               </View>
             </View>
-          </Animated.View>
+          </View>
         )}
       </View>
-    </MotiView>
+    </View>
   );
 }
 
@@ -328,18 +355,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-  progressBarContainer: {
+  progressContainer: {
     width: "100%",
     marginTop: 10,
-  },
-  progressBarBg: {
-    width: "100%",
     height: 6,
     borderRadius: 3,
     overflow: "hidden",
     position: "relative",
   },
-  progressBarFill: {
+  progressFill: {
     height: "100%",
     position: "absolute",
     left: 0,

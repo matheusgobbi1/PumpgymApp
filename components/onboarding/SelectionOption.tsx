@@ -1,8 +1,16 @@
 import React, { ReactNode, useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Dimensions,
+} from "react-native";
 import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
 import * as Haptics from "expo-haptics";
+
+const { width: screenWidth } = Dimensions.get("window");
 
 interface SelectionOptionProps {
   title: string;
@@ -23,10 +31,10 @@ export default function SelectionOption({
 }: SelectionOptionProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
-  
+
   // Estado para forçar re-renderização quando o tema mudar
   const [, setForceUpdate] = useState({});
-  
+
   // Efeito para forçar a re-renderização quando o tema mudar
   useEffect(() => {
     setForceUpdate({});
@@ -35,8 +43,10 @@ export default function SelectionOption({
   const getContainerStyle = () => {
     // Novo estilo com fundo azul claro e bordas coloridas quando selecionado
     return {
-      backgroundColor: isSelected 
-        ? (theme === 'dark' ? colors.primary + "20" : colors.primary + "20")
+      backgroundColor: isSelected
+        ? theme === "dark"
+          ? colors.primary + "20"
+          : colors.primary + "20"
         : colors.light,
       borderColor: isSelected ? colors.primary : colors.border,
       borderWidth: isSelected ? 2 : 1,
@@ -65,14 +75,17 @@ export default function SelectionOption({
       activeOpacity={0.7}
     >
       {icon && (
-        <View 
-          key={`icon-container-${theme}`} 
+        <View
+          key={`icon-container-${theme}`}
           style={[
             styles.iconContainer,
             isSelected && {
-              backgroundColor: theme === 'dark' ? colors.primary + "20" : colors.primary + "20",
+              backgroundColor:
+                theme === "dark"
+                  ? colors.primary + "20"
+                  : colors.primary + "20",
               borderRadius: 20,
-            }
+            },
           ]}
         >
           {icon}
@@ -118,6 +131,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 12,
     minHeight: 56,
+    width: "100%",
   },
   iconContainer: {
     width: 40,
