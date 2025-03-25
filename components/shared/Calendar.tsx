@@ -281,12 +281,8 @@ export default function Calendar({
                       style={[
                         styles.dayContainer,
                         isSelected && {
-                          backgroundColor: colors.primary,
-                          shadowColor: colors.primary,
-                          shadowOffset: { width: 0, height: 0 },
-                          shadowOpacity: 0.25,
-                          shadowRadius: 10,
-                          elevation: 5,
+                          backgroundColor: colors.secondary,
+                          
                         },
                         !isSelected &&
                           isToday && {

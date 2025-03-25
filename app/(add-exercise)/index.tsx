@@ -422,37 +422,42 @@ export default function AddExerciseScreen() {
   // Função para adicionar exercício diretamente
   const handleQuickAdd = useCallback(
     (exercise: ExerciseData) => {
+      const exerciseId =
+        exercise.id && exercise.id.startsWith("ex") && exercise.id.length <= 6
+          ? exercise.id
+          : `exercise-${Date.now()}`;
+
       const newExercise: Exercise = {
-        id: `exercise-${Date.now()}`,
+        id: exerciseId,
         name: exercise.name,
+        category: exercise.category,
+        notes: `${exercise.muscle} - ${exercise.equipment}`,
         sets: [
           {
             id: `set-${Date.now()}-1`,
             reps: 12,
             weight: 10,
             completed: false,
+            restTime: 60,
           },
           {
             id: `set-${Date.now()}-2`,
             reps: 12,
             weight: 10,
             completed: false,
+            restTime: 60,
           },
           {
             id: `set-${Date.now()}-3`,
             reps: 12,
             weight: 10,
             completed: false,
+            restTime: 60,
           },
         ],
-        notes: `${exercise.muscle} - ${exercise.equipment}`,
         completed: false,
-        category: exercise.category,
       };
-
       addExerciseToWorkout(workoutId, newExercise);
-
-      // Feedback tátil
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     },
     [workoutId, addExerciseToWorkout]
@@ -535,7 +540,49 @@ export default function AddExerciseScreen() {
           <TouchableOpacity
             key={`add-button-${exercise.id}-${theme}`}
             style={[styles.addButton, { backgroundColor: workoutColor }]}
-            onPress={() => handleQuickAdd(exercise)}
+            onPress={() => {
+              const exerciseId =
+                exercise.id &&
+                exercise.id.startsWith("ex") &&
+                exercise.id.length <= 6
+                  ? exercise.id
+                  : `exercise-${Date.now()}`;
+
+              const newExercise: Exercise = {
+                id: exerciseId,
+                name: exercise.name,
+                category: exercise.category,
+                notes: `${exercise.muscle} - ${exercise.equipment}`,
+                sets: [
+                  {
+                    id: `set-${Date.now()}-1`,
+                    reps: 12,
+                    weight: 10,
+                    completed: false,
+                    restTime: 60,
+                  },
+                  {
+                    id: `set-${Date.now()}-2`,
+                    reps: 12,
+                    weight: 10,
+                    completed: false,
+                    restTime: 60,
+                  },
+                  {
+                    id: `set-${Date.now()}-3`,
+                    reps: 12,
+                    weight: 10,
+                    completed: false,
+                    restTime: 60,
+                  },
+                ],
+                completed: false,
+              };
+              addExerciseToWorkout(workoutId, newExercise);
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success
+              );
+            }}
           >
             <Ionicons name="add" size={20} color="#FFF" />
           </TouchableOpacity>
@@ -696,7 +743,11 @@ export default function AddExerciseScreen() {
                 >
                   <View style={styles.exerciseInfo}>
                     <Text style={[styles.exerciseName, { color: colors.text }]}>
-                      {exercise.name}
+                      {exercise.id &&
+                      exercise.id.startsWith("ex") &&
+                      exercise.id.length <= 6
+                        ? t(`exercises.exercises.${exercise.id}`)
+                        : exercise.name}
                     </Text>
                     <Text
                       style={[
@@ -716,13 +767,24 @@ export default function AddExerciseScreen() {
                       { backgroundColor: workoutColor },
                     ]}
                     onPress={() => {
+                      const exerciseId =
+                        exercise.id &&
+                        exercise.id.startsWith("ex") &&
+                        exercise.id.length <= 6
+                          ? exercise.id
+                          : `exercise-${Date.now()}`;
+
                       const newExercise: Exercise = {
-                        ...exercise,
-                        id: `exercise-${Date.now()}`,
+                        id: exerciseId,
+                        name: exercise.name,
+                        notes: exercise.notes,
+                        category: exercise.category,
                         completed: false,
-                        sets: exercise.sets?.map((set) => ({
-                          ...set,
+                        sets: (exercise.sets || []).map((set) => ({
                           id: `set-${Date.now()}-${Math.random()}`,
+                          reps: set.reps,
+                          weight: set.weight,
+                          restTime: set.restTime || 60,
                           completed: false,
                         })),
                       };

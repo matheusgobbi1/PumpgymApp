@@ -212,7 +212,7 @@ export default function WaterIntakeCard() {
   }, [waterIntake]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.card }]}>
+    <View style={[styles.container, { backgroundColor: colors.light }]}>
       <View style={styles.header}>
         <View style={styles.titleContainer}>
           <View
@@ -332,16 +332,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
   title: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "700",
+    letterSpacing: -0.5,
   },
   content: {
     flex: 1,

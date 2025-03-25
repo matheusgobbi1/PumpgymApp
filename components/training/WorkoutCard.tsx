@@ -25,6 +25,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../../context/AuthContext";
 import ConfirmationModal from "../ui/ConfirmationModal";
 import { useTranslation } from "react-i18next";
+import ProgressionModal from "./ProgressionModal";
 
 const { width } = Dimensions.get("window");
 
@@ -94,6 +95,9 @@ export default function WorkoutCard({
   const [showCopyWorkoutModal, setShowCopyWorkoutModal] = useState(false);
   const [selectedSourceDate, setSelectedSourceDate] = useState<string>("");
   const [showCopySuccess, setShowCopySuccess] = useState(false);
+
+  // Estado para o modal de progressão
+  const [showProgressionModal, setShowProgressionModal] = useState(false);
 
   // Função para resetar os exercícios expandidos
   const resetExpandedExercises = useCallback(() => {
@@ -222,6 +226,12 @@ export default function WorkoutCard({
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   }, [getMostRecentWorkoutDate, handleHapticFeedback]);
+
+  // Função para abrir o modal de progressão
+  const openProgressionModal = useCallback(() => {
+    handleHapticFeedback();
+    setShowProgressionModal(true);
+  }, [handleHapticFeedback]);
 
   // Função para copiar treino de uma data anterior
   const handleCopyWorkout = useCallback(async () => {
@@ -362,7 +372,11 @@ export default function WorkoutCard({
           <View style={styles.exerciseItemLeft}>
             <View style={styles.exerciseTextContainer}>
               <Text style={[styles.exerciseName, { color: colors.text }]}>
-                {exercise.name}
+                {exercise.id &&
+                exercise.id.length <= 6 &&
+                exercise.id.startsWith("ex")
+                  ? t(`exercises.exercises.${exercise.id}`)
+                  : exercise.name}
               </Text>
               <View style={styles.exerciseDetailsContainer}>
                 <Text
@@ -401,9 +415,14 @@ export default function WorkoutCard({
                   <Text style={[styles.macroNumber, { color: colors.text }]}>
                     {exercise.sets[0].reps}
                   </Text>
-                  {"   "}S{" "}
+                  {"   "}
+                  <Ionicons
+                    name="time-outline"
+                    size={14}
+                    color={colors.text + "80"}
+                  />{" "}
                   <Text style={[styles.macroNumber, { color: colors.text }]}>
-                    {exercise.sets ? exercise.sets.length : 0}
+                    {exercise.sets[0].restTime || 60}s
                   </Text>
                 </Text>
               </View>
@@ -429,6 +448,12 @@ export default function WorkoutCard({
             />
           </View>
         </TouchableOpacity>
+
+        {exerciseIndex < exercises.length - 1 && (
+          <View
+            style={[styles.separator, { backgroundColor: colors.border }]}
+          />
+        )}
 
         {/* Exibir detalhes das séries quando o exercício estiver expandido */}
         {expandedExercises[exercise.id] &&
@@ -472,6 +497,14 @@ export default function WorkoutCard({
                   >
                     {t("exercise.reps")}
                   </Text>
+                  <Text
+                    style={[
+                      styles.setsGridHeaderText,
+                      { color: colors.text + "99" },
+                    ]}
+                  >
+                    {t("exercise.restTime", { defaultValue: "Descanso" })}
+                  </Text>
                 </View>
                 {exercise.sets.map((set, setIndex) => (
                   <View key={`set-${set.id}`} style={styles.setRow}>
@@ -483,6 +516,9 @@ export default function WorkoutCard({
                     </Text>
                     <Text style={[styles.setReps, { color: colors.text }]}>
                       {set.reps}
+                    </Text>
+                    <Text style={[styles.setRest, { color: colors.text }]}>
+                      {set.restTime || 60}s
                     </Text>
                   </View>
                 ))}
@@ -551,12 +587,6 @@ export default function WorkoutCard({
               </>
             )}
           </View>
-        )}
-
-        {exerciseIndex < exercises.length - 1 && (
-          <View
-            style={[styles.separator, { backgroundColor: colors.border }]}
-          />
         )}
       </View>
     </Swipeable>
@@ -638,6 +668,26 @@ export default function WorkoutCard({
                   </View>
                 </View>
                 <View style={styles.actionButtonsContainer}>
+                  {/* Botão de progressão - novo botão */}
+                  {getMostRecentWorkoutDate() && (
+                    <TouchableOpacity
+                      style={[
+                        styles.headerActionButton,
+                        {
+                          borderColor: workout.color,
+                          backgroundColor: workout.color + "10",
+                        },
+                      ]}
+                      onPress={openProgressionModal}
+                    >
+                      <Ionicons
+                        name="trending-up-outline"
+                        size={20}
+                        color={workout.color}
+                      />
+                    </TouchableOpacity>
+                  )}
+
                   {/* Botão de copiar treino */}
                   {getMostRecentWorkoutDate() && (
                     <TouchableOpacity
@@ -657,6 +707,8 @@ export default function WorkoutCard({
                       />
                     </TouchableOpacity>
                   )}
+
+                  {/* Botão para adicionar exercício */}
                   <TouchableOpacity
                     style={[
                       styles.headerActionButton,
@@ -796,6 +848,14 @@ export default function WorkoutCard({
         onConfirm={handleCopyWorkout}
         onCancel={() => setShowCopyWorkoutModal(false)}
       />
+
+      {/* Modal de progressão - Novo Modal */}
+      <ProgressionModal
+        visible={showProgressionModal}
+        onClose={() => setShowProgressionModal(false)}
+        workoutId={workout.id}
+        workoutColor={workout.color}
+      />
     </>
   );
 }
@@ -917,6 +977,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   setReps: {
+    fontSize: 13,
+    fontWeight: "600",
+    width: 50,
+    textAlign: "center",
+  },
+  setRest: {
     fontSize: 13,
     fontWeight: "600",
     width: 50,

@@ -50,8 +50,8 @@ interface MealType extends MealTypeContext {
 
 // Cores padrão para os tipos de refeição
 const DEFAULT_MEAL_COLORS: { [key: string]: string } = {
-  breakfast: "#FF9500", // Laranja
-  morning_snack: "#FF3B30", // Vermelho
+  breakfast: "#FF3B30", // Vermelho
+  morning_snack: "#007AFF", // Azul
   lunch: "#34C759", // Verde
   afternoon_snack: "#AF52DE", // Roxo
   dinner: "#5856D6", // Índigo

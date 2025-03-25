@@ -69,7 +69,7 @@ const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
       type: "material" as const,
       name: "arm-flex-outline" as MaterialIconNames,
     },
-    color: "#FF5252",
+    color:"#FF6B6B",
     selected: false,
     isDefault: true,
   },
@@ -351,7 +351,7 @@ const WorkoutConfigSheet = forwardRef<
     }>({
       id: "",
       name: "",
-      color: "#FF5252",
+      color: "#FF6B6B",
       iconType: {
         type: "ionicons",
         name: "barbell-outline" as IoniconsNames,
@@ -454,7 +454,7 @@ const WorkoutConfigSheet = forwardRef<
       setCustomWorkout({
         id: "",
         name: "",
-        color: "#FF5252",
+        color:"#FF6B6B",
         iconType: {
           type: "ionicons",
           name: "barbell-outline" as IoniconsNames,

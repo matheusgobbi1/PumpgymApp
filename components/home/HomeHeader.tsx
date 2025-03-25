@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import {
   View,
   Text,
@@ -7,12 +7,10 @@ import {
   TouchableOpacity,
   Dimensions,
 } from "react-native";
-import { MotiView, AnimatePresence } from "moti";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import { useAuth } from "../../context/AuthContext";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { ptBR, enUS } from "date-fns/locale";
 import ContextMenu, { MenuAction } from "../shared/ContextMenu";
 import { useTranslation } from "react-i18next";
 
@@ -106,19 +104,9 @@ export default function HomeHeader({
   }, [user?.displayName, t]);
 
   return (
-    <MotiView
-      from={{ opacity: 0, translateY: -10 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{ type: "timing", duration: 500 }}
-      style={styles.container}
-    >
+    <View style={styles.container}>
       <View style={styles.content}>
-        <MotiView
-          style={styles.userInfo}
-          from={{ opacity: 0, translateX: -10 }}
-          animate={{ opacity: 1, translateX: 0 }}
-          transition={{ type: "timing", duration: 600, delay: 100 }}
-        >
+        <View style={styles.userInfo}>
           <View style={styles.greetingRow}>
             <Text
               style={[styles.greeting, { color: colors.text, opacity: 0.6 }]}
@@ -134,68 +122,43 @@ export default function HomeHeader({
             </Text>
           </View>
 
-          <AnimatePresence>
-            {title ? (
-              <MotiView
-                key="title"
-                from={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ type: "timing", duration: 300 }}
-                style={styles.subtitleContainer}
+          {title ? (
+            <View style={styles.subtitleContainer}>
+              <Text
+                style={[
+                  styles.titleText,
+                  { color: colors.primary, fontWeight: "600", opacity: 1 },
+                ]}
+                numberOfLines={1}
               >
-                <Text
-                  style={[
-                    styles.titleText,
-                    { color: colors.primary, fontWeight: "600", opacity: 1 },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {title}
-                </Text>
-              </MotiView>
-            ) : (
-              <MotiView
-                key="date"
-                from={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ type: "timing", duration: 300 }}
-                style={styles.subtitleContainer}
+                {title}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.subtitleContainer}>
+              <Text
+                style={[styles.dateText, { color: colors.text, opacity: 0.7 }]}
+                numberOfLines={1}
               >
-                <Text
-                  style={[
-                    styles.dateText,
-                    { color: colors.text, opacity: 0.7 },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {currentDate}
-                </Text>
-              </MotiView>
-            )}
-          </AnimatePresence>
-        </MotiView>
+                {currentDate}
+              </Text>
+            </View>
+          )}
+        </View>
 
         <View style={styles.rightContainer}>
           {count > 0 && (
-            <MotiView
-              from={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", delay: 200 }}
+            <View
+              style={[
+                styles.streakContainer,
+                { backgroundColor: actualIconBackgroundColor },
+              ]}
             >
-              <View
-                style={[
-                  styles.streakContainer,
-                  { backgroundColor: actualIconBackgroundColor },
-                ]}
-              >
-                {iconElement}
-                <Text style={[styles.streakText, { color: colors.text }]}>
-                  {count}
-                </Text>
-              </View>
-            </MotiView>
+              {iconElement}
+              <Text style={[styles.streakText, { color: colors.text }]}>
+                {count}
+              </Text>
+            </View>
           )}
 
           {showContextMenu ? (
@@ -208,29 +171,23 @@ export default function HomeHeader({
             </View>
           ) : (
             onProfilePress && (
-              <MotiView
-                from={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", delay: 300 }}
+              <TouchableOpacity
+                onPress={onProfilePress}
+                style={styles.profileButton}
+                activeOpacity={0.7}
               >
-                <TouchableOpacity
-                  onPress={onProfilePress}
-                  style={styles.profileButton}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name="person-circle-outline"
-                    size={42}
-                    color={colors.primary}
-                    style={{ opacity: 0.9 }}
-                  />
-                </TouchableOpacity>
-              </MotiView>
+                <Ionicons
+                  name="person-circle-outline"
+                  size={42}
+                  color={colors.primary}
+                  style={{ opacity: 0.9 }}
+                />
+              </TouchableOpacity>
             )
           )}
         </View>
       </View>
-    </MotiView>
+    </View>
   );
 }
 
@@ -265,7 +222,7 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   userName: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
     letterSpacing: -0.5,
   },
@@ -274,11 +231,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   titleText: {
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: "500",
   },
   dateText: {
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: "500",
   },
   rightContainer: {
@@ -307,6 +264,7 @@ const styles = StyleSheet.create({
     width: 50,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 24,
   },
   menuContainer: {
     padding: 4,

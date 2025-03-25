@@ -78,6 +78,9 @@ const SetCard = ({
   // Estados locais para os valores de entrada
   const [repsInput, setRepsInput] = useState(set.reps.toString());
   const [weightInput, setWeightInput] = useState(set.weight.toString());
+  const [restTimeInput, setRestTimeInput] = useState(
+    set.restTime ? set.restTime.toString() : "60"
+  );
 
   // Função para atualizar as repetições
   const handleRepsChange = (reps: number) => {
@@ -89,6 +92,12 @@ const SetCard = ({
   const handleWeightChange = (weight: number) => {
     setWeightInput(weight.toString());
     onUpdate({ ...set, weight });
+  };
+
+  // Função para atualizar o tempo de descanso
+  const handleRestTimeChange = (restTime: number) => {
+    setRestTimeInput(restTime.toString());
+    onUpdate({ ...set, restTime });
   };
 
   // Função para validar e atualizar as repetições a partir da entrada de texto
@@ -117,8 +126,21 @@ const SetCard = ({
     }
   };
 
+  // Função para validar e atualizar o tempo de descanso a partir da entrada de texto
+  const handleRestTimeInputChange = (value: string) => {
+    setRestTimeInput(value);
+
+    // Validar se é um número
+    const numValue = parseInt(value);
+    if (!isNaN(numValue)) {
+      // Limitar entre 0 e 300 segundos (5 minutos)
+      const validRestTime = Math.min(300, Math.max(0, numValue));
+      onUpdate({ ...set, restTime: validRestTime });
+    }
+  };
+
   // Função para finalizar a edição e garantir que os valores sejam válidos
-  const handleInputBlur = (type: "reps" | "weight") => {
+  const handleInputBlur = (type: "reps" | "weight" | "restTime") => {
     // Feedback tátil leve
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -134,7 +156,7 @@ const SetCard = ({
         setRepsInput(validReps.toString());
         onUpdate({ ...set, reps: validReps });
       }
-    } else {
+    } else if (type === "weight") {
       const numValue = parseFloat(weightInput);
       if (isNaN(numValue) || numValue < 0) {
         // Se for inválido, resetar para 0
@@ -146,8 +168,23 @@ const SetCard = ({
         setWeightInput(validWeight.toFixed(1));
         onUpdate({ ...set, weight: validWeight });
       }
+    } else if (type === "restTime") {
+      const numValue = parseInt(restTimeInput);
+      if (isNaN(numValue) || numValue < 0) {
+        // Se for inválido, resetar para 60 segundos
+        setRestTimeInput("60");
+        onUpdate({ ...set, restTime: 60 });
+      } else {
+        // Limitar entre 0 e 300 segundos (5 minutos)
+        const validRestTime = Math.min(300, Math.max(0, numValue));
+        setRestTimeInput(validRestTime.toString());
+        onUpdate({ ...set, restTime: validRestTime });
+      }
     }
   };
+
+  // Opções de tempo de descanso pré-definidas
+  const restTimeOptions = [30, 60, 90, 120];
 
   return (
     <View
@@ -274,6 +311,94 @@ const SetCard = ({
               ]}
               onPress={() =>
                 handleWeightChange(Math.min(200, set.weight + 2.5))
+              }
+            >
+              <Ionicons name="add" size={18} color={color} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Seção de tempo de descanso */}
+        <View style={styles.setMetricContainer}>
+          <View style={styles.setMetricHeader}>
+            <Ionicons
+              name="time-outline"
+              size={16}
+              color={color}
+              style={styles.setMetricIcon}
+            />
+            <Text style={[styles.setMetricLabel, { color: colors.text }]}>
+              {t("exercise.restTime", { defaultValue: "Descanso (s)" })}
+            </Text>
+          </View>
+
+          {/* Opções rápidas de tempo de descanso */}
+          <View style={styles.restTimeOptionsContainer}>
+            {restTimeOptions.map((time) => (
+              <TouchableOpacity
+                key={`rest-time-${time}`}
+                style={[
+                  styles.restTimeOption,
+                  {
+                    backgroundColor:
+                      parseInt(restTimeInput) === time ? color : color + "15",
+                  },
+                ]}
+                onPress={() => handleRestTimeChange(time)}
+              >
+                <Text
+                  style={[
+                    styles.restTimeOptionText,
+                    {
+                      color: parseInt(restTimeInput) === time ? "#FFF" : color,
+                    },
+                  ]}
+                >
+                  {time}s
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View
+            style={[
+              styles.setMetricControls,
+              {
+                backgroundColor: colors.background + "80",
+                borderRadius: 10,
+                marginTop: 8,
+              },
+            ]}
+          >
+            <TouchableOpacity
+              style={[
+                styles.setMetricButton,
+                { backgroundColor: color + "15" },
+              ]}
+              onPress={() =>
+                handleRestTimeChange(Math.max(0, (set.restTime || 60) - 5))
+              }
+            >
+              <Ionicons name="remove" size={18} color={color} />
+            </TouchableOpacity>
+
+            <TextInput
+              style={[styles.setMetricValue, { color: colors.text }]}
+              value={restTimeInput}
+              onChangeText={handleRestTimeInputChange}
+              onBlur={() => handleInputBlur("restTime")}
+              keyboardType="number-pad"
+              maxLength={3}
+              selectTextOnFocus
+            />
+
+            <TouchableOpacity
+              style={[
+                styles.setMetricButton,
+                { backgroundColor: color + "15" },
+              ]}
+              onPress={() =>
+                handleRestTimeChange(Math.min(300, (set.restTime || 60) + 5))
               }
             >
               <Ionicons name="add" size={18} color={color} />
@@ -1261,5 +1386,21 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 8,
     paddingHorizontal: 4,
+  },
+  restTimeOptionsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  restTimeOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    minWidth: 55,
+    alignItems: "center",
+  },
+  restTimeOptionText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

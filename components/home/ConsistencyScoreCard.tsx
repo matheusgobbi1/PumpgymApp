@@ -486,8 +486,8 @@ export default function ConsistencyScoreCard({
         color: colors.primary,
       },
       {
-        title: t("home.consistency.workouts.title"),
-        description: t("home.consistency.workouts.description"),
+        title: t("home.consistency.workout.title"),
+        description: t("home.consistency.workout.description"),
         icon: "barbell-outline",
         iconType: "ionicons",
         color: colors.primary,
@@ -523,7 +523,7 @@ export default function ConsistencyScoreCard({
       <View
         style={[
           styles.container,
-          { backgroundColor: colors.card || colors.background },
+          { backgroundColor: colors.light },
         ]}
       >
         <InfoModal
@@ -707,7 +707,8 @@ const CircularScoreDisplay = ({
 const styles = StyleSheet.create({
   container: {
     borderRadius: 16,
-    marginVertical: 8,
+    marginTop: 12,
+    marginBottom: 8,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -726,8 +727,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
   titleContainer: {
     flexDirection: "row",
@@ -785,7 +786,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   metricsContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingBottom: 16,
     paddingTop: 8,
   },

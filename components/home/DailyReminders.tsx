@@ -530,9 +530,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -540,6 +540,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "700",
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 14,
@@ -580,9 +581,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   checkButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 16,
     borderWidth: 1.5,
     justifyContent: "center",
     alignItems: "center",
@@ -658,9 +659,9 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   reminderIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     justifyContent: "center",
     alignItems: "center",
     flexShrink: 0,

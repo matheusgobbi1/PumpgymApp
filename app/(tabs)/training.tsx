@@ -644,8 +644,8 @@ export default function TrainingScreen() {
           count={trainingDays}
           iconName="dumbbell"
           iconType="material"
-          iconColor={colors.success}
-          iconBackgroundColor={colors.success + "15"}
+          iconColor={colors.primary}
+          iconBackgroundColor={colors.primary + "15"}
           showContextMenu={true}
           menuActions={menuActions}
           menuVisible={isMenuVisible}

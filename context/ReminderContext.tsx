@@ -22,7 +22,7 @@ export interface Reminder {
 export const REMINDER_ICONS = [
   { name: "water", label: "Água", color: "#0096FF" },
   { name: "pill", label: "Suplemento", color: "#9575CD" },
-  { name: "dumbbell", label: "Treino", color: "#FF5252" },
+  { name: "dumbbell", label: "Treino", color: "#FF6B6B" },
   { name: "nutrition", label: "Refeição", color: "#4CAF50" },
   { name: "timer", label: "Tempo", color: "#FFA000" },
   { name: "bed", label: "Dormir", color: "#78909C" },

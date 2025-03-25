@@ -126,7 +126,7 @@ export const SyncService = {
         case "meals":
           if (operation.type === "update" && operation.data.date) {
             await setDoc(
-              doc(db, "meals", `${userId}_${operation.data.date}`),
+              doc(db, "users", userId, "meals", operation.data.date),
               { userId, date: operation.data.date, data: operation.data.data },
               { merge: true }
             );
@@ -230,7 +230,7 @@ export const SyncService = {
           );
 
           await setDoc(
-            doc(db, "meals", `${currentUser.uid}_${date}`),
+            doc(db, "users", currentUser.uid, "meals", date),
             {
               userId: currentUser.uid,
               date,

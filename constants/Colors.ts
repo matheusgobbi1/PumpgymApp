@@ -1,57 +1,57 @@
-const tintColorLight = "#333"; // Azul principal
-const tintColorDark = "#fffff4"; // Mesmo azul para dark mode
+const tintColorLight = "#2A2A2A"; // Preto suave principal
+const tintColorDark = "#F7F7F7"; // Branco suave para dark mode
 
 export default {
   light: {
-    text: "#333333", // Cinza escuro para texto
-    background: "#FFFFFF", // Fundo branco
+    text: "#2A2A2A", // Preto suave
+    background: "#FFFFFF", // Fundo branco puro
     tint: tintColorLight,
-    tabIconDefault: "#ccc",
+    tabIconDefault: "#CCCCCC",
     tabIconSelected: tintColorLight,
-    primary: "#000000", // Cor preta (botão principal, ícones etc.)
+    primary: "#1E1E1E", // Preto intenso
     black: "#000000",
-    secondary: "#333333", // Cinza escuro
-    accent: "#00BFFF", // Azul claro
-    success: "#4BB543", // Verde
-    danger: "#FF0000", // Vermelho
-    warning: "#FFC107", // Amarelo
-    info: "#0096FF", // Azul
-    light: "#F8F9FA", // Cinza muito claro para cards
+    secondary: "#4A4A4A", // Cinza escuro
+    accent: "#6C63FF", // Roxo suave
+    success: "#3ECF8E", // Verde menta
+    danger: "#FF6B6B", // Vermelho coral
+    warning: "#FFD166", // Amarelo suave
+    info: "#4ECDC4", // Turquesa
+    light: "#F9F9F9", // Branco levemente off-white
     dark: "#212121", // Quase preto
-    border: "#E9ECEF", // Borda sutil
-    card: "rgba(0,0,0,0.03)", // Cor para cards
+    border: "#EFEFEF", // Borda mais subtil
+    card: "rgba(0,0,0,0.02)", // Cor para cards mais sutil
 
     // Cores específicas para gráficos
-    chartBackground: "60", // Azul bem clarinho para fundo
-    chartGradientStart: "#e6f2ff", // Azul clarinho para gradiente inicial
-    chartGradientEnd: "#f5faff", // Azul mais claro para gradiente final
-    chartGrid: "#d0e1f9", // Azul suave para linhas de grade
+    chartBackground: "rgba(108, 99, 255, 0.05)", // Roxo bem clarinho
+    chartGradientStart: "#F5F4FF", // Lilás clarinho
+    chartGradientEnd: "#FFFFFF", // Branco para gradiente final
+    chartGrid: "#EEEEEE", // Cinza claro para linhas de grade
     chartDotFill: "#FFFFFF", // Branco para preenchimento dos pontos
   },
   dark: {
-    text: "#F8F9FA", // Texto claro
+    text: "#F7F7F7", // Branco suave
     background: "#121212", // Fundo escuro
     tint: tintColorDark,
-    tabIconDefault: "#ccc",
+    tabIconDefault: "#8A8A8A",
     tabIconSelected: tintColorDark,
-    primary: "#BBBBBB", // Cinza médio (botão principal, ícones etc.)
+    primary: "#e5e5e5", // Branco acinzentado
     black: "#000000",
-    secondary: "#E0E0E0", // Cinza claro
-    accent: "#00BFFF", // Azul claro
-    success: "#4BB543", // Verde
-    danger: "#FF0000", // Vermelho
-    warning: "#FFC107", // Amarelo
-    info: "#0096FF", // Azul
+    secondary: "#BDBDBD", // Cinza claro
+    accent: "#7B73FF", // Roxo mais brilhante
+    success: "#4DD8A5", // Verde menta mais brilhante
+    danger: "#FF6B6B", // Vermelho coral mais suave
+    warning: "#FFE066", // Amarelo mais suave
+    info: "#5DDED6", // Turquesa mais brilhante
     light: "#1E1E1E", // Cinza escuro para cards
-    dark: "#121212", // Quase preto
-    border: "#333333", // Borda sutil para dark mode
-    card: "rgba(255,255,255,0.05)", // Cor para cards em modo escuro
+    dark: "#0A0A0A", // Preto profundo
+    border: "#2A2A2A", // Borda mais definida
+    card: "rgba(255,255,255,0.03)", // Cor para cards em modo escuro
 
     // Cores específicas para gráficos
-    chartBackground: "60", // Azul escuro para fundo
-    chartGradientStart: "#1E1E1E", // Azul mais escuro para gradiente inicial
-    chartGradientEnd: "#f5faff", // Azul um pouco mais claro para gradiente final
-    chartGrid: "#2c3e50", // Azul médio para linhas de grade
+    chartBackground: "rgba(123, 115, 255, 0.1)", // Roxo escuro para fundo
+    chartGradientStart: "#2A2730", // Roxo escuro para gradiente inicial
+    chartGradientEnd: "#1A1A1A", // Cinza escuro para gradiente final
+    chartGrid: "#2C2C2C", // Cinza médio para linhas de grade
     chartDotFill: "#121212", // Cor escura para preenchimento dos pontos
   },
 };

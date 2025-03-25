@@ -8,7 +8,6 @@ import {
   Platform,
   UIManager,
 } from "react-native";
-import { MotiView } from "moti";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTheme } from "../../context/ThemeContext";
@@ -35,6 +34,8 @@ interface TrainingStatsCardProps {
     avgReps: number;
     totalReps: number;
     caloriesBurned: number;
+    trainingDensity: number;
+    avgRestTime: number;
   };
   previousWorkoutTotals?: {
     totals: {
@@ -47,6 +48,8 @@ interface TrainingStatsCardProps {
       avgReps: number;
       totalReps: number;
       caloriesBurned: number;
+      trainingDensity: number;
+      avgRestTime: number;
     } | null;
     date: string | null;
   };
@@ -55,6 +58,7 @@ interface TrainingStatsCardProps {
   currentExercises: Exercise[];
   previousExercises?: Exercise[];
   notificationsEnabled?: boolean;
+  workoutId?: string;
 }
 
 // Função auxiliar para substituir parseISO
@@ -70,20 +74,18 @@ export default function TrainingStatsCard({
   currentExercises,
   previousExercises,
   notificationsEnabled = true,
+  workoutId,
 }: TrainingStatsCardProps) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!workoutTotals);
   const { theme } = useTheme();
   const colors = Colors[theme];
-  const [isExpanded, setIsExpanded] = useState(false);
   const { t } = useTranslation();
 
-  useEffect(() => {
-    // Verificar se os dados de treino estão disponíveis
-    if (workoutTotals) {
-      setIsLoading(false);
-    }
-  }, [workoutTotals]);
+  // Atualiza o estado de carregamento se a prop workoutTotals mudar
+  if (workoutTotals && isLoading) {
+    setIsLoading(false);
+  }
 
   const formatVolume = useCallback((volume: number) => {
     if (volume >= 1000) {
@@ -106,9 +108,76 @@ export default function TrainingStatsCard({
     return ((current - previous) / previous) * 100;
   }, []);
 
+  // Analisa múltiplas métricas para detectar progresso na intensidade
+  const analyzeProgressContext = useCallback(
+    (
+      title: string,
+      current: number,
+      previous: number | null,
+      avgWeightProgress: number | null,
+      maxWeightProgress: number | null,
+      trainingDensityProgress: number | null
+    ) => {
+      if (!previous)
+        return { progress: 0, isPositiveContext: false, message: "" };
+
+      const progress = ((current - previous) / previous) * 100;
+
+      // Caso específico para análise de volume quando há aumento de peso
+      if (
+        title === t("training.stats.totalVolume") &&
+        progress < 0 && // Volume diminuiu
+        avgWeightProgress !== null &&
+        avgWeightProgress > 0 // Mas peso médio aumentou
+      ) {
+        return {
+          progress: progress, // Mantém o valor real do progresso
+          isPositiveContext: true, // Mas indica contexto positivo
+          message: t("training.stats.intensityIncrease"),
+        };
+      }
+
+      // Caso específico para análise de repetições quando há aumento de peso
+      if (
+        title === t("training.stats.repetitions") &&
+        progress < 0 && // Repetições diminuíram
+        maxWeightProgress !== null &&
+        maxWeightProgress > 5 // Mas peso máximo aumentou significativamente
+      ) {
+        return {
+          progress: progress,
+          isPositiveContext: true,
+          message: t("training.stats.strengthProgress"),
+        };
+      }
+
+      // Caso específico para análise do tempo de descanso (um menor tempo de descanso é positivo)
+      if (
+        title === t("training.stats.restTime") &&
+        progress < 0 // Tempo de descanso diminuiu
+      ) {
+        return {
+          progress: Math.abs(progress), // Inverter para mostrar como positivo
+          isPositiveContext: true,
+          message: t("training.stats.intensityIncrease"),
+        };
+      }
+
+      return {
+        progress,
+        isPositiveContext: false,
+        message: "",
+      };
+    },
+    [t]
+  );
+
   const getProgressColor = useCallback(
-    (progress: number) => {
-      // Usar cores do MacrosCard.tsx com a lógica específica para progresso
+    (progress: number, isPositiveContext: boolean = false) => {
+      // Lógica especial: se estiver em contexto positivo, usar cor de sucesso mesmo para valor negativo
+      if (isPositiveContext) return colors.success || "#4CAF50";
+
+      // Lógica padrão para outros casos
       if (progress > 0) return colors.success || "#4CAF50"; // Aumento (verde)
       if (progress == 0) return colors.text + "80"; // Sem alteração (cor de texto com opacidade)
       return colors.danger || "#FF3B30"; // Diminuição (vermelho)
@@ -116,10 +185,34 @@ export default function TrainingStatsCard({
     [colors.text, colors.success, colors.danger]
   );
 
-  const toggleExpand = useCallback(() => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setIsExpanded((prev) => !prev);
-  }, []);
+  const navigateToDetailsScreen = useCallback(() => {
+    // Navegação para a tela de detalhes como modal com todos os dados necessários
+    router.push({
+      pathname: "/workout/stats",
+      params: {
+        workoutId: workoutId || "",
+        workoutName,
+        workoutColor,
+        currentExercises: JSON.stringify(currentExercises),
+        previousExercises: previousExercises
+          ? JSON.stringify(previousExercises)
+          : "",
+        workoutTotals: JSON.stringify(workoutTotals),
+        previousWorkoutTotals: previousWorkoutTotals
+          ? JSON.stringify(previousWorkoutTotals)
+          : "",
+      },
+    });
+  }, [
+    router,
+    workoutId,
+    workoutName,
+    workoutColor,
+    currentExercises,
+    previousExercises,
+    workoutTotals,
+    previousWorkoutTotals,
+  ]);
 
   const renderStatRow = useCallback(
     (
@@ -128,25 +221,71 @@ export default function TrainingStatsCard({
       current: number,
       previous: number | null,
       unit: string,
-      formatter: (value: number) => string = (value) => value.toString()
+      formatter: (value: number) => string = (value) => value.toString(),
+      inverseProgress: boolean = false // Parâmetro adicional para inverter a lógica de progresso (para tempo de descanso)
     ) => {
       const hasPrevious = previous !== null && previous > 0;
-      const progress = hasPrevious ? calculateProgress(current, previous) : 0;
-      const progressColor = hasPrevious
-        ? getProgressColor(progress)
-        : colors.text + "80";
-      const isExceeded = progress > 0;
-      const isMaintained = progress === 0;
 
-      const displayProgress = Math.min(Math.abs(progress), 100);
+      // Calcular progresso em métricas de peso para análise de contexto
+      const avgWeightProgress = previousWorkoutTotals?.totals?.avgWeight
+        ? calculateProgress(
+            workoutTotals.avgWeight,
+            previousWorkoutTotals.totals.avgWeight
+          )
+        : null;
+
+      const maxWeightProgress = previousWorkoutTotals?.totals?.maxWeight
+        ? calculateProgress(
+            workoutTotals.maxWeight,
+            previousWorkoutTotals.totals.maxWeight
+          )
+        : null;
+
+      const trainingDensityProgress = previousWorkoutTotals?.totals
+        ?.trainingDensity
+        ? calculateProgress(
+            workoutTotals.trainingDensity,
+            previousWorkoutTotals.totals.trainingDensity
+          )
+        : null;
+
+      // Analisa o contexto do progresso considerando outras métricas
+      const { progress, isPositiveContext, message } = hasPrevious
+        ? analyzeProgressContext(
+            title,
+            current,
+            previous,
+            avgWeightProgress,
+            maxWeightProgress,
+            trainingDensityProgress
+          )
+        : { progress: 0, isPositiveContext: false, message: "" };
+
+      let displayProgress = progress;
+      // Se for um progresso inverso (como tempo de descanso), inverte a lógica
+      if (inverseProgress && hasPrevious) {
+        displayProgress = -progress; // Para tempo de descanso, diminuir é bom
+      }
+
+      const progressColor = hasPrevious
+        ? getProgressColor(displayProgress, isPositiveContext)
+        : colors.text + "80";
+
+      const isExceeded = displayProgress > 0;
+      const isMaintained = displayProgress === 0;
+
+      const displayProgressAbs = Math.min(Math.abs(displayProgress), 100);
 
       // Definir uma cor de fundo para o ícone mesmo quando é o primeiro treino
       const iconBackgroundColor = hasPrevious
         ? progressColor + "15"
         : colors.primary + "15"; // Usar a cor primária quando não há dados anteriores
 
+      // Identificador único para cada linha de estatística
+      const statKey = `stat-${title}-${theme}`;
+
       return (
-        <View key={`stat-${title}-${theme}`} style={styles.statRow}>
+        <View key={statKey} style={styles.statRow}>
           <View style={styles.statInfo}>
             <View style={styles.statHeader}>
               <View
@@ -180,31 +319,40 @@ export default function TrainingStatsCard({
                             { color: progressColor },
                           ]}
                         >
-                          {Math.abs(Math.round(progress))}%
+                          {Math.abs(Math.round(displayProgress))}%
                         </Text>
                       </>
                     ) : isExceeded ? (
                       <>
-                        {t("training.stats.increase")}{" "}
+                        {inverseProgress && !isPositiveContext
+                          ? t("training.stats.increase")
+                          : !inverseProgress
+                          ? t("training.stats.increase")
+                          : t("training.stats.decrease")}{" "}
                         <Text
                           style={[
                             styles.comparisonValue,
                             { color: progressColor },
                           ]}
                         >
-                          {Math.abs(Math.round(progress))}%
+                          {Math.abs(Math.round(displayProgress))}%
                         </Text>
                       </>
                     ) : (
                       <>
-                        {t("training.stats.decrease")}{" "}
+                        {message ||
+                          (inverseProgress && !isPositiveContext
+                            ? t("training.stats.decrease")
+                            : !inverseProgress
+                            ? t("training.stats.decrease")
+                            : t("training.stats.increase"))}{" "}
                         <Text
                           style={[
                             styles.comparisonValue,
                             { color: progressColor },
                           ]}
                         >
-                          {Math.abs(Math.round(progress))}%
+                          {Math.abs(Math.round(displayProgress))}%
                         </Text>
                       </>
                     )
@@ -217,8 +365,7 @@ export default function TrainingStatsCard({
           </View>
 
           <View style={styles.progressWrapper}>
-            <MotiView
-              key={`progress-bar-${title}-${theme}`}
+            <View
               style={[
                 styles.progressBar,
                 {
@@ -227,20 +374,17 @@ export default function TrainingStatsCard({
               ]}
             >
               {!isLoading && hasPrevious && (
-                <MotiView
-                  key={`progress-fill-${title}-${theme}`}
-                  from={{ width: "0%" }}
-                  animate={{ width: `${displayProgress}%` }}
-                  transition={{ type: "timing", duration: 1000 }}
+                <View
                   style={[
                     styles.progressFill,
                     {
                       backgroundColor: progressColor,
+                      width: `${displayProgressAbs}%`,
                     },
                   ]}
                 />
               )}
-            </MotiView>
+            </View>
             <Text style={[styles.progressText, { color: colors.text }]}>
               {isLoading
                 ? "..."
@@ -254,255 +398,32 @@ export default function TrainingStatsCard({
     },
     [
       calculateProgress,
-      colors.text,
+      analyzeProgressContext,
+      getProgressColor,
       colors.border,
       colors.primary,
-      getProgressColor,
+      colors.text,
       isLoading,
-      theme,
       t,
+      theme,
     ]
   );
 
-  // Memoizar a comparação de exercícios para evitar recálculos desnecessários
-  const exerciseComparison = useMemo(() => {
-    if (!previousExercises || previousExercises.length === 0) {
-      return (
-        <View style={styles.noComparisonContainer}>
-          <Text
-            style={[styles.noComparisonText, { color: colors.text + "80" }]}
-          >
-            {t("training.stats.noComparisonText")}
-          </Text>
-        </View>
-      );
-    }
+  // Formatar tempo de descanso para exibição (segundos para texto)
+  const formatRestTime = useCallback((seconds: number) => {
+    return `${seconds}`;
+  }, []);
+
+  // Formatar densidade de treino para exibição (relação trabalho/descanso)
+  const formatDensity = useCallback((density: number) => {
+    return density.toFixed(2);
+  }, []);
+
+  // Adicionar métricas importantes para a visualização de progresso
+  const statsContainer = useMemo(() => {
+    if (isLoading) return <View style={styles.statsContainer} />;
 
     return (
-      <View style={styles.exercisesContainer}>
-        <Text style={[styles.exercisesTitle, { color: colors.text }]}>
-          {t("training.stats.evolutionByExercise")}
-        </Text>
-
-        {currentExercises.map((currentExercise, index) => {
-          const previousExercise = previousExercises.find(
-            (ex) => ex.name.toLowerCase() === currentExercise.name.toLowerCase()
-          );
-
-          // Calcular estatísticas do exercício atual
-          const currentSets = currentExercise.sets || [];
-          const currentTotalSets = currentSets.length;
-          let currentTotalReps = 0;
-          let currentTotalWeight = 0;
-          let currentMaxWeight = 0;
-
-          currentSets.forEach((set) => {
-            currentTotalReps += set.reps;
-            currentTotalWeight += set.weight * set.reps;
-            if (set.weight > currentMaxWeight) {
-              currentMaxWeight = set.weight;
-            }
-          });
-
-          // Calcular estatísticas do exercício anterior
-          const previousSets = previousExercise?.sets || [];
-          const previousTotalSets = previousSets.length;
-          let previousTotalReps = 0;
-          let previousTotalWeight = 0;
-          let previousMaxWeight = 0;
-
-          previousSets.forEach((set) => {
-            previousTotalReps += set.reps;
-            previousTotalWeight += set.weight * set.reps;
-            if (set.weight > previousMaxWeight) {
-              previousMaxWeight = set.weight;
-            }
-          });
-
-          const volumeProgress =
-            previousTotalWeight > 0
-              ? ((currentTotalWeight - previousTotalWeight) /
-                  previousTotalWeight) *
-                100
-              : 0;
-
-          const progressColor = getProgressColor(volumeProgress);
-
-          return (
-            <View
-              key={`exercise-${currentExercise.id}-${index}`}
-              style={[styles.exerciseCard, { backgroundColor: colors.card }]}
-            >
-              <View style={styles.exerciseHeader}>
-                <View style={styles.exerciseNameContainer}>
-                  <View
-                    style={[
-                      styles.exerciseIconContainer,
-                      { backgroundColor: progressColor + "15" },
-                    ]}
-                  >
-                    <Ionicons
-                      name={
-                        currentExercise.category === "cardio"
-                          ? "fitness-outline"
-                          : "barbell-outline"
-                      }
-                      size={16}
-                      color={progressColor}
-                    />
-                  </View>
-                  <Text style={[styles.exerciseName, { color: colors.text }]}>
-                    {currentExercise.name}
-                  </Text>
-                </View>
-
-                {previousExercise && (
-                  <View
-                    style={[
-                      styles.exerciseProgressBadge,
-                      { backgroundColor: progressColor + "15" },
-                    ]}
-                  >
-                    <Ionicons
-                      name={
-                        volumeProgress > 0
-                          ? "trending-up"
-                          : volumeProgress < 0
-                          ? "trending-down"
-                          : "remove-outline" // Ícone horizontal para "mantido"
-                      }
-                      size={14}
-                      color={progressColor}
-                    />
-                    <Text
-                      style={[
-                        styles.exerciseProgressText,
-                        { color: progressColor },
-                      ]}
-                    >
-                      {Math.abs(Math.round(volumeProgress))}%
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.exerciseStatsGrid}>
-                <View style={styles.exerciseStatItem}>
-                  <Text
-                    style={[styles.exerciseStatValue, { color: colors.text }]}
-                  >
-                    {currentTotalWeight}kg
-                  </Text>
-                  <Text
-                    style={[
-                      styles.exerciseStatLabel,
-                      { color: colors.text + "80" },
-                    ]}
-                  >
-                    {t("training.stats.volume")}
-                  </Text>
-                  {previousTotalWeight > 0 && (
-                    <Text
-                      style={[
-                        styles.exerciseStatPrevious,
-                        { color: colors.text + "60" },
-                      ]}
-                    >
-                      {t("training.stats.previous")}: {previousTotalWeight}kg
-                    </Text>
-                  )}
-                </View>
-
-                <View
-                  style={[
-                    styles.exerciseStatDivider,
-                    { backgroundColor: colors.border },
-                  ]}
-                />
-
-                <View style={styles.exerciseStatItem}>
-                  <Text
-                    style={[styles.exerciseStatValue, { color: colors.text }]}
-                  >
-                    {currentMaxWeight}kg
-                  </Text>
-                  <Text
-                    style={[
-                      styles.exerciseStatLabel,
-                      { color: colors.text + "80" },
-                    ]}
-                  >
-                    {t("training.stats.maxWeight")}
-                  </Text>
-                  {previousMaxWeight > 0 && (
-                    <Text
-                      style={[
-                        styles.exerciseStatPrevious,
-                        { color: colors.text + "60" },
-                      ]}
-                    >
-                      {t("training.stats.previous")}: {previousMaxWeight}kg
-                    </Text>
-                  )}
-                </View>
-
-                <View
-                  style={[
-                    styles.exerciseStatDivider,
-                    { backgroundColor: colors.border },
-                  ]}
-                />
-
-                <View style={styles.exerciseStatItem}>
-                  <Text
-                    style={[styles.exerciseStatValue, { color: colors.text }]}
-                  >
-                    {currentTotalSets}×
-                    {currentSets.length > 0
-                      ? Math.round(currentTotalReps / currentTotalSets)
-                      : 0}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.exerciseStatLabel,
-                      { color: colors.text + "80" },
-                    ]}
-                  >
-                    {t("training.stats.seriesReps")}
-                  </Text>
-                  {previousTotalSets > 0 && (
-                    <Text
-                      style={[
-                        styles.exerciseStatPrevious,
-                        { color: colors.text + "60" },
-                      ]}
-                    >
-                      {t("training.stats.previous")}: {previousTotalSets}×
-                      {previousSets.length > 0
-                        ? Math.round(previousTotalReps / previousTotalSets)
-                        : 0}
-                    </Text>
-                  )}
-                </View>
-              </View>
-            </View>
-          );
-        })}
-      </View>
-    );
-  }, [
-    colors.text,
-    colors.card,
-    colors.border,
-    workoutColor,
-    currentExercises,
-    previousExercises,
-    getProgressColor,
-    t,
-  ]);
-
-  const statsContainer = useMemo(
-    () => (
       <View style={styles.statsContainer}>
         {renderStatRow(
           t("training.stats.calories"),
@@ -510,6 +431,13 @@ export default function TrainingStatsCard({
           workoutTotals.caloriesBurned,
           previousWorkoutTotals?.totals?.caloriesBurned || null,
           " kcal"
+        )}
+        {renderStatRow(
+          t("training.stats.avgWeight"),
+          "speedometer-outline",
+          workoutTotals.avgWeight,
+          previousWorkoutTotals?.totals?.avgWeight || null,
+          " kg"
         )}
         {renderStatRow(
           t("training.stats.totalVolume"),
@@ -526,29 +454,31 @@ export default function TrainingStatsCard({
           previousWorkoutTotals?.totals?.totalReps || null,
           ""
         )}
-        {renderStatRow(
-          t("training.stats.sets"),
-          "layers-outline",
-          workoutTotals.totalSets,
-          previousWorkoutTotals?.totals?.totalSets || null,
-          ""
-        )}
       </View>
-    ),
-    [
-      renderStatRow,
-      workoutTotals.totalVolume,
-      workoutTotals.caloriesBurned,
-      workoutTotals.totalReps,
-      workoutTotals.totalSets,
-      previousWorkoutTotals?.totals,
-      formatVolume,
-      t,
-    ]
-  );
+    );
+  }, [
+    renderStatRow,
+    isLoading,
+    t,
+    workoutTotals?.caloriesBurned,
+    workoutTotals?.avgWeight,
+    workoutTotals?.totalVolume,
+    workoutTotals?.totalReps,
+    previousWorkoutTotals?.totals?.caloriesBurned,
+    previousWorkoutTotals?.totals?.avgWeight,
+    previousWorkoutTotals?.totals?.totalVolume,
+    previousWorkoutTotals?.totals?.totalReps,
+    formatVolume,
+  ]);
+
+  const hasPreviousWorkout = previousExercises && previousExercises.length > 0;
 
   return (
-    <TouchableOpacity activeOpacity={0.7} onPress={toggleExpand}>
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={navigateToDetailsScreen}
+      disabled={false}
+    >
       <View
         key={`training-stats-card-${theme}`}
         style={[styles.container, { backgroundColor: colors.background }]}
@@ -569,18 +499,6 @@ export default function TrainingStatsCard({
         </View>
 
         {statsContainer}
-
-        {isExpanded && (
-          <View style={styles.expandedContent}>{exerciseComparison}</View>
-        )}
-
-        <View style={styles.expandHintContainer}>
-          <Text style={[styles.expandHint, { color: colors.text + "60" }]}>
-            {isExpanded
-              ? t("training.stats.tapToCollapse")
-              : t("training.stats.tapToSeeDetails")}
-          </Text>
-        </View>
       </View>
     </TouchableOpacity>
   );
@@ -589,7 +507,7 @@ export default function TrainingStatsCard({
 const styles = StyleSheet.create({
   container: {
     borderRadius: 16,
-    marginBottom: 16,
+    marginBottom: 30,
   },
   headerContainer: {
     flexDirection: "row",
@@ -649,100 +567,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "right",
     opacity: 0.8,
-  },
-  expandedContent: {
-    marginTop: 16,
-    overflow: "hidden",
-  },
-  expandHintContainer: {
-    alignItems: "center",
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  expandHint: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  exercisesContainer: {
-    gap: 12,
-  },
-  exercisesTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  exerciseCard: {
-    borderRadius: 16,
-    padding: 16,
-    gap: 16,
-  },
-  exerciseHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  exerciseNameContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  exerciseIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  exerciseName: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  exerciseProgressBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-  exerciseProgressText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  exerciseStatsGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "stretch",
-  },
-  exerciseStatItem: {
-    flex: 1,
-    alignItems: "center",
-    gap: 4,
-  },
-  exerciseStatValue: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  exerciseStatLabel: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  exerciseStatPrevious: {
-    fontSize: 11,
-    textAlign: "center",
-  },
-  exerciseStatDivider: {
-    width: 1,
-    marginHorizontal: 12,
-  },
-  noComparisonContainer: {
-    padding: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  noComparisonText: {
-    fontSize: 14,
-    textAlign: "center",
   },
   iconContainer: {
     width: 36,

@@ -174,7 +174,14 @@
       "increase": "Aumento",
       "decrease": "Redução",
       "maintained": "Manteve",
-      "firstWorkout": "Primeiro treino"
+      "firstWorkout": "Primeiro treino",
+      "avgWeight": "Peso Médio",
+      "strengthProgress": "Progresso de Força",
+      "intensityIncrease": "Aumento de Intensidade",
+      "trainingDensity": "Densidade do Treino",
+      "restTime": "Tempo de Descanso",
+      "summary": "Resumo",
+      "firstWorkoutNoComparison": "Este é o primeiro treino registrado. Faça mais treinos para ver a evolução ao longo do tempo."
     },
     "progressInfo": {
       "title": "Progresso de Treinos",
@@ -558,6 +565,7 @@
     "notes": "Observações",
     "notesPlaceholder": "Adicione observações sobre o exercício...",
     "addToWorkout": "Adicionar ao",
+    "restTime": "Descanso (s)",
     "progressSuggestion": {
       "increaseReps": "Tente aumentar de {{current}} para {{target}} repetições no {{name}}",
       "increaseWeight": "Experimente aumentar o peso de {{current}}kg para {{target}}kg no {{name}}"
@@ -732,7 +740,18 @@
         "title": "Dicas para Alimentação Saudável",
         "description": "Lembre-se que qualidade é tão importante quanto quantidade. Foque em alimentos nutritivos e variados, não apenas no total de calorias consumidas."
       }
-    }
+    },
+    "macros": {
+      "protein_short": "P",
+      "carbs_short": "C",
+      "fat_short": "G"
+    },
+    "units": {
+      "gram": "g",
+      "kcal": "kcal"
+    },
+    "addFirstFood": "Adicione seu primeiro alimento",
+    "mealCopiedSuccess": "Refeição copiada com sucesso!"
   },
   "home": {
     "greeting": {
@@ -1266,5 +1285,18 @@
       "ex120": "Abdominal na Máquina",
       "ex121": "Abdominal com Roda"
     }
+  },
+  "progression": {
+    "title": "Sugestões de Progressão",
+    "basedOn": "Baseado no treino de {{date}}",
+    "noHistory": "Sem histórico de treino",
+    "completeWorkoutFirst": "Complete este treino primeiro para receber sugestões de progressão na próxima sessão.",
+    "noSuggestions": "Nenhuma sugestão disponível",
+    "keepGoing": "Continue com o mesmo peso e repetições por enquanto. Sugestões aparecerão conforme você progride.",
+    "increaseReps": "Aumente de {{current}} para {{target}} repetições",
+    "increaseWeight": "Aumente o peso de {{current}}kg para {{target}}kg",
+    "reduceReps": "Reduza para {{target}} repetições inicialmente com o novo peso",
+    "increaseIntensity": "Aumente a intensidade de {{current}} para {{target}}/10",
+    "increaseDuration": "Aumente a duração de {{current}} para {{target}} minutos"
   }
 } 

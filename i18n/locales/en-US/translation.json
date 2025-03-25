@@ -174,7 +174,14 @@
       "increase": "Increase",
       "decrease": "Decrease",
       "maintained": "Maintained",
-      "firstWorkout": "First workout"
+      "firstWorkout": "First workout",
+      "avgWeight": "Avg Weight",
+      "strengthProgress": "Strength Progress",
+      "intensityIncrease": "Intensity Increase",
+      "trainingDensity": "Training Density",
+      "restTime": "Rest Time",
+      "summary": "Summary",
+      "firstWorkoutNoComparison": "This is the first recorded workout. Complete more workouts to see your evolution over time."
     },
     "emptyState": {
       "title": "No workout for today",
@@ -534,6 +541,7 @@
     "notes": "Notes",
     "notesPlaceholder": "Add notes about the exercise...",
     "addToWorkout": "Add to",
+    "restTime": "Rest time (s)",
     "cardioConfig": {
       "title": "Cardio Configuration",
       "duration": "Duration (minutes)",
@@ -681,6 +689,16 @@
       "deleteFoodTitle": "Delete food",
       "deleteFoodMessage": "Are you sure you want to delete this food?"
     },
+    "macros": {
+      "protein_short": "P",
+      "carbs_short": "C",
+      "fat_short": "F"
+    },
+    "units": {
+      "gram": "g",
+      "kcal": "kcal"
+    },
+    "mealCopiedSuccess": "Meal copied successfully!",
     "progressInfo": {
       "title": "Caloric Consumption",
       "subtitle": "How to monitor and analyze your daily caloric intake",
@@ -1202,5 +1220,18 @@
       "ex120": "Machine Crunch",
       "ex121": "Ab Wheel Rollout"
     }
+  },
+  "progression": {
+    "title": "Progression Suggestions",
+    "basedOn": "Based on workout from {{date}}",
+    "noHistory": "No workout history",
+    "completeWorkoutFirst": "Complete this workout first to receive progression suggestions in your next session.",
+    "noSuggestions": "No suggestions available",
+    "keepGoing": "Continue with the same weight and reps for now. Suggestions will appear as you progress.",
+    "increaseReps": "Increase from {{current}} to {{target}} reps",
+    "increaseWeight": "Increase weight from {{current}}kg to {{target}}kg",
+    "reduceReps": "Reduce to {{target}} reps initially with the new weight",
+    "increaseIntensity": "Increase intensity from {{current}} to {{target}}/10",
+    "increaseDuration": "Increase duration from {{current}} to {{target}} minutes"
   }
 } 

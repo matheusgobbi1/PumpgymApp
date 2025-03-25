@@ -234,22 +234,26 @@ const MealCardComponent = ({
                 <Text
                   style={[styles.foodPortion, { color: colors.text + "80" }]}
                 >
-                  {food.portion}g • {food.calories} kcal
+                  {food.portion}
+                  {t("nutrition.units.gram")} • {food.calories}{" "}
+                  {t("nutrition.units.kcal")}
                 </Text>
               </View>
             </View>
 
             <View style={styles.macroValues}>
               <Text style={[styles.macroText, { color: colors.text + "80" }]}>
-                P{" "}
+                {t("nutrition.macros.protein_short")}{" "}
                 <Text style={[styles.macroNumber, { color: colors.text }]}>
                   {food.protein}
                 </Text>
-                {"   "}C{" "}
+                {"   "}
+                {t("nutrition.macros.carbs_short")}{" "}
                 <Text style={[styles.macroNumber, { color: colors.text }]}>
                   {food.carbs}
                 </Text>
-                {"   "}G{" "}
+                {"   "}
+                {t("nutrition.macros.fat_short")}{" "}
                 <Text style={[styles.macroNumber, { color: colors.text }]}>
                   {food.fat}
                 </Text>
@@ -264,7 +268,7 @@ const MealCardComponent = ({
         </View>
       </Swipeable>
     ),
-    [colors, foods.length, renderLeftActions, renderRightActions]
+    [colors, foods.length, renderLeftActions, renderRightActions, t]
   );
 
   const handleAddFood = useCallback(
@@ -383,7 +387,9 @@ const MealCardComponent = ({
                   </View>
                   <View>
                     <Text style={[styles.mealTitle, { color: colors.text }]}>
-                      {meal.name}
+                      {t(`nutrition.mealTypes.${meal.id}`, {
+                        defaultValue: meal.name,
+                      })}
                     </Text>
                     <Text style={[styles.mealCalories, { color: meal.color }]}>
                       {mealTotals.calories}{" "}
@@ -393,7 +399,7 @@ const MealCardComponent = ({
                           { color: colors.text + "70" },
                         ]}
                       >
-                        kcal
+                        {t("nutrition.units.kcal")}
                       </Text>
                     </Text>
                   </View>
@@ -458,7 +464,7 @@ const MealCardComponent = ({
                     <Text
                       style={[styles.emptyText, { color: colors.text + "50" }]}
                     >
-                      Adicione seu primeiro alimento
+                      {t("nutrition.addFirstFood")}
                     </Text>
                   </LinearGradient>
                 </View>
@@ -480,7 +486,7 @@ const MealCardComponent = ({
                   <Text
                     style={[styles.successMessageText, { color: meal.color }]}
                   >
-                    Refeição copiada com sucesso!
+                    {t("nutrition.mealCopiedSuccess")}
                   </Text>
                 </View>
               )}

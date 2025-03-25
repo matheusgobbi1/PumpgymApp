@@ -36,6 +36,7 @@ export interface ExerciseSet {
   reps: number;
   weight: number;
   completed?: boolean;
+  restTime?: number; // Tempo de descanso em segundos
 }
 
 // Interface para exercício
@@ -71,6 +72,8 @@ interface WorkoutTotals {
   avgReps: number; // Repetições médias
   totalReps: number; // Total de repetições
   caloriesBurned: number; // Novo campo para calorias
+  trainingDensity: number; // Densidade do treino (relação trabalho/descanso)
+  avgRestTime: number; // Tempo médio de descanso entre séries
 }
 
 // Interface para o contexto de treinos
@@ -341,7 +344,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
             type: "material" as const,
             name: "arm-flex-outline" as MaterialIconNames,
           },
-          color: "#FF5252",
+          color: "#FF6B6B",
           selected: false,
           isDefault: true,
         },
@@ -1065,7 +1068,9 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       maxWeight: 0,
       avgReps: 0,
       totalReps: 0,
-      caloriesBurned: 0, // Novo campo para calorias
+      caloriesBurned: 0,
+      trainingDensity: 0,
+      avgRestTime: 0,
     };
 
     // Obter os treinos para a data selecionada
@@ -1075,6 +1080,9 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     if (!workoutsForDate[workoutId]) {
       return totals;
     }
+
+    // Usar 70kg como peso do usuário padrão ou tentar obter do armazenamento síncrono
+    const userWeight = 70; // Por simplicidade, usamos o valor padrão
 
     const exercises = workoutsForDate[workoutId];
 
@@ -1088,26 +1096,91 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     let totalRepsCount = 0;
     let maxWeightFound = 0;
     let totalCalories = 0;
+    let totalRestTime = 0;
+    let restTimeCount = 0;
+    let workTime = 0; // Tempo estimado de trabalho (em segundos)
+
+    // Basear o cálculo de calorias em equivalentes metabólicos (MET) ajustados
+    // 1 MET = 1 kcal/kg/hora para uma pessoa em repouso
+
+    // Fator de escala para ajustar o total de calorias para valores mais realistas
+    const CALORIE_SCALING_FACTOR = 3.5;
+
+    // Contador para duração total do treino em minutos (para evitar duplicação)
+    let totalTrainingDuration = 0;
 
     exercises.forEach((exercise) => {
       // Calcular duração para exercícios de cardio
       if (exercise.category === "cardio" && exercise.cardioDuration) {
-        totals.totalDuration += exercise.cardioDuration;
+        const cardioMinutes = exercise.cardioDuration;
+        totalTrainingDuration += cardioMinutes;
 
-        // Calcular calorias para cardio (assumindo MET médio de 8.0 para cardio)
-        // Fórmula: MET × 3.5 × peso corporal (kg) / 200 × duração (minutos)
-        const metValue = 8.0; // Valor médio para cardio moderado
-        const weightInKg = 70; // Peso médio em kg (poderia ser obtido do perfil do usuário)
-        const durationInMinutes = exercise.cardioDuration;
+        // Ajustar MET baseado na intensidade definida (1-10)
+        let metValue = 8.0; // Valor base para cardio moderado
 
+        if (exercise.cardioIntensity) {
+          if (exercise.cardioIntensity <= 3) {
+            metValue = 4.0; // Cardio leve
+          } else if (exercise.cardioIntensity <= 7) {
+            metValue = 8.0; // Cardio moderado
+          } else {
+            metValue = 12.0; // Cardio intenso
+          }
+        }
+
+        // Calorias = MET × peso (kg) × duração (horas)
         const caloriesForExercise =
-          ((metValue * 3.5 * weightInKg) / 200) * durationInMinutes;
+          metValue * userWeight * (cardioMinutes / 60);
         totalCalories += caloriesForExercise;
+
+        // Adicionar ao tempo de trabalho para cálculo de densidade
+        workTime += cardioMinutes * 60; // Converter para segundos
       }
 
       // Calcular séries e volume para exercícios de força
       if (exercise.sets && exercise.category !== "cardio") {
         totals.totalSets += exercise.sets.length;
+
+        // Duração total deste exercício em segundos
+        let exerciseDuration = 0;
+
+        // Verificar qual grupo muscular está sendo trabalhado para ajustar o MET
+        // Grupos musculares maiores = maior MET
+        let baseMetValue = 3.0; // Valor base para exercícios de força pequenos
+
+        // Ajustar MET conforme tipo de exercício
+        if (exercise.name) {
+          const exerciseName = exercise.name.toLowerCase();
+          // Exercícios de grandes grupos musculares têm maior gasto calórico
+          if (
+            exerciseName.includes("agachamento") ||
+            exerciseName.includes("leg") ||
+            exerciseName.includes("deadlift") ||
+            exerciseName.includes("stiff") ||
+            exerciseName.includes("terra")
+          ) {
+            baseMetValue = 6.0; // Exercícios para pernas/grandes grupos
+          } else if (
+            exerciseName.includes("supino") ||
+            exerciseName.includes("remada") ||
+            exerciseName.includes("puxada") ||
+            exerciseName.includes("desenvolvimento") ||
+            exerciseName.includes("bench") ||
+            exerciseName.includes("press") ||
+            exerciseName.includes("row")
+          ) {
+            baseMetValue = 5.0; // Exercícios para tórax/costas/médios grupos
+          } else if (
+            exerciseName.includes("biceps") ||
+            exerciseName.includes("triceps") ||
+            exerciseName.includes("curl") ||
+            exerciseName.includes("elevação") ||
+            exerciseName.includes("fly") ||
+            exerciseName.includes("lateral")
+          ) {
+            baseMetValue = 3.5; // Exercícios para pequenos grupos musculares
+          }
+        }
 
         // Calcular o volume total (peso * reps * sets) e outras estatísticas
         exercise.sets.forEach((set) => {
@@ -1121,26 +1194,49 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           totalRepsSum += set.reps;
           totalRepsCount++;
 
+          // Tempo de descanso entre séries
+          const restTime = set.restTime || 60;
+          totalRestTime += restTime;
+          restTimeCount++;
+
+          // Calcular tempo de trabalho por série
+          const repDuration = 3 + set.weight / 100;
+          const setWorkTime = set.reps * repDuration;
+          workTime += setWorkTime;
+          exerciseDuration += setWorkTime + restTime;
+
           // Atualizar carga máxima
           if (set.weight > maxWeightFound) {
             maxWeightFound = set.weight;
           }
 
-          // Calcular calorias para exercícios de força
-          // Fórmula aproximada: 0.0175 × MET × peso corporal (kg) × duração (minutos)
-          const metValue = 5.0; // Valor médio para treinamento com pesos
-          const weightInKg = 70; // Peso médio em kg (poderia ser obtido do perfil do usuário)
-          const durationInMinutes = 2; // Tempo médio para completar uma série
+          // Calcular calorias para esta série
+          // Ajustar MET pelo peso relativo (peso como % do peso corporal)
+          const relativeWeight = set.weight / userWeight;
+          // Ajustar intensidade baseado no peso relativo e repetições
+          const intensityFactor = 1 + (relativeWeight * set.reps) / 10;
 
+          // MET efetivo combinando o base do exercício com intensidade
+          const effectiveMetValue = baseMetValue * intensityFactor;
+
+          // Calorias = MET × peso (kg) × duração (horas)
+          const setDurationHours = setWorkTime / 3600; // Converter segundos para horas
           const caloriesForSet =
-            0.0175 * metValue * weightInKg * durationInMinutes;
+            effectiveMetValue *
+            userWeight *
+            setDurationHours *
+            CALORIE_SCALING_FACTOR;
+
           totalCalories += caloriesForSet;
         });
 
-        // Estimar duração para exercícios de força (2 minutos por série em média)
-        totals.totalDuration += exercise.sets.length * 2;
+        // Adicionar a duração deste exercício à duração total (em minutos)
+        totalTrainingDuration += Math.ceil(exerciseDuration / 60);
       }
     });
+
+    // Atualizar a duração total com valor calculado
+    totals.totalDuration = totalTrainingDuration;
 
     // Calcular médias
     totals.avgWeight =
@@ -1149,6 +1245,15 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       totalRepsCount > 0 ? Math.round(totalRepsSum / totalRepsCount) : 0;
     totals.maxWeight = maxWeightFound;
     totals.caloriesBurned = Math.round(totalCalories);
+    totals.avgRestTime =
+      restTimeCount > 0 ? Math.round(totalRestTime / restTimeCount) : 60;
+
+    // Calcular densidade do treino (relação entre tempo de trabalho e tempo total)
+    if (workTime > 0 && totalRestTime > 0) {
+      totals.trainingDensity = parseFloat(
+        (workTime / totalRestTime).toFixed(2)
+      );
+    }
 
     return totals;
   };
@@ -1161,6 +1266,9 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     const dates = Object.keys(workouts)
       .filter((date) => date < selectedDate) // Apenas datas anteriores à selecionada
       .sort((a, b) => b.localeCompare(a)); // Ordenar em ordem decrescente (mais recente primeiro)
+
+    // Usar 70kg como peso do usuário padrão
+    const userWeight = 70;
 
     // Procurar o treino mais recente do mesmo tipo
     for (const date of dates) {
@@ -1179,6 +1287,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           avgReps: 0,
           totalReps: 0,
           caloriesBurned: 0,
+          trainingDensity: 0,
+          avgRestTime: 0,
         };
 
         // Variáveis para calcular médias
@@ -1188,60 +1298,143 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         let totalRepsCount = 0;
         let maxWeightFound = 0;
         let totalCalories = 0;
+        let totalRestTime = 0;
+        let restTimeCount = 0;
+        let workTime = 0; // Tempo estimado de trabalho (em segundos)
+
+        // Fator de escala para ajustar o total de calorias para valores mais realistas
+        const CALORIE_SCALING_FACTOR = 3.5;
+
+        // Contador para duração total do treino
+        let totalTrainingDuration = 0;
 
         // Calcular os totais
         previousExercises.forEach((exercise) => {
           // Calcular duração para exercícios de cardio
           if (exercise.category === "cardio" && exercise.cardioDuration) {
-            totals.totalDuration += exercise.cardioDuration;
+            const cardioMinutes = exercise.cardioDuration;
+            totalTrainingDuration += cardioMinutes;
 
-            // Calcular calorias para cardio (assumindo MET médio de 8.0 para cardio)
-            // Fórmula: MET × 3.5 × peso corporal (kg) / 200 × duração (minutos)
-            const metValue = 8.0; // Valor médio para cardio moderado
-            const weightInKg = 70; // Peso médio em kg (poderia ser obtido do perfil do usuário)
-            const durationInMinutes = exercise.cardioDuration;
+            // Ajustar MET baseado na intensidade
+            let metValue = 8.0; // Valor base para cardio moderado
 
+            if (exercise.cardioIntensity) {
+              if (exercise.cardioIntensity <= 3) {
+                metValue = 4.0; // Cardio leve
+              } else if (exercise.cardioIntensity <= 7) {
+                metValue = 8.0; // Cardio moderado
+              } else {
+                metValue = 12.0; // Cardio intenso
+              }
+            }
+
+            // Calorias = MET × peso (kg) × duração (horas)
             const caloriesForExercise =
-              ((metValue * 3.5 * weightInKg) / 200) * durationInMinutes;
+              metValue * userWeight * (cardioMinutes / 60);
             totalCalories += caloriesForExercise;
+
+            // Adicionar ao tempo de trabalho para cálculo de densidade
+            workTime += cardioMinutes * 60; // Converter para segundos
           }
 
           // Calcular séries e volume para exercícios de força
           if (exercise.sets && exercise.category !== "cardio") {
             totals.totalSets += exercise.sets.length;
 
-            // Calcular o volume total (peso * reps * sets) e outras estatísticas
+            // Duração total deste exercício em segundos
+            let exerciseDuration = 0;
+
+            // Verificar qual grupo muscular está sendo trabalhado para ajustar o MET
+            let baseMetValue = 3.0; // Valor base para exercícios de força pequenos
+
+            // Ajustar MET conforme tipo de exercício
+            if (exercise.name) {
+              const exerciseName = exercise.name.toLowerCase();
+              if (
+                exerciseName.includes("agachamento") ||
+                exerciseName.includes("leg") ||
+                exerciseName.includes("deadlift") ||
+                exerciseName.includes("stiff") ||
+                exerciseName.includes("terra")
+              ) {
+                baseMetValue = 6.0; // Exercícios para pernas/grandes grupos
+              } else if (
+                exerciseName.includes("supino") ||
+                exerciseName.includes("remada") ||
+                exerciseName.includes("puxada") ||
+                exerciseName.includes("desenvolvimento") ||
+                exerciseName.includes("bench") ||
+                exerciseName.includes("press") ||
+                exerciseName.includes("row")
+              ) {
+                baseMetValue = 5.0; // Exercícios para tórax/costas/médios grupos
+              } else if (
+                exerciseName.includes("biceps") ||
+                exerciseName.includes("triceps") ||
+                exerciseName.includes("curl") ||
+                exerciseName.includes("elevação") ||
+                exerciseName.includes("fly") ||
+                exerciseName.includes("lateral")
+              ) {
+                baseMetValue = 3.5; // Exercícios para pequenos grupos musculares
+              }
+            }
+
+            // Calcular o volume total e outras estatísticas
             exercise.sets.forEach((set) => {
               const setVolume = set.weight * set.reps;
               totals.totalVolume += setVolume;
               totals.totalReps += set.reps;
 
-              // Acumular para cálculo de médias
+              // Acumular para cálculos de média
               totalWeightSum += set.weight;
               totalWeightCount++;
               totalRepsSum += set.reps;
               totalRepsCount++;
+
+              // Tempo de descanso entre séries
+              const restTime = set.restTime || 60;
+              totalRestTime += restTime;
+              restTimeCount++;
+
+              // Calcular tempo de trabalho por série
+              const repDuration = 3 + set.weight / 100;
+              const setWorkTime = set.reps * repDuration;
+              workTime += setWorkTime;
+              exerciseDuration += setWorkTime + restTime;
 
               // Atualizar carga máxima
               if (set.weight > maxWeightFound) {
                 maxWeightFound = set.weight;
               }
 
-              // Calcular calorias para exercícios de força
-              // Fórmula aproximada: 0.0175 × MET × peso corporal (kg) × duração (minutos)
-              const metValue = 5.0; // Valor médio para treinamento com pesos
-              const weightInKg = 70; // Peso médio em kg (poderia ser obtido do perfil do usuário)
-              const durationInMinutes = 2; // Tempo médio para completar uma série
+              // Calcular calorias para esta série
+              // Ajustar MET pelo peso relativo (peso como % do peso corporal)
+              const relativeWeight = set.weight / userWeight;
+              // Ajustar intensidade baseado no peso relativo e repetições
+              const intensityFactor = 1 + (relativeWeight * set.reps) / 10;
 
+              // MET efetivo combinando o base do exercício com intensidade
+              const effectiveMetValue = baseMetValue * intensityFactor;
+
+              // Calorias = MET × peso (kg) × duração (horas)
+              const setDurationHours = setWorkTime / 3600; // Converter segundos para horas
               const caloriesForSet =
-                0.0175 * metValue * weightInKg * durationInMinutes;
+                effectiveMetValue *
+                userWeight *
+                setDurationHours *
+                CALORIE_SCALING_FACTOR;
+
               totalCalories += caloriesForSet;
             });
 
-            // Estimar duração para exercícios de força (2 minutos por série em média)
-            totals.totalDuration += exercise.sets.length * 2;
+            // Adicionar a duração deste exercício à duração total (em minutos)
+            totalTrainingDuration += Math.ceil(exerciseDuration / 60);
           }
         });
+
+        // Atualizar a duração total
+        totals.totalDuration = totalTrainingDuration;
 
         // Calcular médias
         totals.avgWeight =
@@ -1252,6 +1445,15 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           totalRepsCount > 0 ? Math.round(totalRepsSum / totalRepsCount) : 0;
         totals.maxWeight = maxWeightFound;
         totals.caloriesBurned = Math.round(totalCalories);
+        totals.avgRestTime =
+          restTimeCount > 0 ? Math.round(totalRestTime / restTimeCount) : 60;
+
+        // Calcular densidade do treino
+        if (workTime > 0 && totalRestTime > 0) {
+          totals.trainingDensity = parseFloat(
+            (workTime / totalRestTime).toFixed(2)
+          );
+        }
 
         return { totals, date };
       }
@@ -1385,7 +1587,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
             type: "ionicons",
             name: "barbell-outline",
           },
-          color: "#FF5252",
+          color: "#FF6B6B",
           selected: true,
         };
       }
