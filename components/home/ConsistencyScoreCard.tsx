@@ -309,11 +309,13 @@ export default function ConsistencyScoreCard({
         // Somar calorias do dia
         let totalCalories = 0;
         Object.values(meals[dateFormatted]).forEach((foods: any) => {
-          foods.forEach((food: any) => {
-            if (food && food.calories) {
-              totalCalories += food.calories * (food.quantity || 1);
-            }
-          });
+          if (Array.isArray(foods)) {
+            foods.forEach((food: any) => {
+              if (food && food.calories) {
+                totalCalories += food.calories * (food.quantity || 1);
+              }
+            });
+          }
         });
 
         // Verificar se está dentro da faixa de tolerância
