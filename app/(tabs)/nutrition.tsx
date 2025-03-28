@@ -406,9 +406,14 @@ export default function NutritionScreen() {
         meals={meals}
         hasContent={(date) => {
           const dateString = format(date, "yyyy-MM-dd");
-          return (
-            meals[dateString] &&
-            Object.values(meals[dateString]).some((foods) => foods.length > 0)
+          // Verificar se existe a data no objeto meals
+          if (!meals || !meals[dateString]) {
+            return false;
+          }
+          
+          // Verificar se há foods com tamanho > 0 em qualquer refeição desta data
+          return Object.values(meals[dateString]).some(
+            (foods) => Array.isArray(foods) && foods.length > 0
           );
         }}
       />

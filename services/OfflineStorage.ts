@@ -397,6 +397,12 @@ export const OfflineStorage = {
         throw new Error("Parâmetros inválidos para saveMealsData");
       }
 
+      // Verificar se a data está no formato correto (YYYY-MM-DD)
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        console.error("Formato de data inválido para saveMealsData:", date);
+        throw new Error("Formato de data inválido para saveMealsData");
+      }
+
       const key = `${KEYS.MEALS_KEY}${userId}:${date}`;
 
       // Validar os dados antes de salvar
@@ -423,12 +429,32 @@ export const OfflineStorage = {
         // Garantir que estamos trabalhando com um objeto iterável
         const dataKeys = Object.keys(data);
 
+        // Filtrar metadados comuns que possam estar nos dados
+        const filteredKeys = dataKeys.filter(key => {
+          const metadataKeys = ['data', 'date', 'updatedAt', 'createdAt', 'userId', 'user_id'];
+          return !metadataKeys.includes(key);
+        });
+
         // Para cada chave, garantir que os valores são arrays
-        for (const mealId of dataKeys) {
+        for (const mealId of filteredKeys) {
           try {
             if (Array.isArray(data[mealId])) {
-              // Fazer uma cópia segura do array
-              sanitizedData[mealId] = [...data[mealId]];
+              // Validar cada item do array para garantir que são objetos Food válidos
+              const validFoods = data[mealId].filter((food: any) => {
+                return (
+                  food && 
+                  typeof food === 'object' && 
+                  typeof food.id === 'string' && 
+                  typeof food.name === 'string' &&
+                  !isNaN(Number(food.calories)) &&
+                  !isNaN(Number(food.protein)) &&
+                  !isNaN(Number(food.carbs)) &&
+                  !isNaN(Number(food.fat)) &&
+                  !isNaN(Number(food.portion))
+                );
+              });
+              
+              sanitizedData[mealId] = validFoods;
             } else {
               // Se não for array, criar um array vazio
               console.warn(
@@ -504,7 +530,13 @@ export const OfflineStorage = {
           userId,
           date,
         });
-        return null;
+        return {};
+      }
+
+      // Verificar se a data está no formato correto (YYYY-MM-DD)
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        console.error("Formato de data inválido para loadMealsData:", date);
+        return {};
       }
 
       const key = `${KEYS.MEALS_KEY}${userId}:${date}`;
@@ -528,11 +560,36 @@ export const OfflineStorage = {
 
         try {
           const mealIds = Object.keys(parsedData);
+          
+          // Filtrar metadados que não deveriam estar aqui
+          const filteredMealIds = mealIds.filter(mealId => {
+            const metadataKeys = ['data', 'date', 'updatedAt', 'createdAt', 'userId', 'user_id'];
+            return !metadataKeys.includes(mealId);
+          });
 
-          for (const mealId of mealIds) {
+          for (const mealId of filteredMealIds) {
             if (Array.isArray(parsedData[mealId])) {
-              // Fazer uma cópia segura do array
-              sanitizedData[mealId] = [...parsedData[mealId]];
+              // Validar cada item do array como um objeto Food válido
+              const validFoods = parsedData[mealId].filter((food: any) => {
+                return (
+                  food && 
+                  typeof food === 'object' && 
+                  typeof food.id === 'string' && 
+                  typeof food.name === 'string' &&
+                  !isNaN(Number(food.calories)) &&
+                  !isNaN(Number(food.protein)) &&
+                  !isNaN(Number(food.carbs)) &&
+                  !isNaN(Number(food.fat)) &&
+                  !isNaN(Number(food.portion))
+                );
+              });
+              
+              // Só adicionar se houver alimentos válidos
+              if (validFoods.length > 0) {
+                sanitizedData[mealId] = validFoods;
+              } else {
+                sanitizedData[mealId] = [];
+              }
             } else {
               console.warn(
                 `Dados para refeição ${mealId} não são um array, usando array vazio`

@@ -203,79 +203,71 @@ const MealCardComponent = ({
   );
 
   const renderFoodItem = useCallback(
-    (food: Food, foodIndex: number) => {
-      // Verificar se o alimento é válido antes de tentar renderizá-lo
-      if (!food || typeof food !== 'object' || !food.id) {
-        console.warn(`Ignorando alimento inválido no renderFoodItem: ${JSON.stringify(food)}`);
-        return null;
-      }
-      
-      return (
-        <Swipeable
-          key={`food-${food.id}-${foodIndex}`}
-          renderRightActions={() => renderRightActions(food.id)}
-          renderLeftActions={() => renderLeftActions(food)}
-          friction={2}
-          overshootRight={false}
-          overshootLeft={false}
-          ref={(ref) => {
-            if (ref) {
-              swipeableRefs.current.set(food.id, ref);
-            }
-          }}
+    (food: Food, foodIndex: number) => (
+      <Swipeable
+        key={`food-${food.id}-${foodIndex}`}
+        renderRightActions={() => renderRightActions(food.id)}
+        renderLeftActions={() => renderLeftActions(food)}
+        friction={2}
+        overshootRight={false}
+        overshootLeft={false}
+        ref={(ref) => {
+          if (ref) {
+            swipeableRefs.current.set(food.id, ref);
+          }
+        }}
+      >
+        <View
+          style={[
+            styles.foodItemContainer,
+            { backgroundColor: colors.light },
+            foodIndex === 0 && styles.firstFoodItem,
+            foodIndex === foods.length - 1 && styles.lastFoodItem,
+          ]}
         >
-          <View
-            style={[
-              styles.foodItemContainer,
-              { backgroundColor: colors.light },
-              foodIndex === 0 && styles.firstFoodItem,
-              foodIndex === foods.length - 1 && styles.lastFoodItem,
-            ]}
-          >
-            <View style={styles.foodItemContent}>
-              <View style={styles.foodItemLeft}>
-                <View style={styles.foodTextContainer}>
-                  <Text style={[styles.foodName, { color: colors.text }]}>
-                    {food.name}
-                  </Text>
-                  <Text
-                    style={[styles.foodPortion, { color: colors.text + "80" }]}
-                  >
-                    {food.portion}
-                    {t("nutrition.units.gram")} • {food.calories}{" "}
-                    {t("nutrition.units.kcal")}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.macroValues}>
-                <Text style={[styles.macroText, { color: colors.text + "80" }]}>
-                  {t("nutrition.macros.protein_short")}{" "}
-                  <Text style={[styles.macroNumber, { color: colors.text }]}>
-                    {food.protein}
-                  </Text>
-                  {"   "}
-                  {t("nutrition.macros.carbs_short")}{" "}
-                  <Text style={[styles.macroNumber, { color: colors.text }]}>
-                    {food.carbs}
-                  </Text>
-                  {"   "}
-                  {t("nutrition.macros.fat_short")}{" "}
-                  <Text style={[styles.macroNumber, { color: colors.text }]}>
-                    {food.fat}
-                  </Text>
+          <View style={styles.foodItemContent}>
+            <View style={styles.foodItemLeft}>
+              <View style={styles.foodTextContainer}>
+                <Text style={[styles.foodName, { color: colors.text }]}>
+                  {food.name}
+                </Text>
+                <Text
+                  style={[styles.foodPortion, { color: colors.text + "80" }]}
+                >
+                  {food.portion}
+                  {t("nutrition.units.gram")} • {food.calories}{" "}
+                  {t("nutrition.units.kcal")}
                 </Text>
               </View>
             </View>
-            {foodIndex < foods.length - 1 && (
-              <View
-                style={[styles.separator, { backgroundColor: colors.border }]}
-              />
-            )}
+
+            <View style={styles.macroValues}>
+              <Text style={[styles.macroText, { color: colors.text + "80" }]}>
+                {t("nutrition.macros.protein_short")}{" "}
+                <Text style={[styles.macroNumber, { color: colors.text }]}>
+                  {food.protein}
+                </Text>
+                {"   "}
+                {t("nutrition.macros.carbs_short")}{" "}
+                <Text style={[styles.macroNumber, { color: colors.text }]}>
+                  {food.carbs}
+                </Text>
+                {"   "}
+                {t("nutrition.macros.fat_short")}{" "}
+                <Text style={[styles.macroNumber, { color: colors.text }]}>
+                  {food.fat}
+                </Text>
+              </Text>
+            </View>
           </View>
-        </Swipeable>
-      );
-    },
+          {foodIndex < foods.length - 1 && (
+            <View
+              style={[styles.separator, { backgroundColor: colors.border }]}
+            />
+          )}
+        </View>
+      </Swipeable>
+    ),
     [colors, foods.length, renderLeftActions, renderRightActions, t]
   );
 
@@ -450,11 +442,9 @@ const MealCardComponent = ({
             <View style={styles.foodsContainer}>
               {foods.length > 0 ? (
                 <View key={`foods-list-${meal.id}`} style={styles.foodsList}>
-                  {/* Adicionar validação extra para garantir que apenas alimentos válidos sejam renderizados */}
-                  {foods
-                    .filter(food => food && typeof food === 'object' && food.id)
-                    .map((food, foodIndex) => renderFoodItem(food, foodIndex))
-                  }
+                  {foods.map((food, foodIndex) =>
+                    renderFoodItem(food, foodIndex)
+                  )}
                 </View>
               ) : (
                 <View

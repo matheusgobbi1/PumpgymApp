@@ -135,26 +135,27 @@ export default function Calendar({
       try {
         // Verificar treinos para a data usando getWorkoutsForDate
         const dateString = format(date, "yyyy-MM-dd");
+        
+        // Verificar refeições para a data (compatibilidade com tela de nutrição)
+        if (meals && Object.keys(meals).length > 0) {
+          // Verifica se existe a data no objeto meals e se há foods nela
+          if (
+            meals[dateString] && 
+            Object.values(meals[dateString]).some(
+              (foods: any) => Array.isArray(foods) && foods.length > 0
+            )
+          ) {
+            return true;
+          }
+        }
+        
+        // Verificar treinos se não encontrou refeições
         const workoutsForDate = getWorkoutsForDate
           ? getWorkoutsForDate(dateString)
           : {};
-        const hasWorkouts = Object.keys(workoutsForDate).length > 0;
+        const hasWorkouts = workoutsForDate && Object.keys(workoutsForDate).length > 0;
 
-        if (hasWorkouts) {
-          return true;
-        }
-
-        // Verificar refeições para a data (compatibilidade com tela de nutrição)
-        if (Object.keys(meals).length > 0) {
-          return (
-            meals[dateString] &&
-            Object.values(meals[dateString]).some(
-              (foods: any) => foods.length > 0
-            )
-          );
-        }
-
-        return false;
+        return hasWorkouts;
       } catch (error) {
         console.error("Erro ao verificar conteúdo para a data:", error);
         return false;

@@ -7,6 +7,7 @@ export interface ExerciseData {
   imageUrl?: string;
   videoUrl?: string;
   category: "força" | "cardio" | "flexibilidade" | "equilíbrio";
+  weightIncrement: number; // Incremento sugerido para progressão
 }
 
 // Categorias de músculos
@@ -52,6 +53,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Peito",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 5, // Incremento padrão em barras (2,5kg de cada lado)
   },
   {
     id: "ex002",
@@ -59,6 +61,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Peito",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex003",
@@ -66,6 +69,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Peito",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2, // Incremento para halteres pequenos
   },
   {
     id: "ex005",
@@ -73,6 +77,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Peito",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex006",
@@ -80,6 +85,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Peito",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex101",
@@ -87,6 +93,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Peito",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2.5, // Incrementos menores possíveis em cabos
   },
   {
     id: "ex103",
@@ -94,6 +101,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Peito",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 5, // Incremento padrão em máquinas
   },
   {
     id: "ex200",
@@ -101,6 +109,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Peito",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex201",
@@ -108,6 +117,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Peito",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex202",
@@ -115,6 +125,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Peito",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex203",
@@ -122,6 +133,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Peito",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2.5,
   },
   {
     id: "ex204",
@@ -129,6 +141,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Peito",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2.5,
   },
   {
     id: "ex205",
@@ -136,6 +149,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Peito",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2.5,
   },
 
   // Costas
@@ -145,6 +159,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Costas",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex009",
@@ -152,6 +167,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Costas",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex010",
@@ -159,6 +175,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Costas",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex011",
@@ -166,6 +183,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Costas",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex012",
@@ -173,6 +191,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Costas",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex013",
@@ -180,6 +199,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Costas",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex014",
@@ -187,6 +207,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Costas",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex104",
@@ -194,6 +215,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Costas",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 2.5, // Incremental com peso corporal ou anilhas menores
   },
   {
     id: "ex106",
@@ -201,6 +223,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Costas",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex206",
@@ -208,6 +231,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Costas",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2.5,
   },
   {
     id: "ex207",
@@ -215,6 +239,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Costas",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2.5,
   },
   {
     id: "ex208",
@@ -222,6 +247,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Costas",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex209",
@@ -229,6 +255,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Costas",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2.5,
   },
 
   // Pernas
@@ -238,6 +265,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Pernas",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 10, // Incremento maior para exercícios de pernas grandes
   },
   {
     id: "ex016",
@@ -245,6 +273,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Pernas",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 10,
   },
   {
     id: "ex017",
@@ -252,6 +281,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Pernas",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex018",
@@ -259,6 +289,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Pernas",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex019",
@@ -266,6 +297,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Pernas",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex020",
@@ -273,6 +305,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Pernas",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex021",
@@ -280,6 +313,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Pernas",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex107",
@@ -287,6 +321,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Pernas",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex108",
@@ -294,6 +329,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Pernas",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 10,
   },
   {
     id: "ex109",
@@ -301,6 +337,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Pernas",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex210",
@@ -308,6 +345,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Pernas",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex211",
@@ -315,6 +353,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Pernas",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex212",
@@ -322,6 +361,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Glúteos",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2.5,
   },
   {
     id: "ex213",
@@ -329,6 +369,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Glúteos",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2.5,
   },
 
   // Ombros
@@ -338,6 +379,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Ombros",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex023",
@@ -345,6 +387,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Ombros",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 1, // Incremento pequeno para isolamento
   },
   {
     id: "ex024",
@@ -352,6 +395,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Ombros",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 1,
   },
   {
     id: "ex025",
@@ -359,6 +403,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Ombros",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex026",
@@ -366,6 +411,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Ombros",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 2.5,
   },
   {
     id: "ex027",
@@ -373,6 +419,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Ombros",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 2.5,
   },
   {
     id: "ex028",
@@ -380,6 +427,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Ombros",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 1,
   },
   {
     id: "ex110",
@@ -387,6 +435,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Ombros",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex111",
@@ -394,6 +443,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Ombros",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex112",
@@ -401,6 +451,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Ombros",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex214",
@@ -408,6 +459,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Ombros",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex215",
@@ -415,6 +467,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Ombros",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex216",
@@ -422,6 +475,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Ombros",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex217",
@@ -429,6 +483,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Trapézio",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
 
   // Bíceps
@@ -438,6 +493,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Bíceps",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 2.5,
   },
   {
     id: "ex030",
@@ -445,6 +501,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Bíceps",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 1,
   },
   {
     id: "ex031",
@@ -452,6 +509,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Bíceps",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 1,
   },
   {
     id: "ex032",
@@ -459,6 +517,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Bíceps",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 2.5,
   },
   {
     id: "ex033",
@@ -466,6 +525,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Bíceps",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 2.5,
   },
   {
     id: "ex034",
@@ -473,6 +533,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Bíceps",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex035",
@@ -480,6 +541,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Bíceps",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex113",
@@ -487,6 +549,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Bíceps",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex114",
@@ -494,6 +557,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Bíceps",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex115",
@@ -501,6 +565,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Bíceps",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex218",
@@ -508,6 +573,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Bíceps",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex219",
@@ -515,6 +581,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Bíceps",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex220",
@@ -522,6 +589,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Bíceps",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex221",
@@ -529,6 +597,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Bíceps",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2,
   },
 
   // Tríceps
@@ -538,6 +607,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Tríceps",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2.5,
   },
   {
     id: "ex037",
@@ -545,6 +615,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Tríceps",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 2.5,
   },
   {
     id: "ex038",
@@ -552,6 +623,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Tríceps",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 1,
   },
   {
     id: "ex039",
@@ -559,6 +631,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Tríceps",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex041",
@@ -566,6 +639,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Tríceps",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex042",
@@ -573,6 +647,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Tríceps",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex116",
@@ -580,6 +655,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Tríceps",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex118",
@@ -587,6 +663,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Tríceps",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex222",
@@ -594,6 +671,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Tríceps",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex223",
@@ -601,6 +679,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Tríceps",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex224",
@@ -608,6 +687,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Tríceps",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex225",
@@ -615,6 +695,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Tríceps",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
 
   // Abdômen
@@ -624,6 +705,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Abdômen",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 2.5,
   },
   {
     id: "ex121",
@@ -631,6 +713,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Abdômen",
     equipment: "Roda",
     category: "força",
+    weightIncrement: 0, // Sem incremento por ser peso corporal
   },
   {
     id: "ex226",
@@ -638,6 +721,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Abdômen",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex227",
@@ -645,6 +729,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Abdômen",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex228",
@@ -652,6 +737,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Abdômen",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
 
   // Cardio
@@ -661,6 +747,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Cardio",
     equipment: "Esteira",
     category: "cardio",
+    weightIncrement: 0,
   },
   {
     id: "ex054",
@@ -668,6 +755,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Cardio",
     equipment: "Bicicleta",
     category: "cardio",
+    weightIncrement: 0,
   },
   {
     id: "ex055",
@@ -675,6 +763,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Cardio",
     equipment: "Elíptico",
     category: "cardio",
+    weightIncrement: 0,
   },
   {
     id: "ex075",
@@ -682,6 +771,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Cardio",
     equipment: "Esteira",
     category: "cardio",
+    weightIncrement: 0,
   },
 
   // Glúteos
@@ -691,6 +781,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Glúteos",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex229",
@@ -698,6 +789,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Glúteos",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex230",
@@ -705,6 +797,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Glúteos",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex231",
@@ -712,6 +805,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Glúteos",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2,
   },
 
   // Panturrilha
@@ -721,6 +815,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Panturrilha",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex087",
@@ -728,6 +823,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Panturrilha",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex088",
@@ -735,6 +831,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Panturrilha",
     equipment: "Máquina",
     category: "força",
+    weightIncrement: 5,
   },
 
   // Antebraço
@@ -744,6 +841,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Antebraço",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex062",
@@ -751,6 +849,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Antebraço",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex232",
@@ -758,6 +857,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Antebraço",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex233",
@@ -765,6 +865,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Antebraço",
     equipment: "Cabo",
     category: "força",
+    weightIncrement: 2,
   },
 
   // Adicionando novos exercícios
@@ -774,6 +875,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Lombar",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 10, // Incremento maior para exercício de força bruta
   },
   {
     id: "ex064",
@@ -781,6 +883,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Lombar",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex065",
@@ -788,6 +891,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Peito",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex066",
@@ -795,6 +899,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Costas",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex067",
@@ -802,6 +907,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Costas",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex068",
@@ -809,6 +915,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Ombros",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex069",
@@ -816,6 +923,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Ombros",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex070",
@@ -823,6 +931,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Bíceps",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex071",
@@ -830,6 +939,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Tríceps",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex079",
@@ -837,6 +947,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Corpo inteiro",
     equipment: "Kettlebell",
     category: "força",
+    weightIncrement: 4, // Kettlebells costumam pular de 4 em 4kg
   },
   {
     id: "ex080",
@@ -844,6 +955,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Corpo inteiro",
     equipment: "Kettlebell",
     category: "força",
+    weightIncrement: 4,
   },
   {
     id: "ex081",
@@ -851,6 +963,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Corpo inteiro",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex082",
@@ -858,6 +971,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Corpo inteiro",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex083",
@@ -865,6 +979,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Pernas",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex084",
@@ -872,6 +987,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Pernas",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex085",
@@ -879,6 +995,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Pernas",
     equipment: "Caixa",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex089",
@@ -886,6 +1003,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Corpo inteiro",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex094",
@@ -893,6 +1011,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Abdômen",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 0, // Sem incremento para peso corporal puro
   },
   {
     id: "ex097",
@@ -900,6 +1019,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Abdômen",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex098",
@@ -907,6 +1027,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Abdômen",
     equipment: "Paralelas",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex100",
@@ -914,6 +1035,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Corpo inteiro",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 5,
   },
   {
     id: "ex234",
@@ -921,6 +1043,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Lombar",
     equipment: "Halteres",
     category: "força",
+    weightIncrement: 2,
   },
   {
     id: "ex235",
@@ -928,6 +1051,7 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Lombar",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 10,
   },
 ];
 

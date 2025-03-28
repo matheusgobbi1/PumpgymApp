@@ -85,23 +85,6 @@ interface MealContextType {
 
 const MealContext = createContext<MealContextType | undefined>(undefined);
 
-// Lista de campos de metadados conhecidos que devem ser ignorados
-const METADATA_FIELDS = ["updatedAt", "data", "userId", "date", "createdAt", "id"];
-
-// Função utilitária para validar se a entrada é uma instância válida de Food
-const isValidFood = (food: any): food is Food => {
-  return (
-    food &&
-    typeof food === 'object' &&
-    typeof food.id === 'string' &&
-    typeof food.name === 'string' &&
-    typeof food.calories === 'number' &&
-    typeof food.protein === 'number' &&
-    typeof food.carbs === 'number' &&
-    typeof food.fat === 'number'
-  );
-};
-
 export function MealProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -153,41 +136,16 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     loadSearchHistory();
   }, [user?.uid]);
 
-  // Função para limpar e validar dados de refeições
-  const cleanMealsData = useCallback((mealsData: any): { [mealId: string]: Food[] } => {
-    const cleanedData: { [mealId: string]: Food[] } = {};
-    
-    if (!mealsData || typeof mealsData !== 'object') {
-      return cleanedData;
-    }
-    
-    // Iterar pelas chaves e filtrar valores válidos
-    for (const [key, value] of Object.entries(mealsData)) {
-      // Ignorar campos de metadados conhecidos
-      if (METADATA_FIELDS.includes(key)) {
-        continue;
-      }
-      
-      // Verificar se o valor é um array
-      if (Array.isArray(value)) {
-        // Filtrar apenas alimentos válidos
-        const validFoods = value.filter(isValidFood);
-        
-        // Adicionar ao objeto limpo apenas se houver alimentos válidos
-        if (validFoods.length > 0) {
-          cleanedData[key] = validFoods;
-        }
-      }
-    }
-    
-    return cleanedData;
-  }, []);
-
   // Carregar refeições quando a data selecionada mudar
   useEffect(() => {
     if (user) {
       const loadMealsForSelectedDate = async () => {
         try {
+          // Se já temos dados para a data selecionada em nosso estado, não precisamos recarregar
+          if (meals[selectedDate]) {
+            return;
+          }
+          
           // Tentar carregar dados do storage local
           const localMeals = await OfflineStorage.loadMealsData(
             user.uid,
@@ -195,18 +153,15 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
           );
 
           if (localMeals && Object.keys(localMeals).length > 0) {
-            // Limpar e validar os dados antes de atualizar o estado
-            const cleanedMeals = cleanMealsData(localMeals);
-            
-            // Se encontrou dados locais válidos, usar eles
+            // Se encontrou dados locais, usar eles (preservando o estado atual de outras datas)
             setMeals((prevMeals) => ({
               ...prevMeals,
-              [selectedDate]: cleanedMeals,
+              [selectedDate]: localMeals,
             }));
             console.log(
               "Refeições para a data selecionada carregadas localmente"
             );
-          } else if (!meals[selectedDate]) {
+          } else {
             // Verificar conexão com a internet antes de tentar acessar o Firebase
             const isOnline = await OfflineStorage.isOnline();
 
@@ -221,6 +176,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
                   const mealData = mealDoc.data() as {
                     [mealId: string]: Food[];
                   };
+                  // Atualizar o estado preservando outras datas
                   setMeals((prevMeals) => ({
                     ...prevMeals,
                     [selectedDate]: mealData,
@@ -274,7 +230,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
 
       loadMealsForSelectedDate();
     }
-  }, [selectedDate, user?.uid]);
+  }, [selectedDate, user?.uid, meals]);
 
   const loadMeals = useCallback(async () => {
     try {
@@ -283,82 +239,114 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       // Limpar dados existentes antes de carregar
       setMeals({});
 
-      // Primeiro tentar carregar do storage local
-      try {
-        // Buscar a data selecionada
-        const localMeals = await OfflineStorage.loadMealsData(
-          user.uid,
-          selectedDate
-        );
+      // Verificar conexão com a internet antes de tentar acessar o Firebase
+      const isOnline = await OfflineStorage.isOnline();
 
-        if (localMeals && Object.keys(localMeals).length > 0) {
-          // Limpar e validar os dados antes de atualizar o estado
-          const cleanedMeals = cleanMealsData(localMeals);
+      // Primeiro tentar carregar todas as refeições do armazenamento local
+      try {
+        const localMealsKeys = await AsyncStorage.getAllKeys();
+        const mealKeys = localMealsKeys.filter(key => 
+          key.startsWith(`${KEYS.MEALS_KEY}${user.uid}:`) && 
+          // Filtrar chaves que terminam com data válida YYYY-MM-DD
+          /:\d{4}-\d{2}-\d{2}$/.test(key)
+        );
+        
+        if (mealKeys.length > 0) {
+          const localMealsData: { [date: string]: { [mealId: string]: Food[] } } = {};
           
-          if (Object.keys(cleanedMeals).length > 0) {
-            // Se encontrou dados locais válidos, usar eles
-            setMeals((prevMeals) => ({
-              ...prevMeals,
-              [selectedDate]: cleanedMeals,
-            }));
-            console.log(
-              "Refeições carregadas do armazenamento local com sucesso"
-            );
+          // Obter todos os dados locais de refeições
+          for (const key of mealKeys) {
+            const parts = key.split(':');
+            if (parts.length >= 3) {
+              const dateString = parts[parts.length - 1];
+              // Verificar se a data está no formato correto antes de buscar os dados
+              if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+                const mealData = await OfflineStorage.loadMealsData(user.uid, dateString);
+                if (mealData && Object.keys(mealData).length > 0) {
+                  localMealsData[dateString] = mealData;
+                }
+              }
+            }
+          }
+          
+          if (Object.keys(localMealsData).length > 0) {
+            setMeals(localMealsData);
+            console.log("Todas as refeições carregadas do armazenamento local com sucesso");
             return; // Retornar se os dados foram carregados localmente
-          } else {
-            console.log("Dados locais encontrados, mas não contêm refeições válidas");
           }
         }
       } catch (localError) {
         console.error("Erro ao carregar refeições locais:", localError);
       }
 
-      // Verificar conexão com a internet antes de tentar acessar o Firebase
-      const isOnline = await OfflineStorage.isOnline();
-
       if (isOnline) {
-        // Se está online, tentar do Firebase
+        // Se está online, buscar todas as refeições do Firebase
         try {
           // Buscar todas as refeições do usuário
           const mealsRef = collection(db, "users", user.uid, "meals");
           const mealsSnap = await getDocs(mealsRef);
 
-          const mealsData: { [date: string]: { [mealId: string]: Food[] } } =
-            {};
+          const mealsData: { [date: string]: { [mealId: string]: Food[] } } = {};
 
           mealsSnap.forEach((doc) => {
-            // Limpar e validar dados antes de adicionar ao objeto mealsData
-            const rawData = doc.data() as { [mealId: string]: Food[] };
-            const cleanedData = cleanMealsData(rawData);
-            
-            if (Object.keys(cleanedData).length > 0) {
-              mealsData[doc.id] = cleanedData;
+            // Verificar se o ID do documento parece uma data válida (YYYY-MM-DD)
+            if (/^\d{4}-\d{2}-\d{2}$/.test(doc.id)) {
+              const docData = doc.data();
+              
+              // Verificar e limpar os dados antes de adicioná-los ao estado
+              const cleanedMealData: { [mealId: string]: Food[] } = {};
+              
+              // Processar apenas as chaves que não são metadados
+              Object.keys(docData).forEach((mealId) => {
+                // Ignorar metadados comuns como data, updatedAt, etc.
+                const knownMetadata = ['data', 'date', 'updatedAt', 'createdAt', 'userId', 'user_id'];
+                if (knownMetadata.includes(mealId)) {
+                  return;
+                }
+                
+                // Verificar se o valor é um array
+                if (Array.isArray(docData[mealId])) {
+                  // Validar cada item do array
+                  const validFoods = docData[mealId].filter((food: any) => {
+                    return (
+                      food && 
+                      typeof food === 'object' && 
+                      typeof food.id === 'string' && 
+                      typeof food.name === 'string' &&
+                      !isNaN(Number(food.calories)) &&
+                      !isNaN(Number(food.protein)) &&
+                      !isNaN(Number(food.carbs)) &&
+                      !isNaN(Number(food.fat)) &&
+                      !isNaN(Number(food.portion))
+                    );
+                  });
+                  
+                  cleanedMealData[mealId] = validFoods;
+                }
+              });
+              
+              // Adicionar apenas se houver refeições válidas
+              if (Object.keys(cleanedMealData).length > 0) {
+                mealsData[doc.id] = cleanedMealData;
+              }
             }
           });
 
           setMeals(mealsData);
+          console.log("Todas as refeições carregadas e limpas do Firebase com sucesso");
 
-          // Salvar os dados carregados no armazenamento local
-          if (mealsData[selectedDate]) {
-            await OfflineStorage.saveMealsData(
-              user.uid,
-              selectedDate,
-              mealsData[selectedDate]
-            );
+          // Salvar todos os dados carregados no armazenamento local
+          for (const [date, mealData] of Object.entries(mealsData)) {
+            await OfflineStorage.saveMealsData(user.uid, date, mealData);
           }
         } catch (firebaseError) {
-          console.error(
-            "Erro ao carregar refeições do Firebase:",
-            firebaseError
-          );
+          console.error("Erro ao carregar refeições do Firebase:", firebaseError);
           // Em caso de erro, garantir que os dados estejam limpos
           setMeals({});
         }
       } else {
         // Se está offline, log informativo
-        console.log(
-          "Dispositivo offline. Não foi possível carregar dados do Firebase."
-        );
+        console.log("Dispositivo offline. Não foi possível carregar dados do Firebase.");
         // Já tentamos carregar dados locais e não temos, então mantemos vazio
       }
     } catch (error) {
@@ -366,7 +354,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       // Em caso de erro, garantir que os dados estejam limpos
       setMeals({});
     }
-  }, [user, selectedDate, setMeals, cleanMealsData]);
+  }, [user, setMeals]);
 
   const loadMealTypes = useCallback(async () => {
     try {
@@ -642,18 +630,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addFoodToMeal = (mealId: string, food: Food) => {
-    // Validar o alimento antes de adicioná-lo
-    if (!isValidFood(food)) {
-      console.error("Tentativa de adicionar alimento inválido:", food);
-      return;
-    }
-    
-    // Validar o ID da refeição
-    if (METADATA_FIELDS.includes(mealId)) {
-      console.error(`Tentativa de adicionar alimento a um ID de refeição inválido: ${mealId}`);
-      return;
-    }
-
     setMeals((prevMeals) => {
       const updatedMeals = { ...prevMeals };
 
@@ -664,12 +640,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
 
       // Inicializa a refeição se não existir
       if (!updatedMeals[selectedDate][mealId]) {
-        updatedMeals[selectedDate][mealId] = [];
-      }
-
-      // Garantir que a refeição é um array
-      if (!Array.isArray(updatedMeals[selectedDate][mealId])) {
-        console.warn(`A refeição ${mealId} não é um array. Corrigindo.`);
         updatedMeals[selectedDate][mealId] = [];
       }
 
@@ -733,26 +703,12 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     try {
       if (!user) return;
 
-      // Verificar se há dados para a data selecionada
-      if (!meals[selectedDate]) {
-        console.log("Nenhum dado para salvar na data selecionada");
-        return;
-      }
-
-      // Limpar e validar os dados antes de salvar
-      const cleanedMeals = cleanMealsData(meals[selectedDate]);
-      
-      // Se não houver dados válidos após a limpeza, não salvar
-      if (Object.keys(cleanedMeals).length === 0) {
-        console.log("Nenhum dado válido para salvar após limpeza");
-        return;
-      }
-
       // Primeiro salvar localmente para garantir persistência
+      const key = `${KEYS.MEALS_KEY}${user.uid}:${selectedDate}`;
       await OfflineStorage.saveMealsData(
         user.uid,
         selectedDate,
-        cleanedMeals
+        meals[selectedDate] || {}
       );
 
       // Verificar conexão antes de tentar salvar no Firebase
@@ -764,7 +720,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
           // Salvar apenas a data selecionada
           await setDoc(
             doc(db, "users", user.uid, "meals", selectedDate),
-            cleanedMeals
+            meals[selectedDate] || {}
           );
           console.log("Refeições sincronizadas com Firebase com sucesso");
         } catch (firebaseError) {
@@ -782,86 +738,135 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   };
 
   const getMealTotals = (mealId: string): MealTotals => {
-    const mealFoods = meals[selectedDate]?.[mealId] || [];
-    
-    // Verificação de segurança para garantir que mealFoods seja sempre um array
-    if (!Array.isArray(mealFoods)) {
-      console.warn(`mealFoods para mealId=${mealId} não é um array: ${typeof mealFoods}`);
+    try {
+      // Verificar se o mealId é uma string válida
+      if (!mealId || typeof mealId !== 'string') {
+        console.warn(`mealId inválido: ${mealId}`);
+        return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+      }
+      
+      // Obter os alimentos para a refeição
+      const mealFoods = meals[selectedDate]?.[mealId];
+      
+      // Verificação de segurança para garantir que mealFoods seja sempre um array
+      if (!mealFoods) {
+        return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+      }
+      
+      if (!Array.isArray(mealFoods)) {
+        console.warn(`mealFoods para mealId=${mealId} não é um array: ${typeof mealFoods}`);
+        return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+      }
+      
+      // Filtrar para garantir que só processamos objetos Food válidos
+      const validFoods = mealFoods.filter(food => 
+        food && 
+        typeof food === 'object' && 
+        !isNaN(Number(food.calories)) && 
+        !isNaN(Number(food.protein)) && 
+        !isNaN(Number(food.carbs)) && 
+        !isNaN(Number(food.fat))
+      );
+      
+      // Calcular os totais de forma segura
+      return validFoods.reduce(
+        (acc, food) => ({
+          calories: acc.calories + (Number(food.calories) || 0),
+          protein: acc.protein + (Number(food.protein) || 0),
+          carbs: acc.carbs + (Number(food.carbs) || 0),
+          fat: acc.fat + (Number(food.fat) || 0),
+        }),
+        { calories: 0, protein: 0, carbs: 0, fat: 0 }
+      );
+    } catch (error) {
+      console.error(`Erro ao calcular totais para mealId=${mealId}:`, error);
       return { calories: 0, protein: 0, carbs: 0, fat: 0 };
     }
-    
-    // Verificar se algum item não é um objeto Food válido
-    for (const food of mealFoods) {
-      if (!food || typeof food !== 'object' || !('id' in food)) {
-        console.warn(`Ignorando item inválido em mealFoods para mealId=${mealId}`);
-        // Remover o item inválido da lista de alimentos para evitar erros futuros
-        setMeals(prevMeals => {
-          if (!prevMeals[selectedDate]?.[mealId]) return prevMeals;
-          
-          const updatedFoods = prevMeals[selectedDate][mealId].filter(f => 
-            f && typeof f === 'object' && 'id' in f
-          );
-          
-          return {
-            ...prevMeals,
-            [selectedDate]: {
-              ...prevMeals[selectedDate],
-              [mealId]: updatedFoods
-            }
-          };
-        });
-      }
-    }
-    
-    return mealFoods.reduce(
-      (acc, food) => ({
-        calories: acc.calories + (food?.calories || 0),
-        protein: acc.protein + (food?.protein || 0),
-        carbs: acc.carbs + (food?.carbs || 0),
-        fat: acc.fat + (food?.fat || 0),
-      }),
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    );
   };
 
   const getFoodsForMeal = (mealId: string): Food[] => {
-    const foods = meals[selectedDate]?.[mealId] || [];
-    
-    // Garantir que sempre retorne um array
-    if (!Array.isArray(foods)) {
-      console.warn(`foods para mealId=${mealId} não é um array: ${typeof foods}`);
+    try {
+      // Verificar se o mealId é uma string válida
+      if (!mealId || typeof mealId !== 'string') {
+        console.warn(`mealId inválido em getFoodsForMeal: ${mealId}`);
+        return [];
+      }
+      
+      const foods = meals[selectedDate]?.[mealId];
+      
+      // Se não há alimentos, retornar array vazio
+      if (!foods) {
+        return [];
+      }
+      
+      // Garantir que sempre retorne um array
+      if (!Array.isArray(foods)) {
+        console.warn(`foods para mealId=${mealId} não é um array: ${typeof foods}`);
+        return [];
+      }
+      
+      // Filtrar para garantir que só retornamos objetos Food válidos
+      return foods.filter(food => 
+        food && 
+        typeof food === 'object' && 
+        typeof food.id === 'string' && 
+        typeof food.name === 'string' &&
+        !isNaN(Number(food.calories)) &&
+        !isNaN(Number(food.protein)) &&
+        !isNaN(Number(food.carbs)) &&
+        !isNaN(Number(food.fat)) &&
+        !isNaN(Number(food.portion))
+      );
+    } catch (error) {
+      console.error(`Erro ao obter alimentos para mealId=${mealId}:`, error);
       return [];
     }
-    
-    return foods;
   };
 
   const getDayTotals = (): MealTotals => {
-    // Usar os IDs de refeição do dia atual ou os tipos de refeição configurados
-    const currentDayMeals = meals[selectedDate] || {};
-    const mealIds =
-      Object.keys(currentDayMeals).length > 0
-        ? Object.keys(currentDayMeals)
-        : mealTypes.map((type) => type.id);
-    
-    // Verificação de segurança para garantir que mealIds seja sempre um array
-    if (!Array.isArray(mealIds)) {
-      console.warn(`mealIds não é um array: ${typeof mealIds}`);
+    try {
+      // Usar os IDs de refeição do dia atual ou os tipos de refeição configurados
+      const currentDayMeals = meals[selectedDate] || {};
+      let mealIds: string[] = [];
+      
+      if (Object.keys(currentDayMeals).length > 0) {
+        // Filtramos as chaves para garantir que não estamos processando metadados
+        mealIds = Object.keys(currentDayMeals).filter(id => {
+          const knownMetadata = ['data', 'date', 'updatedAt', 'createdAt', 'userId', 'user_id'];
+          return !knownMetadata.includes(id);
+        });
+      } else if (Array.isArray(mealTypes) && mealTypes.length > 0) {
+        // Se não temos refeições, mas temos tipos configurados, usar esses IDs
+        mealIds = mealTypes.map(type => type.id);
+      }
+      
+      // Se não temos IDs válidos, retornar zeros
+      if (!mealIds.length) {
+        return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+      }
+
+      return mealIds.reduce(
+        (acc, mealId) => {
+          try {
+            const mealTotals = getMealTotals(mealId);
+            return {
+              calories: acc.calories + (mealTotals.calories || 0),
+              protein: acc.protein + (mealTotals.protein || 0),
+              carbs: acc.carbs + (mealTotals.carbs || 0),
+              fat: acc.fat + (mealTotals.fat || 0),
+            };
+          } catch (error) {
+            console.error(`Erro ao calcular totais para refeição ${mealId}:`, error);
+            // Em caso de erro, retornar os acumuladores sem adicionar nada
+            return acc;
+          }
+        },
+        { calories: 0, protein: 0, carbs: 0, fat: 0 }
+      );
+    } catch (error) {
+      console.error("Erro ao calcular totais do dia:", error);
       return { calories: 0, protein: 0, carbs: 0, fat: 0 };
     }
-
-    return mealIds.reduce(
-      (acc, mealId) => {
-        const mealTotals = getMealTotals(mealId);
-        return {
-          calories: acc.calories + mealTotals.calories,
-          protein: acc.protein + mealTotals.protein,
-          carbs: acc.carbs + mealTotals.carbs,
-          fat: acc.fat + mealTotals.fat,
-        };
-      },
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    );
   };
 
   const addToSearchHistory = async (food: Food) => {
