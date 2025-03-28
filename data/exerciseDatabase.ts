@@ -6,7 +6,6 @@ export interface ExerciseData {
   equipment: string;
   imageUrl?: string;
   videoUrl?: string;
-  difficulty: "iniciante" | "intermediário" | "avançado";
   category: "força" | "cardio" | "flexibilidade" | "equilíbrio";
 }
 
@@ -35,7 +34,6 @@ export const equipmentTypes = [
   "Máquina",
   "Cabo",
   "Kettlebell",
-  "Peso corporal",
   "Elástico",
   "Bola",
   "TRX",
@@ -53,7 +51,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Supino Reto",
     muscle: "Peito",
     equipment: "Barra",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -61,7 +58,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Supino Inclinado",
     muscle: "Peito",
     equipment: "Barra",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -69,15 +65,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Crucifixo",
     muscle: "Peito",
     equipment: "Halteres",
-    difficulty: "intermediário",
-    category: "força",
-  },
-  {
-    id: "ex004",
-    name: "Flexão de Braço",
-    muscle: "Peito",
-    equipment: "Peso corporal",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -85,7 +72,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Supino Declinado",
     muscle: "Peito",
     equipment: "Barra",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -93,15 +79,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Crucifixo Inclinado",
     muscle: "Peito",
     equipment: "Halteres",
-    difficulty: "intermediário",
-    category: "força",
-  },
-  {
-    id: "ex007",
-    name: "Flexão de Braço Diamante",
-    muscle: "Peito",
-    equipment: "Peso corporal",
-    difficulty: "avançado",
     category: "força",
   },
   {
@@ -109,15 +86,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Crossover",
     muscle: "Peito",
     equipment: "Cabo",
-    difficulty: "intermediário",
-    category: "força",
-  },
-  {
-    id: "ex102",
-    name: "Flexão com Inclinação",
-    muscle: "Peito",
-    equipment: "Peso corporal",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -125,7 +93,48 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Peck Deck",
     muscle: "Peito",
     equipment: "Máquina",
-    difficulty: "iniciante",
+    category: "força",
+  },
+  {
+    id: "ex200",
+    name: "Supino Reto com Halteres",
+    muscle: "Peito",
+    equipment: "Halteres",
+    category: "força",
+  },
+  {
+    id: "ex201",
+    name: "Supino Inclinado com Halteres",
+    muscle: "Peito",
+    equipment: "Halteres",
+    category: "força",
+  },
+  {
+    id: "ex202",
+    name: "Supino Declinado com Halteres",
+    muscle: "Peito",
+    equipment: "Halteres",
+    category: "força",
+  },
+  {
+    id: "ex203",
+    name: "Pullover com Cabo",
+    muscle: "Peito",
+    equipment: "Cabo",
+    category: "força",
+  },
+  {
+    id: "ex204",
+    name: "Crossover Baixo",
+    muscle: "Peito",
+    equipment: "Cabo",
+    category: "força",
+  },
+  {
+    id: "ex205",
+    name: "Crossover Alto",
+    muscle: "Peito",
+    equipment: "Cabo",
     category: "força",
   },
 
@@ -135,7 +144,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Puxada Frontal",
     muscle: "Costas",
     equipment: "Máquina",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -143,7 +151,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Remada Curvada",
     muscle: "Costas",
     equipment: "Barra",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -151,7 +158,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Remada Unilateral",
     muscle: "Costas",
     equipment: "Halteres",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -159,7 +165,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Puxada Atrás da Nuca",
     muscle: "Costas",
     equipment: "Máquina",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -167,7 +172,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Remada na Máquina",
     muscle: "Costas",
     equipment: "Máquina",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -175,7 +179,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Puxada com Triângulo",
     muscle: "Costas",
     equipment: "Máquina",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -183,7 +186,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Remada Baixa",
     muscle: "Costas",
     equipment: "Máquina",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -191,15 +193,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Barra Fixa",
     muscle: "Costas",
     equipment: "Barra",
-    difficulty: "avançado",
-    category: "força",
-  },
-  {
-    id: "ex105",
-    name: "Remada Invertida",
-    muscle: "Costas",
-    equipment: "Peso corporal",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -207,7 +200,34 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Pulldown com Pegada Fechada",
     muscle: "Costas",
     equipment: "Máquina",
-    difficulty: "intermediário",
+    category: "força",
+  },
+  {
+    id: "ex206",
+    name: "Remada com Cabo",
+    muscle: "Costas",
+    equipment: "Cabo",
+    category: "força",
+  },
+  {
+    id: "ex207",
+    name: "Remada Sentada com Cabo",
+    muscle: "Costas",
+    equipment: "Cabo",
+    category: "força",
+  },
+  {
+    id: "ex208",
+    name: "Remada Curvada com Halteres",
+    muscle: "Costas",
+    equipment: "Halteres",
+    category: "força",
+  },
+  {
+    id: "ex209",
+    name: "Pulldown com Corda",
+    muscle: "Costas",
+    equipment: "Cabo",
     category: "força",
   },
 
@@ -217,7 +237,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Agachamento",
     muscle: "Pernas",
     equipment: "Barra",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -225,7 +244,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Leg Press",
     muscle: "Pernas",
     equipment: "Máquina",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -233,7 +251,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Cadeira Extensora",
     muscle: "Pernas",
     equipment: "Máquina",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -241,7 +258,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Cadeira Flexora",
     muscle: "Pernas",
     equipment: "Máquina",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -249,7 +265,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Agachamento Búlgaro",
     muscle: "Pernas",
     equipment: "Halteres",
-    difficulty: "avançado",
     category: "força",
   },
   {
@@ -257,7 +272,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Cadeira Adutora",
     muscle: "Pernas",
     equipment: "Máquina",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -265,7 +279,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Cadeira Abdutora",
     muscle: "Pernas",
     equipment: "Máquina",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -273,7 +286,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Leg Curl",
     muscle: "Pernas",
     equipment: "Máquina",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -281,7 +293,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Agachamento Hack",
     muscle: "Pernas",
     equipment: "Máquina",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -289,7 +300,34 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Passada",
     muscle: "Pernas",
     equipment: "Halteres",
-    difficulty: "intermediário",
+    category: "força",
+  },
+  {
+    id: "ex210",
+    name: "Agachamento com Halteres",
+    muscle: "Pernas",
+    equipment: "Halteres",
+    category: "força",
+  },
+  {
+    id: "ex211",
+    name: "Agachamento Sumô com Halteres",
+    muscle: "Pernas",
+    equipment: "Halteres",
+    category: "força",
+  },
+  {
+    id: "ex212",
+    name: "Extensão de Quadril com Cabo",
+    muscle: "Glúteos",
+    equipment: "Cabo",
+    category: "força",
+  },
+  {
+    id: "ex213",
+    name: "Abdução de Quadril com Cabo",
+    muscle: "Glúteos",
+    equipment: "Cabo",
     category: "força",
   },
 
@@ -299,7 +337,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Desenvolvimento",
     muscle: "Ombros",
     equipment: "Barra",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -307,7 +344,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Elevação Lateral",
     muscle: "Ombros",
     equipment: "Halteres",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -315,7 +351,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Elevação Frontal",
     muscle: "Ombros",
     equipment: "Halteres",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -323,7 +358,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Desenvolvimento Arnold",
     muscle: "Ombros",
     equipment: "Halteres",
-    difficulty: "avançado",
     category: "força",
   },
   {
@@ -331,7 +365,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Elevação Lateral na Máquina",
     muscle: "Ombros",
     equipment: "Máquina",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -339,7 +372,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Remada Alta",
     muscle: "Ombros",
     equipment: "Barra",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -347,7 +379,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Rotação Externa",
     muscle: "Ombros",
     equipment: "Cabo",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -355,7 +386,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Desenvolvimento com Halteres",
     muscle: "Ombros",
     equipment: "Halteres",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -363,7 +393,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Elevação Posterior",
     muscle: "Ombros",
     equipment: "Halteres",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -371,7 +400,34 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Press Militar",
     muscle: "Ombros",
     equipment: "Barra",
-    difficulty: "intermediário",
+    category: "força",
+  },
+  {
+    id: "ex214",
+    name: "Elevação Lateral com Cabo",
+    muscle: "Ombros",
+    equipment: "Cabo",
+    category: "força",
+  },
+  {
+    id: "ex215",
+    name: "Elevação Frontal com Cabo",
+    muscle: "Ombros",
+    equipment: "Cabo",
+    category: "força",
+  },
+  {
+    id: "ex216",
+    name: "Elevação Posterior com Cabo",
+    muscle: "Ombros",
+    equipment: "Cabo",
+    category: "força",
+  },
+  {
+    id: "ex217",
+    name: "Encolhimento com Halteres",
+    muscle: "Trapézio",
+    equipment: "Halteres",
     category: "força",
   },
 
@@ -381,7 +437,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Rosca Direta",
     muscle: "Bíceps",
     equipment: "Barra",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -389,7 +444,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Rosca Alternada",
     muscle: "Bíceps",
     equipment: "Halteres",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -397,7 +451,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Rosca Martelo",
     muscle: "Bíceps",
     equipment: "Halteres",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -405,7 +458,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Rosca na Máquina",
     muscle: "Bíceps",
     equipment: "Máquina",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -413,7 +465,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Rosca Scott",
     muscle: "Bíceps",
     equipment: "Barra",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -421,7 +472,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Rosca Concentrada",
     muscle: "Bíceps",
     equipment: "Halteres",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -429,7 +479,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Rosca com Corda",
     muscle: "Bíceps",
     equipment: "Cabo",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -437,7 +486,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Rosca Concentrada",
     muscle: "Bíceps",
     equipment: "Halteres",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -445,7 +493,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Rosca Inclinada",
     muscle: "Bíceps",
     equipment: "Halteres",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -453,7 +500,34 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Rosca com Pegada Invertida",
     muscle: "Bíceps",
     equipment: "Barra",
-    difficulty: "intermediário",
+    category: "força",
+  },
+  {
+    id: "ex218",
+    name: "Rosca Direta com Cabo",
+    muscle: "Bíceps",
+    equipment: "Cabo",
+    category: "força",
+  },
+  {
+    id: "ex219",
+    name: "Rosca Scott com Halteres",
+    muscle: "Bíceps",
+    equipment: "Halteres",
+    category: "força",
+  },
+  {
+    id: "ex220",
+    name: "Rosca 21",
+    muscle: "Bíceps",
+    equipment: "Barra",
+    category: "força",
+  },
+  {
+    id: "ex221",
+    name: "Rosca Alternada com Cabo",
+    muscle: "Bíceps",
+    equipment: "Cabo",
     category: "força",
   },
 
@@ -463,7 +537,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Tríceps Corda",
     muscle: "Tríceps",
     equipment: "Cabo",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -471,7 +544,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Tríceps Testa",
     muscle: "Tríceps",
     equipment: "Barra",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -479,7 +551,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Tríceps Francês",
     muscle: "Tríceps",
     equipment: "Halteres",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -487,15 +558,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Tríceps na Máquina",
     muscle: "Tríceps",
     equipment: "Máquina",
-    difficulty: "iniciante",
-    category: "força",
-  },
-  {
-    id: "ex040",
-    name: "Tríceps Banco",
-    muscle: "Tríceps",
-    equipment: "Peso corporal",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -503,7 +565,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Tríceps Unilateral",
     muscle: "Tríceps",
     equipment: "Cabo",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -511,7 +572,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Tríceps Extensão",
     muscle: "Tríceps",
     equipment: "Halteres",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -519,15 +579,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Tríceps Testa com Halteres",
     muscle: "Tríceps",
     equipment: "Halteres",
-    difficulty: "intermediário",
-    category: "força",
-  },
-  {
-    id: "ex117",
-    name: "Tríceps no Banco",
-    muscle: "Tríceps",
-    equipment: "Peso corporal",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -535,81 +586,43 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Tríceps Pulldown",
     muscle: "Tríceps",
     equipment: "Cabo",
-    difficulty: "intermediário",
+    category: "força",
+  },
+  {
+    id: "ex222",
+    name: "Tríceps Kickback com Halteres",
+    muscle: "Tríceps",
+    equipment: "Halteres",
+    category: "força",
+  },
+  {
+    id: "ex223",
+    name: "Tríceps Pushdown com Barra V",
+    muscle: "Tríceps",
+    equipment: "Cabo",
+    category: "força",
+  },
+  {
+    id: "ex224",
+    name: "Tríceps Pushdown com Barra Reta",
+    muscle: "Tríceps",
+    equipment: "Cabo",
+    category: "força",
+  },
+  {
+    id: "ex225",
+    name: "Extensão de Tríceps Deitado com Halteres",
+    muscle: "Tríceps",
+    equipment: "Halteres",
     category: "força",
   },
 
   // Abdômen
   {
-    id: "ex043",
-    name: "Abdominal Reto",
-    muscle: "Abdômen",
-    equipment: "Peso corporal",
-    difficulty: "iniciante",
-    category: "força",
-  },
-  {
-    id: "ex044",
-    name: "Prancha",
-    muscle: "Abdômen",
-    equipment: "Peso corporal",
-    difficulty: "iniciante",
-    category: "força",
-  },
-  {
-    id: "ex045",
-    name: "Abdominal Oblíquo",
-    muscle: "Abdômen",
-    equipment: "Peso corporal",
-    difficulty: "intermediário",
-    category: "força",
-  },
-  {
-    id: "ex046",
-    name: "Abdominal Infra",
-    muscle: "Abdômen",
-    equipment: "Peso corporal",
-    difficulty: "intermediário",
-    category: "força",
-  },
-  {
-    id: "ex047",
-    name: "Abdominal Bicicleta",
-    muscle: "Abdômen",
-    equipment: "Peso corporal",
-    difficulty: "intermediário",
-    category: "força",
-  },
-  {
-    id: "ex048",
-    name: "Prancha Lateral",
-    muscle: "Abdômen",
-    equipment: "Peso corporal",
-    difficulty: "intermediário",
-    category: "força",
-  },
-  {
-    id: "ex049",
-    name: "Abdominal com Rotação",
-    muscle: "Abdômen",
-    equipment: "Peso corporal",
-    difficulty: "avançado",
-    category: "força",
-  },
-  {
-    id: "ex119",
-    name: "Crunch na Bola",
-    muscle: "Abdômen",
-    equipment: "Bola",
-    difficulty: "iniciante",
-    category: "força",
-  },
-  {
     id: "ex120",
     name: "Abdominal na Máquina",
     muscle: "Abdômen",
     equipment: "Máquina",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -617,7 +630,27 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Abdominal com Roda",
     muscle: "Abdômen",
     equipment: "Roda",
-    difficulty: "avançado",
+    category: "força",
+  },
+  {
+    id: "ex226",
+    name: "Abdominal com Cabo",
+    muscle: "Abdômen",
+    equipment: "Cabo",
+    category: "força",
+  },
+  {
+    id: "ex227",
+    name: "Oblíquos com Cabo",
+    muscle: "Abdômen",
+    equipment: "Cabo",
+    category: "força",
+  },
+  {
+    id: "ex228",
+    name: "Abdominal com Halteres",
+    muscle: "Abdômen",
+    equipment: "Halteres",
     category: "força",
   },
 
@@ -627,31 +660,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Corrida",
     muscle: "Cardio",
     equipment: "Esteira",
-    difficulty: "intermediário",
-    category: "cardio",
-  },
-  {
-    id: "ex051",
-    name: "Pular Corda",
-    muscle: "Cardio",
-    equipment: "Corda",
-    difficulty: "intermediário",
-    category: "cardio",
-  },
-  {
-    id: "ex052",
-    name: "Burpee",
-    muscle: "Cardio",
-    equipment: "Peso corporal",
-    difficulty: "avançado",
-    category: "cardio",
-  },
-  {
-    id: "ex053",
-    name: "Agachamento com Salto",
-    muscle: "Cardio",
-    equipment: "Peso corporal",
-    difficulty: "intermediário",
     category: "cardio",
   },
   {
@@ -659,7 +667,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Bicicleta Ergométrica",
     muscle: "Cardio",
     equipment: "Bicicleta",
-    difficulty: "iniciante",
     category: "cardio",
   },
   {
@@ -667,51 +674,66 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Elíptico",
     muscle: "Cardio",
     equipment: "Elíptico",
-    difficulty: "iniciante",
     category: "cardio",
   },
   {
-    id: "ex056",
-    name: "Mountain Climber",
+    id: "ex075",
+    name: "Corrida Intervalada",
     muscle: "Cardio",
-    equipment: "Peso corporal",
-    difficulty: "intermediário",
+    equipment: "Esteira",
     category: "cardio",
   },
 
   // Glúteos
   {
-    id: "ex057",
-    name: "Elevação Pélvica",
-    muscle: "Glúteos",
-    equipment: "Peso corporal",
-    difficulty: "iniciante",
-    category: "força",
-  },
-  {
     id: "ex058",
     name: "Agachamento Sumô",
     muscle: "Glúteos",
     equipment: "Halteres",
-    difficulty: "intermediário",
+    category: "força",
+  },
+  {
+    id: "ex229",
+    name: "Elevação Pélvica com Halteres",
+    muscle: "Glúteos",
+    equipment: "Halteres",
+    category: "força",
+  },
+  {
+    id: "ex230",
+    name: "Glúteos na Máquina",
+    muscle: "Glúteos",
+    equipment: "Máquina",
+    category: "força",
+  },
+  {
+    id: "ex231",
+    name: "Chute para trás com Cabo",
+    muscle: "Glúteos",
+    equipment: "Cabo",
     category: "força",
   },
 
   // Panturrilha
   {
-    id: "ex059",
-    name: "Elevação de Panturrilha em Pé",
-    muscle: "Panturrilha",
-    equipment: "Peso corporal",
-    difficulty: "iniciante",
-    category: "força",
-  },
-  {
     id: "ex060",
     name: "Elevação de Panturrilha Sentado",
     muscle: "Panturrilha",
     equipment: "Máquina",
-    difficulty: "intermediário",
+    category: "força",
+  },
+  {
+    id: "ex087",
+    name: "Calf Raise com Halteres",
+    muscle: "Panturrilha",
+    equipment: "Halteres",
+    category: "força",
+  },
+  {
+    id: "ex088",
+    name: "Calf Raise na Máquina",
+    muscle: "Panturrilha",
+    equipment: "Máquina",
     category: "força",
   },
 
@@ -721,7 +743,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Rosca de Punho",
     muscle: "Antebraço",
     equipment: "Halteres",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -729,7 +750,20 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Rosca Inversa",
     muscle: "Antebraço",
     equipment: "Barra",
-    difficulty: "intermediário",
+    category: "força",
+  },
+  {
+    id: "ex232",
+    name: "Rosca de Punho com Cabo",
+    muscle: "Antebraço",
+    equipment: "Cabo",
+    category: "força",
+  },
+  {
+    id: "ex233",
+    name: "Rosca Inversa com Cabo",
+    muscle: "Antebraço",
+    equipment: "Cabo",
     category: "força",
   },
 
@@ -739,7 +773,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Levantamento Terra",
     muscle: "Lombar",
     equipment: "Barra",
-    difficulty: "avançado",
     category: "força",
   },
   {
@@ -747,7 +780,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Stiff",
     muscle: "Lombar",
     equipment: "Barra",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -755,7 +787,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Pullover",
     muscle: "Peito",
     equipment: "Halteres",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -763,7 +794,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Crucifixo Invertido",
     muscle: "Costas",
     equipment: "Halteres",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -771,7 +801,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Remada Cavalinho",
     muscle: "Costas",
     equipment: "Barra",
-    difficulty: "avançado",
     category: "força",
   },
   {
@@ -779,7 +808,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Desenvolvimento Militar",
     muscle: "Ombros",
     equipment: "Barra",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -787,7 +815,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Elevação Frontal com Barra",
     muscle: "Ombros",
     equipment: "Barra",
-    difficulty: "iniciante",
     category: "força",
   },
   {
@@ -795,7 +822,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Rosca Concentrada com Barra",
     muscle: "Bíceps",
     equipment: "Barra",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -803,71 +829,13 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Tríceps Coice",
     muscle: "Tríceps",
     equipment: "Halteres",
-    difficulty: "intermediário",
     category: "força",
-  },
-  {
-    id: "ex072",
-    name: "Tríceps Mergulho",
-    muscle: "Tríceps",
-    equipment: "Peso corporal",
-    difficulty: "intermediário",
-    category: "força",
-  },
-  {
-    id: "ex073",
-    name: "Abdominal V",
-    muscle: "Abdômen",
-    equipment: "Peso corporal",
-    difficulty: "avançado",
-    category: "força",
-  },
-  {
-    id: "ex074",
-    name: "Abdominal Canivete",
-    muscle: "Abdômen",
-    equipment: "Peso corporal",
-    difficulty: "avançado",
-    category: "força",
-  },
-  {
-    id: "ex075",
-    name: "Corrida Intervalada",
-    muscle: "Cardio",
-    equipment: "Esteira",
-    difficulty: "avançado",
-    category: "cardio",
-  },
-  {
-    id: "ex076",
-    name: "Sprints",
-    muscle: "Cardio",
-    equipment: "Sem equipamento",
-    difficulty: "avançado",
-    category: "cardio",
-  },
-  {
-    id: "ex077",
-    name: "Corda Naval",
-    muscle: "Cardio",
-    equipment: "Corda",
-    difficulty: "intermediário",
-    category: "cardio",
-  },
-  {
-    id: "ex078",
-    name: "Box Jump",
-    muscle: "Cardio",
-    equipment: "Caixa",
-    difficulty: "intermediário",
-    category: "cardio",
   },
   {
     id: "ex079",
     name: "Kettlebell Swing",
     muscle: "Corpo inteiro",
     equipment: "Kettlebell",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -875,7 +843,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Turkish Get-Up",
     muscle: "Corpo inteiro",
     equipment: "Kettlebell",
-    difficulty: "avançado",
     category: "força",
   },
   {
@@ -883,7 +850,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Snatch",
     muscle: "Corpo inteiro",
     equipment: "Barra",
-    difficulty: "avançado",
     category: "força",
   },
   {
@@ -891,7 +857,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Clean and Jerk",
     muscle: "Corpo inteiro",
     equipment: "Barra",
-    difficulty: "avançado",
     category: "força",
   },
   {
@@ -899,7 +864,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Lunge com Barra",
     muscle: "Pernas",
     equipment: "Barra",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -907,7 +871,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Lunge com Halteres",
     muscle: "Pernas",
     equipment: "Halteres",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -915,31 +878,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Step-Up",
     muscle: "Pernas",
     equipment: "Caixa",
-    difficulty: "iniciante",
-    category: "força",
-  },
-  {
-    id: "ex086",
-    name: "Pistol Squat",
-    muscle: "Pernas",
-    equipment: "Peso corporal",
-    difficulty: "avançado",
-    category: "força",
-  },
-  {
-    id: "ex087",
-    name: "Calf Raise com Halteres",
-    muscle: "Panturrilha",
-    equipment: "Halteres",
-    difficulty: "intermediário",
-    category: "força",
-  },
-  {
-    id: "ex088",
-    name: "Calf Raise na Máquina",
-    muscle: "Panturrilha",
-    equipment: "Máquina",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -947,39 +885,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Farmers Walk",
     muscle: "Corpo inteiro",
     equipment: "Halteres",
-    difficulty: "intermediário",
-    category: "força",
-  },
-  {
-    id: "ex090",
-    name: "Bear Crawl",
-    muscle: "Corpo inteiro",
-    equipment: "Peso corporal",
-    difficulty: "intermediário",
-    category: "força",
-  },
-  {
-    id: "ex091",
-    name: "Plank to Push-Up",
-    muscle: "Corpo inteiro",
-    equipment: "Peso corporal",
-    difficulty: "intermediário",
-    category: "força",
-  },
-  {
-    id: "ex092",
-    name: "Russian Twist",
-    muscle: "Abdômen",
-    equipment: "Peso corporal",
-    difficulty: "intermediário",
-    category: "força",
-  },
-  {
-    id: "ex093",
-    name: "Hollow Hold",
-    muscle: "Abdômen",
-    equipment: "Peso corporal",
-    difficulty: "avançado",
     category: "força",
   },
   {
@@ -987,23 +892,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Hanging Leg Raise",
     muscle: "Abdômen",
     equipment: "Barra",
-    difficulty: "avançado",
-    category: "força",
-  },
-  {
-    id: "ex095",
-    name: "Dragon Flag",
-    muscle: "Abdômen",
-    equipment: "Peso corporal",
-    difficulty: "avançado",
-    category: "força",
-  },
-  {
-    id: "ex096",
-    name: "Side Plank",
-    muscle: "Abdômen",
-    equipment: "Peso corporal",
-    difficulty: "intermediário",
     category: "força",
   },
   {
@@ -1011,7 +899,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Windshield Wipers",
     muscle: "Abdômen",
     equipment: "Barra",
-    difficulty: "avançado",
     category: "força",
   },
   {
@@ -1019,15 +906,6 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "L-Sit",
     muscle: "Abdômen",
     equipment: "Paralelas",
-    difficulty: "avançado",
-    category: "força",
-  },
-  {
-    id: "ex099",
-    name: "Planche",
-    muscle: "Corpo inteiro",
-    equipment: "Peso corporal",
-    difficulty: "avançado",
     category: "força",
   },
   {
@@ -1035,7 +913,20 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Muscle-Up",
     muscle: "Corpo inteiro",
     equipment: "Barra",
-    difficulty: "avançado",
+    category: "força",
+  },
+  {
+    id: "ex234",
+    name: "Stiff com Halteres",
+    muscle: "Lombar",
+    equipment: "Halteres",
+    category: "força",
+  },
+  {
+    id: "ex235",
+    name: "Levantamento Terra Sumô",
+    muscle: "Lombar",
+    equipment: "Barra",
     category: "força",
   },
 ];

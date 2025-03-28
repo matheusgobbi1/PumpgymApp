@@ -207,35 +207,7 @@ const ExerciseCard = ({
           </View>
         </View>
 
-        <View
-          style={[
-            styles.exerciseDifficulty,
-            {
-              backgroundColor:
-                exercise.difficulty === "iniciante"
-                  ? "#4CAF50" + "20"
-                  : exercise.difficulty === "intermediário"
-                  ? "#FFC107" + "20"
-                  : "#F44336" + "20",
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.exerciseDifficultyText,
-              {
-                color:
-                  exercise.difficulty === "iniciante"
-                    ? "#4CAF50"
-                    : exercise.difficulty === "intermediário"
-                    ? "#FFC107"
-                    : "#F44336",
-              },
-            ]}
-          >
-            {t(`exercises.difficulty.${exercise.difficulty}`)}
-          </Text>
-        </View>
+       
       </TouchableOpacity>
     </MotiView>
   );
@@ -533,8 +505,7 @@ export default function AddExerciseScreen() {
               style={[styles.exerciseCategory, { color: colors.text + "80" }]}
             >
               {t(`exercises.muscles.${exercise.muscle}`)} •{" "}
-              {t(`exercises.equipment.${exercise.equipment}`)} •{" "}
-              {t(`exercises.difficulty.${exercise.difficulty}`)}
+              {t(`exercises.equipment.${exercise.equipment}`)}
             </Text>
           </View>
           <TouchableOpacity
@@ -736,7 +707,6 @@ export default function AddExerciseScreen() {
                       name: exercise.name,
                       muscle: exercise.notes?.split(" - ")[0] || "",
                       equipment: exercise.notes?.split(" - ")[1] || "",
-                      difficulty: "intermediário",
                       category: exercise.category || "força",
                     })
                   }
@@ -986,16 +956,5 @@ const styles = StyleSheet.create({
   exerciseDetailText: {
     fontSize: 12,
     marginLeft: 4,
-  },
-  exerciseDifficulty: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 8,
-  },
-  exerciseDifficultyText: {
-    fontSize: 12,
-    fontWeight: "500",
   },
 });

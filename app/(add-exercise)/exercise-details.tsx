@@ -20,7 +20,6 @@ import { useTheme } from "../../context/ThemeContext";
 import {
   useWorkoutContext,
   Exercise,
-  ExerciseSet,
 } from "../../context/WorkoutContext";
 import Colors from "../../constants/Colors";
 import { ExerciseData, getExerciseById } from "../../data/exerciseDatabase";
@@ -28,6 +27,17 @@ import { useTranslation } from "react-i18next";
 import { MotiView } from "moti";
 
 const { width } = Dimensions.get("window");
+
+// Interface para a série de exercício
+interface ExerciseSet {
+  id: string;
+  reps: number;
+  weight: number;
+  restTime?: number;
+  toFailure?: boolean;
+  repsInReserve?: number;
+  perceivedEffort?: number;
+}
 
 // Componente para o esqueleto de carregamento
 const LoadingSkeleton = () => {
@@ -74,6 +84,7 @@ const SetCard = ({
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
 
   // Estados locais para os valores de entrada
   const [repsInput, setRepsInput] = useState(set.reps.toString());
@@ -81,6 +92,15 @@ const SetCard = ({
   const [restTimeInput, setRestTimeInput] = useState(
     set.restTime ? set.restTime.toString() : "60"
   );
+  const [toFailure, setToFailure] = useState(set.toFailure || false);
+  const [repsInReserve, setRepsInReserve] = useState(set.repsInReserve || 2);
+  const [perceivedEffort, setPerceivedEffort] = useState(set.perceivedEffort || 3);
+
+  // Função para alternar o estado de expansão
+  const toggleExpanded = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setExpanded(!expanded);
+  };
 
   // Função para atualizar as repetições
   const handleRepsChange = (reps: number) => {
@@ -98,6 +118,25 @@ const SetCard = ({
   const handleRestTimeChange = (restTime: number) => {
     setRestTimeInput(restTime.toString());
     onUpdate({ ...set, restTime });
+  };
+
+  // Função para atualizar falha muscular
+  const toggleFailure = () => {
+    const newValue = !toFailure;
+    setToFailure(newValue);
+    onUpdate({ ...set, toFailure: newValue, repsInReserve: newValue ? 0 : repsInReserve });
+  };
+
+  // Função para atualizar reps em reserva com slider
+  const handleRepsInReserveChange = (value: number) => {
+    setRepsInReserve(value);
+    onUpdate({ ...set, repsInReserve: value });
+  };
+
+  // Função para atualizar percepção de esforço com slider
+  const handlePerceivedEffortChange = (value: number) => {
+    setPerceivedEffort(value);
+    onUpdate({ ...set, perceivedEffort: value });
   };
 
   // Função para validar e atualizar as repetições a partir da entrada de texto
@@ -186,139 +225,179 @@ const SetCard = ({
   // Opções de tempo de descanso pré-definidas
   const restTimeOptions = [30, 60, 90, 120];
 
+  // Obter texto de descrição para percepção de esforço
+  const getPerceiveEffortLabel = () => {
+    return t(`exercise.perceivedEffort.level${perceivedEffort}`);
+  };
+
   return (
     <View
       style={[
         styles.setCard,
-        {
-          backgroundColor: colors.card,
-          borderLeftWidth: 4,
-          borderLeftColor: color,
-        },
+        { backgroundColor: colors.card },
       ]}
     >
-      <View style={styles.setCardHeader}>
-        <View
-          style={[styles.setNumberContainer, { backgroundColor: color + "20" }]}
-        >
-          <Text style={[styles.setNumberText, { color }]}>
-            {t("exercise.setNumber")} {index + 1}
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.removeSetButton}
-          onPress={onRemove}
-          hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-        >
-          <Ionicons name="close-circle" size={22} color={colors.text + "60"} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.setCardContent}>
-        <View style={styles.setMetricContainer}>
-          <View style={styles.setMetricHeader}>
-            <Ionicons
-              name="repeat-outline"
-              size={16}
-              color={color}
-              style={styles.setMetricIcon}
-            />
-            <Text style={[styles.setMetricLabel, { color: colors.text }]}>
-              {t("exercise.repetitions")}
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={toggleExpanded}
+        style={styles.setCardHeader}
+      >
+        <View style={styles.setCardHeaderLeft}>
+          <View
+            style={[styles.setIconBackground, { backgroundColor: color + "20" }]}
+          >
+            <Ionicons name="barbell-outline" size={18} color={color} />
+          </View>
+          <View>
+            <Text style={[styles.setNumberText, { color: colors.text }]}>
+              {t("exercise.setNumber")} {index + 1}
+            </Text>
+            <Text style={[styles.setSummaryText, { color: colors.text + "80" }]}>
+              {set.reps} {t("exercise.reps")} × {set.weight} kg
             </Text>
           </View>
-          <View
+        </View>
+
+        <View style={styles.setCardHeaderRight}>
+          <TouchableOpacity
             style={[
-              styles.setMetricControls,
-              { backgroundColor: colors.background + "80", borderRadius: 10 },
+              styles.headerActionButton,
+              { backgroundColor: colors.text + "10" },
             ]}
+            onPress={onRemove}
+            hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
           >
-            <TouchableOpacity
-              style={[
-                styles.setMetricButton,
-                { backgroundColor: color + "15" },
-              ]}
-              onPress={() => handleRepsChange(Math.max(1, set.reps - 1))}
-            >
-              <Ionicons name="remove" size={18} color={color} />
-            </TouchableOpacity>
-
-            <TextInput
-              style={[styles.setMetricValue, { color: colors.text }]}
-              value={repsInput}
-              onChangeText={handleRepsInputChange}
-              onBlur={() => handleInputBlur("reps")}
-              keyboardType="number-pad"
-              maxLength={2}
-              selectTextOnFocus
+            <Ionicons name="trash-outline" size={20} color={colors.text + "60"} />
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[
+              styles.headerActionButton,
+              { backgroundColor: colors.text + "10" },
+            ]}
+            onPress={toggleExpanded}
+            hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+            accessibilityLabel={expanded ? t("exercise.collapseSet") : t("exercise.expandSet")}
+          >
+            <Ionicons 
+              name={expanded ? "chevron-up" : "chevron-down"} 
+              size={20} 
+              color={colors.text + "60"} 
             />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
 
-            <TouchableOpacity
+      {/* Conteúdo básico sempre visível */}
+      <View style={styles.setCardBasicContent}>
+        {/* Container para repetições e peso lado a lado */}
+        <View style={styles.setMetricsRow}>
+          {/* Repetições */}
+          <View style={styles.setMetricContainer}>
+            <View style={styles.setMetricHeader}>
+              <Ionicons
+                name="repeat-outline"
+                size={16}
+                color={color}
+                style={styles.setMetricIcon}
+              />
+              <Text style={[styles.setMetricLabel, { color: colors.text }]}>
+                {t("exercise.repetitions")}
+              </Text>
+            </View>
+            <View
               style={[
-                styles.setMetricButton,
-                { backgroundColor: color + "15" },
+                styles.setMetricControls,
+                { backgroundColor: colors.background + "80", borderRadius: 10},
               ]}
-              onPress={() => handleRepsChange(Math.min(50, set.reps + 1))}
             >
-              <Ionicons name="add" size={18} color={color} />
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.setMetricButton,
+                  { backgroundColor: color + "15" },
+                ]}
+                onPress={() => handleRepsChange(Math.max(1, set.reps - 1))}
+              >
+                <Ionicons name="remove" size={18} color={color} />
+              </TouchableOpacity>
+
+              <TextInput
+                style={[styles.setMetricValue, { color: colors.text }]}
+                value={repsInput}
+                onChangeText={handleRepsInputChange}
+                onBlur={() => handleInputBlur("reps")}
+                keyboardType="number-pad"
+                maxLength={2}
+                selectTextOnFocus
+              />
+
+              <TouchableOpacity
+                style={[
+                  styles.setMetricButton,
+                  { backgroundColor: color + "15" },
+                ]}
+                onPress={() => handleRepsChange(Math.min(50, set.reps + 1))}
+              >
+                <Ionicons name="add" size={18} color={color} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Peso */}
+          <View style={styles.setMetricContainer}>
+            <View style={styles.setMetricHeader}>
+              <Ionicons
+                name="barbell-outline"
+                size={16}
+                color={color}
+                style={styles.setMetricIcon}
+              />
+              <Text style={[styles.setMetricLabel, { color: colors.text }]}>
+                {t("exercise.weight")}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.setMetricControls,
+                { backgroundColor: colors.background + "80", borderRadius: 10 },
+              ]}
+            >
+              <TouchableOpacity
+                style={[
+                  styles.setMetricButton,
+                  { backgroundColor: color + "15" },
+                ]}
+                onPress={() => handleWeightChange(Math.max(0, set.weight - 2.5))}
+              >
+                <Ionicons name="remove" size={18} color={color} />
+              </TouchableOpacity>
+
+              <TextInput
+                style={[styles.setMetricValue, { color: colors.text }]}
+                value={weightInput}
+                onChangeText={handleWeightInputChange}
+                onBlur={() => handleInputBlur("weight")}
+                keyboardType="decimal-pad"
+                maxLength={5}
+                selectTextOnFocus
+              />
+
+              <TouchableOpacity
+                style={[
+                  styles.setMetricButton,
+                  { backgroundColor: color + "15" },
+                ]}
+                onPress={() =>
+                  handleWeightChange(Math.min(200, set.weight + 2.5))
+                }
+              >
+                <Ionicons name="add" size={18} color={color} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
-        <View style={styles.setMetricContainer}>
-          <View style={styles.setMetricHeader}>
-            <Ionicons
-              name="barbell-outline"
-              size={16}
-              color={color}
-              style={styles.setMetricIcon}
-            />
-            <Text style={[styles.setMetricLabel, { color: colors.text }]}>
-              {t("exercise.weight")}
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.setMetricControls,
-              { backgroundColor: colors.background + "80", borderRadius: 10 },
-            ]}
-          >
-            <TouchableOpacity
-              style={[
-                styles.setMetricButton,
-                { backgroundColor: color + "15" },
-              ]}
-              onPress={() => handleWeightChange(Math.max(0, set.weight - 2.5))}
-            >
-              <Ionicons name="remove" size={18} color={color} />
-            </TouchableOpacity>
-
-            <TextInput
-              style={[styles.setMetricValue, { color: colors.text }]}
-              value={weightInput}
-              onChangeText={handleWeightInputChange}
-              onBlur={() => handleInputBlur("weight")}
-              keyboardType="decimal-pad"
-              maxLength={5}
-              selectTextOnFocus
-            />
-
-            <TouchableOpacity
-              style={[
-                styles.setMetricButton,
-                { backgroundColor: color + "15" },
-              ]}
-              onPress={() =>
-                handleWeightChange(Math.min(200, set.weight + 2.5))
-              }
-            >
-              <Ionicons name="add" size={18} color={color} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Seção de tempo de descanso */}
+        {/* Tempo de descanso - sempre visível */}
         <View style={styles.setMetricContainer}>
           <View style={styles.setMetricHeader}>
             <Ionicons
@@ -359,7 +438,8 @@ const SetCard = ({
               </TouchableOpacity>
             ))}
           </View>
-
+          
+          {/* Input manual para tempo de descanso */}
           <View
             style={[
               styles.setMetricControls,
@@ -406,6 +486,126 @@ const SetCard = ({
           </View>
         </View>
       </View>
+
+      {/* Conteúdo adicional que aparece somente quando expandido */}
+      {expanded && (
+        <View style={styles.setCardExpandedContent}>
+          {/* Falha muscular - mais minimalista */}
+          <View style={styles.setMetricContainer}>
+            <View style={styles.failureContainerMinimal}>
+              <View style={styles.setMetricHeader}>
+                <Ionicons
+                  name="flash-outline"
+                  size={16}
+                  color={color}
+                  style={styles.setMetricIcon}
+                />
+                <Text style={[styles.setMetricLabel, { color: colors.text }]}>
+                  {t("exercise.failureState.title")}
+                </Text>
+              </View>
+              
+              <TouchableOpacity
+                style={styles.failureToggleMinimal}
+                onPress={toggleFailure}
+                hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+              >
+                <View style={[
+                  styles.failureSwitchTrack, 
+                  { backgroundColor: toFailure ? color : colors.text + "30" }
+                ]}>
+                  <View style={[
+                    styles.failureSwitchThumb, 
+                    { backgroundColor: "#FFF", transform: [{ translateX: toFailure ? 16 : 0 }] }
+                  ]} />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Reps na reserva - agora com slider */}
+          <View style={[
+            styles.setMetricContainer,
+            { opacity: toFailure ? 0.5 : 1 }
+          ]}>
+            <View style={styles.setMetricHeader}>
+              <Ionicons
+                name="fitness-outline"
+                size={16}
+                color={color}
+                style={styles.setMetricIcon}
+              />
+              <Text style={[styles.setMetricLabel, { color: colors.text }]}>
+                {t("exercise.failureState.repsInReserve")}
+              </Text>
+              <Text style={[styles.sliderValueText, { color: colors.text }]}>
+                {repsInReserve}
+              </Text>
+            </View>
+            
+            <Slider
+              style={styles.fullWidthSlider}
+              minimumValue={1}
+              maximumValue={5}
+              step={1}
+              value={repsInReserve}
+              onValueChange={handleRepsInReserveChange}
+              minimumTrackTintColor={color}
+              maximumTrackTintColor={colors.border}
+              thumbTintColor={color}
+              disabled={toFailure}
+            />
+            
+            <View style={styles.sliderLabelsContainer}>
+              <Text style={[styles.sliderLabelText, { color: colors.text + "80" }]}>1</Text>
+              <Text style={[styles.sliderLabelText, { color: colors.text + "80" }]}>5</Text>
+            </View>
+          </View>
+
+          {/* Percepção de esforço - agora com slider */}
+          <View style={styles.setMetricContainer}>
+            <View style={styles.setMetricHeader}>
+              <Ionicons
+                name="pulse-outline"
+                size={16}
+                color={color}
+                style={styles.setMetricIcon}
+              />
+              <Text style={[styles.setMetricLabel, { color: colors.text }]}>
+                {t("exercise.perceivedEffort.title")}
+              </Text>
+              <Text style={[styles.sliderValueText, { color: colors.text }]}>
+                {perceivedEffort}
+              </Text>
+            </View>
+            
+            <Slider
+              style={styles.fullWidthSlider}
+              minimumValue={1}
+              maximumValue={5}
+              step={1}
+              value={perceivedEffort}
+              onValueChange={handlePerceivedEffortChange}
+              minimumTrackTintColor={color}
+              maximumTrackTintColor={colors.border}
+              thumbTintColor={color}
+            />
+            
+            <Text style={[styles.effortLevelText, { color: colors.text, textAlign: 'center', marginTop: 4 }]}>
+              {getPerceiveEffortLabel()}
+            </Text>
+            
+            <View style={styles.sliderLabelsContainer}>
+              <Text style={[styles.sliderLabelText, { color: colors.text + "80" }]}>
+                {t("exercise.perceivedEffort.level1")}
+              </Text>
+              <Text style={[styles.sliderLabelText, { color: colors.text + "80" }]}>
+                {t("exercise.perceivedEffort.level5")}
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -425,6 +625,12 @@ const CardioCard = ({
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(true);
+
+  const toggleExpanded = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setExpanded(!expanded);
+  };
 
   const handleDurationChange = (value: number) => {
     onUpdate(value, intensity);
@@ -438,91 +644,109 @@ const CardioCard = ({
     <View
       style={[
         styles.cardioCard,
-        {
-          backgroundColor: colors.card,
-          borderLeftWidth: 4,
-          borderLeftColor: color,
-        },
+        { backgroundColor: colors.card },
       ]}
     >
-      <View style={styles.cardioCardHeader}>
-        <View
-          style={[
-            styles.cardioTitleContainer,
-            { backgroundColor: color + "20" },
-          ]}
-        >
-          <Text style={[styles.cardioTitleText, { color }]}>
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={toggleExpanded}
+        style={styles.cardioCardHeader}
+      >
+        <View style={styles.setCardHeaderLeft}>
+          <View
+            style={[styles.setIconBackground, { backgroundColor: color + "20" }]}
+          >
+            <Ionicons name="bicycle-outline" size={18} color={color} />
+          </View>
+          <Text style={[styles.setNumberText, { color: colors.text }]}>
             {t("exercise.cardioConfig.title")}
           </Text>
         </View>
-      </View>
 
-      <View style={styles.cardioCardContent}>
-        <View style={styles.cardioMetricContainer}>
-          <View style={styles.cardioMetricHeader}>
-            <Ionicons
-              name="time-outline"
-              size={16}
-              color={color}
-              style={styles.cardioMetricIcon}
+        <View style={styles.setCardHeaderRight}>
+          <TouchableOpacity
+            style={[
+              styles.headerActionButton,
+              { backgroundColor: colors.text + "10" },
+            ]}
+            onPress={toggleExpanded}
+          >
+            <Ionicons 
+              name={expanded ? "chevron-up" : "chevron-down"} 
+              size={20} 
+              color={colors.text + "60"} 
             />
-            <Text style={[styles.cardioMetricLabel, { color: colors.text }]}>
-              {t("exercise.cardioConfig.duration")}
-            </Text>
-          </View>
-          <Slider
-            style={styles.cardioSlider}
-            minimumValue={1}
-            maximumValue={120}
-            step={1}
-            value={duration}
-            onValueChange={handleDurationChange}
-            minimumTrackTintColor={color}
-            maximumTrackTintColor={colors.border}
-            thumbTintColor={color}
-          />
-          <Text style={[styles.cardioMetricValue, { color: colors.text }]}>
-            {duration} {t("exercise.cardioConfig.minutes")}
-          </Text>
+          </TouchableOpacity>
         </View>
+      </TouchableOpacity>
 
-        <View style={styles.cardioMetricContainer}>
-          <View style={styles.cardioMetricHeader}>
-            <Ionicons
-              name="speedometer-outline"
-              size={16}
-              color={color}
-              style={styles.cardioMetricIcon}
+      {expanded && (
+        <View style={styles.cardioCardContent}>
+          <View style={styles.cardioMetricContainer}>
+            <View style={styles.cardioMetricHeader}>
+              <Ionicons
+                name="time-outline"
+                size={16}
+                color={color}
+                style={styles.cardioMetricIcon}
+              />
+              <Text style={[styles.cardioMetricLabel, { color: colors.text }]}>
+                {t("exercise.cardioConfig.duration")}
+              </Text>
+            </View>
+            <Slider
+              style={styles.cardioSlider}
+              minimumValue={1}
+              maximumValue={120}
+              step={1}
+              value={duration}
+              onValueChange={handleDurationChange}
+              minimumTrackTintColor={color}
+              maximumTrackTintColor={colors.border}
+              thumbTintColor={color}
             />
-            <Text style={[styles.cardioMetricLabel, { color: colors.text }]}>
-              {t("exercise.cardioConfig.intensity")}
+            <Text style={[styles.cardioMetricValue, { color: colors.text }]}>
+              {duration} {t("exercise.cardioConfig.minutes")}
             </Text>
           </View>
-          <Slider
-            style={styles.cardioSlider}
-            minimumValue={1}
-            maximumValue={10}
-            step={1}
-            value={intensity}
-            onValueChange={handleIntensityChange}
-            minimumTrackTintColor={color}
-            maximumTrackTintColor={colors.border}
-            thumbTintColor={color}
-          />
-          <View style={styles.intensityLabels}>
-            <Text style={[styles.intensityLabel, { color: colors.text }]}>
-              {t("exercise.cardioConfig.intensityLevels.low")}
-            </Text>
-            <Text style={[styles.intensityLabel, { color: colors.text }]}>
-              {t("exercise.cardioConfig.intensityLevels.medium")}
-            </Text>
-            <Text style={[styles.intensityLabel, { color: colors.text }]}>
-              {t("exercise.cardioConfig.intensityLevels.high")}
-            </Text>
+
+          <View style={styles.cardioMetricContainer}>
+            <View style={styles.cardioMetricHeader}>
+              <Ionicons
+                name="speedometer-outline"
+                size={16}
+                color={color}
+                style={styles.cardioMetricIcon}
+              />
+              <Text style={[styles.cardioMetricLabel, { color: colors.text }]}>
+                {t("exercise.cardioConfig.intensity")}
+              </Text>
+            </View>
+            <Slider
+              style={styles.cardioSlider}
+              minimumValue={1}
+              maximumValue={10}
+              step={1}
+              value={intensity}
+              onValueChange={handleIntensityChange}
+              minimumTrackTintColor={color}
+              maximumTrackTintColor={colors.border}
+              thumbTintColor={color}
+            />
+            <View style={styles.intensityLabels}>
+              <Text style={[styles.intensityLabel, { color: colors.text }]}>
+                {t("exercise.cardioConfig.intensityLevels.low")}
+              </Text>
+              <Text style={[styles.intensityLabel, { color: colors.text }]}>
+                {t("exercise.cardioConfig.intensityLevels.medium")}
+              </Text>
+              <Text style={[styles.intensityLabel, { color: colors.text }]}>
+                {t("exercise.cardioConfig.intensityLevels.high")}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
+      )}
     </View>
   );
 };
@@ -640,6 +864,10 @@ const ExerciseDetailsScreen = () => {
       id: `set-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       reps: 12,
       weight: 10,
+      restTime: 60,
+      toFailure: false,
+      repsInReserve: 2,
+      perceivedEffort: 3
     };
 
     setSets((prevSets) => [...prevSets, newSet]);
@@ -767,7 +995,7 @@ const ExerciseDetailsScreen = () => {
                           color: colors.text,
                           borderColor: colors.border,
                           backgroundColor: colors.card,
-                          borderRadius: 12,
+                          borderRadius: 10,
                         },
                       ]}
                       placeholder={t("exercise.exerciseNamePlaceholder")}
@@ -812,51 +1040,7 @@ const ExerciseDetailsScreen = () => {
                       </Text>
                     </View>
 
-                    <View
-                      style={[
-                        styles.exerciseDetailTag,
-                        { backgroundColor: workoutColor + "15" },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.exerciseDetailTagText,
-                          { color: workoutColor },
-                        ]}
-                      >
-                        {t(`exercises.equipment.${exercise.equipment}`)}
-                      </Text>
-                    </View>
-
-                    <View
-                      style={[
-                        styles.exerciseDetailTag,
-                        {
-                          backgroundColor:
-                            exercise.difficulty === "iniciante"
-                              ? "#4CAF50" + "15"
-                              : exercise.difficulty === "intermediário"
-                              ? "#FFC107" + "15"
-                              : "#F44336" + "15",
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.exerciseDetailTagText,
-                          {
-                            color:
-                              exercise.difficulty === "iniciante"
-                                ? "#4CAF50"
-                                : exercise.difficulty === "intermediário"
-                                ? "#FFC107"
-                                : "#F44336",
-                          },
-                        ]}
-                      >
-                        {t(`exercises.difficulty.${exercise.difficulty}`)}
-                      </Text>
-                    </View>
+                    
                   </View>
                 )}
               </View>
@@ -1035,7 +1219,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 10,
-    borderRadius: 16,
+    borderRadius: 18,
   },
   rightButtonPlaceholder: {
     width: 40,
@@ -1170,69 +1354,134 @@ const styles = StyleSheet.create({
   },
   setCard: {
     borderRadius: 16,
-    padding: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 2,
+    overflow: "hidden",
+    marginBottom: 12,
   },
   setCardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    padding: 16,
   },
-  setNumberContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  setNumberText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  removeSetButton: {
-    padding: 4,
-  },
-  setCardContent: {
-    gap: 16,
-  },
-  setMetricContainer: {
-    flex: 1,
-  },
-  setMetricHeader: {
+  setCardHeaderLeft: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
   },
-  setMetricIcon: {
-    marginRight: 6,
-  },
-  setMetricLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  setMetricControls: {
+  setCardHeaderRight: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    padding: 6,
+    gap: 10,
   },
-  setMetricButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  setIconBackground: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
+    marginRight: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  setMetricValue: {
-    fontSize: 16,
-    fontWeight: "700",
+  setNumberText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  headerActionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  setCardBasicContent: {
+    padding: 16,
+    paddingTop: 0,
+    gap: 16,
+  },
+  setCardExpandedContent: {
+    padding: 16,
+    paddingTop: 8,
+    gap: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#00000010',
+  },
+  failureContainerMinimal: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  failureToggleMinimal: {
+    padding: 4,
+  },
+  failureSwitchTrack: {
+    width: 36,
+    height: 20,
+    borderRadius: 10,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  failureSwitchThumb: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1,
+    elevation: 2,
+  },
+  fullWidthSlider: {
+    width: '100%',
+    height: 40,
+  },
+  sliderLabelsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: -8,
+    marginBottom: 8,
+  },
+  sliderLabelText: {
+    fontSize: 12,
+  },
+  sliderValueText: {
+    marginLeft: 'auto',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  effortLevelText: {
+    fontSize: 14,
+    fontWeight: "500",
     textAlign: "center",
-    minWidth: 40,
-    padding: 0,
-    backgroundColor: "transparent",
+    marginTop: 6,
+  },
+  restTimeOptionsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  restTimeOption: {
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderRadius: 30,
+    minWidth: 55,
+    alignItems: "center",
+  },
+  restTimeOptionText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   addSetButton: {
     flexDirection: "row",
@@ -1293,27 +1542,23 @@ const styles = StyleSheet.create({
   },
   cardioCard: {
     borderRadius: 16,
-    padding: 18,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 2,
+    overflow: "hidden",
+    marginBottom: 12,
   },
   cardioCardHeader: {
-    marginBottom: 16,
-  },
-  cardioTitleContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    alignSelf: "flex-start",
-  },
-  cardioTitleText: {
-    fontSize: 14,
-    fontWeight: "600",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
   },
   cardioCardContent: {
+    padding: 16,
+    paddingTop: 0,
     gap: 24,
   },
   cardioMetricContainer: {
@@ -1387,20 +1632,48 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingHorizontal: 4,
   },
-  restTimeOptionsContainer: {
+  setMetricsRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
+    gap: 12,
   },
-  restTimeOption: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    minWidth: 55,
+  setMetricContainer: {
+    flex: 1,
+  },
+  setMetricHeader: {
+    flexDirection: "row",
     alignItems: "center",
+    marginBottom: 10,
   },
-  restTimeOptionText: {
+  setMetricIcon: {
+    marginRight: 6,
+  },
+  setMetricLabel: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  setMetricControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 6,
+  },
+  setMetricButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  setMetricValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    textAlign: "center",
+    minWidth: 40,
+    padding: 0,
+    backgroundColor: "transparent",
+  },
+  setSummaryText: {
+    fontSize: 13,
+    marginTop: 2,
   },
 });

@@ -37,6 +37,9 @@ export interface ExerciseSet {
   weight: number;
   completed?: boolean;
   restTime?: number; // Tempo de descanso em segundos
+  toFailure?: boolean; // Indica se a série foi levada até a falha muscular
+  repsInReserve?: number; // Número de repetições que ainda poderiam ser feitas (1-5)
+  perceivedEffort?: number; // Nível de esforço percebido (1-5)
 }
 
 // Interface para exercício
@@ -1602,9 +1605,27 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         }
 
         // Copiar os exercícios do treino de origem para o destino
-        updatedWorkouts[targetDate][targetWorkoutId] = [
-          ...workouts[sourceDate][sourceWorkoutId],
-        ];
+        // Criando cópias profundas com novos IDs para evitar referências compartilhadas
+        updatedWorkouts[targetDate][targetWorkoutId] = workouts[sourceDate][sourceWorkoutId].map(exercise => {
+          // Gerar um novo ID para o exercício
+          const newExerciseId = `ex_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          
+          // Criar uma cópia profunda do exercício
+          const newExercise = {
+            ...JSON.parse(JSON.stringify(exercise)),
+            id: newExerciseId,
+          };
+          
+          // Se existirem sets, criar novos IDs para eles também
+          if (newExercise.sets && newExercise.sets.length > 0) {
+            newExercise.sets = newExercise.sets.map(set => ({
+              ...JSON.parse(JSON.stringify(set)),
+              id: `set_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            }));
+          }
+          
+          return newExercise;
+        });
 
         return updatedWorkouts;
       });

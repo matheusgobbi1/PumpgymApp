@@ -25,7 +25,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../../context/AuthContext";
 import ConfirmationModal from "../ui/ConfirmationModal";
 import { useTranslation } from "react-i18next";
-import ProgressionModal from "./ProgressionModal";
 
 const { width } = Dimensions.get("window");
 
@@ -95,9 +94,6 @@ export default function WorkoutCard({
   const [showCopyWorkoutModal, setShowCopyWorkoutModal] = useState(false);
   const [selectedSourceDate, setSelectedSourceDate] = useState<string>("");
   const [showCopySuccess, setShowCopySuccess] = useState(false);
-
-  // Estado para o modal de progressão
-  const [showProgressionModal, setShowProgressionModal] = useState(false);
 
   // Função para resetar os exercícios expandidos
   const resetExpandedExercises = useCallback(() => {
@@ -226,12 +222,6 @@ export default function WorkoutCard({
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   }, [getMostRecentWorkoutDate, handleHapticFeedback]);
-
-  // Função para abrir o modal de progressão
-  const openProgressionModal = useCallback(() => {
-    handleHapticFeedback();
-    setShowProgressionModal(true);
-  }, [handleHapticFeedback]);
 
   // Função para copiar treino de uma data anterior
   const handleCopyWorkout = useCallback(async () => {
@@ -668,26 +658,6 @@ export default function WorkoutCard({
                   </View>
                 </View>
                 <View style={styles.actionButtonsContainer}>
-                  {/* Botão de progressão - novo botão */}
-                  {getMostRecentWorkoutDate() && (
-                    <TouchableOpacity
-                      style={[
-                        styles.headerActionButton,
-                        {
-                          borderColor: workout.color,
-                          backgroundColor: workout.color + "10",
-                        },
-                      ]}
-                      onPress={openProgressionModal}
-                    >
-                      <Ionicons
-                        name="trending-up-outline"
-                        size={20}
-                        color={workout.color}
-                      />
-                    </TouchableOpacity>
-                  )}
-
                   {/* Botão de copiar treino */}
                   {getMostRecentWorkoutDate() && (
                     <TouchableOpacity
@@ -847,14 +817,6 @@ export default function WorkoutCard({
         icon="copy-outline"
         onConfirm={handleCopyWorkout}
         onCancel={() => setShowCopyWorkoutModal(false)}
-      />
-
-      {/* Modal de progressão - Novo Modal */}
-      <ProgressionModal
-        visible={showProgressionModal}
-        onClose={() => setShowProgressionModal(false)}
-        workoutId={workout.id}
-        workoutColor={workout.color}
       />
     </>
   );
