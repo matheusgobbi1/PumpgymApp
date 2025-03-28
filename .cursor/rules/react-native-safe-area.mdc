@@ -4,6 +4,11 @@ globs:
 alwaysApply: true
 ---
 ---
+description: 
+globs: 
+alwaysApply: true
+---
+---
 
 description: Best practices for handling safe areas in React Native
 globs: **/*.{ts,tsx}

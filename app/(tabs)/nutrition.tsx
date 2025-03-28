@@ -209,8 +209,11 @@ export default function NutritionScreen() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
 
+    // Determinar o idioma atual do app (usando o mesmo idioma do i18n)
+    const currentLocale = t("language.name") === "Language" ? "en-US" : "pt-BR";
+
     // Formatar a data normalmente
-    return date.toLocaleDateString("pt-BR", {
+    return date.toLocaleDateString(currentLocale, {
       weekday: "long",
       day: "2-digit",
       month: "2-digit",
@@ -365,14 +368,22 @@ export default function NutritionScreen() {
       return [];
     }
 
-    return mealTypes.map((type) => ({
-      id: type.id,
-      name: type.name,
-      icon: type.icon,
-      color:
-        type.color || DEFAULT_MEAL_COLORS[type.id] || DEFAULT_MEAL_COLORS.other,
-      foods: getFoodsForMeal(type.id),
-    }));
+    return mealTypes.map((type) => {
+      // Obter foods de forma segura
+      const foodsForMeal = getFoodsForMeal(type.id);
+      
+      // Garantir que foods seja sempre um array
+      const validFoods = Array.isArray(foodsForMeal) ? foodsForMeal : [];
+      
+      return {
+        id: type.id,
+        name: type.name,
+        icon: type.icon,
+        color:
+          type.color || DEFAULT_MEAL_COLORS[type.id] || DEFAULT_MEAL_COLORS.other,
+        foods: validFoods,
+      };
+    });
   }, [mealTypes, getFoodsForMeal]); // Removemos refreshKey para evitar renderização desnecessária
 
   // Memoizar o componente EmptyNutritionState para evitar re-renderizações desnecessárias

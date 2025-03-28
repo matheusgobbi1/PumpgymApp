@@ -688,6 +688,13 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
 
   const getMealTotals = (mealId: string): MealTotals => {
     const mealFoods = meals[selectedDate]?.[mealId] || [];
+    
+    // Verificação de segurança para garantir que mealFoods seja sempre um array
+    if (!Array.isArray(mealFoods)) {
+      console.warn(`mealFoods para mealId=${mealId} não é um array: ${typeof mealFoods}`);
+      return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    }
+    
     return mealFoods.reduce(
       (acc, food) => ({
         calories: acc.calories + food.calories,
@@ -700,7 +707,15 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   };
 
   const getFoodsForMeal = (mealId: string): Food[] => {
-    return meals[selectedDate]?.[mealId] || [];
+    const foods = meals[selectedDate]?.[mealId] || [];
+    
+    // Garantir que sempre retorne um array
+    if (!Array.isArray(foods)) {
+      console.warn(`foods para mealId=${mealId} não é um array: ${typeof foods}`);
+      return [];
+    }
+    
+    return foods;
   };
 
   const getDayTotals = (): MealTotals => {
@@ -710,6 +725,12 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       Object.keys(currentDayMeals).length > 0
         ? Object.keys(currentDayMeals)
         : mealTypes.map((type) => type.id);
+    
+    // Verificação de segurança para garantir que mealIds seja sempre um array
+    if (!Array.isArray(mealIds)) {
+      console.warn(`mealIds não é um array: ${typeof mealIds}`);
+      return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    }
 
     return mealIds.reduce(
       (acc, mealId) => {
