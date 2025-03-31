@@ -49,4 +49,39 @@ Uma tela vazia elegante que:
 - Implementar reordenação de refeições com gestos de arrastar
 - Adicionar sugestões baseadas no perfil do usuário
 - Permitir edição de refeições já configuradas
-- Implementar visualização prévia das refeições no calendário 
+- Implementar visualização prévia das refeições no calendário
+
+## Sistema de Sugestões Nutricionais
+
+O aplicativo agora inclui um sistema de sugestões nutricionais que funciona como um nutricionista digital:
+
+- Baseado nos dados do perfil nutricional do usuário obtidos no onboarding (calorias e macronutrientes)
+- Sugere alimentos e porções adequadas para cada refeição
+- Permite personalizar e substituir alimentos mantendo o equilíbrio nutricional
+- Distribui automaticamente os macronutrientes diários entre as refeições
+
+### Componentes principais:
+
+1. **Banco de dados de alimentos**
+   - Categorias: proteínas, carboidratos, gorduras, frutas, vegetais
+   - Valores nutricionais e porções padrão
+   - Sistema de substituições para diversidade alimentar
+
+2. **Algoritmo de sugestão**
+   - Calcula distribuição de macronutrientes para cada tipo de refeição
+   - Sugere combinações adequadas de alimentos
+   - Ajusta porções para atingir os valores nutricionais ideais
+
+3. **Interface de usuário**
+   - Botão de sugestão em cada refeição
+   - Modal de visualização de sugestões
+   - Interface intuitiva para personalizar as sugestões
+   - Opções de substituição de alimentos
+
+### Como usar:
+
+1. Preencha o perfil nutricional no onboarding
+2. Toque no botão de sugestão (ícone de nutrição) em qualquer refeição
+3. Visualize a sugestão personalizada
+4. Ajuste porções ou substitua alimentos conforme necessário
+5. Aplique a sugestão à sua refeição 

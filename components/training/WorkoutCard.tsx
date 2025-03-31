@@ -25,6 +25,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../../context/AuthContext";
 import ConfirmationModal from "../ui/ConfirmationModal";
 import { useTranslation } from "react-i18next";
+import ExerciseIcons from "./ExerciseIcons";
+import CopyWorkoutModal from "./CopyWorkoutModal";
 
 const { width } = Dimensions.get("window");
 
@@ -222,6 +224,29 @@ export default function WorkoutCard({
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   }, [getMostRecentWorkoutDate, handleHapticFeedback]);
+
+  // Função para abrir o modal de progressão
+  const openProgressionModal = useCallback(() => {
+    handleHapticFeedback();
+
+    // Verificar se existe um treino anterior
+    const mostRecentDate = getMostRecentWorkoutDate();
+
+    if (mostRecentDate) {
+      // Navegar para a tela modal de progressão em vez de usar o componente
+      router.push({
+        pathname: "/progression-modal",
+        params: {
+          workoutId: workout.id,
+          workoutName: workout.name,
+          workoutColor: workout.color
+        }
+      });
+    } else {
+      // Se não houver treino anterior, mostrar feedback de erro
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  }, [getMostRecentWorkoutDate, handleHapticFeedback, router, workout]);
 
   // Função para copiar treino de uma data anterior
   const handleCopyWorkout = useCallback(async () => {
@@ -672,6 +697,26 @@ export default function WorkoutCard({
                     >
                       <Ionicons
                         name="copy-outline"
+                        size={20}
+                        color={workout.color}
+                      />
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Botão de progressão de treino */}
+                  {getMostRecentWorkoutDate() && (
+                    <TouchableOpacity
+                      style={[
+                        styles.headerActionButton,
+                        {
+                          borderColor: workout.color,
+                          backgroundColor: workout.color + "10",
+                        },
+                      ]}
+                      onPress={openProgressionModal}
+                    >
+                      <Ionicons
+                        name="trending-up-outline"
                         size={20}
                         color={workout.color}
                       />

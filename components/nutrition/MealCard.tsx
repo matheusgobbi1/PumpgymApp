@@ -287,6 +287,23 @@ const MealCardComponent = ({
     [handleHapticFeedback, meal.id, meal.name, meal.color, router]
   );
 
+  // Função para navegar para o modal de sugestão nutricional
+  const handleOpenSuggestionModal = useCallback(
+    (e: any) => {
+      e.stopPropagation();
+      handleHapticFeedback();
+      router.push({
+        pathname: "/nutrition-suggestion-modal",
+        params: {
+          mealId: meal.id,
+          mealName: meal.name,
+          mealColor: meal.color,
+        },
+      });
+    },
+    [handleHapticFeedback, meal.id, meal.name, meal.color, router]
+  );
+
   // Função para abrir o modal de cópia
   const openCopyModal = useCallback(() => {
     handleHapticFeedback();
@@ -405,6 +422,24 @@ const MealCardComponent = ({
                   </View>
                 </View>
                 <View style={styles.actionButtonsContainer}>
+                  {/* Botão de sugestão nutricional */}
+                  <TouchableOpacity
+                    style={[
+                      styles.headerActionButton,
+                      {
+                        borderColor: meal.color,
+                        backgroundColor: meal.color + "10",
+                      },
+                    ]}
+                    onPress={handleOpenSuggestionModal}
+                  >
+                    <Ionicons
+                      name="nutrition-outline" 
+                      size={20}
+                      color={meal.color}
+                    />
+                  </TouchableOpacity>
+                  
                   {getMostRecentMealDate() && showCopyOption && (
                     <TouchableOpacity
                       style={[

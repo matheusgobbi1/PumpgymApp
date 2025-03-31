@@ -135,6 +135,10 @@ interface WorkoutContextType {
   workoutsForSelectedDate: { [workoutId: string]: Exercise[] };
   selectedWorkoutTypes: WorkoutType[];
   hasConfiguredWorkouts: boolean;
+  // Novas funções relacionadas à progressão
+  getPreviousWorkoutExercises: (workoutId: string) => { exercises: Exercise[], date: string | null };
+  getMultiplePreviousWorkoutsExercises: (workoutId: string, limit?: number) => { exercises: Exercise[], date: string }[];
+  applyProgressionToWorkout: (workoutId: string, updatedExercises: Exercise[]) => Promise<boolean>;
 }
 
 // Criação do contexto
@@ -1618,7 +1622,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           
           // Se existirem sets, criar novos IDs para eles também
           if (newExercise.sets && newExercise.sets.length > 0) {
-            newExercise.sets = newExercise.sets.map(set => ({
+            newExercise.sets = newExercise.sets.map((set: ExerciseSet) => ({
               ...JSON.parse(JSON.stringify(set)),
               id: `set_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
             }));
@@ -1781,6 +1785,144 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     );
   }, [availableWorkoutTypes]);
 
+  // Função para obter exercícios do treino anterior
+  const getPreviousWorkoutExercises = useCallback(
+    (workoutId: string): { exercises: Exercise[]; date: string | null } => {
+      // Valor padrão para retorno
+      const defaultReturn = { exercises: [], date: null };
+
+      // Obter datas anteriores à data selecionada
+      const previousDates = Object.keys(workouts)
+        .filter((date) => date < selectedDate)
+        .sort((a, b) => b.localeCompare(a)); // Ordem decrescente (mais recente primeiro)
+
+      // Se não houver datas anteriores, retornar valor padrão
+      if (previousDates.length === 0) {
+        return defaultReturn;
+      }
+
+      // Procurar pela data mais recente que contém o treino específico
+      for (const date of previousDates) {
+        if (workouts[date] && workouts[date][workoutId]) {
+          const exercises = workouts[date][workoutId];
+          
+          // Filtrar apenas exercícios de força que possuem séries
+          const validExercises = exercises.filter(
+            (exercise) => 
+              exercise.category !== "cardio" && 
+              exercise.sets && 
+              exercise.sets.length > 0
+          );
+          
+          if (validExercises.length > 0) {
+            return { exercises: validExercises, date };
+          }
+        }
+      }
+
+      // Se não encontrar o treino em datas anteriores
+      return defaultReturn;
+    },
+    [workouts, selectedDate]
+  );
+
+  // Função para obter múltiplos treinos anteriores do mesmo tipo
+  const getMultiplePreviousWorkoutsExercises = useCallback(
+    (workoutId: string, limit: number = 4): { exercises: Exercise[], date: string }[] => {
+      // Obter datas anteriores à data selecionada
+      const previousDates = Object.keys(workouts)
+        .filter((date) => date < selectedDate)
+        .sort((a, b) => b.localeCompare(a)); // Ordem decrescente (mais recente primeiro)
+
+      // Se não houver datas anteriores, retornar array vazio
+      if (previousDates.length === 0) {
+        return [];
+      }
+
+      const result: { exercises: Exercise[], date: string }[] = [];
+
+      // Percorrer as datas anteriores e coletar até 'limit' treinos
+      for (const date of previousDates) {
+        if (workouts[date] && workouts[date][workoutId]) {
+          const exercises = workouts[date][workoutId];
+          
+          // Filtrar apenas exercícios de força que possuem séries
+          const validExercises = exercises.filter(
+            (exercise) => 
+              exercise.category !== "cardio" && 
+              exercise.sets && 
+              exercise.sets.length > 0
+          );
+          
+          if (validExercises.length > 0) {
+            result.push({ exercises: validExercises, date });
+            
+            // Parar quando atingir o limite
+            if (result.length >= limit) {
+              break;
+            }
+          }
+        }
+      }
+
+      return result;
+    },
+    [workouts, selectedDate]
+  );
+
+  // Função para aplicar progressão ao treino atual
+  const applyProgressionToWorkout = useCallback(
+    async (workoutId: string, updatedExercises: Exercise[]): Promise<boolean> => {
+      try {
+        // Verificar se o workoutId e a data selecionada existem
+        if (!workoutId || !selectedDate) {
+          return false;
+        }
+
+        // Obter os treinos atuais para a data selecionada
+        const workoutsForDate = workouts[selectedDate] ? { ...workouts[selectedDate] } : {};
+        
+        // Se o treino não existir para a data selecionada, criá-lo
+        if (!workoutsForDate[workoutId]) {
+          workoutsForDate[workoutId] = [];
+        }
+        
+        // Para cada exercício atualizado
+        updatedExercises.forEach(updatedExercise => {
+          // Verificar se o exercício já existe no treino
+          const existingIndex = workoutsForDate[workoutId].findIndex(
+            e => e.id === updatedExercise.id
+          );
+          
+          if (existingIndex >= 0) {
+            // Atualizar exercício existente
+            workoutsForDate[workoutId][existingIndex] = updatedExercise;
+          } else {
+            // Adicionar novo exercício
+            workoutsForDate[workoutId].push(updatedExercise);
+          }
+        });
+
+        // Atualizar o estado
+        setWorkouts(prev => ({
+          ...prev,
+          [selectedDate]: {
+            ...prev[selectedDate],
+            [workoutId]: workoutsForDate[workoutId]
+          }
+        }));
+
+        // Salvar os treinos
+        await saveWorkouts();
+        return true;
+      } catch (error) {
+        console.error("Erro ao aplicar progressão ao treino:", error);
+        return false;
+      }
+    },
+    [workouts, selectedDate, saveWorkouts]
+  );
+
   // Adicionar um novo contexto - usando os valores memoizados
   const contextValue: WorkoutContextType = useMemo(
     () => ({
@@ -1813,6 +1955,10 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       workoutsForSelectedDate,
       selectedWorkoutTypes,
       hasConfiguredWorkouts,
+      // Novas funções relacionadas à progressão
+      getPreviousWorkoutExercises,
+      getMultiplePreviousWorkoutsExercises,
+      applyProgressionToWorkout,
     }),
     [
       workouts,
@@ -1841,6 +1987,9 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       workoutsForSelectedDate,
       selectedWorkoutTypes,
       hasConfiguredWorkouts,
+      getPreviousWorkoutExercises,
+      getMultiplePreviousWorkoutsExercises,
+      applyProgressionToWorkout,
     ]
   );
 

@@ -179,6 +179,20 @@ function AppContent() {
             animation: "slide_from_bottom",
           }}
         />
+        <Stack.Screen
+          name="progression-modal"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+          }}
+        />
+        <Stack.Screen
+          name="nutrition-suggestion-modal"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+          }}
+        />
       </Stack>
     </View>
   );

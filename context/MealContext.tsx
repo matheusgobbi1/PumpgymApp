@@ -57,15 +57,16 @@ interface MealTotals {
   fat: number;
 }
 
-interface MealContextType {
-  meals: { [date: string]: { [mealId: string]: Food[] } };
+export interface MealContextType {
+  meals: Record<string, Record<string, Food[]>>;
   mealTypes: MealType[];
   selectedDate: string;
   setSelectedDate: (date: string) => void;
   getMealTotals: (mealId: string) => MealTotals;
   getFoodsForMeal: (mealId: string) => Food[];
   getDayTotals: () => MealTotals;
-  addFoodToMeal: (mealId: string, food: Food) => void;
+  addFoodToMeal: (mealId: string, food: Food) => Promise<void> | void;
+  addFoodsToMeal: (mealId: string, foods: Food[]) => Promise<void>;
   updateFoodInMeal: (mealId: string, updatedFood: Food) => void;
   removeFoodFromMeal: (mealId: string, foodId: string) => Promise<void>;
   saveMeals: () => Promise<void>;
@@ -81,6 +82,12 @@ interface MealContextType {
     sourceMealId: string,
     targetMealId: string
   ) => Promise<void>;
+  getDailyTotals: () => { calories: number; protein: number; carbs: number; fat: number };
+  getMealsList: () => { id: string; name: string }[];
+  addMeal: (mealName: string) => Promise<string | null>;
+  deleteMeal: (mealId: string) => Promise<boolean>;
+  reorderMeals: (mealIds: string[]) => Promise<void>;
+  loadingStatus: 'idle' | 'loading' | 'success' | 'error';
 }
 
 const MealContext = createContext<MealContextType | undefined>(undefined);
@@ -1015,6 +1022,72 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     [selectedDate, meals, user]
   );
 
+  // Função para adicionar múltiplos alimentos a uma refeição de uma vez
+  const addFoodsToMeal = async (mealId: string, foods: Food[]): Promise<void> => {
+    if (!user) return;
+    
+    try {
+      // Verificar se a refeição existe para a data selecionada
+      if (!meals[selectedDate]) {
+        setMeals((prevMeals) => ({
+          ...prevMeals,
+          [selectedDate]: {},
+        }));
+      }
+      
+      if (!meals[selectedDate]?.[mealId]) {
+        setMeals((prevMeals) => ({
+          ...prevMeals,
+          [selectedDate]: {
+            ...prevMeals[selectedDate],
+            [mealId]: [],
+          },
+        }));
+      }
+      
+      // Adicionar os alimentos à refeição
+      setMeals((prevMeals) => {
+        const updatedMeals = { ...prevMeals };
+        if (!updatedMeals[selectedDate]) {
+          updatedMeals[selectedDate] = {};
+        }
+        if (!updatedMeals[selectedDate][mealId]) {
+          updatedMeals[selectedDate][mealId] = [];
+        }
+        
+        updatedMeals[selectedDate][mealId] = [
+          ...updatedMeals[selectedDate][mealId],
+          ...foods
+        ];
+        
+        return updatedMeals;
+      });
+      
+      // Salvar no Firestore
+      try {
+        const updatedMealData = {
+          ...meals[selectedDate],
+          [mealId]: [...(meals[selectedDate]?.[mealId] || []), ...foods],
+        };
+        
+        await setDoc(
+          doc(db, "users", user.uid, "meals", selectedDate),
+          updatedMealData
+        );
+        
+        // Salvar localmente
+        await AsyncStorage.setItem(
+          `${KEYS.MEALS_KEY}${user.uid}_${selectedDate}`,
+          JSON.stringify(updatedMealData)
+        );
+      } catch (error) {
+        console.error("Erro ao salvar refeições no Firestore:", error);
+      }
+    } catch (error) {
+      console.error("Erro ao adicionar múltiplos alimentos:", error);
+    }
+  };
+
   // Memorizando o valor do contexto para evitar re-renderizações desnecessárias
   const contextValue = useMemo(
     () => ({
@@ -1026,6 +1099,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       getFoodsForMeal,
       getDayTotals,
       addFoodToMeal,
+      addFoodsToMeal,
       updateFoodInMeal,
       removeFoodFromMeal,
       saveMeals,
@@ -1037,6 +1111,39 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       addToSearchHistory,
       clearSearchHistory,
       copyMealFromDate,
+      getDailyTotals: getDayTotals,
+      getMealsList: () => Object.keys(meals[selectedDate] || {}).map(mealId => ({ id: mealId, name: Object.keys(meals[selectedDate][mealId] || {})[0] })),
+      addMeal: async (mealName: string) => {
+        const newMealId = uuidv4();
+        setMeals((prevMeals) => ({
+          ...prevMeals,
+          [selectedDate]: {
+            ...prevMeals[selectedDate],
+            [newMealId]: [{ id: newMealId, name: mealName, portion: 0, calories: 0, protein: 0, carbs: 0, fat: 0 }],
+          },
+        }));
+        return newMealId;
+      },
+      deleteMeal: async (mealId: string) => {
+        setMeals((prevMeals) => {
+          const updatedMeals = { ...prevMeals };
+          if (updatedMeals[selectedDate]) {
+            const updatedDateMeals = { ...updatedMeals[selectedDate] };
+            // Usando delete para remover a propriedade em vez de atribuir undefined
+            delete updatedDateMeals[mealId];
+            updatedMeals[selectedDate] = updatedDateMeals;
+          }
+          return updatedMeals;
+        });
+        return true;
+      },
+      reorderMeals: async (mealIds: string[]) => {
+        setMeals((prevMeals) => ({
+          ...prevMeals,
+          [selectedDate]: Object.fromEntries(Object.entries(prevMeals[selectedDate] || {}).filter(([id]) => mealIds.includes(id))),
+        }));
+      },
+      loadingStatus: 'idle' as 'idle' | 'loading' | 'success' | 'error',
     }),
     [
       meals,
@@ -1046,6 +1153,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       getFoodsForMeal,
       getDayTotals,
       addFoodToMeal,
+      addFoodsToMeal,
       updateFoodInMeal,
       removeFoodFromMeal,
       saveMeals,
