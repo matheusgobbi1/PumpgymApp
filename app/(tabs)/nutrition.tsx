@@ -39,7 +39,6 @@ import ConfirmationModal from "../../components/ui/ConfirmationModal";
 import ContextMenu, { MenuAction } from "../../components/shared/ContextMenu";
 import HomeHeader from "../../components/home/HomeHeader";
 import { useTranslation } from "react-i18next";
-import { Tabs } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
