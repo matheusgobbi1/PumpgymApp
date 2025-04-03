@@ -69,7 +69,7 @@ const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
       type: "material" as const,
       name: "arm-flex-outline" as MaterialIconNames,
     },
-    color:"#FF6B6B",
+    color: "#FF6B6B",
     selected: false,
     isDefault: true,
   },
@@ -306,33 +306,6 @@ const WorkoutConfigSheet = forwardRef<
     // Estado para controlar os snapPoints do BottomSheet
     const [snapPoints, setSnapPoints] = useState<(string | number)[]>(["70%"]);
 
-    // Estado para rastrear se o teclado está visível
-    const [isKeyboardVisible, setKeyboardVisible] = useState(false);
-
-    // Adicionar listeners para o teclado
-    useEffect(() => {
-      const keyboardDidShowListener = Keyboard.addListener(
-        "keyboardDidShow",
-        () => {
-          setKeyboardVisible(true);
-          setSnapPoints(["90%"]);
-        }
-      );
-      const keyboardDidHideListener = Keyboard.addListener(
-        "keyboardDidHide",
-        () => {
-          setKeyboardVisible(false);
-          setSnapPoints(["70%"]);
-        }
-      );
-
-      // Cleanup
-      return () => {
-        keyboardDidShowListener.remove();
-        keyboardDidHideListener.remove();
-      };
-    }, []);
-
     // Expor a referência para o componente pai
     useImperativeHandle(ref, () => {
       return bottomSheetModalRef.current!;
@@ -342,21 +315,19 @@ const WorkoutConfigSheet = forwardRef<
     const [availableWorkoutTypes, setAvailableWorkoutTypes] = useState<
       WorkoutType[]
     >(DEFAULT_WORKOUT_TYPES);
-    const [isAddingCustomWorkout, setIsAddingCustomWorkout] = useState(false);
-    const [customWorkout, setCustomWorkout] = useState<{
-      id: string;
-      name: string;
-      color: string;
-      iconType: WorkoutIconType;
-    }>({
-      id: "",
-      name: "",
-      color: "#FF6B6B",
-      iconType: {
-        type: "ionicons",
-        name: "barbell-outline" as IoniconsNames,
-      },
-    });
+
+    // Estado para controlar qual treino está sendo editado
+    const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(
+      null
+    );
+    const [editingWorkoutName, setEditingWorkoutName] = useState("");
+
+    // Estado para controlar seletores de cores e ícones para edição inline
+    const [showColorSelector, setShowColorSelector] = useState(false);
+    const [showIconSelector, setShowIconSelector] = useState(false);
+    const [selectedWorkoutForOptions, setSelectedWorkoutForOptions] = useState<
+      string | null
+    >(null);
 
     // Carregar tipos de treino disponíveis do AsyncStorage
     useEffect(() => {
@@ -413,54 +384,82 @@ const WorkoutConfigSheet = forwardRef<
 
         return updatedWorkoutTypes;
       });
-
-      // Removemos o setTimeout e as chamadas para atualizar o contexto global
-      // Agora isso só acontecerá quando o usuário clicar em Salvar Configuração
     }, []);
 
+    // Iniciar edição inline
     const startEditingWorkout = (workout: WorkoutType) => {
-      setIsAddingCustomWorkout(true);
-      setCustomWorkout({
-        id: workout.id,
-        name: workout.name,
-        color: workout.color,
-        iconType: workout.iconType,
-      });
+      setEditingWorkoutId(workout.id);
+      setEditingWorkoutName(workout.name);
+      setSelectedWorkoutForOptions(workout.id);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     };
 
-    const onSaveCustomWorkout = useCallback(() => {
-      if (customWorkout.name.trim() === "") {
+    // Salvar a edição do nome do treino
+    const saveWorkoutNameEdit = (workoutId: string) => {
+      if (editingWorkoutName.trim() === "") {
         Alert.alert("Erro", t("workouts.configSheet.workoutNameError"));
         return;
       }
 
       setAvailableWorkoutTypes((prevWorkoutTypes) => {
-        const updatedWorkoutTypes = prevWorkoutTypes.map((wt) => {
-          if (wt.id === customWorkout.id) {
-            return {
-              ...wt,
-              name: customWorkout.name,
-              color: customWorkout.color,
-              iconType: customWorkout.iconType,
-            };
+        return prevWorkoutTypes.map((wt) => {
+          if (wt.id === workoutId) {
+            return { ...wt, name: editingWorkoutName };
           }
           return wt;
         });
-        return updatedWorkoutTypes;
       });
 
-      setIsAddingCustomWorkout(false);
-      setCustomWorkout({
-        id: "",
-        name: "",
-        color:"#FF6B6B",
-        iconType: {
-          type: "ionicons",
-          name: "barbell-outline" as IoniconsNames,
-        },
+      setEditingWorkoutId(null);
+      Keyboard.dismiss();
+    };
+
+    // Atualizar cor do treino
+    const updateWorkoutColor = (workoutId: string, color: string) => {
+      setAvailableWorkoutTypes((prevWorkoutTypes) => {
+        return prevWorkoutTypes.map((wt) => {
+          if (wt.id === workoutId) {
+            return { ...wt, color };
+          }
+          return wt;
+        });
       });
-    }, [customWorkout, t]);
+    };
+
+    // Atualizar ícone do treino
+    const updateWorkoutIcon = (
+      workoutId: string,
+      iconType: WorkoutIconType
+    ) => {
+      setAvailableWorkoutTypes((prevWorkoutTypes) => {
+        return prevWorkoutTypes.map((wt) => {
+          if (wt.id === workoutId) {
+            return { ...wt, iconType };
+          }
+          return wt;
+        });
+      });
+    };
+
+    // Cancelar edição do nome
+    const cancelWorkoutNameEdit = () => {
+      setEditingWorkoutId(null);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    };
+
+    // Alternar seletor de cores
+    const toggleColorSelector = (workoutId: string) => {
+      setSelectedWorkoutForOptions(workoutId);
+      setShowColorSelector(!showColorSelector);
+      setShowIconSelector(false);
+    };
+
+    // Alternar seletor de ícones
+    const toggleIconSelector = (workoutId: string) => {
+      setSelectedWorkoutForOptions(workoutId);
+      setShowIconSelector(!showIconSelector);
+      setShowColorSelector(false);
+    };
 
     // Função para deletar treino
     const renderRightActions = useCallback(
@@ -489,40 +488,18 @@ const WorkoutConfigSheet = forwardRef<
                         );
                         return updatedWorkoutTypes;
                       });
-
-                      // Removemos o setTimeout e as chamadas para atualizar o contexto global
-                      // Agora isso só acontecerá quando o usuário clicar em Salvar Configuração
                     },
                   },
                 ]
               );
             }}
           >
-            <Ionicons name="trash-outline" size={24} color={colors.danger} />
+            <Ionicons name="trash-outline" size={24} color="#FFF" />
           </TouchableOpacity>
         );
       },
       [colors.danger, t]
     );
-
-    const onCancelAddingCustomWorkout = () => {
-      setIsAddingCustomWorkout(false);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    };
-
-    const handleNameChange = (text: string) => {
-      setCustomWorkout({
-        ...customWorkout,
-        name: text,
-      });
-    };
-
-    const updateCustomWorkout = (property: string, value: any) => {
-      setCustomWorkout({
-        ...customWorkout,
-        [property]: value,
-      });
-    };
 
     const handleSaveWorkoutTypes = async () => {
       // Obter os tipos de treino selecionados
@@ -601,8 +578,6 @@ const WorkoutConfigSheet = forwardRef<
 
     // Função para quando o bottom sheet for fechado
     const handleSheetChanges = useCallback((index: number) => {
-      // Quando o bottom sheet for fechado (index = -1), não fazemos nada
-      // Remover a chamada ao callback para não criar os tipos de treino automaticamente
       if (index === -1) {
         // Apenas fechamos o modal sem criar treinos
         // O usuário precisa explicitamente clicar em "Salvar" para criar os treinos
@@ -622,184 +597,6 @@ const WorkoutConfigSheet = forwardRef<
       []
     );
 
-    // Renderizar o formulário de adição de treino personalizado
-    const renderCustomWorkoutForm = () => (
-      <MotiView
-        from={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: "timing", duration: 350 }}
-        style={[
-          styles.customWorkoutContainer,
-          { backgroundColor: colors.card },
-        ]}
-      >
-        <View style={styles.customWorkoutHeader}>
-          <View style={styles.headerTitleContainer}>
-            <View
-              style={[
-                styles.headerIconBadge,
-                { backgroundColor: customWorkout.color },
-              ]}
-            >
-              <WorkoutIcon
-                iconType={customWorkout.iconType}
-                size={24}
-                color="#FFF"
-              />
-            </View>
-            <Text style={[styles.customWorkoutTitle, { color: colors.text }]}>
-              Editar Treino {customWorkout.name}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={onCancelAddingCustomWorkout}
-            hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-          >
-            <Ionicons
-              name="close-circle"
-              size={28}
-              color={colors.text + "80"}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Nome do Treino
-          </Text>
-          <TextInput
-            style={[
-              styles.textInput,
-              {
-                color: colors.text,
-                backgroundColor: colors.card,
-                borderLeftWidth: 4,
-                borderLeftColor: customWorkout.color,
-                borderColor: colors.border,
-              },
-            ]}
-            value={customWorkout.name}
-            onChangeText={handleNameChange}
-            placeholder="Ex: Peito, Costas, etc..."
-            placeholderTextColor={colors.text + "50"}
-            autoFocus={true}
-            autoCorrect={false}
-            maxLength={20}
-            returnKeyType="done"
-            blurOnSubmit={true}
-          />
-        </View>
-
-        <View style={styles.sectionDivider} />
-
-        <View style={styles.colorSelectorContainer}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Cor do Treino
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.colorList}
-          >
-            {AVAILABLE_COLORS.map((color) => (
-              <TouchableOpacity
-                key={color}
-                style={[
-                  styles.colorOption,
-                  { backgroundColor: color },
-                  customWorkout.color === color && styles.colorOptionSelected,
-                ]}
-                onPress={() => updateCustomWorkout("color", color)}
-              >
-                {customWorkout.color === color && (
-                  <Ionicons name="checkmark" size={18} color="#FFF" />
-                )}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        <View style={styles.sectionDivider} />
-
-        <View style={styles.iconSelectorContainer}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Ícone do Treino
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.iconList}
-          >
-            {AVAILABLE_ICONS.map((icon, index) => (
-              <TouchableOpacity
-                key={`${icon.type}-${icon.name}-${index}`}
-                style={[
-                  styles.iconOption,
-                  {
-                    backgroundColor:
-                      customWorkout.iconType.type === icon.type &&
-                      customWorkout.iconType.name === icon.name
-                        ? customWorkout.color
-                        : colors.background,
-                    borderColor:
-                      customWorkout.iconType.type === icon.type &&
-                      customWorkout.iconType.name === icon.name
-                        ? customWorkout.color
-                        : colors.border,
-                    borderWidth: 2,
-                  },
-                ]}
-                onPress={() => updateCustomWorkout("iconType", icon)}
-              >
-                <WorkoutIcon
-                  iconType={icon}
-                  size={24}
-                  color={
-                    customWorkout.iconType.type === icon.type &&
-                    customWorkout.iconType.name === icon.name
-                      ? "#FFF"
-                      : colors.text + "80"
-                  }
-                />
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        <View style={styles.actionButtons}>
-          <ButtonNew
-            title={t("workouts.configSheet.cancelButton", {
-              defaultValue: "Cancelar",
-            })}
-            onPress={onCancelAddingCustomWorkout}
-            variant="outline"
-            size="medium"
-            style={styles.cancelButton}
-            hapticFeedback="impact"
-            fullWidth={false}
-          />
-
-          <ButtonNew
-            title={t("workouts.configSheet.saveEditButton", {
-              defaultValue: "Salvar Alterações",
-            })}
-            onPress={onSaveCustomWorkout}
-            variant="primary"
-            style={{
-              ...styles.saveButton,
-              backgroundColor: customWorkout.color,
-            }}
-            textStyle={styles.saveButtonText}
-            hapticFeedback="notification"
-            size="medium"
-            rounded={true}
-            fullWidth={false}
-          />
-        </View>
-      </MotiView>
-    );
-
     // Renderizar a lista de tipos de treino
     const renderWorkoutTypesList = () => (
       <View style={styles.workoutTypesList}>
@@ -813,6 +610,7 @@ const WorkoutConfigSheet = forwardRef<
               }
               friction={2}
               overshootRight={false}
+              enabled={editingWorkoutId !== item.id} // Desativar swipe durante edição
             >
               <MotiView
                 style={styles.workoutCardWrapper}
@@ -835,10 +633,13 @@ const WorkoutConfigSheet = forwardRef<
                     },
                   ]}
                   onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    toggleWorkoutSelection(item);
+                    if (editingWorkoutId === null) {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      toggleWorkoutSelection(item);
+                    }
                   }}
                   activeOpacity={0.7}
+                  disabled={editingWorkoutId !== null}
                 >
                   <View
                     style={[
@@ -846,7 +647,8 @@ const WorkoutConfigSheet = forwardRef<
                       item.selected && { backgroundColor: "transparent" },
                     ]}
                   >
-                    <View
+                    {/* Ícone do treino - clicável para edição de ícone quando em modo de edição */}
+                    <TouchableOpacity
                       style={[
                         styles.workoutIconContainer,
                         {
@@ -859,38 +661,202 @@ const WorkoutConfigSheet = forwardRef<
                             : colors.border + "40",
                         },
                       ]}
+                      onPress={() => {
+                        if (editingWorkoutId === item.id) {
+                          toggleIconSelector(item.id);
+                        }
+                      }}
+                      disabled={editingWorkoutId !== item.id}
                     >
                       <WorkoutIcon
                         iconType={item.iconType}
                         size={24}
                         color={item.selected ? item.color : colors.primary}
                       />
-                    </View>
-                    <View style={styles.workoutInfo}>
-                      <Text
-                        style={[
-                          styles.workoutName,
-                          {
-                            color: colors.text,
-                            fontWeight: item.selected ? "700" : "600",
-                          },
-                        ]}
-                      >
-                        {item.name}
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      style={styles.editButton}
-                      onPress={() => startEditingWorkout(item)}
-                      hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-                    >
-                      <Ionicons
-                        name="ellipsis-vertical"
-                        size={20}
-                        color={colors.text + "70"}
-                      />
                     </TouchableOpacity>
+
+                    {/* Área de nome e edição */}
+                    <View style={styles.workoutInfo}>
+                      {editingWorkoutId === item.id ? (
+                        <View style={styles.inlineEditContainer}>
+                          <TextInput
+                            style={[
+                              styles.inlineTextInput,
+                              {
+                                color: colors.text,
+                                borderColor: item.color,
+                                backgroundColor: colors.background + "40",
+                              },
+                            ]}
+                            value={editingWorkoutName}
+                            onChangeText={setEditingWorkoutName}
+                            autoFocus
+                            selectTextOnFocus
+                            onBlur={() => cancelWorkoutNameEdit()}
+                            onSubmitEditing={() => saveWorkoutNameEdit(item.id)}
+                            maxLength={20}
+                          />
+                          <TouchableOpacity
+                            style={styles.inlineEditButton}
+                            onPress={() => saveWorkoutNameEdit(item.id)}
+                          >
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={24}
+                              color={item.color}
+                            />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.inlineEditButton}
+                            onPress={cancelWorkoutNameEdit}
+                          >
+                            <Ionicons
+                              name="close-circle"
+                              size={24}
+                              color={colors.text + "70"}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <Text
+                          style={[
+                            styles.workoutName,
+                            {
+                              color: colors.text,
+                              fontWeight: item.selected ? "700" : "600",
+                            },
+                          ]}
+                        >
+                          {item.name}
+                        </Text>
+                      )}
+                    </View>
+
+                    {/* Ações de edição */}
+                    {editingWorkoutId === item.id ? (
+                      <TouchableOpacity
+                        style={[
+                          styles.colorPickerButton,
+                          { backgroundColor: item.color + "20" },
+                        ]}
+                        onPress={() => toggleColorSelector(item.id)}
+                      >
+                        <View
+                          style={[
+                            styles.colorPreview,
+                            { backgroundColor: item.color },
+                          ]}
+                        />
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.editButton}
+                        onPress={() => startEditingWorkout(item)}
+                        hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                      >
+                        <Ionicons
+                          name="create-outline"
+                          size={20}
+                          color={colors.text + "70"}
+                        />
+                      </TouchableOpacity>
+                    )}
                   </View>
+
+                  {/* Seletor de cores inline */}
+                  {showColorSelector &&
+                    selectedWorkoutForOptions === item.id && (
+                      <MotiView
+                        from={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        style={styles.inlineColorSelector}
+                      >
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          contentContainerStyle={styles.inlineColorList}
+                        >
+                          {AVAILABLE_COLORS.map((color) => (
+                            <TouchableOpacity
+                              key={color}
+                              style={[
+                                styles.colorOption,
+                                { backgroundColor: color },
+                                item.color === color &&
+                                  styles.colorOptionSelected,
+                              ]}
+                              onPress={() => {
+                                updateWorkoutColor(item.id, color);
+                                setShowColorSelector(false);
+                              }}
+                            >
+                              {item.color === color && (
+                                <Ionicons
+                                  name="checkmark"
+                                  size={18}
+                                  color="#FFF"
+                                />
+                              )}
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </MotiView>
+                    )}
+
+                  {/* Seletor de ícones inline */}
+                  {showIconSelector &&
+                    selectedWorkoutForOptions === item.id && (
+                      <MotiView
+                        from={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        style={styles.inlineIconSelector}
+                      >
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          contentContainerStyle={styles.inlineIconList}
+                        >
+                          {AVAILABLE_ICONS.map((icon, index) => (
+                            <TouchableOpacity
+                              key={`${icon.type}-${icon.name}-${index}`}
+                              style={[
+                                styles.iconOption,
+                                {
+                                  backgroundColor:
+                                    item.iconType.type === icon.type &&
+                                    item.iconType.name === icon.name
+                                      ? item.color
+                                      : colors.background,
+                                  borderColor:
+                                    item.iconType.type === icon.type &&
+                                    item.iconType.name === icon.name
+                                      ? item.color
+                                      : colors.border,
+                                  borderWidth: 2,
+                                  width: 42,
+                                  height: 42,
+                                },
+                              ]}
+                              onPress={() => {
+                                updateWorkoutIcon(item.id, icon);
+                                setShowIconSelector(false);
+                              }}
+                            >
+                              <WorkoutIcon
+                                iconType={icon}
+                                size={22}
+                                color={
+                                  item.iconType.type === icon.type &&
+                                  item.iconType.name === icon.name
+                                    ? "#FFF"
+                                    : colors.text + "80"
+                                }
+                              />
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </MotiView>
+                    )}
                 </TouchableOpacity>
               </MotiView>
             </Swipeable>
@@ -930,10 +896,9 @@ const WorkoutConfigSheet = forwardRef<
           <ScrollView
             style={styles.scrollContent}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            {isAddingCustomWorkout
-              ? renderCustomWorkoutForm()
-              : renderWorkoutTypesList()}
+            {renderWorkoutTypesList()}
           </ScrollView>
 
           <MotiView
@@ -946,7 +911,10 @@ const WorkoutConfigSheet = forwardRef<
               title={t("workouts.configSheet.saveButton")}
               onPress={handleSaveWorkoutTypes}
               variant="primary"
-              disabled={!availableWorkoutTypes.some((w) => w.selected)}
+              disabled={
+                !availableWorkoutTypes.some((w) => w.selected) ||
+                editingWorkoutId !== null
+              }
               style={styles.saveConfigButton}
               textStyle={styles.saveConfigButtonText}
               hapticFeedback="notification"
@@ -1356,5 +1324,60 @@ const styles = StyleSheet.create({
     height: 60,
     marginTop: 8,
     fontWeight: "500",
+  },
+  // Novos estilos para edição inline
+  inlineEditContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  inlineTextInput: {
+    flex: 1,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    marginRight: 8,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  inlineEditButton: {
+    padding: 4,
+    marginLeft: 4,
+  },
+  colorPickerButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
+  },
+  colorPreview: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "white",
+  },
+  inlineColorSelector: {
+    paddingVertical: 8,
+    backgroundColor: "rgba(0,0,0,0.03)",
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+  },
+  inlineIconSelector: {
+    paddingVertical: 8,
+    backgroundColor: "rgba(0,0,0,0.03)",
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+  },
+  inlineColorList: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+  },
+  inlineIconList: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
   },
 });

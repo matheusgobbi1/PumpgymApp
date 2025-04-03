@@ -14,19 +14,29 @@ import { useTheme } from "../context/ThemeContext";
 import Colors from "../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useWorkoutContext, Exercise, ExerciseSet } from "../context/WorkoutContext";
+import {
+  useWorkoutContext,
+  Exercise,
+  ExerciseSet,
+} from "../context/WorkoutContext";
 import { MotiView } from "moti";
-import { generateWorkoutProgressionWithHistory, ProgressionSuggestion } from "../utils/progressionAlgorithm";
+import {
+  generateWorkoutProgressionWithHistory,
+  ProgressionSuggestion,
+} from "../utils/progressionAlgorithm";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import ProgressionCard from "../components/training/ProgressionCard";
 import InfoModal from "../components/common/InfoModal";
+import { useTranslation } from "react-i18next";
 
 export default function ProgressionModal() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = Colors[theme];
-  const { getMultiplePreviousWorkoutsExercises, applyProgressionToWorkout } = useWorkoutContext();
-  
+  const { getMultiplePreviousWorkoutsExercises, applyProgressionToWorkout } =
+    useWorkoutContext();
+  const { t } = useTranslation();
+
   // Obter parâmetros da URL
   const { workoutId, workoutName, workoutColor } = useLocalSearchParams();
 
@@ -35,7 +45,9 @@ export default function ProgressionModal() {
   const [suggestions, setSuggestions] = useState<ProgressionSuggestion[]>([]);
   const [previousDate, setPreviousDate] = useState<string | null>(null);
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
-  const [updatedSets, setUpdatedSets] = useState<Record<string, ExerciseSet[]>>({});
+  const [updatedSets, setUpdatedSets] = useState<Record<string, ExerciseSet[]>>(
+    {}
+  );
   const [applying, setApplying] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [historyCount, setHistoryCount] = useState(0);
@@ -54,11 +66,14 @@ export default function ProgressionModal() {
     setLoading(true);
     try {
       // Obter múltiplos treinos anteriores (até 4)
-      const workoutsHistory = getMultiplePreviousWorkoutsExercises(workoutId as string, 4);
-      
+      const workoutsHistory = getMultiplePreviousWorkoutsExercises(
+        workoutId as string,
+        4
+      );
+
       // Armazenar a quantidade de histórico encontrada
       setHistoryCount(workoutsHistory.length);
-      
+
       // Definir a data do treino mais recente (se houver)
       if (workoutsHistory.length > 0) {
         setPreviousDate(workoutsHistory[0].date);
@@ -74,14 +89,17 @@ export default function ProgressionModal() {
 
       // Usar o primeiro treino do histórico para as sugestões iniciais
       const currentExercises = workoutsHistory[0].exercises;
-      
+
       // Gerar sugestões de progressão usando o histórico completo
-      const progressionSuggestions = generateWorkoutProgressionWithHistory(currentExercises, workoutsHistory);
-      
+      const progressionSuggestions = generateWorkoutProgressionWithHistory(
+        currentExercises,
+        workoutsHistory
+      );
+
       // Não pré-selecionar nenhuma sugestão
       setSelectedExercises([]);
       setUpdatedSets({});
-      
+
       // Atualizar estado com as sugestões
       setSuggestions(progressionSuggestions);
     } catch (error) {
@@ -94,45 +112,48 @@ export default function ProgressionModal() {
   // Formatar a data para exibição
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "";
-    
+
     const [year, month, day] = dateString.split("-").map(Number);
     const date = new Date(year, month - 1, day);
-    
+
     // Usar toLocaleDateString em vez de format
-    return date.toLocaleDateString('pt-BR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long'
+    return date.toLocaleDateString("pt-BR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
     });
   };
 
   // Alternar seleção de sugestão e armazenar sets atualizados
-  const toggleSuggestionSelection = (exerciseId: string, updatedSetsList?: ExerciseSet[]) => {
+  const toggleSuggestionSelection = (
+    exerciseId: string,
+    updatedSetsList?: ExerciseSet[]
+  ) => {
     Haptics.selectionAsync();
-    
+
     // Se recebemos sets atualizados, armazená-los
     if (updatedSetsList) {
-      setUpdatedSets(prev => ({
+      setUpdatedSets((prev) => ({
         ...prev,
-        [exerciseId]: updatedSetsList
+        [exerciseId]: updatedSetsList,
       }));
-      
+
       // Adicionar à seleção se não estiver já selecionado
       if (!selectedExercises.includes(exerciseId)) {
-        setSelectedExercises(prev => [...prev, exerciseId]);
+        setSelectedExercises((prev) => [...prev, exerciseId]);
       }
       return;
     }
-    
+
     // Comportamento padrão de alternar seleção (para deselecionar)
-    setSelectedExercises(prev => {
+    setSelectedExercises((prev) => {
       if (prev.includes(exerciseId)) {
         // Remover do estado de conjuntos atualizados também
         const newUpdatedSets = { ...updatedSets };
         delete newUpdatedSets[exerciseId];
         setUpdatedSets(newUpdatedSets);
-        
-        return prev.filter(id => id !== exerciseId);
+
+        return prev.filter((id) => id !== exerciseId);
       } else {
         return [...prev, exerciseId];
       }
@@ -149,7 +170,10 @@ export default function ProgressionModal() {
   const handleApplySuggestions = async () => {
     if (selectedExercises.length === 0) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert("Atenção", "Selecione pelo menos uma sugestão para aplicar.");
+      Alert.alert(
+        t("progression.modal.alert.attention"),
+        t("progression.modal.alert.selectAtLeastOne")
+      );
       return;
     }
 
@@ -158,27 +182,33 @@ export default function ProgressionModal() {
       setApplying(true);
 
       // Filtrar apenas as sugestões selecionadas
-      const selectedProgressions = suggestions.filter(s => 
+      const selectedProgressions = suggestions.filter((s) =>
         selectedExercises.includes(s.exerciseId)
       );
 
       // Transformar as sugestões em exercícios atualizados
-      const updatedExercises: Exercise[] = selectedProgressions.map(suggestion => {
-        const exerciseId = suggestion.exerciseId;
-        
-        // Verificar se temos conjuntos personalizados para este exercício
-        const exerciseSets = updatedSets[exerciseId] || suggestion.suggestedSets;
-        
-        return {
-          id: exerciseId,
-          name: suggestion.exerciseName,
-          sets: exerciseSets,
-          category: "força",
-        };
-      });
+      const updatedExercises: Exercise[] = selectedProgressions.map(
+        (suggestion) => {
+          const exerciseId = suggestion.exerciseId;
+
+          // Verificar se temos conjuntos personalizados para este exercício
+          const exerciseSets =
+            updatedSets[exerciseId] || suggestion.suggestedSets;
+
+          return {
+            id: exerciseId,
+            name: suggestion.exerciseName,
+            sets: exerciseSets,
+            category: "força",
+          };
+        }
+      );
 
       // Aplicar ao treino atual
-      const success = await applyProgressionToWorkout(workoutId as string, updatedExercises);
+      const success = await applyProgressionToWorkout(
+        workoutId as string,
+        updatedExercises
+      );
 
       if (success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -189,22 +219,30 @@ export default function ProgressionModal() {
     } catch (error) {
       console.error("Erro ao aplicar progressão:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert("Erro", "Não foi possível aplicar as progressões. Tente novamente.");
+      Alert.alert(
+        t("progression.modal.alert.error"),
+        t("progression.modal.alert.applyFailed")
+      );
     } finally {
       setApplying(false);
     }
   };
 
   return (
-    <SafeAreaView 
+    <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={["top", "bottom"]}
     >
       {/* Cabeçalho */}
-      <View style={[styles.header, { 
-        backgroundColor: colors.background,
-        borderBottomColor: colors.border
-      }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: colors.background,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
         <TouchableOpacity
           style={styles.closeButton}
           onPress={handleClose}
@@ -212,117 +250,142 @@ export default function ProgressionModal() {
         >
           <Ionicons name="chevron-down" size={24} color={colors.text} />
         </TouchableOpacity>
-        
+
         <View style={styles.headerTitleContainer}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Progressão de Treino
+            {t("progression.modal.title")}
           </Text>
-          <View style={[styles.headerUnderline, { backgroundColor: workoutColor as string }]} />
+          <View
+            style={[
+              styles.headerUnderline,
+              { backgroundColor: workoutColor as string },
+            ]}
+          />
         </View>
-        
+
         <View style={{ width: 40 }} />
       </View>
-      
+
       {/* Conteúdo */}
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.workoutInfoContainer}>
-          <View style={[
-            styles.workoutInfo, 
-            { 
-              backgroundColor: colors.light,
-              borderWidth: 1,
-              borderColor: colors.border
-            }
-          ]}>
+          <View
+            style={[
+              styles.workoutInfo,
+              {
+                backgroundColor: colors.light,
+                borderWidth: 1,
+                borderColor: colors.border,
+              },
+            ]}
+          >
             <View style={styles.workoutInfoRow}>
-              <Ionicons 
-                name="barbell-outline" 
-                size={22} 
+              <Ionicons
+                name="barbell-outline"
+                size={22}
                 color={workoutColor as string}
-                style={styles.workoutIcon} 
+                style={styles.workoutIcon}
               />
-              <Text style={[styles.workoutName, { color: workoutColor as string }]}>
+              <Text
+                style={[styles.workoutName, { color: workoutColor as string }]}
+              >
                 {workoutName as string}
               </Text>
             </View>
-            
+
             {previousDate && (
-              <View style={[
-                styles.dateContainer,
-                { borderTopColor: colors.border }
-              ]}>
-                <Ionicons 
-                  name="calendar-outline" 
-                  size={16} 
+              <View
+                style={[
+                  styles.dateContainer,
+                  { borderTopColor: colors.border },
+                ]}
+              >
+                <Ionicons
+                  name="calendar-outline"
+                  size={16}
                   color={colors.secondary}
-                  style={styles.dateIcon} 
+                  style={styles.dateIcon}
                 />
-                <Text style={[styles.previousDate, { color: colors.secondary }]}>
-                  {historyCount > 1 
-                    ? `Baseado em ${historyCount} treinos anteriores (último em ${formatDate(previousDate)})` 
-                    : `Baseado no treino de ${formatDate(previousDate)}`}
+                <Text
+                  style={[styles.previousDate, { color: colors.secondary }]}
+                >
+                  {historyCount > 1
+                    ? t("progression.modal.basedOn", {
+                        count: historyCount,
+                        date: formatDate(previousDate),
+                      })
+                    : t("progression.modal.basedOn_singular", {
+                        date: formatDate(previousDate),
+                      })}
                 </Text>
               </View>
             )}
           </View>
         </View>
-        
+
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={workoutColor as string} />
             <Text style={[styles.loadingText, { color: colors.text }]}>
-              Calculando progressões...
+              {t("progression.modal.calculating")}
             </Text>
           </View>
         ) : (
           <>
             {suggestions.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Ionicons 
-                  name="fitness-outline" 
-                  size={40} 
+                <Ionicons
+                  name="fitness-outline"
+                  size={40}
                   color={colors.secondary}
                 />
                 <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                  Nenhum treino anterior encontrado
+                  {t("progression.modal.noWorkoutsFound")}
                 </Text>
                 <Text style={[styles.emptyText, { color: colors.secondary }]}>
-                  Para sugerir progressões, é necessário ter pelo menos um treino anterior registrado.
+                  {t("progression.modal.noWorkoutsDescription")}
                 </Text>
               </View>
             ) : (
               <>
                 <View style={styles.sectionTitleContainer}>
                   <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                    Sugestões de Progressão
+                    {t("progression.modal.suggestionsTitle")}
                   </Text>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={handleShowInfo}
                     hitSlop={{ top: 30, right: 30, bottom: 30, left: 30 }}
                   >
-                    <Ionicons 
-                      name="information-circle" 
-                      size={22} 
-                      color="tomato" 
+                    <Ionicons
+                      name="information-circle"
+                      size={22}
+                      color="tomato"
                       style={styles.infoIcon}
                     />
                   </TouchableOpacity>
                 </View>
-                <Text style={[styles.sectionDescription, { color: colors.secondary }]}>
-                  Selecione os exercícios que deseja aplicar a progressão sugerida:
+                <Text
+                  style={[
+                    styles.sectionDescription,
+                    { color: colors.secondary },
+                  ]}
+                >
+                  {t("progression.modal.selectExercisesDescription")}
                 </Text>
-                
+
                 <View style={styles.suggestionsContainer}>
                   {suggestions.map((suggestion, index) => (
                     <ProgressionCard
                       key={suggestion.exerciseId}
                       suggestion={suggestion}
                       index={index}
-                      isSelected={selectedExercises.includes(suggestion.exerciseId)}
+                      isSelected={selectedExercises.includes(
+                        suggestion.exerciseId
+                      )}
                       workoutColor={workoutColor as string}
                       theme={theme}
                       onToggleSelection={toggleSuggestionSelection}
@@ -334,7 +397,7 @@ export default function ProgressionModal() {
           </>
         )}
       </ScrollView>
-      
+
       {/* Botão de aplicar */}
       {suggestions.length > 0 && (
         <MotiView
@@ -365,7 +428,9 @@ export default function ProgressionModal() {
             ) : (
               <>
                 <Text style={styles.applyButtonText}>
-                  Aplicar Progressões ({selectedExercises.length})
+                  {t("progression.modal.applyProgressions", {
+                    count: selectedExercises.length,
+                  })}
                 </Text>
                 <Ionicons
                   name="checkmark-circle"
@@ -382,10 +447,10 @@ export default function ProgressionModal() {
       {/* Modal de informações */}
       <InfoModal
         visible={showInfoModal}
-        title="Sobre as Sugestões"
-        subtitle="As sugestões são baseadas no seu histórico de treinos, mas considere também:"
+        title={t("progression.infoModal.title")}
+        subtitle={t("progression.infoModal.subtitle")}
         onClose={() => setShowInfoModal(false)}
-        closeButtonText="Entendi"
+        closeButtonText={t("progression.infoModal.gotIt")}
         topIcon={{
           name: "fitness-outline",
           color: workoutColor as string,
@@ -393,20 +458,26 @@ export default function ProgressionModal() {
         }}
         infoItems={[
           {
-            title: "Progressão Inteligente",
-            description: "O algoritmo analisa até 4 treinos anteriores para detectar padrões, platôs e sugerir a progressão mais adequada.",
+            title: t("progression.infoModal.items.smartProgression.title"),
+            description: t(
+              "progression.infoModal.items.smartProgression.description"
+            ),
             icon: "analytics-outline",
             color: workoutColor as string,
           },
           {
-            title: "Adaptação",
-            description: "Ajuste o peso, séries e repetições de acordo com sua capacidade atual, equipamentos disponíveis e disposição física do dia.",
+            title: t("progression.infoModal.items.adaptation.title"),
+            description: t(
+              "progression.infoModal.items.adaptation.description"
+            ),
             icon: "body-outline",
             color: workoutColor as string,
           },
           {
-            title: "Percepção",
-            description: "Utilize sua percepção de esforço como guia principal para determinar a progressão ideal. Tente progredir gradualmente em cada treino, seja aumentando a carga, séries, repetições ou até mesmo a qualidade da técnica de cada repetição.",
+            title: t("progression.infoModal.items.perception.title"),
+            description: t(
+              "progression.infoModal.items.perception.description"
+            ),
             icon: "pulse-outline",
             color: workoutColor as string,
           },
@@ -562,4 +633,4 @@ const styles = StyleSheet.create({
   applyButtonIcon: {
     marginLeft: 8,
   },
-}); 
+});

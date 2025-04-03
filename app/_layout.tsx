@@ -152,28 +152,7 @@ function AppContent() {
           }}
         />
         <Stack.Screen
-          name="notifications-modal"
-          options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
-          }}
-        />
-        <Stack.Screen
-          name="privacy-modal"
-          options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
-          }}
-        />
-        <Stack.Screen
           name="about-modal"
-          options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
-          }}
-        />
-        <Stack.Screen
-          name="help-modal"
           options={{
             presentation: "modal",
             animation: "slide_from_bottom",

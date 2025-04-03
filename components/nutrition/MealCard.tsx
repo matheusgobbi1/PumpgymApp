@@ -352,7 +352,14 @@ const MealCardComponent = ({
       >
         <View
           key={`meal-card-${meal.id}-${index}`}
-          style={[styles.mealCard, { backgroundColor: colors.light }]}
+          style={[
+            styles.mealCard,
+            {
+              backgroundColor: colors.light,
+              borderWidth: 1,
+              borderColor: colors.border,
+            },
+          ]}
         >
           <View style={styles.mealContent}>
             <TouchableOpacity

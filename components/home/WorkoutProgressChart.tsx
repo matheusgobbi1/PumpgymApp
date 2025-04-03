@@ -1082,6 +1082,8 @@ export default function WorkoutProgressChart({
           {
             backgroundColor: colors.light,
             height: isExpanded ? "auto" : fixedHeight,
+            borderWidth: 1,
+            borderColor: colors.border,
           },
         ]}
       >

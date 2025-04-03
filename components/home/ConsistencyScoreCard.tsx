@@ -1,37 +1,31 @@
-import React, { useMemo, useState, useEffect, useCallback } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Dimensions,
   TouchableOpacity,
-  Platform,
-  Animated,
-  Modal,
-  ScrollView,
-  Pressable,
 } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useWorkoutContext } from "../../context/WorkoutContext";
-import { useMeals, useMealContext } from "../../context/MealContext";
+import { useMealContext } from "../../context/MealContext";
 import { useNutrition } from "../../context/NutritionContext";
 import { format, subDays, differenceInDays } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { waterDataManager } from "./WaterIntakeCard";
-import { LinearGradient } from "expo-linear-gradient";
 import { MotiView } from "moti";
 import Svg, { Circle } from "react-native-svg";
-import { Easing } from "react-native-reanimated";
+
 import InfoModal, { InfoItem } from "../common/InfoModal";
 
 const { width } = Dimensions.get("window");
 
 interface ConsistencyScoreCardProps {
   onPress?: () => void;
-  stepsConsistencyPercentage?: number;
+  steps: number | null;
 }
 
 // Função para determinar a cor com base na pontuação
@@ -80,6 +74,7 @@ const CircularProgress = ({
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  const iconSize = size * 0.45; // Tamanho do ícone proporcional ao círculo
 
   return (
     <View
@@ -90,16 +85,33 @@ const CircularProgress = ({
         justifyContent: "center",
       }}
     >
-      <View style={{ transform: [{ rotate: "-90deg" }] }}>
+      {/* Background Circle */}
+      <Svg width={size} height={size} style={{ position: "absolute" }}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={color + "20"}
+          strokeWidth={strokeWidth}
+          fill="transparent"
+        />
+      </Svg>
+
+      {/* Progress Circle with Animation */}
+      <MotiView
+        from={{ opacity: 0, rotate: "0deg" }}
+        animate={{ opacity: 1, rotate: "360deg" }}
+        transition={{
+          type: "timing",
+          duration: 1000,
+          rotate: {
+            type: "spring",
+            damping: 20,
+          },
+        }}
+        style={{ position: "absolute" }}
+      >
         <Svg width={size} height={size}>
-          <Circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke={color + "30"}
-            strokeWidth={strokeWidth}
-            fill="transparent"
-          />
           <Circle
             cx={size / 2}
             cy={size / 2}
@@ -112,58 +124,67 @@ const CircularProgress = ({
             strokeLinecap="round"
           />
         </Svg>
-      </View>
-      <View style={styles.circularProgressIcon}>
-        <MaterialCommunityIcons
-          name={iconName}
-          size={size * 0.4}
-          color={color}
-        />
-      </View>
+      </MotiView>
+
+      {/* Ícone centralizado */}
+      <MotiView
+        from={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{
+          type: "spring",
+          delay: 200,
+          damping: 15,
+        }}
+      >
+        <MaterialCommunityIcons name={iconName} size={iconSize} color={color} />
+      </MotiView>
     </View>
   );
 };
 
-// Subcomponent for individual metric items with animation
-const MetricItem = ({
+// Componente para os mini-cards de métricas
+const MetricCard = ({
   label,
   percentage,
   color,
-  theme,
   iconName,
-}: MetricItemProps & { theme: "light" | "dark"; iconName: string }) => (
-  <View style={styles.metricItem}>
-    <View style={styles.metricRow}>
-      <CircularProgress
-        percentage={percentage}
-        color={color}
-        iconName={iconName}
-      />
-      <View style={styles.metricContent}>
-        <View style={styles.metricHeader}>
-          <Text style={[styles.metricLabel, { color: Colors[theme].text }]}>
-            {label}
-          </Text>
-          <Text style={[styles.metricPercentage, { color }]}>
-            {Math.round(percentage)}%
-          </Text>
-        </View>
-        <View style={[styles.progressBar, { backgroundColor: color + "20" }]}>
-          <MotiView
-            from={{ width: "0%" }}
-            animate={{ width: `${percentage}%` }}
-            transition={{ type: "timing", duration: 800 }}
-            style={[styles.progressFill, { backgroundColor: color }]}
-          />
-        </View>
+  theme,
+}: MetricItemProps & { theme: "light" | "dark" }) => {
+  const colors = Colors[theme];
+
+  return (
+    <MotiView
+      from={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: "timing", duration: 500 }}
+      style={[styles.metricCard, { backgroundColor: colors.light }]}
+    >
+      {/* Ícone e Círculo de Progresso */}
+      <View style={styles.metricIconContainer}>
+        <CircularProgress
+          percentage={percentage}
+          color={color}
+          size={44}
+          iconName={iconName}
+        />
       </View>
-    </View>
-  </View>
-);
+
+      {/* Informações */}
+      <View style={styles.metricInfo}>
+        <Text style={[styles.metricValue, { color }]}>
+          {Math.round(percentage)}%
+        </Text>
+        <Text style={[styles.metricLabel, { color: colors.text + "80" }]}>
+          {label}
+        </Text>
+      </View>
+    </MotiView>
+  );
+};
 
 export default function ConsistencyScoreCard({
   onPress,
-  stepsConsistencyPercentage = 0,
+  steps,
 }: ConsistencyScoreCardProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
@@ -240,6 +261,13 @@ export default function ConsistencyScoreCard({
 
     return firstDate;
   }, [waterData]);
+
+  // Calcular a consistência dos passos baseada nos passos reais
+  const stepsConsistencyPercentage = useMemo(() => {
+    if (steps === null) return 0;
+    const dailyGoal = 10000; // Meta diária de passos (mantendo consistência com HealthStepsCard)
+    return Math.min((steps / dailyGoal) * 100, 100);
+  }, [steps]);
 
   // Cálculo da consistência de treinos (ponderada com a data do primeiro treino)
   const workoutConsistency = useMemo(() => {
@@ -419,7 +447,11 @@ export default function ConsistencyScoreCard({
       <View
         style={[
           styles.container,
-          { backgroundColor: colors.card || colors.background },
+          {
+            backgroundColor: colors.card || colors.background,
+            borderWidth: 1,
+            borderColor: colors.border,
+          },
         ]}
       >
         <View style={styles.emptyContainer}>
@@ -525,7 +557,11 @@ export default function ConsistencyScoreCard({
       <View
         style={[
           styles.container,
-          { backgroundColor: colors.light },
+          {
+            backgroundColor: colors.light,
+            borderWidth: 1,
+            borderColor: colors.border,
+          },
         ]}
       >
         <InfoModal
@@ -547,7 +583,7 @@ export default function ConsistencyScoreCard({
           onPress={toggleExpand}
           style={styles.touchableContainer}
         >
-          {/* Header no mesmo padrão do NutritionProgressChart */}
+          {/* Header */}
           <View style={styles.header}>
             <View style={styles.titleContainer}>
               <View
@@ -607,38 +643,47 @@ export default function ConsistencyScoreCard({
             </View>
           </View>
 
-          {/* Métricas */}
+          {/* Grid de Métricas */}
           {expanded && (
-            <View style={styles.metricsContainer}>
-              <MetricItem
-                label={t("home.consistency.workouts")}
-                percentage={workoutConsistency}
-                color={colors.primary}
-                theme={theme}
-                iconName="dumbbell"
-              />
-              <MetricItem
-                label={t("home.consistency.nutritions")}
-                percentage={nutritionConsistency}
-                color="#FF6B6B"
-                theme={theme}
-                iconName="food-apple"
-              />
-              <MetricItem
-                label={t("home.consistency.water")}
-                percentage={waterConsistencyPercentage}
-                color="#0096FF"
-                theme={theme}
-                iconName="water"
-              />
-              <MetricItem
-                label={t("home.consistency.steps")}
-                percentage={stepsConsistencyPercentage}
-                color="#4CAF50"
-                theme={theme}
-                iconName="walk"
-              />
-            </View>
+            <MotiView
+              from={{ opacity: 0, translateY: -10 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 300 }}
+              style={styles.metricsGrid}
+            >
+              <View style={styles.metricsRow}>
+                <MetricCard
+                  label={t("home.consistency.workouts")}
+                  percentage={workoutConsistency}
+                  color={colors.primary}
+                  theme={theme}
+                  iconName="dumbbell"
+                />
+                <MetricCard
+                  label={t("home.consistency.nutritions")}
+                  percentage={nutritionConsistency}
+                  color="#FF6B6B"
+                  theme={theme}
+                  iconName="food-apple"
+                />
+              </View>
+              <View style={styles.metricsRow}>
+                <MetricCard
+                  label={t("home.consistency.water")}
+                  percentage={waterConsistencyPercentage}
+                  color="#0096FF"
+                  theme={theme}
+                  iconName="water"
+                />
+                <MetricCard
+                  label={t("home.consistency.steps")}
+                  percentage={stepsConsistencyPercentage}
+                  color="#4CAF50"
+                  theme={theme}
+                  iconName="walk"
+                />
+              </View>
+            </MotiView>
           )}
         </TouchableOpacity>
       </View>
@@ -787,52 +832,48 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: -0.5,
   },
-  metricsContainer: {
+  metricsGrid: {
     paddingHorizontal: 16,
     paddingBottom: 16,
     paddingTop: 8,
   },
-  metricItem: {
-    marginBottom: 16,
-  },
-  metricRow: {
+  metricsRow: {
     flexDirection: "row",
-    alignItems: "center",
-  },
-  metricContent: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  metricHeader: {
-    flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  circularProgressIcon: {
-    position: "absolute",
+  metricCard: {
+    width: "48%",
+    borderRadius: 16,
+    padding: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
     alignItems: "center",
-    justifyContent: "center",
   },
-  metricLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    letterSpacing: -0.3,
+  metricIconContainer: {
+    marginBottom: 12,
   },
-  metricPercentage: {
-    fontSize: 14,
+  metricInfo: {
+    alignItems: "center",
+  },
+  metricValue: {
+    fontSize: 18,
     fontWeight: "700",
+    marginBottom: 4,
     letterSpacing: -0.5,
   },
-  progressBar: {
-    height: 6,
-    borderRadius: 6,
-    width: "100%",
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 6,
+  metricLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+    textAlign: "center",
+    letterSpacing: -0.2,
+    opacity: 0.8,
   },
   emptyContainer: {
     overflow: "hidden",

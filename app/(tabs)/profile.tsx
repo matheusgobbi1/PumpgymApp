@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useCallback } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
@@ -22,21 +22,7 @@ export default function Profile() {
   const { nutritionInfo } = useNutrition();
   const { user } = useAuth();
 
-  // Estado para contador de logins do usuário (login streak)
-  const [loginCount, setLoginCount] = useState(0);
 
-  // Efeito para definir o contador de logins
-  useEffect(() => {
-    // Simular um contador de logins com base no último dígito do UID, ou usar um valor fixo (7) para teste
-    const uidLastDigit = user?.uid ? parseInt(user.uid.slice(-1)) : 0;
-    setLoginCount(uidLastDigit > 0 ? uidLastDigit : 7);
-  }, [user]);
-
-  // Função para navegar para as configurações
-  const handleSettingsPress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push("/settings");
-  };
 
   // Função para navegar para a edição do perfil
   const handleEditProfilePress = () => {
@@ -50,17 +36,6 @@ export default function Profile() {
     toggleTheme();
   };
 
-  // Função para navegar para a tela de notificações
-  const handleNotificationsPress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push("/notifications-modal");
-  };
-
-  // Função para navegar para a tela de privacidade e segurança
-  const handlePrivacyPress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push("/privacy-modal");
-  };
 
   // Função para navegar para a tela sobre nós
   const handleAboutPress = () => {
@@ -68,11 +43,7 @@ export default function Profile() {
     router.push("/about-modal");
   };
 
-  // Função para navegar para a tela de ajuda e suporte
-  const handleHelpPress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push("/help-modal");
-  };
+
 
   // Obter status do plano nutricional
   const getNutritionStatus = () => {
@@ -126,10 +97,7 @@ export default function Profile() {
             {/* Opções do perfil */}
             <ProfileOptionsCard
               onThemeToggle={handleThemeToggle}
-              onNotificationsPress={handleNotificationsPress}
-              onPrivacyPress={handlePrivacyPress}
               onAboutPress={handleAboutPress}
-              onHelpPress={handleHelpPress}
             />
           </View>
 

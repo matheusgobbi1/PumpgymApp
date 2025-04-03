@@ -556,7 +556,24 @@
     "exerciseNamePlaceholder": "Exercise name",
     "setNumber": "Set",
     "repetitions": "Repetitions",
-    "weight": "Weight (kg)"
+    "weight": "Weight (kg)",
+    "intensitySection": "Intensity Settings",
+    "failureState": {
+      "title": "Muscle Failure",
+      "shortLabel": "Failure",
+      "repsInReserve": "Reps in reserve"
+    },
+    "repsInReserveShort": "Reserve reps",
+    "perceivedEffort": {
+      "title": "Perceived Effort",
+      "level1": "Very easy",
+      "level2": "Easy",
+      "level3": "Moderate", 
+      "level4": "Hard",
+      "level5": "Very hard"
+    },
+    "collapseSet": "Collapse set",
+    "expandSet": "Expand set"
   },
   "yesterday": "Yesterday",
   "minutes": "minutes",
@@ -1047,6 +1064,90 @@
         "loadFailed": "Failed to load workouts",
         "saveFailed": "Failed to save workouts",
         "syncFailed": "Failed to sync with cloud"
+      }
+    }
+  },
+  "progression": {
+    "modal": {
+      "title": "Workout Progression",
+      "basedOn": "Based on {{count}} previous workouts (last on {{date}})",
+      "basedOn_singular": "Based on workout from {{date}}",
+      "calculating": "Calculating progressions...",
+      "noWorkoutsFound": "No previous workout found",
+      "noWorkoutsDescription": "To suggest progressions, you need to have at least one previous workout recorded.",
+      "suggestionsTitle": "Progression Suggestions",
+      "selectExercisesDescription": "Select the exercises you want to apply the suggested progression to:",
+      "applyProgressions": "Apply Progressions ({{count}})",
+      "alert": {
+        "attention": "Attention",
+        "selectAtLeastOne": "Select at least one suggestion to apply.",
+        "error": "Error",
+        "applyFailed": "Could not apply progressions. Please try again."
+      }
+    },
+    "infoModal": {
+      "title": "About Suggestions",
+      "subtitle": "Suggestions are based on your workout history, but also consider:",
+      "gotIt": "Got it",
+      "items": {
+        "smartProgression": {
+          "title": "Smart Progression",
+          "description": "The algorithm analyzes up to 4 previous workouts to detect patterns, plateaus, and suggest the most appropriate progression."
+        },
+        "adaptation": {
+          "title": "Adaptation",
+          "description": "Adjust weight, sets, and reps according to your current capacity, available equipment, and daily physical disposition."
+        },
+        "perception": {
+          "title": "Perception",
+          "description": "Use your perceived effort as the main guide to determine the ideal progression. Try to progress gradually in each workout, whether by increasing load, sets, repetitions, or even the quality of each repetition's technique."
+        }
+      }
+    },
+    "card": {
+      "exercise": "Exercise",
+      "previousWorkout": "Previous Workout",
+      "suggestedProgression": "Suggested Progression",
+      "weight": "Weight",
+      "reps": "Reps",
+      "restTime": "Rest"
+    },
+    "confirmDialog": {
+      "title": "Adjust Progression",
+      "instruction": "Review and adjust advanced settings before applying the suggested progression.",
+      "set": "Set {{number}}",
+      "toFailure": "To Failure",
+      "repsInReserve": "Reps in Reserve",
+      "perceivedEffort": "Perceived Effort",
+      "cancel": "Cancel",
+      "confirm": "Confirm"
+    },
+    "algorithm": {
+      "plateau": {
+        "highReps": "You've reached a good number of repetitions and are in a plateau. It's time to increase the weight to stimulate new growth.",
+        "notHighReps": "Even without reaching 12 repetitions, you've been in a plateau for several workouts. Increasing the weight can help stimulate new progress.",
+        "repeatedWorkouts": "You've been repeating the same workout for several sessions. To break the plateau, we suggest adding an additional set.",
+        "needMoreVolume": "To continue evolving, we recommend adding an additional set to increase your training volume.",
+        "lowIntensity": "Your training intensity is lower than ideal. Reduce rest time to increase workout density and take the last set to muscle failure.",
+        "lowReps": "You're in a plateau with a moderate number of repetitions. Try increasing 1-2 repetitions in all sets and take the last one to muscle failure.",
+        "needBetterTechnique": "To break this plateau, maintain the same weight and repetitions, but increase intensity by better controlling repetition timing (2s down, 1s up) and take the last set to failure.",
+        "combined": "To break this plateau, we'll slightly adjust the weight and repetitions to create a new stimulus and take the last set to muscle failure."
+      },
+      "scenarios": {
+        "highRepsWithFailure": "You trained to failure or very close to it and reached 12+ repetitions. Let's increase the weight and adjust the repetitions.",
+        "highIntensity": "You trained with very high intensity. We recommend maintaining the current weight and slightly increasing repetitions focusing on technique.",
+        "goodReps": "You've reached a good number of repetitions with moderate intensity. It's time to increase the load to stimulate new growth.",
+        "nearTargetReps": "You're training with good intensity. As you're close to 12 repetitions, we suggest a slight weight increase while maintaining repetitions, to prepare for the next phase.",
+        "continueReps": "Continue increasing repetitions with this weight to develop strength and technique.",
+        "weightTooLight": "The current weight is too light for you (high RIR and low effort). We recommend increasing the weight directly, even without reaching 12 repetitions.",
+        "weightTooLightKeepReps": "The weight is too light (high RIR and low effort). We recommend increasing the weight and trying to maintain the same number of repetitions.",
+        "veryLowIntensity": "You're training with very low intensity. We recommend a significant increase in the number of repetitions.",
+        "targetReached": "You've reached the target repetitions with moderate intensity. Let's increase the weight to continue progress.",
+        "closeToTarget": "You're close to the target repetitions. For this workout, we suggest slightly increasing the weight and maintaining repetitions.",
+        "increaseReps": "Continue gradually increasing repetitions with this weight.",
+        "lowIntensityHighReps": "You've reached the target repetitions with low intensity. It's time to significantly increase the weight.",
+        "lowIntensityNearTarget": "Your intensity is low. We suggest slightly increasing the weight and maintaining your current repetitions to better stimulate the muscle.",
+        "lowIntensityLowReps": "Your intensity is low. We recommend a significant increase in repetitions."
       }
     }
   },

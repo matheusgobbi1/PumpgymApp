@@ -584,23 +584,29 @@
     "exerciseNamePlaceholder": "Nome do exercício",
     "setNumber": "Série",
     "repetitions": "Repetições",
-    "weight": "Carga (kg)",
+    "weight": "Peso (kg)",
     "failureState": {
-      "title": "Falha Muscular",
-      "toFailure": "Até a falha",
-      "repsInReserve": "Reps na reserva",
-      "repsInReserveHint": "Quantas repetições você ainda conseguiria fazer"
+      "title": "Falha muscular",
+      "shortLabel": "Falha",
+      "repsInReserve": "Repetições na reserva"
     },
+    "repsInReserveShort": "Reps. reserva",
     "perceivedEffort": {
-      "title": "Percepção de Esforço",
-      "level1": "Muito leve",
-      "level2": "Leve",
-      "level3": "Moderado",
-      "level4": "Pesado",
-      "level5": "Muito pesado"
+      "title": "Percepção de esforço",
+      "level1": "Muito fácil",
+      "level2": "Fácil",
+      "level3": "Moderado", 
+      "level4": "Difícil",
+      "level5": "Muito difícil"
     },
+    "collapseSet": "Recolher série",
     "expandSet": "Expandir série",
-    "collapseSet": "Recolher série"
+    "notes": "Anotações",
+    "restTime": "Tempo de descanso (s)",
+    "addToWorkout": "Adicionar ao",
+    "exerciseNamePlaceholder": "Nome do exercício",
+    "notesPlaceholder": "Adicione anotações sobre o exercício...",
+    "intensitySection": "Configurações de intensidade"
   },
   "yesterday": "Ontem",
   "minutes": "minutos",
@@ -1336,6 +1342,90 @@
       "ex233": "Rosca Inversa com Cabo",
       "ex234": "Stiff com Halteres",
       "ex235": "Levantamento Terra Sumô"
+    }
+  },
+  "progression": {
+    "modal": {
+      "title": "Progressão de Treino",
+      "basedOn": "Baseado em {{count}} treinos anteriores (último em {{date}})",
+      "basedOn_singular": "Baseado no treino de {{date}}",
+      "calculating": "Calculando progressões...",
+      "noWorkoutsFound": "Nenhum treino anterior encontrado",
+      "noWorkoutsDescription": "Para sugerir progressões, é necessário ter pelo menos um treino anterior registrado.",
+      "suggestionsTitle": "Sugestões de Progressão",
+      "selectExercisesDescription": "Selecione os exercícios que deseja aplicar a progressão sugerida:",
+      "applyProgressions": "Aplicar Progressões ({{count}})",
+      "alert": {
+        "attention": "Atenção",
+        "selectAtLeastOne": "Selecione pelo menos uma sugestão para aplicar.",
+        "error": "Erro",
+        "applyFailed": "Não foi possível aplicar as progressões. Tente novamente."
+      }
+    },
+    "infoModal": {
+      "title": "Sobre as Sugestões",
+      "subtitle": "As sugestões são baseadas no seu histórico de treinos, mas considere também:",
+      "gotIt": "Entendi",
+      "items": {
+        "smartProgression": {
+          "title": "Progressão Inteligente",
+          "description": "O algoritmo analisa até 4 treinos anteriores para detectar padrões, platôs e sugerir a progressão mais adequada."
+        },
+        "adaptation": {
+          "title": "Adaptação",
+          "description": "Ajuste o peso, séries e repetições de acordo com sua capacidade atual, equipamentos disponíveis e disposição física do dia."
+        },
+        "perception": {
+          "title": "Percepção",
+          "description": "Utilize sua percepção de esforço como guia principal para determinar a progressão ideal. Tente progredir gradualmente em cada treino, seja aumentando a carga, séries, repetições ou até mesmo a qualidade da técnica de cada repetição."
+        }
+      }
+    },
+    "card": {
+      "exercise": "Exercício",
+      "previousWorkout": "Treino Anterior",
+      "suggestedProgression": "Progressão Sugerida",
+      "weight": "Peso",
+      "reps": "Reps",
+      "restTime": "Descanso"
+    },
+    "confirmDialog": {
+      "title": "Ajustar Progressão",
+      "instruction": "Revise e ajuste as configurações avançadas antes de aplicar a progressão sugerida.",
+      "set": "Série {{number}}",
+      "toFailure": "Até a Falha",
+      "repsInReserve": "Reps em Reserva",
+      "perceivedEffort": "Percepção de Esforço",
+      "cancel": "Cancelar",
+      "confirm": "Confirmar"
+    },
+    "algorithm": {
+      "plateau": {
+        "highReps": "Você atingiu um bom número de repetições e está em platô. É hora de aumentar a carga para estimular novo crescimento.",
+        "notHighReps": "Mesmo sem atingir 12 repetições, você está em platô há alguns treinos. Um aumento de carga pode ajudar a estimular novo progresso.",
+        "repeatedWorkouts": "Você está repetindo o mesmo treino há várias sessões. Para quebrar o platô, sugerimos adicionar uma série adicional.",
+        "needMoreVolume": "Para continuar evoluindo, recomendamos adicionar uma série adicional para aumentar o volume de treino.",
+        "lowIntensity": "Sua intensidade de treino está mais baixa do que o ideal. Reduza o tempo de descanso para aumentar a densidade do treino e leve a última série até a falha muscular.",
+        "lowReps": "Você está em um platô com um número moderado de repetições. Tente aumentar 1-2 repetições em todas as séries e leve a última até a falha muscular.",
+        "needBetterTechnique": "Para quebrar esse platô, mantenha o mesmo peso e repetições, mas aumente a intensidade controlando melhor o tempo das repetições (2s descida, 1s subida) e leve a última série até a falha.",
+        "combined": "Para quebrar esse platô, vamos ajustar levemente o peso e as repetições para criar um novo estímulo e levar a última série até a falha muscular."
+      },
+      "scenarios": {
+        "highRepsWithFailure": "Você treinou até a falha ou muito próximo dela e atingiu 12+ repetições. Vamos aumentar o peso e ajustar as repetições.",
+        "highIntensity": "Você treinou com intensidade muito alta. Recomendamos manter o peso atual e aumentar levemente as repetições focando na técnica.",
+        "goodReps": "Você atingiu um bom número de repetições com intensidade moderada. É hora de aumentar a carga para estimular novo crescimento.",
+        "nearTargetReps": "Você está treinando com boa intensidade. Como está próximo das 12 repetições, sugerimos um aumento leve de peso mantendo as repetições, para preparar para a próxima fase.",
+        "continueReps": "Continue aumentando as repetições com esse peso para desenvolver força e técnica.",
+        "weightTooLight": "O peso atual está muito leve para você (RIR alto e esforço baixo). Recomendamos aumentar o peso diretamente, mesmo sem atingir 12 repetições.",
+        "weightTooLightKeepReps": "O peso está muito leve (RIR alto e esforço baixo). Recomendamos aumentar o peso e tentar manter o mesmo número de repetições.",
+        "veryLowIntensity": "Você está treinando com intensidade muito baixa. Recomendamos um aumento significativo no número de repetições.",
+        "targetReached": "Você atingiu o alvo de repetições com intensidade moderada. Vamos aumentar o peso para continuar o progresso.",
+        "closeToTarget": "Você está próximo do alvo de repetições. Para este treino, sugerimos aumentar o peso levemente e manter as repetições.",
+        "increaseReps": "Continue aumentando gradualmente as repetições com esse peso.",
+        "lowIntensityHighReps": "Você atingiu as repetições alvo com baixa intensidade. É hora de aumentar o peso significativamente.",
+        "lowIntensityNearTarget": "Sua intensidade está baixa. Sugerimos aumentar levemente o peso e manter as repetições atuais para estimular melhor o músculo.",
+        "lowIntensityLowReps": "Sua intensidade está baixa. Recomendamos um aumento significativo nas repetições."
+      }
     }
   }
 } 

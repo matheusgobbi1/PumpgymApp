@@ -18,7 +18,13 @@ import { useTranslation } from "react-i18next";
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 48) / 2; // Metade da largura da tela menos o padding
 
-export default function HealthStepsCard() {
+interface HealthStepsCardProps {
+  onStepsUpdate?: (steps: number | null) => void;
+}
+
+export default function HealthStepsCard({
+  onStepsUpdate,
+}: HealthStepsCardProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { t } = useTranslation();
@@ -165,8 +171,24 @@ export default function HealthStepsCard() {
     return Math.min((steps / dailyGoal) * 100, 100);
   }, [steps, dailyGoal]);
 
+  // Notificar mudanças nos passos
+  React.useEffect(() => {
+    if (onStepsUpdate) {
+      onStepsUpdate(steps);
+    }
+  }, [steps, onStepsUpdate]);
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.light }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.light,
+          borderWidth: 1,
+          borderColor: colors.border,
+        },
+      ]}
+    >
       <View style={styles.header}>
         <View style={styles.titleContainer}>
           <View

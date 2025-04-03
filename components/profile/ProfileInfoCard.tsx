@@ -257,7 +257,11 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
       <View
         style={[
           styles.container,
-          { backgroundColor: colors.light },
+          {
+            backgroundColor: colors.light,
+            borderWidth: 1,
+            borderColor: colors.border,
+          },
           isEditMode && styles.editModeContainer,
         ]}
       >

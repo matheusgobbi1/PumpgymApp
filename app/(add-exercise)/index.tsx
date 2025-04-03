@@ -206,8 +206,6 @@ const ExerciseCard = ({
             </Text>
           </View>
         </View>
-
-       
       </TouchableOpacity>
     </MotiView>
   );
@@ -708,6 +706,7 @@ export default function AddExerciseScreen() {
                       muscle: exercise.notes?.split(" - ")[0] || "",
                       equipment: exercise.notes?.split(" - ")[1] || "",
                       category: exercise.category || "força",
+                      weightIncrement: 2.5,
                     })
                   }
                 >

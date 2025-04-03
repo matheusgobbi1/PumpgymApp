@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  ActivityIndicator,
   Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,7 +14,6 @@ import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
 import { MotiView } from "moti";
-import CircularProgress from "react-native-circular-progress-indicator";
 import { useMeals } from "../../context/MealContext";
 import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
@@ -730,11 +728,7 @@ export default function FoodDetailsScreen() {
                       { backgroundColor: mealColor + "15" },
                     ]}
                   >
-                    <Ionicons
-                      name="flame"
-                      size={26}
-                      color={mealColor}
-                    />
+                    <Ionicons name="flame" size={26} color={mealColor} />
                   </View>
                   <Text style={[styles.caloriesValue, { color: mealColor }]}>
                     {formatNumber(calculatedNutrients.calories)}

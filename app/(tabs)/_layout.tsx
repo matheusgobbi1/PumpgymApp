@@ -15,9 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useRef, useState } from "react";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "../../context/ThemeContext";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { BottomTabNavigationOptions } from "@react-navigation/bottom-tabs";
 
 const { width, height } = Dimensions.get("window");
 
@@ -253,7 +251,7 @@ export default function TabLayout() {
                       <Ionicons
                         name={isMenuOpen ? "close" : "add"}
                         size={35}
-                        color="white"
+                        color={colors.background}
                       />
                     </TouchableOpacity>
                   </View>

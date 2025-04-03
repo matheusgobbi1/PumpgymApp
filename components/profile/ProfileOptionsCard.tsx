@@ -18,32 +18,39 @@ import { useAuth } from "../../context/AuthContext";
 import Constants from "expo-constants";
 import ConfirmationModal from "../ui/ConfirmationModal";
 import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface ProfileOptionsCardProps {
   onThemeToggle: () => void;
-  onNotificationsPress?: () => void;
-  onPrivacyPress?: () => void;
   onAboutPress?: () => void;
-  onHelpPress?: () => void;
 }
 
 export default function ProfileOptionsCard({
   onThemeToggle,
-  onNotificationsPress = () => {},
-  onPrivacyPress = () => {},
   onAboutPress = () => {},
-  onHelpPress = () => {},
 }: ProfileOptionsCardProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { signOut } = useAuth();
 
-  // Estado para controlar a visibilidade do modal de confirmação
+  // Estado para controlar a visibilidade dos modais
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
 
   // Versão do aplicativo
   const appVersion = Constants.expoConfig?.version || "1.0.0";
+
+  // Função para alternar o idioma
+  const toggleLanguage = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const currentLang = i18n.language;
+    const newLang = currentLang === "pt-BR" ? "en-US" : "pt-BR";
+
+    await AsyncStorage.setItem("userLanguage", newLang);
+    await i18n.changeLanguage(newLang);
+  };
 
   // Função para mostrar o modal de confirmação de logout
   const showLogoutConfirmation = () => {
@@ -65,72 +72,15 @@ export default function ProfileOptionsCard({
     <View style={styles.container}>
       {/* Opções do Perfil */}
       <View
-        style={[styles.optionsContainer, { backgroundColor: colors.light }]}
+        style={[
+          styles.optionsContainer,
+          {
+            backgroundColor: colors.light,
+            borderWidth: 1,
+            borderColor: colors.border,
+          },
+        ]}
       >
-        {/* Notificações */}
-        <TouchableOpacity
-          style={styles.optionItem}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            onNotificationsPress();
-          }}
-        >
-          <View
-            style={[
-              styles.optionIconContainer,
-              { backgroundColor: colors.primary + "15" },
-            ]}
-          >
-            <Ionicons
-              name="notifications-outline"
-              size={20}
-              color={colors.primary}
-            />
-          </View>
-          <Text style={[styles.optionText, { color: colors.text }]}>
-            {t("profile.options.notifications")}
-          </Text>
-          <Ionicons
-            name="chevron-forward"
-            size={18}
-            color={colors.text + "50"}
-          />
-        </TouchableOpacity>
-
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-        {/* Privacidade e Segurança */}
-        <TouchableOpacity
-          style={styles.optionItem}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            onPrivacyPress();
-          }}
-        >
-          <View
-            style={[
-              styles.optionIconContainer,
-              { backgroundColor: colors.primary + "15" },
-            ]}
-          >
-            <Ionicons
-              name="shield-checkmark-outline"
-              size={20}
-              color={colors.primary}
-            />
-          </View>
-          <Text style={[styles.optionText, { color: colors.text }]}>
-            {t("profile.options.privacyAndSecurity")}
-          </Text>
-          <Ionicons
-            name="chevron-forward"
-            size={18}
-            color={colors.text + "50"}
-          />
-        </TouchableOpacity>
-
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
         {/* Sobre Nós */}
         <TouchableOpacity
           style={styles.optionItem}
@@ -163,14 +113,8 @@ export default function ProfileOptionsCard({
 
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-        {/* Ajuda e Suporte */}
-        <TouchableOpacity
-          style={styles.optionItem}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            onHelpPress();
-          }}
-        >
+        {/* Alternar Idioma */}
+        <TouchableOpacity style={styles.optionItem} onPress={toggleLanguage}>
           <View
             style={[
               styles.optionIconContainer,
@@ -178,19 +122,24 @@ export default function ProfileOptionsCard({
             ]}
           >
             <Ionicons
-              name="help-circle-outline"
+              name="language-outline"
               size={20}
               color={colors.primary}
             />
           </View>
           <Text style={[styles.optionText, { color: colors.text }]}>
-            {t("profile.options.helpAndSupport")}
+            {i18n.language === "pt-BR" ? "English" : "Português"}
           </Text>
-          <Ionicons
-            name="chevron-forward"
-            size={18}
-            color={colors.text + "50"}
-          />
+          <View
+            style={[
+              styles.languageIndicator,
+              { backgroundColor: colors.primary + "20" },
+            ]}
+          >
+            <Text style={[styles.languageCode, { color: colors.primary }]}>
+              {i18n.language === "pt-BR" ? "PT" : "EN"}
+            </Text>
+          </View>
         </TouchableOpacity>
 
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
@@ -350,6 +299,17 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
+  },
+  languageIndicator: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  languageCode: {
+    fontSize: 12,
+    fontWeight: "600",
   },
   footerContainer: {
     alignItems: "center",

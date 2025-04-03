@@ -299,7 +299,12 @@ export default function WeightProgressChart({
     <View
       style={[
         styles.container,
-        { backgroundColor: colors.light, height: cardHeightValue },
+        {
+          backgroundColor: colors.light,
+          height: cardHeightValue,
+          borderWidth: 1,
+          borderColor: colors.border,
+        },
       ]}
     >
       {/* Adicionar o componente InfoModal */}

@@ -1,57 +1,57 @@
-const tintColorLight = "#2A2A2A"; // Preto suave principal
-const tintColorDark = "#F7F7F7"; // Branco suave para dark mode
+const tintColorLight = "#1A1A1A"; // Preto principal
+const tintColorDark = "#FFFFFF"; // Branco principal
 
 export default {
   light: {
-    text: "#2A2A2A", // Preto suave
+    text: "#1A1A1A", // Preto suave para texto
     background: "#FFFFFF", // Fundo branco puro
     tint: tintColorLight,
-    tabIconDefault: "#CCCCCC",
+    tabIconDefault: "#DADADA",
     tabIconSelected: tintColorLight,
-    primary: "#1E1E1E", // Preto intenso
+    primary: "#1A1A1A", // Preto principal
     black: "#000000",
     secondary: "#4A4A4A", // Cinza escuro
-    accent: "#6C63FF", // Roxo suave
-    success: "#3ECF8E", // Verde menta
-    danger: "#FF6B6B", // Vermelho coral
-    warning: "#FFD166", // Amarelo suave
-    info: "#4ECDC4", // Turquesa
-    light: "#F9F9F9", // Branco levemente off-white
-    dark: "#212121", // Quase preto
-    border: "#EFEFEF", // Borda mais subtil
-    card: "rgba(0,0,0,0.02)", // Cor para cards mais sutil
+    accent: "#6C63FF", // Mantendo roxo como cor de destaque
+    success: "#2ECE8D", // Verde mais vibrante
+    danger: "#FF5252", // Vermelho vibrante
+    warning: "#FFB74D", // Laranja âmbar
+    info: "#40C4FF", // Azul vibrante
+    light: "#F8F9FA", // Branco levemente acinzentado
+    dark: "#212529", // Preto suave
+    border: "#EAEAEA", // Borda mais suave
+    card: "rgba(0, 0, 0, 0.02)", // Card com sombra sutil
 
-    // Cores específicas para gráficos
-    chartBackground: "rgba(108, 99, 255, 0.05)", // Roxo bem clarinho
-    chartGradientStart: "#F5F4FF", // Lilás clarinho
-    chartGradientEnd: "#FFFFFF", // Branco para gradiente final
-    chartGrid: "#EEEEEE", // Cinza claro para linhas de grade
-    chartDotFill: "#FFFFFF", // Branco para preenchimento dos pontos
+    // Cores para gráficos com base monocromática
+    chartBackground: "rgba(26, 26, 26, 0.03)",
+    chartGradientStart: "#F8F9FA",
+    chartGradientEnd: "#FFFFFF",
+    chartGrid: "#EAEAEA",
+    chartDotFill: "#FFFFFF",
   },
   dark: {
-    text: "#F7F7F7", // Branco suave
+    text: "#FFFFFF", // Branco puro para texto
     background: "#121212", // Fundo escuro
     tint: tintColorDark,
-    tabIconDefault: "#8A8A8A",
+    tabIconDefault: "#404040", // Cinza mais escuro para ícones inativos
     tabIconSelected: tintColorDark,
-    primary: "#e5e5e5", // Branco acinzentado
+    primary: "#F2F2F2", // Branco levemente acinzentado como cor principal
     black: "#000000",
-    secondary: "#BDBDBD", // Cinza claro
-    accent: "#7B73FF", // Roxo mais brilhante
-    success: "#4DD8A5", // Verde menta mais brilhante
-    danger: "#FF6B6B", // Vermelho coral mais suave
-    warning: "#FFE066", // Amarelo mais suave
-    info: "#5DDED6", // Turquesa mais brilhante
-    light: "#1E1E1E", // Cinza escuro para cards
+    secondary: "#8A8A8A", // Cinza médio para melhor contraste
+    accent: "#8B7FFF", // Roxo mais suave
+    success: "#4AE3A8", // Verde néon suave
+    danger: "#FF6B6B", // Vermelho coral
+    warning: "#FFC857", // Amarelo mais quente
+    info: "#5CDDFF", // Azul néon suave
+    light: "#181818", // Cinza mais escuro para cards
     dark: "#0A0A0A", // Preto profundo
-    border: "#2A2A2A", // Borda mais definida
-    card: "rgba(255,255,255,0.03)", // Cor para cards em modo escuro
+    border: "#333333", // Borda mais escura
+    card: "rgba(255, 255, 255, 0.05)", // Card com brilho sutil
 
-    // Cores específicas para gráficos
-    chartBackground: "rgba(123, 115, 255, 0.1)", // Roxo escuro para fundo
-    chartGradientStart: "#2A2730", // Roxo escuro para gradiente inicial
-    chartGradientEnd: "#1A1A1A", // Cinza escuro para gradiente final
-    chartGrid: "#2C2C2C", // Cinza médio para linhas de grade
-    chartDotFill: "#121212", // Cor escura para preenchimento dos pontos
+    // Cores para gráficos com base monocromática
+    chartBackground: "rgba(255, 255, 255, 0.07)", // Aumentei opacidade
+    chartGradientStart: "#333333", // Cinza mais escuro
+    chartGradientEnd: "#121212",
+    chartGrid: "#333333", // Cinza mais escuro para grade
+    chartDotFill: "#121212",
   },
 };

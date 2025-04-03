@@ -1,6 +1,5 @@
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useColorScheme } from "react-native";
 import Colors from "../../constants/Colors";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";

@@ -25,8 +25,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../../context/AuthContext";
 import ConfirmationModal from "../ui/ConfirmationModal";
 import { useTranslation } from "react-i18next";
-import ExerciseIcons from "./ExerciseIcons";
-import CopyWorkoutModal from "./CopyWorkoutModal";
 
 const { width } = Dimensions.get("window");
 
@@ -239,8 +237,8 @@ export default function WorkoutCard({
         params: {
           workoutId: workout.id,
           workoutName: workout.name,
-          workoutColor: workout.color
-        }
+          workoutColor: workout.color,
+        },
       });
     } else {
       // Se não houver treino anterior, mostrar feedback de erro
@@ -616,7 +614,14 @@ export default function WorkoutCard({
       >
         <View
           key={`workout-card-${workout.id}`}
-          style={[styles.workoutCard, { backgroundColor: colors.light }]}
+          style={[
+            styles.workoutCard,
+            {
+              backgroundColor: colors.light,
+              borderWidth: 1,
+              borderColor: colors.border,
+            },
+          ]}
         >
           <View style={styles.workoutContent}>
             <TouchableOpacity

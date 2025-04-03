@@ -212,7 +212,16 @@ export default function WaterIntakeCard() {
   }, [waterIntake]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.light }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.light,
+          borderWidth: 1,
+          borderColor: colors.border,
+        },
+      ]}
+    >
       <View style={styles.header}>
         <View style={styles.titleContainer}>
           <View

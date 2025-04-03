@@ -303,7 +303,12 @@ export default function NutritionProgressChart({
     <View
       style={[
         styles.container,
-        { backgroundColor: colors.light, height: cardHeight },
+        {
+          backgroundColor: colors.light,
+          height: cardHeight,
+          borderWidth: 1,
+          borderColor: colors.border,
+        },
       ]}
     >
       {/* Adicionar o componente InfoModal */}

@@ -138,17 +138,17 @@ export default function NutritionScreen() {
   // Estado para armazenar o total de refeições
   const [totalMeals, setTotalMeals] = useState(0);
 
-  // Calcular o total de refeições
+  // Calcular o total de dias com refeições registradas
   useEffect(() => {
-    let mealCount = 0;
-    Object.keys(meals).forEach((date) => {
-      Object.keys(meals[date]).forEach((mealId) => {
-        if (meals[date][mealId].length > 0) {
-          mealCount++;
-        }
-      });
+    // Conta apenas o número de dias diferentes que têm pelo menos uma refeição registrada
+    const daysWithMeals = Object.keys(meals).filter((date) => {
+      // Verificar se há pelo menos uma refeição com alimentos nesta data
+      return Object.values(meals[date]).some(
+        (mealFoods) => Array.isArray(mealFoods) && mealFoods.length > 0
+      );
     });
-    setTotalMeals(mealCount);
+
+    setTotalMeals(daysWithMeals.length);
   }, [meals]);
 
   // Efeito para forçar atualização quando o status de configuração de refeições mudar
@@ -371,16 +371,18 @@ export default function NutritionScreen() {
     return mealTypes.map((type) => {
       // Obter foods de forma segura
       const foodsForMeal = getFoodsForMeal(type.id);
-      
+
       // Garantir que foods seja sempre um array
       const validFoods = Array.isArray(foodsForMeal) ? foodsForMeal : [];
-      
+
       return {
         id: type.id,
         name: type.name,
         icon: type.icon,
         color:
-          type.color || DEFAULT_MEAL_COLORS[type.id] || DEFAULT_MEAL_COLORS.other,
+          type.color ||
+          DEFAULT_MEAL_COLORS[type.id] ||
+          DEFAULT_MEAL_COLORS.other,
         foods: validFoods,
       };
     });
@@ -410,7 +412,7 @@ export default function NutritionScreen() {
           if (!meals || !meals[dateString]) {
             return false;
           }
-          
+
           // Verificar se há foods com tamanho > 0 em qualquer refeição desta data
           return Object.values(meals[dateString]).some(
             (foods) => Array.isArray(foods) && foods.length > 0

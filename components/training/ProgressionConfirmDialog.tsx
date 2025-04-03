@@ -16,12 +16,15 @@ import * as Haptics from "expo-haptics";
 import { ExerciseSet } from "../../context/WorkoutContext";
 import Colors from "../../constants/Colors";
 import { MotiView } from "moti";
+import { useTranslation } from "react-i18next";
+import { ExerciseData } from "../../data/exerciseDatabase";
 
 interface ProgressionConfirmDialogProps {
   visible: boolean;
   onClose: () => void;
   onConfirm: (updatedSets: ExerciseSet[]) => void;
   exerciseName: string;
+  exerciseDB?: ExerciseData;
   previousSets: ExerciseSet[];
   suggestedSets: ExerciseSet[];
   workoutColor: string;
@@ -35,6 +38,7 @@ export default function ProgressionConfirmDialog({
   onClose,
   onConfirm,
   exerciseName,
+  exerciseDB,
   previousSets,
   suggestedSets,
   workoutColor,
@@ -42,13 +46,27 @@ export default function ProgressionConfirmDialog({
 }: ProgressionConfirmDialogProps) {
   const colors = Colors[theme];
   const [editedSets, setEditedSets] = useState<ExerciseSet[]>([]);
-  
+  const { t } = useTranslation();
+
+  // Adicionar função para obter o nome traduzido do exercício
+  const getTranslatedExerciseName = () => {
+    if (
+      exerciseDB?.id &&
+      exerciseDB.id.length <= 6 &&
+      exerciseDB.id.startsWith("ex")
+    ) {
+      return t(`exercises.exercises.${exerciseDB.id}`);
+    }
+    return exerciseName;
+  };
+
   // Inicializar os conjuntos editados quando o diálogo é aberto
   useEffect(() => {
     if (visible && suggestedSets.length > 0) {
       // Copiar os conjuntos sugeridos com todas as propriedades dos conjuntos anteriores
       const initialSets = suggestedSets.map((suggestedSet, index) => {
-        const prevSet = index < previousSets.length ? previousSets[index] : null;
+        const prevSet =
+          index < previousSets.length ? previousSets[index] : null;
         return {
           ...suggestedSet,
           // Transferir as propriedades avançadas do conjunto anterior
@@ -57,7 +75,7 @@ export default function ProgressionConfirmDialog({
           perceivedEffort: prevSet?.perceivedEffort || 3,
         };
       });
-      
+
       setEditedSets(initialSets);
     }
   }, [visible, suggestedSets, previousSets]);
@@ -69,7 +87,7 @@ export default function ProgressionConfirmDialog({
       newSets[index] = { ...newSets[index], ...updates };
       return newSets;
     });
-    
+
     // Feedback tátil
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
@@ -89,34 +107,44 @@ export default function ProgressionConfirmDialog({
   // Renderizar os controles para uma série específica
   const renderSetControls = (set: ExerciseSet, index: number) => {
     return (
-      <View 
-        key={`set-${index}`} 
+      <View
+        key={`set-${index}`}
         style={[
-          styles.setCard, 
-          { backgroundColor: colors.card, borderColor: colors.border }
+          styles.setCard,
+          { backgroundColor: colors.card, borderColor: colors.border },
         ]}
       >
         <View style={styles.setHeader}>
-          <View style={[styles.setIconBadge, { backgroundColor: workoutColor + "20" }]}>
+          <View
+            style={[
+              styles.setIconBadge,
+              { backgroundColor: workoutColor + "20" },
+            ]}
+          >
             <Ionicons name="barbell-outline" size={16} color={workoutColor} />
           </View>
           <Text style={[styles.setText, { color: colors.text }]}>
-            Série {index + 1}
+            {t("progression.confirmDialog.set", { number: index + 1 })}
           </Text>
           <Text style={[styles.setSummary, { color: colors.text + "80" }]}>
             {set.reps} reps × {set.weight} kg
           </Text>
         </View>
-        
+
         {/* Controle de falha muscular */}
         <View style={styles.controlRow}>
           <View style={styles.controlLabelContainer}>
-            <Ionicons name="flash-outline" size={18} color={workoutColor} style={styles.controlIcon} />
+            <Ionicons
+              name="flash-outline"
+              size={18}
+              color={workoutColor}
+              style={styles.controlIcon}
+            />
             <Text style={[styles.controlLabel, { color: colors.text }]}>
-              Até a Falha
+              {t("progression.confirmDialog.toFailure")}
             </Text>
           </View>
-          
+
           <Switch
             value={set.toFailure}
             onValueChange={(value) => updateSet(index, { toFailure: value })}
@@ -125,19 +153,21 @@ export default function ProgressionConfirmDialog({
             ios_backgroundColor={colors.border}
           />
         </View>
-        
+
         {/* Controle de RIR (Repetições em Reserva) */}
-        <View style={[
-          styles.controlRow, 
-          { opacity: set.toFailure ? 0.5 : 1 }
-        ]}>
+        <View style={[styles.controlRow, { opacity: set.toFailure ? 0.5 : 1 }]}>
           <View style={styles.controlLabelContainer}>
-            <Ionicons name="fitness-outline" size={18} color={workoutColor} style={styles.controlIcon} />
+            <Ionicons
+              name="fitness-outline"
+              size={18}
+              color={workoutColor}
+              style={styles.controlIcon}
+            />
             <Text style={[styles.controlLabel, { color: colors.text }]}>
-              Reps em Reserva
+              {t("progression.confirmDialog.repsInReserve")}
             </Text>
           </View>
-          
+
           <View style={styles.sliderContainer}>
             <Slider
               style={styles.slider}
@@ -146,7 +176,9 @@ export default function ProgressionConfirmDialog({
               maximumValue={5}
               step={1}
               disabled={set.toFailure}
-              onValueChange={(value) => updateSet(index, { repsInReserve: value })}
+              onValueChange={(value) =>
+                updateSet(index, { repsInReserve: value })
+              }
               minimumTrackTintColor={workoutColor}
               maximumTrackTintColor={colors.border}
               thumbTintColor={workoutColor}
@@ -156,16 +188,21 @@ export default function ProgressionConfirmDialog({
             </Text>
           </View>
         </View>
-        
+
         {/* Controle de Percepção de Esforço */}
         <View style={styles.controlRow}>
           <View style={styles.controlLabelContainer}>
-            <Ionicons name="pulse-outline" size={18} color={workoutColor} style={styles.controlIcon} />
+            <Ionicons
+              name="pulse-outline"
+              size={18}
+              color={workoutColor}
+              style={styles.controlIcon}
+            />
             <Text style={[styles.controlLabel, { color: colors.text }]}>
-              Percepção de Esforço
+              {t("progression.confirmDialog.perceivedEffort")}
             </Text>
           </View>
-          
+
           <View style={styles.sliderContainer}>
             <Slider
               style={styles.slider}
@@ -173,7 +210,9 @@ export default function ProgressionConfirmDialog({
               minimumValue={1}
               maximumValue={5}
               step={1}
-              onValueChange={(value) => updateSet(index, { perceivedEffort: value })}
+              onValueChange={(value) =>
+                updateSet(index, { perceivedEffort: value })
+              }
               minimumTrackTintColor={workoutColor}
               maximumTrackTintColor={colors.border}
               thumbTintColor={workoutColor}
@@ -194,67 +233,99 @@ export default function ProgressionConfirmDialog({
       animationType="fade"
       onRequestClose={handleClose}
     >
-      <BlurView intensity={20} style={StyleSheet.absoluteFill} tint={theme === "dark" ? "dark" : "light"} />
-      
+      <BlurView
+        intensity={20}
+        style={StyleSheet.absoluteFill}
+        tint={theme === "dark" ? "dark" : "light"}
+      />
+
       <View style={styles.modalContainer}>
         <MotiView
           from={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1}}
+          animate={{ opacity: 1, scale: 1 }}
           transition={{ type: "timing", duration: 250 }}
           style={[
             styles.modalContent,
-            { backgroundColor: colors.background, borderColor: colors.border }
+            { backgroundColor: colors.background, borderColor: colors.border },
           ]}
         >
-          <View style={[styles.headerContainer, { borderBottomColor: colors.border }]}>
+          <View
+            style={[
+              styles.headerContainer,
+              { borderBottomColor: colors.border },
+            ]}
+          >
             <Text style={[styles.title, { color: colors.text }]}>
-              Ajustar Progressão
+              {t("progression.confirmDialog.title")}
             </Text>
             <Text style={[styles.subtitle, { color: colors.text + "80" }]}>
-              {exerciseName}
+              {getTranslatedExerciseName()}
             </Text>
           </View>
-          
-          <View style={[styles.instructionContainer, { borderBottomColor: colors.border }]}>
-            <View style={[styles.infoIconContainer, { backgroundColor: workoutColor + "20" }]}>
-              <Ionicons name="information-circle" size={18} color={workoutColor} />
+
+          <View
+            style={[
+              styles.instructionContainer,
+              { borderBottomColor: colors.border },
+            ]}
+          >
+            <View
+              style={[
+                styles.infoIconContainer,
+                { backgroundColor: workoutColor + "20" },
+              ]}
+            >
+              <Ionicons
+                name="information-circle"
+                size={18}
+                color={workoutColor}
+              />
             </View>
-            <Text style={[styles.instructionText, { color: colors.text + "99" }]}>
-              Revise e ajuste as configurações avançadas antes de aplicar a progressão sugerida.
+            <Text
+              style={[styles.instructionText, { color: colors.text + "99" }]}
+            >
+              {t("progression.confirmDialog.instruction")}
             </Text>
           </View>
-          
-          <ScrollView 
+
+          <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
             {editedSets.map((set, index) => renderSetControls(set, index))}
           </ScrollView>
-          
-          <View style={[styles.buttonContainer, { borderTopColor: colors.border }]}>
+
+          <View
+            style={[styles.buttonContainer, { borderTopColor: colors.border }]}
+          >
             <TouchableOpacity
               style={[
                 styles.cancelButton,
-                { backgroundColor: colors.card, borderColor: colors.border }
+                { backgroundColor: colors.card, borderColor: colors.border },
               ]}
               onPress={handleClose}
               activeOpacity={0.7}
             >
               <Text style={[styles.cancelButtonText, { color: colors.text }]}>
-                Cancelar
+                {t("progression.confirmDialog.cancel")}
               </Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={[styles.confirmButton, { backgroundColor: workoutColor }]}
               onPress={handleConfirm}
               activeOpacity={0.7}
             >
               <Text style={styles.confirmButtonText}>
-                Confirmar
+                {t("progression.confirmDialog.confirm")}
               </Text>
-              <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" style={styles.confirmIcon} />
+              <Ionicons
+                name="checkmark-circle"
+                size={18}
+                color="#FFFFFF"
+                style={styles.confirmIcon}
+              />
             </TouchableOpacity>
           </View>
         </MotiView>
@@ -419,4 +490,4 @@ const styles = StyleSheet.create({
   confirmIcon: {
     marginLeft: 8,
   },
-}); 
+});

@@ -77,6 +77,7 @@ export default function HomeScreen() {
     useState(false);
   const { workouts } = useWorkoutContext();
   const { user } = useAuth();
+  const [currentSteps, setCurrentSteps] = useState<number | null>(null);
 
   // Calcular o streak de treinos usando useMemo em vez de useEffect
   const streak = useMemo(() => {
@@ -271,7 +272,7 @@ export default function HomeScreen() {
         <View style={styles.cardContainer}>
           <MemoizedConsistencyScoreCard
             onPress={handleConsistencyPress}
-            stepsConsistencyPercentage={stepsConsistency}
+            steps={currentSteps}
           />
         </View>
         <MemoizedDailyReminders />
@@ -279,15 +280,14 @@ export default function HomeScreen() {
         {/* Área em grid para os cards */}
         <View style={styles.gridContainer}>
           {/* Card de passos (esquerda) */}
-          <MemoizedHealthStepsCard />
+          <MemoizedHealthStepsCard onStepsUpdate={setCurrentSteps} />
 
           {/* Card de consumo de água (direita) */}
           <MemoizedWaterIntakeCard />
         </View>
-
       </View>
     );
-  }, [activeTab, stepsConsistency, handleConsistencyPress]);
+  }, [activeTab, currentSteps, handleConsistencyPress]);
 
   return (
     <SafeAreaView
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: "row",
     paddingHorizontal: 16,
-    marginBottom: 8,
+    
   },
   tabButton: {
     flex: 1,

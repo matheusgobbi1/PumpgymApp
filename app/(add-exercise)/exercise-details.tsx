@@ -17,10 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Slider from "@react-native-community/slider";
 import { useTheme } from "../../context/ThemeContext";
-import {
-  useWorkoutContext,
-  Exercise,
-} from "../../context/WorkoutContext";
+import { useWorkoutContext, Exercise } from "../../context/WorkoutContext";
 import Colors from "../../constants/Colors";
 import { ExerciseData, getExerciseById } from "../../data/exerciseDatabase";
 import { useTranslation } from "react-i18next";
@@ -94,7 +91,9 @@ const SetCard = ({
   );
   const [toFailure, setToFailure] = useState(set.toFailure || false);
   const [repsInReserve, setRepsInReserve] = useState(set.repsInReserve || 2);
-  const [perceivedEffort, setPerceivedEffort] = useState(set.perceivedEffort || 3);
+  const [perceivedEffort, setPerceivedEffort] = useState(
+    set.perceivedEffort || 3
+  );
 
   // Função para alternar o estado de expansão
   const toggleExpanded = () => {
@@ -124,7 +123,11 @@ const SetCard = ({
   const toggleFailure = () => {
     const newValue = !toFailure;
     setToFailure(newValue);
-    onUpdate({ ...set, toFailure: newValue, repsInReserve: newValue ? 0 : repsInReserve });
+    onUpdate({
+      ...set,
+      toFailure: newValue,
+      repsInReserve: newValue ? 0 : repsInReserve,
+    });
   };
 
   // Função para atualizar reps em reserva com slider
@@ -230,13 +233,26 @@ const SetCard = ({
     return t(`exercise.perceivedEffort.level${perceivedEffort}`);
   };
 
+  // Ícones de percepção de esforço para uma experiência visual melhor
+  const getEffortIcon = () => {
+    switch (perceivedEffort) {
+      case 1:
+        return "battery-dead-outline"; // Muito fácil
+      case 2:
+        return "battery-half-outline"; // Fácil
+      case 3:
+        return "battery-half-outline"; // Moderado
+      case 4:
+        return "battery-full-outline"; // Difícil
+      case 5:
+        return "flame-outline"; // Muito difícil
+      default:
+        return "battery-half-outline";
+    }
+  };
+
   return (
-    <View
-      style={[
-        styles.setCard,
-        { backgroundColor: colors.card },
-      ]}
-    >
+    <View style={[styles.setCard, { backgroundColor: colors.card }]}>
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={toggleExpanded}
@@ -244,7 +260,10 @@ const SetCard = ({
       >
         <View style={styles.setCardHeaderLeft}>
           <View
-            style={[styles.setIconBackground, { backgroundColor: color + "20" }]}
+            style={[
+              styles.setIconBackground,
+              { backgroundColor: color + "20" },
+            ]}
           >
             <Ionicons name="barbell-outline" size={18} color={color} />
           </View>
@@ -252,8 +271,16 @@ const SetCard = ({
             <Text style={[styles.setNumberText, { color: colors.text }]}>
               {t("exercise.setNumber")} {index + 1}
             </Text>
-            <Text style={[styles.setSummaryText, { color: colors.text + "80" }]}>
+            <Text
+              style={[styles.setSummaryText, { color: colors.text + "80" }]}
+            >
               {set.reps} {t("exercise.reps")} × {set.weight} kg
+              {toFailure && (
+                <Text style={[styles.failureIndicator, { color: color }]}>
+                  {" "}
+                  • {t("exercise.failureState.shortLabel")}
+                </Text>
+              )}
             </Text>
           </View>
         </View>
@@ -267,9 +294,13 @@ const SetCard = ({
             onPress={onRemove}
             hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
           >
-            <Ionicons name="trash-outline" size={20} color={colors.text + "60"} />
+            <Ionicons
+              name="trash-outline"
+              size={20}
+              color={colors.text + "60"}
+            />
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[
               styles.headerActionButton,
@@ -277,12 +308,14 @@ const SetCard = ({
             ]}
             onPress={toggleExpanded}
             hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-            accessibilityLabel={expanded ? t("exercise.collapseSet") : t("exercise.expandSet")}
+            accessibilityLabel={
+              expanded ? t("exercise.collapseSet") : t("exercise.expandSet")
+            }
           >
-            <Ionicons 
-              name={expanded ? "chevron-up" : "chevron-down"} 
-              size={20} 
-              color={colors.text + "60"} 
+            <Ionicons
+              name={expanded ? "chevron-up" : "chevron-down"}
+              size={20}
+              color={colors.text + "60"}
             />
           </TouchableOpacity>
         </View>
@@ -308,7 +341,7 @@ const SetCard = ({
             <View
               style={[
                 styles.setMetricControls,
-                { backgroundColor: colors.background + "80", borderRadius: 10},
+                { backgroundColor: colors.background + "80", borderRadius: 10 },
               ]}
             >
               <TouchableOpacity
@@ -367,7 +400,9 @@ const SetCard = ({
                   styles.setMetricButton,
                   { backgroundColor: color + "15" },
                 ]}
-                onPress={() => handleWeightChange(Math.max(0, set.weight - 2.5))}
+                onPress={() =>
+                  handleWeightChange(Math.max(0, set.weight - 2.5))
+                }
               >
                 <Ionicons name="remove" size={18} color={color} />
               </TouchableOpacity>
@@ -438,7 +473,7 @@ const SetCard = ({
               </TouchableOpacity>
             ))}
           </View>
-          
+
           {/* Input manual para tempo de descanso */}
           <View
             style={[
@@ -489,122 +524,184 @@ const SetCard = ({
 
       {/* Conteúdo adicional que aparece somente quando expandido */}
       {expanded && (
-        <View style={styles.setCardExpandedContent}>
-          {/* Falha muscular - mais minimalista */}
-          <View style={styles.setMetricContainer}>
-            <View style={styles.failureContainerMinimal}>
-              <View style={styles.setMetricHeader}>
-                <Ionicons
-                  name="flash-outline"
-                  size={16}
-                  color={color}
-                  style={styles.setMetricIcon}
-                />
-                <Text style={[styles.setMetricLabel, { color: colors.text }]}>
-                  {t("exercise.failureState.title")}
-                </Text>
-              </View>
-              
+        <MotiView
+          from={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          transition={{ type: "timing", duration: 200 }}
+          style={[
+            styles.setCardExpandedContent,
+            { borderTopColor: colors.border + "30" },
+          ]}
+        >
+          {/* Seção de intensidade com cartões visuais */}
+          <View style={styles.expandedSection}>
+            <Text style={[styles.expandedSectionTitle, { color: color }]}>
+              {t("exercise.intensitySection")}
+            </Text>
+
+            {/* Falha e Reserva em linha para uma visão mais compacta */}
+            <View style={styles.intensityCardsContainer}>
+              {/* Cartão: Falha Muscular */}
               <TouchableOpacity
-                style={styles.failureToggleMinimal}
+                style={[
+                  styles.intensityCard,
+                  {
+                    backgroundColor: toFailure
+                      ? color + "25"
+                      : colors.background + "80",
+                    borderColor: toFailure ? color : colors.border + "50",
+                  },
+                ]}
                 onPress={toggleFailure}
-                hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
               >
-                <View style={[
-                  styles.failureSwitchTrack, 
-                  { backgroundColor: toFailure ? color : colors.text + "30" }
-                ]}>
-                  <View style={[
-                    styles.failureSwitchThumb, 
-                    { backgroundColor: "#FFF", transform: [{ translateX: toFailure ? 16 : 0 }] }
-                  ]} />
+                <Ionicons
+                  name="flash"
+                  size={22}
+                  color={toFailure ? color : colors.text + "50"}
+                />
+                <Text
+                  style={[
+                    styles.intensityCardTitle,
+                    { color: toFailure ? color : colors.text },
+                  ]}
+                >
+                  {t("exercise.failureState.shortLabel")}
+                </Text>
+                <View
+                  style={[
+                    styles.failureSwitchTrack,
+                    { backgroundColor: toFailure ? color : colors.text + "30" },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.failureSwitchThumb,
+                      {
+                        backgroundColor: "#FFF",
+                        transform: [{ translateX: toFailure ? 16 : 0 }],
+                      },
+                    ]}
+                  />
                 </View>
               </TouchableOpacity>
-            </View>
-          </View>
 
-          {/* Reps na reserva - agora com slider */}
-          <View style={[
-            styles.setMetricContainer,
-            { opacity: toFailure ? 0.5 : 1 }
-          ]}>
-            <View style={styles.setMetricHeader}>
-              <Ionicons
-                name="fitness-outline"
-                size={16}
-                color={color}
-                style={styles.setMetricIcon}
-              />
-              <Text style={[styles.setMetricLabel, { color: colors.text }]}>
-                {t("exercise.failureState.repsInReserve")}
-              </Text>
-              <Text style={[styles.sliderValueText, { color: colors.text }]}>
-                {repsInReserve}
-              </Text>
+              {/* Cartão: Reserva de Repetições */}
+              <View
+                style={[
+                  styles.intensityCard,
+                  {
+                    backgroundColor: colors.background + "80",
+                    borderColor: colors.border + "50",
+                    opacity: toFailure ? 0.5 : 1,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="fitness"
+                  size={22}
+                  color={toFailure ? colors.text + "30" : color}
+                />
+                <Text
+                  style={[styles.intensityCardTitle, { color: colors.text }]}
+                >
+                  {t("exercise.repsInReserveShort")}
+                </Text>
+                <View style={styles.intensityCardValues}>
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <TouchableOpacity
+                      key={`rir-${value}`}
+                      disabled={toFailure}
+                      style={[
+                        styles.intensityCardValue,
+                        {
+                          backgroundColor:
+                            !toFailure && repsInReserve === value
+                              ? color
+                              : colors.text + "10",
+                        },
+                      ]}
+                      onPress={() => handleRepsInReserveChange(value)}
+                    >
+                      <Text
+                        style={[
+                          styles.intensityCardValueText,
+                          {
+                            color:
+                              !toFailure && repsInReserve === value
+                                ? "#FFF"
+                                : colors.text + "80",
+                          },
+                        ]}
+                      >
+                        {value}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
             </View>
-            
-            <Slider
-              style={styles.fullWidthSlider}
-              minimumValue={1}
-              maximumValue={5}
-              step={1}
-              value={repsInReserve}
-              onValueChange={handleRepsInReserveChange}
-              minimumTrackTintColor={color}
-              maximumTrackTintColor={colors.border}
-              thumbTintColor={color}
-              disabled={toFailure}
-            />
-            
-            <View style={styles.sliderLabelsContainer}>
-              <Text style={[styles.sliderLabelText, { color: colors.text + "80" }]}>1</Text>
-              <Text style={[styles.sliderLabelText, { color: colors.text + "80" }]}>5</Text>
-            </View>
-          </View>
 
-          {/* Percepção de esforço - agora com slider */}
-          <View style={styles.setMetricContainer}>
-            <View style={styles.setMetricHeader}>
-              <Ionicons
-                name="pulse-outline"
-                size={16}
-                color={color}
-                style={styles.setMetricIcon}
-              />
-              <Text style={[styles.setMetricLabel, { color: colors.text }]}>
-                {t("exercise.perceivedEffort.title")}
-              </Text>
-              <Text style={[styles.sliderValueText, { color: colors.text }]}>
-                {perceivedEffort}
-              </Text>
-            </View>
-            
-            <Slider
-              style={styles.fullWidthSlider}
-              minimumValue={1}
-              maximumValue={5}
-              step={1}
-              value={perceivedEffort}
-              onValueChange={handlePerceivedEffortChange}
-              minimumTrackTintColor={color}
-              maximumTrackTintColor={colors.border}
-              thumbTintColor={color}
-            />
-            
-            <Text style={[styles.effortLevelText, { color: colors.text, textAlign: 'center', marginTop: 4 }]}>
-              {getPerceiveEffortLabel()}
-            </Text>
-            
-            <View style={styles.sliderLabelsContainer}>
-              <Text style={[styles.sliderLabelText, { color: colors.text + "80" }]}>
-                {t("exercise.perceivedEffort.level1")}
-              </Text>
-              <Text style={[styles.sliderLabelText, { color: colors.text + "80" }]}>
-                {t("exercise.perceivedEffort.level5")}
+            {/* Percepção de esforço - visualização melhorada */}
+            <View style={styles.perceivedEffortContainer}>
+              <View style={styles.perceivedEffortHeader}>
+                <Ionicons name={getEffortIcon()} size={18} color={color} />
+                <Text
+                  style={[styles.perceivedEffortTitle, { color: colors.text }]}
+                >
+                  {t("exercise.perceivedEffort.title")}
+                </Text>
+                <Text
+                  style={[styles.perceivedEffortValueText, { color: color }]}
+                >
+                  {perceivedEffort}
+                </Text>
+              </View>
+
+              <View style={styles.perceivedEffortLevels}>
+                {[1, 2, 3, 4, 5].map((level) => (
+                  <TouchableOpacity
+                    key={`effort-${level}`}
+                    style={[
+                      styles.perceivedEffortLevel,
+                      {
+                        backgroundColor:
+                          perceivedEffort === level ? color : colors.background,
+                        borderColor:
+                          perceivedEffort === level ? color : colors.border,
+                        flex: 1,
+                      },
+                    ]}
+                    onPress={() => handlePerceivedEffortChange(level)}
+                  >
+                    <Text
+                      style={[
+                        styles.perceivedEffortLevelText,
+                        {
+                          color:
+                            perceivedEffort === level
+                              ? "#FFF"
+                              : colors.text + "80",
+                        },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {level}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text
+                style={[
+                  styles.perceivedEffortDescription,
+                  { color: colors.text },
+                ]}
+              >
+                {getPerceiveEffortLabel()}
               </Text>
             </View>
           </View>
-        </View>
+        </MotiView>
       )}
     </View>
   );
@@ -641,12 +738,7 @@ const CardioCard = ({
   };
 
   return (
-    <View
-      style={[
-        styles.cardioCard,
-        { backgroundColor: colors.card },
-      ]}
-    >
+    <View style={[styles.cardioCard, { backgroundColor: colors.card }]}>
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={toggleExpanded}
@@ -654,7 +746,10 @@ const CardioCard = ({
       >
         <View style={styles.setCardHeaderLeft}>
           <View
-            style={[styles.setIconBackground, { backgroundColor: color + "20" }]}
+            style={[
+              styles.setIconBackground,
+              { backgroundColor: color + "20" },
+            ]}
           >
             <Ionicons name="bicycle-outline" size={18} color={color} />
           </View>
@@ -671,10 +766,10 @@ const CardioCard = ({
             ]}
             onPress={toggleExpanded}
           >
-            <Ionicons 
-              name={expanded ? "chevron-up" : "chevron-down"} 
-              size={20} 
-              color={colors.text + "60"} 
+            <Ionicons
+              name={expanded ? "chevron-up" : "chevron-down"}
+              size={20}
+              color={colors.text + "60"}
             />
           </TouchableOpacity>
         </View>
@@ -867,7 +962,7 @@ const ExerciseDetailsScreen = () => {
       restTime: 60,
       toFailure: false,
       repsInReserve: 2,
-      perceivedEffort: 3
+      perceivedEffort: 3,
     };
 
     setSets((prevSets) => [...prevSets, newSet]);
@@ -1039,8 +1134,6 @@ const ExerciseDetailsScreen = () => {
                         {t(`exercises.muscles.${exercise.muscle}`)}
                       </Text>
                     </View>
-
-                    
                   </View>
                 )}
               </View>
@@ -1413,107 +1506,95 @@ const styles = StyleSheet.create({
   },
   setCardExpandedContent: {
     padding: 16,
-    paddingTop: 8,
+    paddingTop: 12,
     gap: 20,
     borderTopWidth: 1,
-    borderTopColor: '#00000010',
   },
-  failureContainerMinimal: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  expandedSection: {
+    gap: 12,
   },
-  failureToggleMinimal: {
-    padding: 4,
+  expandedSectionTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 4,
   },
-  failureSwitchTrack: {
-    width: 36,
-    height: 20,
-    borderRadius: 10,
-    padding: 2,
-    justifyContent: 'center',
+  intensityCardsContainer: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 6,
   },
-  failureSwitchThumb: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1,
-    elevation: 2,
+  intensityCard: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
   },
-  fullWidthSlider: {
-    width: '100%',
-    height: 40,
+  intensityCardTitle: {
+    fontSize: 13,
+    fontWeight: "600",
   },
-  sliderLabelsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: -8,
-    marginBottom: 8,
+  intensityCardValues: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    gap: 4,
   },
-  sliderLabelText: {
+  intensityCardValue: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  intensityCardValueText: {
     fontSize: 12,
+    fontWeight: "600",
   },
-  sliderValueText: {
-    marginLeft: 'auto',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  effortLevelText: {
-    fontSize: 14,
-    fontWeight: "500",
-    textAlign: "center",
+  perceivedEffortContainer: {
     marginTop: 6,
   },
-  restTimeOptionsContainer: {
+  perceivedEffortHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+    gap: 6,
+  },
+  perceivedEffortTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  perceivedEffortValueText: {
+    marginLeft: "auto",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  perceivedEffortLevels: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 8,
+    gap: 6,
   },
-  restTimeOption: {
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    borderRadius: 30,
-    minWidth: 55,
-    alignItems: "center",
-  },
-  restTimeOptionText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  addSetButton: {
-    flexDirection: "row",
-    alignItems: "center",
+  perceivedEffortLevel: {
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
-    padding: 14,
-    borderRadius: 12,
+    alignItems: "center",
     borderWidth: 1,
-    borderStyle: "dashed",
-    marginTop: 10,
   },
-  addSetButtonText: {
-    fontSize: 15,
+  perceivedEffortLevelText: {
+    fontSize: 12,
     fontWeight: "600",
-    marginLeft: 8,
   },
-  notesContainer: {
-    marginTop: 12,
-    marginBottom: 16,
+  perceivedEffortDescription: {
+    fontSize: 13,
+    fontWeight: "500",
+    textAlign: "center",
+    marginTop: 8,
   },
-  notesLabel: {
-    fontSize: 16,
+  failureIndicator: {
     fontWeight: "600",
-    marginBottom: 8,
-    paddingHorizontal: 4,
-  },
-  notesInput: {
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 15,
-    minHeight: 80,
-    textAlignVertical: "top",
   },
   bottomBar: {
     padding: 16,
@@ -1675,5 +1756,102 @@ const styles = StyleSheet.create({
   setSummaryText: {
     fontSize: 13,
     marginTop: 2,
+  },
+  failureContainerMinimal: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  failureToggleMinimal: {
+    padding: 4,
+  },
+  failureSwitchTrack: {
+    width: 36,
+    height: 20,
+    borderRadius: 10,
+    padding: 2,
+    justifyContent: "center",
+  },
+  failureSwitchThumb: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1,
+    elevation: 2,
+  },
+  fullWidthSlider: {
+    width: "100%",
+    height: 40,
+  },
+  sliderLabelsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: -8,
+    marginBottom: 8,
+  },
+  sliderLabelText: {
+    fontSize: 12,
+  },
+  sliderValueText: {
+    marginLeft: "auto",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  effortLevelText: {
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
+    marginTop: 6,
+  },
+  restTimeOptionsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  restTimeOption: {
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderRadius: 30,
+    minWidth: 55,
+    alignItems: "center",
+  },
+  restTimeOptionText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  addSetButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    marginTop: 10,
+  },
+  addSetButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  notesContainer: {
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  notesLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  notesInput: {
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 15,
+    minHeight: 80,
+    textAlignVertical: "top",
   },
 });

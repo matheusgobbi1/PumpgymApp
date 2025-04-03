@@ -802,15 +802,6 @@ const styles = StyleSheet.create({
   },
   segmentWrapper: {
     paddingHorizontal: 16,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0, 0, 0, 0.05)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-    zIndex: 10,
   },
   segmentContainer: {
     flexDirection: "row",
@@ -824,6 +815,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
+    marginHorizontal: 4,
+  },
+  segmentContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    opacity: 0.8,
+  },
+  segmentIcon: {
+    marginRight: 6,
   },
   segmentText: {
     fontSize: 15,
@@ -985,14 +986,6 @@ const styles = StyleSheet.create({
   },
   saveButtonIcon: {
     marginLeft: 8,
-  },
-  segmentContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  segmentIcon: {
-    marginRight: 6,
   },
   saveButtonContent: {
     flexDirection: "row",
