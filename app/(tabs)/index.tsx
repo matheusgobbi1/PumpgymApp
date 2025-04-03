@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -6,6 +6,7 @@ import {
   Text,
   Pressable,
   Dimensions,
+  InteractionManager,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HomeHeader from "../../components/home/HomeHeader";
@@ -26,6 +27,8 @@ import { useTranslation } from "react-i18next";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KEYS } from "../../constants/keys";
 import { useAuth } from "../../context/AuthContext";
+import { useTabPreloader } from "../../hooks/useTabPreloader";
+import TabPreloader from "../../components/TabPreloader";
 
 const { width } = Dimensions.get("window");
 
@@ -67,6 +70,15 @@ export default function HomeScreen() {
   const colors = Colors[theme];
   const router = useRouter();
   const { t } = useTranslation();
+
+  // Estado para controlar o carregamento
+  const [isUIReady, setIsUIReady] = useState(false);
+
+  // Hook de precarregamento de tabs
+  const { isReady, withPreloadDelay } = useTabPreloader({
+    delayMs: 150, // Pequeno delay para permitir animações fluidas
+  });
+
   const [activeTab, setActiveTab] = useState<"lembretes" | "progresso">(
     "lembretes"
   );
@@ -75,6 +87,17 @@ export default function HomeScreen() {
   const { workouts } = useWorkoutContext();
   const { user } = useAuth();
   const [currentSteps, setCurrentSteps] = useState<number | null>(null);
+
+  // Inicializar a UI após a renderização inicial
+  useEffect(() => {
+    if (isUIReady) return;
+
+    InteractionManager.runAfterInteractions(() => {
+      setTimeout(() => {
+        setIsUIReady(true);
+      }, 100);
+    });
+  }, [isUIReady]);
 
   // Calcular o streak de treinos usando useMemo em vez de useEffect
   const streak = useMemo(() => {
@@ -217,7 +240,7 @@ export default function HomeScreen() {
   const handleNutritionChartPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     // Não é mais necessário navegar, pois abrimos o modal diretamente no componente
-  }, [router]);
+  }, []);
 
   const handleWorkoutChartPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -228,7 +251,7 @@ export default function HomeScreen() {
   const handleWeightChartPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     // Não é mais necessário navegar, pois abrimos o modal diretamente no componente
-  }, [router]);
+  }, []);
 
   const handleConsistencyPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -239,6 +262,8 @@ export default function HomeScreen() {
 
   // Renderização condicional e lazy loading dos componentes de progresso
   const renderProgressContent = useMemo(() => {
+    if (!isUIReady || !isReady) return null;
+
     return (
       <MemoizedProgressCharts
         onNutritionPress={handleNutritionChartPress}
@@ -254,10 +279,14 @@ export default function HomeScreen() {
     handleWorkoutChartPress,
     handleWeightChartPress,
     router,
+    isUIReady,
+    isReady,
   ]);
 
   // Renderização condicional dos componentes de lembretes
   const renderRemindersContent = useMemo(() => {
+    if (!isUIReady) return null;
+
     return (
       <View
         style={[
@@ -284,23 +313,16 @@ export default function HomeScreen() {
         </View>
       </View>
     );
-  }, [activeTab, currentSteps, handleConsistencyPress]);
+  }, [activeTab, currentSteps, handleConsistencyPress, isUIReady]);
 
-  return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      edges={["top"]}
-    >
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <HomeHeader
-          onProfilePress={handleProfilePress}
-          count={streak}
-          iconName="fire"
-          iconType="material"
-          iconColor="#FF1F02"
-          iconBackgroundColor="#FF6B6B15"
-        />
+  // Renderização da tela de carregamento e do conteúdo principal
+  const renderScreenContent = () => {
+    if (!isUIReady || !isReady) {
+      return <TabPreloader message={t("common.loading")} />;
+    }
 
+    return (
+      <>
         {/* Seletor de abas */}
         <View style={styles.tabContainer}>
           <Pressable
@@ -368,6 +390,26 @@ export default function HomeScreen() {
           {/* Espaço adicional para garantir que o conteúdo fique acima da bottom tab */}
           <View style={styles.bottomPadding} />
         </ScrollView>
+      </>
+    );
+  };
+
+  return (
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      edges={["top"]}
+    >
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <HomeHeader
+          onProfilePress={handleProfilePress}
+          count={streak}
+          iconName="fire"
+          iconType="material"
+          iconColor="#FF1F02"
+          iconBackgroundColor="#FF6B6B15"
+        />
+
+        {renderScreenContent()}
       </View>
     </SafeAreaView>
   );

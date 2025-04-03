@@ -13,6 +13,7 @@ import {
   Dimensions,
   TouchableOpacity,
   Alert,
+  InteractionManager,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
@@ -39,6 +40,8 @@ import ConfirmationModal from "../../components/ui/ConfirmationModal";
 import ContextMenu, { MenuAction } from "../../components/shared/ContextMenu";
 import HomeHeader from "../../components/home/HomeHeader";
 import { useTranslation } from "react-i18next";
+import { useTabPreloader } from "../../hooks/useTabPreloader";
+import TabPreloader from "../../components/TabPreloader";
 
 const { width } = Dimensions.get("window");
 
@@ -99,6 +102,15 @@ export default function NutritionScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { t } = useTranslation();
+
+  // Estado para controlar o carregamento
+  const [isUIReady, setIsUIReady] = useState(false);
+
+  // Hook de precarregamento de tabs
+  const { isReady, withPreloadDelay } = useTabPreloader({
+    delayMs: 150, // Pequeno delay para permitir animações fluidas
+  });
+
   const {
     selectedDate,
     setSelectedDate,
@@ -115,6 +127,17 @@ export default function NutritionScreen() {
     saveMeals,
     copyMealFromDate,
   } = useMeals();
+
+  // Inicializar a UI após a renderização inicial
+  useEffect(() => {
+    if (isUIReady) return;
+
+    InteractionManager.runAfterInteractions(() => {
+      setTimeout(() => {
+        setIsUIReady(true);
+      }, 100);
+    });
+  }, [isUIReady]);
 
   // Estado para forçar a recriação do MealConfigSheet
   const [mealConfigKey, setMealConfigKey] = useState(Date.now());
@@ -138,8 +161,10 @@ export default function NutritionScreen() {
   // Estado para armazenar o total de refeições
   const [totalMeals, setTotalMeals] = useState(0);
 
-  // Calcular o total de dias com refeições registradas
+  // Calcular o total de dias com refeições registradas - executado somente quando os dados são carregados
   useEffect(() => {
+    if (!isUIReady) return;
+
     // Conta apenas o número de dias diferentes que têm pelo menos uma refeição registrada
     const daysWithMeals = Object.keys(meals).filter((date) => {
       // Verificar se há pelo menos uma refeição com alimentos nesta data
@@ -149,7 +174,7 @@ export default function NutritionScreen() {
     });
 
     setTotalMeals(daysWithMeals.length);
-  }, [meals]);
+  }, [meals, isUIReady]);
 
   // Efeito para forçar atualização quando o status de configuração de refeições mudar
   useEffect(() => {
@@ -258,6 +283,8 @@ export default function NutritionScreen() {
   // Tentar abrir o bottom sheet se o parâmetro estiver presente
   // Isso é executado uma vez durante a renderização inicial
   useEffect(() => {
+    if (!isUIReady) return;
+
     if (params?.openMealConfig === "true") {
       // Pequeno atraso para garantir que o componente esteja montado
       const timer = setTimeout(() => {
@@ -266,7 +293,7 @@ export default function NutritionScreen() {
 
       return () => clearTimeout(timer);
     }
-  }, [params, openMealConfigSheet]);
+  }, [params, openMealConfigSheet, isUIReady]);
 
   // Função para lidar com a configuração de refeições
   const handleMealConfigured = useCallback(
@@ -526,30 +553,18 @@ export default function NutritionScreen() {
     }
   };
 
-  // Se não houver refeições configuradas, mostrar o estado vazio
-  if (!hasMealTypesConfigured) {
-    return (
-      <SafeAreaView
-        style={{ flex: 1, backgroundColor: colors.background }}
-        edges={["top"]}
-      >
-        <View
-          style={[styles.container, { backgroundColor: colors.background }]}
-        >
-          <HomeHeader
-            title={t("nutrition.title")}
-            count={totalMeals}
-            iconName="silverware-fork-knife"
-            iconType="material"
-            iconColor={colors.primary}
-            iconBackgroundColor={colors.primary + "15"}
-            showContextMenu={true}
-            menuActions={menuActions}
-            menuVisible={isMenuVisible}
-          />
+  // Renderizar o conteúdo completo da tela de forma condicional
+  const renderScreenContent = () => {
+    // Mostrar preloader enquanto a tela não estiver pronta
+    if (!isUIReady || !isReady) {
+      return <TabPreloader message={t("common.loading")} />;
+    }
 
+    // Se não houver refeições configuradas, mostrar o estado vazio
+    if (!hasMealTypesConfigured || configuredMealTypes.length === 0) {
+      return (
+        <>
           {calendarComponent}
-
           <ScrollView
             style={styles.container}
             contentContainerStyle={styles.contentContainer}
@@ -559,86 +574,42 @@ export default function NutritionScreen() {
           >
             {emptyStateComponent}
           </ScrollView>
+        </>
+      );
+    }
 
-          <MealConfigSheet
-            ref={mealConfigSheetRef}
-            onMealConfigured={handleMealConfigured}
-            key={`meal-config-configured-${mealConfigKey}-${theme}`}
-          />
-        </View>
-
-        {/* Modal de confirmação para redefinir refeições */}
-        <ConfirmationModal
-          visible={resetModalVisible}
-          title={t("nutrition.resetModal.title")}
-          message={t("nutrition.resetModal.message")}
-          confirmText={t("nutrition.resetModal.confirm")}
-          cancelText={t("nutrition.resetModal.cancel")}
-          confirmType="danger"
-          icon="refresh-outline"
-          onConfirm={confirmResetMealTypes}
-          onCancel={() => setResetModalVisible(false)}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  // Verificar se há tipos de refeições configurados
-  if (configuredMealTypes.length === 0) {
+    // Renderizar o conteúdo normal quando tudo estiver pronto
     return (
-      <SafeAreaView
-        style={{ flex: 1, backgroundColor: colors.background }}
-        edges={["top"]}
-      >
-        <View
-          style={[styles.container, { backgroundColor: colors.background }]}
+      <>
+        {calendarComponent}
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={styles.contentContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          removeClippedSubviews={true}
         >
-          <HomeHeader
-            title={t("nutrition.title")}
-            count={totalMeals}
-            iconName="silverware-fork-knife"
-            iconType="material"
-            iconColor={colors.primary}
-            iconBackgroundColor={colors.primary + "15"}
-            showContextMenu={true}
-            menuActions={menuActions}
-            menuVisible={isMenuVisible}
-          />
+          <MacrosCard dayTotals={dailyTotals} nutritionInfo={nutritionInfo} />
 
-          {calendarComponent}
-
-          <ScrollView
-            style={styles.container}
-            contentContainerStyle={styles.contentContainer}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            removeClippedSubviews={true}
-          >
-            {emptyStateComponent}
-          </ScrollView>
-
-          <MealConfigSheet
-            ref={mealConfigSheetRef}
-            onMealConfigured={handleMealConfigured}
-            key={`meal-config-configured-${mealConfigKey}-${theme}`}
-          />
-        </View>
-
-        {/* Modal de confirmação para redefinir refeições */}
-        <ConfirmationModal
-          visible={resetModalVisible}
-          title={t("nutrition.resetModal.title")}
-          message={t("nutrition.resetModal.message")}
-          confirmText={t("nutrition.resetModal.confirm")}
-          cancelText={t("nutrition.resetModal.cancel")}
-          confirmType="danger"
-          icon="refresh-outline"
-          onConfirm={confirmResetMealTypes}
-          onCancel={() => setResetModalVisible(false)}
-        />
-      </SafeAreaView>
+          {configuredMealTypes.map((meal, index) => (
+            <MealCard
+              key={`meal-${meal.id}-${selectedDate}`}
+              meal={meal}
+              foods={meal.foods}
+              mealTotals={getMealTotals(meal.id)}
+              index={index}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              onDeleteFood={(foodId) => removeFoodFromMeal(meal.id, foodId)}
+              showCopyOption={true}
+              setModalInfo={setModalInfo}
+            />
+          ))}
+        </ScrollView>
+      </>
     );
-  }
+  };
 
   return (
     <SafeAreaView
@@ -658,41 +629,7 @@ export default function NutritionScreen() {
           menuVisible={isMenuVisible}
         />
 
-        {calendarComponent}
-
-        <ScrollView
-          style={styles.container}
-          contentContainerStyle={styles.contentContainer}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          removeClippedSubviews={true}
-        >
-          <MacrosCard dayTotals={dailyTotals} nutritionInfo={nutritionInfo} />
-
-          {configuredMealTypes.length > 0 ? (
-            <>
-              {configuredMealTypes.map((meal, index) => (
-                <MealCard
-                  key={`meal-${meal.id}-${selectedDate}`}
-                  meal={meal}
-                  foods={meal.foods}
-                  mealTotals={getMealTotals(meal.id)}
-                  index={index}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }}
-                  onDeleteFood={(foodId) => removeFoodFromMeal(meal.id, foodId)}
-                  showCopyOption={true}
-                  setModalInfo={setModalInfo}
-                />
-              ))}
-            </>
-          ) : (
-            <Text style={[styles.emptyText, { color: colors.text }]}>
-              {t("nutrition.configureToStart")}
-            </Text>
-          )}
-        </ScrollView>
+        {renderScreenContent()}
 
         <MealConfigSheet
           ref={mealConfigSheetRef}

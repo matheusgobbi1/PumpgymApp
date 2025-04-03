@@ -18,6 +18,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  Suspense,
 } from "react";
 import Calendar from "../../components/shared/Calendar";
 import { getLocalDate } from "../../utils/dateUtils";
@@ -39,6 +40,9 @@ import ContextMenu, { MenuAction } from "../../components/shared/ContextMenu";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import HomeHeader from "../../components/home/HomeHeader";
 import { useTranslation } from "react-i18next";
+import { useTabPreloader } from "../../hooks/useTabPreloader";
+import TabPreloader from "../../components/TabPreloader";
+import { InteractionManager } from "react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -169,6 +173,15 @@ export default function TrainingScreen() {
   const colors = Colors[theme];
   const router = useRouter();
   const params = useLocalSearchParams();
+
+  // Hook de precarregamento de tabs
+  const { isReady, withPreloadDelay } = useTabPreloader({
+    delayMs: 150, // Pequeno delay para permitir animações fluidas
+  });
+
+  // Estado para controlar carregamento da UI
+  const [isUIReady, setIsUIReady] = useState(false);
+
   // Estado para forçar a recriação do WorkoutConfigSheet
   const [workoutConfigKey, setWorkoutConfigKey] = useState(Date.now());
   // Estado para controlar a visibilidade do modal de confirmação
@@ -198,6 +211,21 @@ export default function TrainingScreen() {
     getWorkoutsForDate,
     workouts,
   } = useWorkoutContext();
+
+  // Carregar a UI após a renderização inicial
+  useEffect(() => {
+    // Se já estiver pronto, não precisamos fazer nada
+    if (isUIReady) return;
+
+    // Usar InteractionManager para adiar o carregamento dos componentes
+    // mais pesados até depois que a animação de navegação terminar
+    InteractionManager.runAfterInteractions(() => {
+      // Adicionar um pequeno timeout para garantir que a UI esteja fluida
+      setTimeout(() => {
+        setIsUIReady(true);
+      }, 100);
+    });
+  }, [isUIReady]);
 
   // Calcular o número de dias com treino registrado
   useEffect(() => {
@@ -254,8 +282,10 @@ export default function TrainingScreen() {
       }
     };
 
-    loadNotificationPreference();
-  }, []);
+    if (isUIReady) {
+      loadNotificationPreference();
+    }
+  }, [isUIReady]);
 
   // Função para alternar o estado de notificações
   const toggleNotifications = useCallback(async () => {
@@ -282,6 +312,8 @@ export default function TrainingScreen() {
 
   // Efeito para verificar mudanças nos treinos quando a data selecionada muda
   useEffect(() => {
+    if (!isUIReady) return;
+
     if (hasWorkoutsForSelectedDate) {
       const workoutIds = Object.keys(workoutsForSelectedDate);
 
@@ -308,6 +340,7 @@ export default function TrainingScreen() {
     hasWorkoutsForSelectedDate,
     getExercisesForWorkout,
     checkForCompletedWorkout,
+    isUIReady,
   ]);
 
   // Sincronizar a data selecionada com o contexto
@@ -353,6 +386,8 @@ export default function TrainingScreen() {
 
   // Efeito para abrir o WorkoutConfigSheet quando solicitado via parâmetro
   useEffect(() => {
+    if (!isUIReady) return;
+
     if (params?.openWorkoutConfig === "true") {
       const timer = setTimeout(() => {
         if (workoutConfigSheetRef.current) {
@@ -364,7 +399,7 @@ export default function TrainingScreen() {
 
       return () => clearTimeout(timer);
     }
-  }, [params, router]);
+  }, [params, router, isUIReady]);
 
   // Função para navegar para a tela de detalhes do treino
   const navigateToWorkoutDetails = useCallback(
@@ -630,11 +665,33 @@ export default function TrainingScreen() {
     [hasConfiguredWorkouts]
   );
 
-  // Para debugging do estado de visibilidade do menu
-  useEffect(() => {
-    console.log("hasConfiguredWorkouts:", hasConfiguredWorkouts);
-    console.log("isMenuVisible:", isMenuVisible);
-  }, [hasConfiguredWorkouts, isMenuVisible]);
+  // Renderização do conteúdo completo da tela
+  const renderScreenContent = () => {
+    // Enquanto a interface não está pronta, mostrar o preloader
+    if (!isUIReady || !isReady) {
+      return <TabPreloader message={t("common.loading")} />;
+    }
+
+    return (
+      <>
+        {calendarComponent}
+
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
+          keyboardShouldPersistTaps="handled"
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          removeClippedSubviews={true} // Melhora a performance para listas longas
+        >
+          {/* Renderizar os cards de treino ou o EmptyState */}
+          {hasWorkoutsForSelectedDate
+            ? renderWorkoutCards()
+            : emptyStateComponent}
+        </ScrollView>
+      </>
+    );
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -651,21 +708,7 @@ export default function TrainingScreen() {
           menuVisible={isMenuVisible}
         />
 
-        {calendarComponent}
-
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollViewContent}
-          keyboardShouldPersistTaps="handled"
-          scrollEventThrottle={16}
-          showsVerticalScrollIndicator={false}
-          removeClippedSubviews={true} // Melhora a performance para listas longas
-        >
-          {/* Renderizar os cards de treino ou o EmptyState */}
-          {hasWorkoutsForSelectedDate
-            ? renderWorkoutCards()
-            : emptyStateComponent}
-        </ScrollView>
+        {renderScreenContent()}
       </View>
 
       <WorkoutConfigSheet

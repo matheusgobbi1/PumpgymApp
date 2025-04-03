@@ -579,7 +579,7 @@ export default function AddFoodScreen() {
             {t("nutrition.addFood.title")}
           </Text>
           <Text style={[styles.headerSubtitle, { color: colors.text + "80" }]}>
-            {mealName}
+            {t(`nutrition.mealTypes.${mealId}`, { defaultValue: mealName })}
           </Text>
         </View>
         <View style={{ width: 24 }} />

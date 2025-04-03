@@ -2,8 +2,6 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import i18n from "../i18n";
-import * as Updates from "expo-updates";
-import { Platform } from "react-native";
 
 // Definição do tipo do contexto
 type LanguageContextType = {
@@ -61,21 +59,6 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
       // Mudar o idioma no i18n
       await i18nInstance.changeLanguage(language);
       setCurrentLanguage(language);
-
-      // Em ambiente de desenvolvimento, um reload da aplicação ajuda a garantir
-      // que todas as traduções sejam aplicadas corretamente
-      if (__DEV__) {
-        console.log("Recarregando aplicação para aplicar novo idioma...");
-        setTimeout(() => {
-          if (Platform.OS === "web") {
-            window.location.reload();
-          } else {
-            Updates.reloadAsync().catch((err) =>
-              console.log("Erro ao recarregar app:", err)
-            );
-          }
-        }, 500);
-      }
     } catch (error) {
       console.error("Erro ao mudar o idioma:", error);
     } finally {

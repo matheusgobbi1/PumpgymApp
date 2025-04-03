@@ -530,57 +530,86 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   // Função para redefinir os tipos de refeições
   const resetMealTypes = async () => {
     try {
-      // Limpar tipos de refeições
+      // Limpar estados locais
       setMealTypes([]);
       setHasMealTypesConfigured(false);
 
-      // Limpar também os dados de refeições
-      setMeals({});
+      // Garantir que o estado de meals seja completamente limpo
+      // incluindo o dia atual
+      setMeals((prevMeals) => {
+        const emptyMeals: { [date: string]: { [mealId: string]: Food[] } } = {};
+        // Garantir que o dia atual também esteja vazio
+        if (selectedDate) {
+          emptyMeals[selectedDate] = {};
+        }
+        return emptyMeals;
+      });
+
+      setSearchHistory([]);
 
       if (user) {
-        // Primeiro limpar no AsyncStorage
+        // Limpar todos os dados do AsyncStorage
         try {
-          await AsyncStorage.removeItem(`${KEYS.MEAL_TYPES}:${user.uid}`);
-        } catch (storageError) {
-          console.error(
-            "Erro ao limpar tipos de refeição do AsyncStorage:",
-            storageError
+          const allKeys = await AsyncStorage.getAllKeys();
+          const keysToRemove = allKeys.filter(
+            (key) =>
+              key.startsWith(`${KEYS.MEALS_KEY}${user.uid}`) ||
+              key.startsWith(`${KEYS.MEAL_TYPES}:${user.uid}`) ||
+              key.startsWith(`${KEYS.SEARCH_HISTORY}:${user.uid}`)
           );
+
+          if (keysToRemove.length > 0) {
+            await AsyncStorage.multiRemove(keysToRemove);
+          }
+
+          // Forçar limpeza específica do dia atual no AsyncStorage
+          const currentDayKey = `${KEYS.MEALS_KEY}${user.uid}:${selectedDate}`;
+          await AsyncStorage.removeItem(currentDayKey);
+        } catch (storageError) {
+          console.error("Erro ao limpar dados do AsyncStorage:", storageError);
         }
 
-        // Depois tentar limpar no Firebase
+        // Limpar dados no Firebase
         try {
-          // Atualizar tipos de refeições no Firestore
+          // Limpar tipos de refeições
           await setDoc(
             doc(db, "users", user.uid, "config", "mealTypes"),
             { types: [] },
             { merge: true }
           );
 
-          // Também limpar as refeições no Firestore se necessário
-          // Isso pode ser opcional dependendo do seu caso de uso
+          // Limpar todas as refeições no Firestore
           const mealsRef = collection(db, "users", user.uid, "meals");
           const mealsSnap = await getDocs(mealsRef);
 
-          // Excluir cada documento de refeição
           const batch = writeBatch(db);
           mealsSnap.forEach((doc) => {
             batch.delete(doc.ref);
           });
 
-          await batch.commit();
-        } catch (firebaseError) {
-          console.error(
-            "Erro ao limpar tipos de refeição no Firebase:",
-            firebaseError
+          // Garantir que o documento do dia atual seja explicitamente deletado
+          const currentDayRef = doc(
+            db,
+            "users",
+            user.uid,
+            "meals",
+            selectedDate
           );
+          batch.delete(currentDayRef);
+
+          await batch.commit();
+
+          // Limpar histórico de pesquisa no Firebase se existir
+          await OfflineStorage.clearSearchHistory(user.uid);
+        } catch (firebaseError) {
+          console.error("Erro ao limpar dados no Firebase:", firebaseError);
         }
       }
 
-      return true; // Retornar true para indicar sucesso
+      return true;
     } catch (error) {
       console.error("Erro ao redefinir tipos de refeições:", error);
-      return false; // Retornar false para indicar falha
+      return false;
     }
   };
 

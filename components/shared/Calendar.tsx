@@ -5,8 +5,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  ScrollView,
   Platform,
+  VirtualizedList,
 } from "react-native";
 import {
   format,
@@ -28,23 +28,97 @@ import { useTheme } from "../../context/ThemeContext";
 const { width } = Dimensions.get("window");
 const DAYS_TO_SHOW = 35; // 30 dias antes + dia atual + 3 dias depois
 const DAY_ITEM_WIDTH = 48.5; // Largura do item de dia (40px) + marginHorizontal (4px * 2)
+const WINDOW_SIZE = 7; // Quantidade de dias visíveis por vez
 
 interface CalendarProps {
   onSelectDate: (date: Date) => void;
   selectedDate: Date;
-  // Função genérica para verificar se uma data tem conteúdo
   hasContent?: (date: Date) => boolean;
-  // Props específicas (opcionais, para compatibilidade com código existente)
   workouts?: { [date: string]: any };
   weeklyTemplate?: { [dayOfWeek: number]: any };
   meals?: { [date: string]: any };
   getWorkoutsForDate?: (date: string) => any;
 }
 
+interface CalendarDayProps {
+  date: Date;
+  isSelected: boolean;
+  isToday: boolean;
+  hasContent: boolean;
+  onPress: (date: Date) => void;
+  colors: (typeof Colors)[keyof typeof Colors];
+  theme: "light" | "dark";
+}
+
+// Componente do dia do calendário
+const CalendarDay = React.memo(
+  ({
+    date,
+    isSelected,
+    isToday,
+    hasContent,
+    onPress,
+    colors,
+    theme,
+  }: CalendarDayProps) => {
+    const todayBackgroundColor = theme === "light" ? colors.light : "#333333";
+
+    return (
+      <View style={styles.dayColumn}>
+        <Text style={[styles.weekDayText, { color: colors.text }]}>
+          {format(date, "EEE").slice(0, 3)}
+        </Text>
+        <TouchableOpacity
+          onPress={() => onPress(date)}
+          style={styles.dayButton}
+          activeOpacity={0.7}
+        >
+          <MotiView
+            style={[
+              styles.dayContainer,
+              isSelected && {
+                backgroundColor: colors.secondary,
+              },
+              !isSelected &&
+                isToday && {
+                  backgroundColor: todayBackgroundColor,
+                },
+              !isSelected &&
+                !isToday && {
+                  backgroundColor: "transparent",
+                },
+            ]}
+          >
+            <Text
+              style={[
+                styles.dayText,
+                {
+                  color: isSelected ? "#FFF" : colors.text,
+                  opacity: isSelected ? 1 : isToday ? 1 : 0.7,
+                },
+              ]}
+            >
+              {format(date, "d")}
+            </Text>
+          </MotiView>
+          {hasContent && !isSelected && (
+            <View
+              style={[
+                styles.contentIndicator,
+                { backgroundColor: colors.primary },
+              ]}
+            />
+          )}
+        </TouchableOpacity>
+      </View>
+    );
+  }
+);
+
 export default function Calendar({
   onSelectDate,
   selectedDate,
-  hasContent,
+  hasContent: hasContentProp,
   workouts = {},
   weeklyTemplate = {},
   meals = {},
@@ -52,7 +126,7 @@ export default function Calendar({
 }: CalendarProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
-  const scrollViewRef = useRef<ScrollView>(null);
+  const listRef = useRef<VirtualizedList<Date>>(null);
   const initialScrollDone = useRef(false);
 
   // Inicializa as datas zerando o horário
@@ -107,40 +181,16 @@ export default function Calendar({
     });
   }, [startDate]);
 
-  // Função para centralizar uma data específica no ScrollView
-  const scrollToDate = useCallback(
-    (date: Date) => {
-      const dateIndex = dates.findIndex((d) => isSameDay(d, date));
-      if (dateIndex !== -1 && scrollViewRef.current) {
-        const xOffset =
-          dateIndex * DAY_ITEM_WIDTH - width / 2 + DAY_ITEM_WIDTH / 2;
-        scrollViewRef.current.scrollTo({
-          x: Math.max(0, xOffset),
-          y: 0,
-          animated: true,
-        });
-      }
-    },
-    [dates, width]
-  );
-
-  // Função para verificar se uma data tem conteúdo
   const checkHasContent = useCallback(
     (date: Date): boolean => {
-      // Se a função hasContent for fornecida, usá-la
-      if (hasContent) {
-        return hasContent(date);
+      if (hasContentProp) {
+        return hasContentProp(date);
       }
-
       try {
-        // Verificar treinos para a data usando getWorkoutsForDate
         const dateString = format(date, "yyyy-MM-dd");
-        
-        // Verificar refeições para a data (compatibilidade com tela de nutrição)
         if (meals && Object.keys(meals).length > 0) {
-          // Verifica se existe a data no objeto meals e se há foods nela
           if (
-            meals[dateString] && 
+            meals[dateString] &&
             Object.values(meals[dateString]).some(
               (foods: any) => Array.isArray(foods) && foods.length > 0
             )
@@ -148,30 +198,16 @@ export default function Calendar({
             return true;
           }
         }
-        
-        // Verificar treinos se não encontrou refeições
         const workoutsForDate = getWorkoutsForDate
           ? getWorkoutsForDate(dateString)
           : {};
-        const hasWorkouts = workoutsForDate && Object.keys(workoutsForDate).length > 0;
-
-        return hasWorkouts;
+        return workoutsForDate && Object.keys(workoutsForDate).length > 0;
       } catch (error) {
         console.error("Erro ao verificar conteúdo para a data:", error);
         return false;
       }
     },
-    [hasContent, getWorkoutsForDate, meals]
-  );
-
-  const handleDatePress = useCallback(
-    (date: Date) => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      onSelectDate(date);
-      // Centraliza o dia selecionado
-      scrollToDate(date);
-    },
-    [onSelectDate, scrollToDate]
+    [hasContentProp, getWorkoutsForDate, meals]
   );
 
   // Zera o horário da data selecionada para comparação
@@ -182,10 +218,64 @@ export default function Calendar({
     );
   }, [selectedDate]);
 
-  // Centraliza o dia atual ou o dia selecionado na montagem inicial
+  // Função para centralizar uma data específica no VirtualizedList
+  const scrollToDate = useCallback(
+    (date: Date) => {
+      const dateIndex = dates.findIndex((d) => isSameDay(d, date));
+      if (dateIndex !== -1 && listRef.current) {
+        listRef.current.scrollToIndex({
+          index: dateIndex,
+          animated: true,
+          viewPosition: 0.5,
+        });
+      }
+    },
+    [dates]
+  );
+
+  const handleDatePress = useCallback(
+    (date: Date) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onSelectDate(date);
+      scrollToDate(date);
+    },
+    [onSelectDate, scrollToDate]
+  );
+
+  const getItem = (data: Date[], index: number): Date => dates[index];
+  const getItemCount = () => DAYS_TO_SHOW;
+  const keyExtractor = (item: Date) => format(item, "yyyy-MM-dd");
+
+  const renderItem = useCallback(
+    ({ item: date }: { item: Date }) => {
+      const isSelected = isSameDay(date, normalizedSelectedDate);
+      const isToday = isSameDay(date, today);
+      const hasContentForDate = checkHasContent(date);
+
+      return (
+        <CalendarDay
+          date={date}
+          isSelected={isSelected}
+          isToday={isToday}
+          hasContent={hasContentForDate}
+          onPress={handleDatePress}
+          colors={colors}
+          theme={theme}
+        />
+      );
+    },
+    [
+      normalizedSelectedDate,
+      today,
+      checkHasContent,
+      handleDatePress,
+      colors,
+      theme,
+    ]
+  );
+
   const initializeScroll = useCallback(() => {
     if (!initialScrollDone.current) {
-      // Centraliza o dia atual ou o dia selecionado, dependendo do caso
       setTimeout(() => {
         scrollToDate(normalizedSelectedDate);
         initialScrollDone.current = true;
@@ -247,79 +337,28 @@ export default function Calendar({
             />
           </View>
 
-          <ScrollView
-            ref={scrollViewRef}
+          <VirtualizedList<Date>
+            ref={listRef}
             horizontal
+            data={dates}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            getItem={getItem}
+            getItemCount={getItemCount}
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
             onLayout={initializeScroll}
-            style={styles.scrollView}
+            windowSize={WINDOW_SIZE}
+            initialNumToRender={WINDOW_SIZE}
+            maxToRenderPerBatch={WINDOW_SIZE}
+            updateCellsBatchingPeriod={50}
             removeClippedSubviews={true}
-          >
-            {dates.map((date) => {
-              const isSelected = isSameDay(date, normalizedSelectedDate);
-              const isToday = isSameDay(date, today);
-              const hasContentForDate = checkHasContent(date);
-
-              // Determinar a cor de fundo do dia atual com base no tema
-              const todayBackgroundColor =
-                theme === "light" ? colors.light : "#333333";
-
-              return (
-                <View
-                  key={`date-${date.toISOString()}`}
-                  style={styles.dayColumn}
-                >
-                  <Text style={[styles.weekDayText, { color: colors.text }]}>
-                    {format(date, "EEE").slice(0, 3)}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => handleDatePress(date)}
-                    style={styles.dayButton}
-                    activeOpacity={0.7}
-                  >
-                    <MotiView
-                      style={[
-                        styles.dayContainer,
-                        isSelected && {
-                          backgroundColor: colors.secondary,
-                          
-                        },
-                        !isSelected &&
-                          isToday && {
-                            backgroundColor: todayBackgroundColor,
-                          },
-                        !isSelected &&
-                          !isToday && {
-                            backgroundColor: "transparent",
-                          },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.dayText,
-                          {
-                            color: isSelected ? "#FFF" : colors.text,
-                            opacity: isSelected ? 1 : isToday ? 1 : 0.7,
-                          },
-                        ]}
-                      >
-                        {format(date, "d")}
-                      </Text>
-                    </MotiView>
-                    {hasContentForDate && !isSelected && (
-                      <View
-                        style={[
-                          styles.contentIndicator,
-                          { backgroundColor: colors.primary },
-                        ]}
-                      />
-                    )}
-                  </TouchableOpacity>
-                </View>
-              );
+            getItemLayout={(data, index) => ({
+              length: DAY_ITEM_WIDTH,
+              offset: DAY_ITEM_WIDTH * index,
+              index,
             })}
-          </ScrollView>
+          />
         </View>
       </View>
     </View>
@@ -338,9 +377,6 @@ const styles = StyleSheet.create({
   calendarContainer: {
     position: "relative",
     width: "100%",
-    backgroundColor: "transparent",
-  },
-  scrollView: {
     backgroundColor: "transparent",
   },
   scrollContent: {

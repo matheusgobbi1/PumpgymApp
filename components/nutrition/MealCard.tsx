@@ -128,7 +128,11 @@ const MealCardComponent = ({
     (food: Food) => (
       <View style={styles.swipeActionContainer}>
         <TouchableOpacity
-          style={[styles.swipeAction, { backgroundColor: meal.color + "CC" }]}
+          style={[
+            styles.swipeAction,
+            styles.swipeActionLeft,
+            { backgroundColor: meal.color + "CC" },
+          ]}
           onPress={() => navigateToFoodDetails(food)}
         >
           <Ionicons name="create-outline" size={20} color="white" />
@@ -136,6 +140,34 @@ const MealCardComponent = ({
       </View>
     ),
     [meal.color, navigateToFoodDetails]
+  );
+
+  // Função para renderizar as ações de deslize à direita (excluir)
+  const renderRightActions = useCallback(
+    (foodId: string) => (
+      <View style={styles.swipeActionContainer}>
+        <TouchableOpacity
+          style={[
+            styles.swipeAction,
+            styles.swipeActionRight,
+            { backgroundColor: colors.danger + "CC" },
+          ]}
+          onPress={() => {
+            handleHapticFeedback();
+            // Chamar a função que mostrará o modal no componente pai
+            setModalInfo({
+              type: "deleteFood",
+              foodId: foodId,
+              mealId: meal.id,
+              visible: true,
+            });
+          }}
+        >
+          <Ionicons name="trash-outline" size={20} color="white" />
+        </TouchableOpacity>
+      </View>
+    ),
+    [colors.danger, handleHapticFeedback, meal.id, setModalInfo]
   );
 
   // Função para renderizar as ações de deslize à direita para o card de refeição
@@ -168,46 +200,19 @@ const MealCardComponent = ({
   }, [
     colors.danger,
     handleHapticFeedback,
-    onDeleteMeal,
     meal.id,
     meal.name,
+    onDeleteMeal,
     setModalInfo,
     t,
   ]);
-
-  // Função para renderizar as ações de deslize à direita (excluir)
-  const renderRightActions = useCallback(
-    (foodId: string) => (
-      <View style={styles.swipeActionContainer}>
-        <TouchableOpacity
-          style={[
-            styles.swipeAction,
-            { backgroundColor: colors.danger + "CC" },
-          ]}
-          onPress={() => {
-            handleHapticFeedback();
-            // Chamar a função que mostrará o modal no componente pai
-            setModalInfo({
-              type: "deleteFood",
-              foodId: foodId,
-              mealId: meal.id,
-              visible: true,
-            });
-          }}
-        >
-          <Ionicons name="trash-outline" size={20} color="white" />
-        </TouchableOpacity>
-      </View>
-    ),
-    [colors.danger, handleHapticFeedback, meal.id, setModalInfo]
-  );
 
   const renderFoodItem = useCallback(
     (food: Food, foodIndex: number) => (
       <Swipeable
         key={`food-${food.id}-${foodIndex}`}
-        renderRightActions={() => renderRightActions(food.id)}
         renderLeftActions={() => renderLeftActions(food)}
+        renderRightActions={() => renderRightActions(food.id)}
         friction={2}
         overshootRight={false}
         overshootLeft={false}
@@ -666,6 +671,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: 70,
     height: "100%",
+  },
+  swipeActionLeft: {
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+  },
+  swipeActionRight: {
     borderTopRightRadius: 16,
     borderBottomRightRadius: 16,
   },

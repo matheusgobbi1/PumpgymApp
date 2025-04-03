@@ -136,9 +136,18 @@ interface WorkoutContextType {
   selectedWorkoutTypes: WorkoutType[];
   hasConfiguredWorkouts: boolean;
   // Novas funções relacionadas à progressão
-  getPreviousWorkoutExercises: (workoutId: string) => { exercises: Exercise[], date: string | null };
-  getMultiplePreviousWorkoutsExercises: (workoutId: string, limit?: number) => { exercises: Exercise[], date: string }[];
-  applyProgressionToWorkout: (workoutId: string, updatedExercises: Exercise[]) => Promise<boolean>;
+  getPreviousWorkoutExercises: (workoutId: string) => {
+    exercises: Exercise[];
+    date: string | null;
+  };
+  getMultiplePreviousWorkoutsExercises: (
+    workoutId: string,
+    limit?: number
+  ) => { exercises: Exercise[]; date: string }[];
+  applyProgressionToWorkout: (
+    workoutId: string,
+    updatedExercises: Exercise[]
+  ) => Promise<boolean>;
 }
 
 // Criação do contexto
@@ -1610,24 +1619,38 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
         // Copiar os exercícios do treino de origem para o destino
         // Criando cópias profundas com novos IDs para evitar referências compartilhadas
-        updatedWorkouts[targetDate][targetWorkoutId] = workouts[sourceDate][sourceWorkoutId].map(exercise => {
-          // Gerar um novo ID para o exercício
-          const newExerciseId = `ex_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          
+        updatedWorkouts[targetDate][targetWorkoutId] = workouts[sourceDate][
+          sourceWorkoutId
+        ].map((exercise) => {
+          // Verificar se o exercício usa uma chave de tradução
+          const isTranslationKey =
+            exercise.id &&
+            exercise.id.length <= 6 &&
+            exercise.id.startsWith("ex");
+
+          // Gerar um novo ID apenas se não for uma chave de tradução
+          const newExerciseId = isTranslationKey
+            ? exercise.id
+            : `ex_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
           // Criar uma cópia profunda do exercício
           const newExercise = {
             ...JSON.parse(JSON.stringify(exercise)),
             id: newExerciseId,
+            // Se for uma chave de tradução, manter o nome original
+            name: isTranslationKey ? exercise.name : exercise.name,
           };
-          
+
           // Se existirem sets, criar novos IDs para eles também
           if (newExercise.sets && newExercise.sets.length > 0) {
             newExercise.sets = newExercise.sets.map((set: ExerciseSet) => ({
               ...JSON.parse(JSON.stringify(set)),
-              id: `set_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+              id: `set_${Date.now()}_${Math.random()
+                .toString(36)
+                .substr(2, 9)}`,
             }));
           }
-          
+
           return newExercise;
         });
 
@@ -1805,15 +1828,15 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       for (const date of previousDates) {
         if (workouts[date] && workouts[date][workoutId]) {
           const exercises = workouts[date][workoutId];
-          
+
           // Filtrar apenas exercícios de força que possuem séries
           const validExercises = exercises.filter(
-            (exercise) => 
-              exercise.category !== "cardio" && 
-              exercise.sets && 
+            (exercise) =>
+              exercise.category !== "cardio" &&
+              exercise.sets &&
               exercise.sets.length > 0
           );
-          
+
           if (validExercises.length > 0) {
             return { exercises: validExercises, date };
           }
@@ -1828,7 +1851,10 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
   // Função para obter múltiplos treinos anteriores do mesmo tipo
   const getMultiplePreviousWorkoutsExercises = useCallback(
-    (workoutId: string, limit: number = 4): { exercises: Exercise[], date: string }[] => {
+    (
+      workoutId: string,
+      limit: number = 4
+    ): { exercises: Exercise[]; date: string }[] => {
       // Obter datas anteriores à data selecionada
       const previousDates = Object.keys(workouts)
         .filter((date) => date < selectedDate)
@@ -1839,24 +1865,24 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         return [];
       }
 
-      const result: { exercises: Exercise[], date: string }[] = [];
+      const result: { exercises: Exercise[]; date: string }[] = [];
 
       // Percorrer as datas anteriores e coletar até 'limit' treinos
       for (const date of previousDates) {
         if (workouts[date] && workouts[date][workoutId]) {
           const exercises = workouts[date][workoutId];
-          
+
           // Filtrar apenas exercícios de força que possuem séries
           const validExercises = exercises.filter(
-            (exercise) => 
-              exercise.category !== "cardio" && 
-              exercise.sets && 
+            (exercise) =>
+              exercise.category !== "cardio" &&
+              exercise.sets &&
               exercise.sets.length > 0
           );
-          
+
           if (validExercises.length > 0) {
             result.push({ exercises: validExercises, date });
-            
+
             // Parar quando atingir o limite
             if (result.length >= limit) {
               break;
@@ -1872,7 +1898,10 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
   // Função para aplicar progressão ao treino atual
   const applyProgressionToWorkout = useCallback(
-    async (workoutId: string, updatedExercises: Exercise[]): Promise<boolean> => {
+    async (
+      workoutId: string,
+      updatedExercises: Exercise[]
+    ): Promise<boolean> => {
       try {
         // Verificar se o workoutId e a data selecionada existem
         if (!workoutId || !selectedDate) {
@@ -1880,20 +1909,22 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         }
 
         // Obter os treinos atuais para a data selecionada
-        const workoutsForDate = workouts[selectedDate] ? { ...workouts[selectedDate] } : {};
-        
+        const workoutsForDate = workouts[selectedDate]
+          ? { ...workouts[selectedDate] }
+          : {};
+
         // Se o treino não existir para a data selecionada, criá-lo
         if (!workoutsForDate[workoutId]) {
           workoutsForDate[workoutId] = [];
         }
-        
+
         // Para cada exercício atualizado
-        updatedExercises.forEach(updatedExercise => {
+        updatedExercises.forEach((updatedExercise) => {
           // Verificar se o exercício já existe no treino
           const existingIndex = workoutsForDate[workoutId].findIndex(
-            e => e.id === updatedExercise.id
+            (e) => e.id === updatedExercise.id
           );
-          
+
           if (existingIndex >= 0) {
             // Atualizar exercício existente
             workoutsForDate[workoutId][existingIndex] = updatedExercise;
@@ -1904,12 +1935,12 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         });
 
         // Atualizar o estado
-        setWorkouts(prev => ({
+        setWorkouts((prev) => ({
           ...prev,
           [selectedDate]: {
             ...prev[selectedDate],
-            [workoutId]: workoutsForDate[workoutId]
-          }
+            [workoutId]: workoutsForDate[workoutId],
+          },
         }));
 
         // Salvar os treinos

@@ -439,7 +439,7 @@ export default function FoodDetailsScreen() {
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={[styles.headerTitle, { color: colors.text }]}>
-              {mealName}
+              {t(`nutrition.mealTypes.${mealId}`, { defaultValue: mealName })}
             </Text>
           </View>
           <View style={{ width: 40 }} />
@@ -669,7 +669,7 @@ export default function FoodDetailsScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {mealName}
+            {t(`nutrition.mealTypes.${mealId}`, { defaultValue: mealName })}
           </Text>
         </View>
         <View style={{ width: 40 }} />

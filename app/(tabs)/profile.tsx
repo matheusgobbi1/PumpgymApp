@@ -1,5 +1,5 @@
-import React, { useCallback } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import React, { useCallback, useState, useEffect } from "react";
+import { View, StyleSheet, ScrollView, InteractionManager } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
@@ -13,6 +13,8 @@ import { useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
+import { useTabPreloader } from "../../hooks/useTabPreloader";
+import TabPreloader from "../../components/TabPreloader";
 
 export default function Profile() {
   const { t } = useTranslation();
@@ -21,6 +23,25 @@ export default function Profile() {
   const router = useRouter();
   const { nutritionInfo } = useNutrition();
   const { user } = useAuth();
+
+  // Estado para controlar o carregamento
+  const [isUIReady, setIsUIReady] = useState(false);
+
+  // Hook de precarregamento de tabs
+  const { isReady } = useTabPreloader({
+    delayMs: 150,
+  });
+
+  // Inicializar a UI após a renderização inicial
+  useEffect(() => {
+    if (isUIReady) return;
+
+    InteractionManager.runAfterInteractions(() => {
+      setTimeout(() => {
+        setIsUIReady(true);
+      }, 100);
+    });
+  }, [isUIReady]);
 
   // Função para navegar para a edição do perfil
   const handleEditProfilePress = () => {
@@ -69,6 +90,38 @@ export default function Profile() {
     }, [])
   );
 
+  // Renderizar o conteúdo da tela de forma condicional
+  const renderScreenContent = () => {
+    if (!isUIReady || !isReady) {
+      return <TabPreloader message={t("common.loading")} />;
+    }
+
+    return (
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.cardsContainer}>
+          {/* Novo card de informações do perfil */}
+          <ProfileInfoCard onEditPress={handleEditProfilePress} />
+
+          {/* Resumo do plano nutricional */}
+          <NutritionSummaryCard />
+
+          {/* Opções do perfil */}
+          <ProfileOptionsCard
+            onThemeToggle={handleThemeToggle}
+            onAboutPress={handleAboutPress}
+          />
+        </View>
+
+        {/* Espaço adicional para garantir que o conteúdo fique acima da bottom tab */}
+        <View style={styles.bottomPadding} />
+      </ScrollView>
+    );
+  };
+
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background }}
@@ -77,28 +130,7 @@ export default function Profile() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <HomeHeader title={user?.email || t("common.user")} count={0} />
 
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.cardsContainer}>
-            {/* Novo card de informações do perfil */}
-            <ProfileInfoCard onEditPress={handleEditProfilePress} />
-
-            {/* Resumo do plano nutricional */}
-            <NutritionSummaryCard />
-
-            {/* Opções do perfil */}
-            <ProfileOptionsCard
-              onThemeToggle={handleThemeToggle}
-              onAboutPress={handleAboutPress}
-            />
-          </View>
-
-          {/* Espaço adicional para garantir que o conteúdo fique acima da bottom tab */}
-          <View style={styles.bottomPadding} />
-        </ScrollView>
+        {renderScreenContent()}
       </View>
     </SafeAreaView>
   );

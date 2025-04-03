@@ -6,7 +6,7 @@ export const tacoFoods: FoodData[] = [
   // Cereais e derivados
   {
     id: "taco_001",
-    name: "Arroz, tipo 1, cozido",
+    name: "Arroz branco, cozido",
     nutrients: {
       calories: 128,
       protein: 2.5,
@@ -325,7 +325,7 @@ export const tacoFoods: FoodData[] = [
   },
   {
     id: "taco_013",
-    name: "Ovo, de galinha, inteiro, cozido",
+    name: "Ovo",
     nutrients: {
       calories: 146,
       protein: 13.3,
