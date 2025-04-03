@@ -2,14 +2,9 @@
 import { initializeApp } from "firebase/app";
 import {
   getAuth,
-  setPersistence,
-  indexedDBLocalPersistence,
-  inMemoryPersistence,
   type Auth as FirebaseAuth,
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Platform } from "react-native";
 
 // Configuração do Firebase usando variáveis de ambiente
 const firebaseConfig = {

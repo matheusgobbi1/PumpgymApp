@@ -4,12 +4,10 @@ import {
   StyleSheet,
   ScrollView,
   Text,
-  TouchableOpacity,
   Pressable,
   Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { MotiView } from "moti";
 import HomeHeader from "../../components/home/HomeHeader";
 import DailyReminders from "../../components/home/DailyReminders";
 import NutritionProgressChart from "../../components/home/NutritionProgressChart";
@@ -22,7 +20,6 @@ import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useWorkoutContext } from "../../context/WorkoutContext";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
@@ -392,7 +389,7 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: "row",
     paddingHorizontal: 16,
-    
+    marginBottom: 12,
   },
   tabButton: {
     flex: 1,

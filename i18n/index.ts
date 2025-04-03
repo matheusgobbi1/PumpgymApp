@@ -14,16 +14,25 @@ const resources = {
 
 const initI18n = async () => {
   // Tentar carregar o idioma salvo
-  let savedLanguage = await AsyncStorage.getItem("userLanguage");
+  let savedLanguage;
+  try {
+    savedLanguage = await AsyncStorage.getItem("userLanguage");
 
-  // Se não houver idioma salvo, usar o idioma do dispositivo ou pt-BR como fallback
-  if (!savedLanguage) {
-    const deviceLanguage = Localization.locale;
-    // Verificar se temos uma tradução para o idioma do dispositivo
-    const languageCode = deviceLanguage.split("-")[0];
-    savedLanguage =
-      Object.keys(resources).find((code) => code.startsWith(languageCode)) ||
-      "pt-BR";
+    // Se não houver idioma salvo, usar o idioma do dispositivo ou pt-BR como fallback
+    if (!savedLanguage) {
+      const deviceLanguage = Localization.locale;
+      // Verificar se temos uma tradução para o idioma do dispositivo
+      const languageCode = deviceLanguage.split("-")[0];
+      savedLanguage =
+        Object.keys(resources).find((code) => code.startsWith(languageCode)) ||
+        "pt-BR";
+
+      // Salvar o idioma detectado para futuras referências
+      await AsyncStorage.setItem("userLanguage", savedLanguage);
+    }
+  } catch (error) {
+    console.error("Erro ao carregar idioma:", error);
+    savedLanguage = "pt-BR"; // Fallback seguro
   }
 
   await i18n.use(initReactI18next).init({
@@ -34,12 +43,26 @@ const initI18n = async () => {
     interpolation: {
       escapeValue: false, // React já faz o escape
     },
+    react: {
+      useSuspense: false, // Para evitar problemas com Suspense
+    },
   });
 
+  console.log("i18n inicializado com idioma:", i18n.language);
   return i18n;
 };
 
 // Inicializar
 initI18n();
+
+// Função de utilidade para debug do idioma atual
+export const getLanguageStatus = () => {
+  return {
+    currentLanguage: i18n.language,
+    changeLanguage: i18n.changeLanguage,
+    isInitialized: i18n.isInitialized,
+    available: Object.keys(resources),
+  };
+};
 
 export default i18n;

@@ -67,6 +67,8 @@ export default function NutritionSummaryCard() {
   const [fatError, setFatError] = useState<string>("");
   const [waterIntakeError, setWaterIntakeError] = useState<string>("");
   const [macrosError, setMacrosError] = useState<string>("");
+  // Estado para controlar se deve mostrar o erro de distribuição de macros
+  const [showMacrosError, setShowMacrosError] = useState(false);
 
   // Atualizar os estados locais quando nutritionInfo mudar
   useEffect(() => {
@@ -287,6 +289,7 @@ export default function NutritionSummaryCard() {
     setFatError("");
     setWaterIntakeError("");
     setMacrosError("");
+    setShowMacrosError(false);
 
     // Sair do modo de edição
     setIsEditMode(false);
@@ -296,13 +299,16 @@ export default function NutritionSummaryCard() {
   const handleSaveInlineEdit = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
+    // Ativar exibição de erros de macros
+    setShowMacrosError(true);
+
     // Validar todos os campos
     const isCaloriesValid = validateCalories(editCalories);
     const isProteinValid = validateProtein(editProtein);
     const isCarbsValid = validateCarbs(editCarbs);
     const isFatValid = validateFat(editFat);
     const isWaterIntakeValid = validateWaterIntake(editWaterIntake);
-    const isMacrosDistributionValid = validateMacrosDistribution();
+    const isMacrosDistributionValid = validateMacrosDistribution(true);
 
     // Se algum campo for inválido, não prosseguir
     if (
@@ -332,6 +338,7 @@ export default function NutritionSummaryCard() {
 
     // Sair do modo de edição
     setIsEditMode(false);
+    setShowMacrosError(false);
 
     // Fornecer feedback tátil de sucesso
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -399,7 +406,9 @@ export default function NutritionSummaryCard() {
   };
 
   // Função para validar a distribuição de macronutrientes
-  const validateMacrosDistribution = (): boolean => {
+  const validateMacrosDistribution = (
+    isSubmitting: boolean = false
+  ): boolean => {
     // Calcular as porcentagens a partir dos valores em gramas
     const proteinValue = parseInt(editProtein);
     const carbsValue = parseInt(editCarbs);
@@ -412,7 +421,9 @@ export default function NutritionSummaryCard() {
       isNaN(fatValue) ||
       isNaN(caloriesValue)
     ) {
-      setMacrosError(t("profile.nutritionCard.distributionError"));
+      if (isSubmitting) {
+        setMacrosError(t("profile.nutritionCard.distributionError"));
+      }
       return false;
     }
 
@@ -427,11 +438,13 @@ export default function NutritionSummaryCard() {
     const percentDifference = (difference / caloriesValue) * 100;
 
     if (percentDifference > 5) {
-      setMacrosError(
-        `${t(
-          "profile.nutritionCard.distributionError"
-        )} (${totalCalories.toFixed(0)} kcal vs ${caloriesValue} kcal)`
-      );
+      if (isSubmitting) {
+        setMacrosError(
+          `${t(
+            "profile.nutritionCard.distributionError"
+          )} (${totalCalories.toFixed(0)} kcal vs ${caloriesValue} kcal)`
+        );
+      }
       return false;
     }
 
@@ -648,7 +661,9 @@ export default function NutritionSummaryCard() {
           {carbsError && <ErrorMessage message={carbsError} />}
           {fatError && <ErrorMessage message={fatError} />}
           {waterIntakeError && <ErrorMessage message={waterIntakeError} />}
-          {macrosError && <ErrorMessage message={macrosError} />}
+          {showMacrosError && macrosError && (
+            <ErrorMessage message={macrosError} />
+          )}
         </View>
       )}
 
@@ -854,7 +869,6 @@ export default function NutritionSummaryCard() {
                 value={proteinPercentage}
                 onValueChange={(value) => {
                   adjustPercentages("protein", value);
-                  validateMacrosDistribution();
                 }}
                 minimumTrackTintColor="#EF476F"
                 maximumTrackTintColor={colors.border}
@@ -949,7 +963,6 @@ export default function NutritionSummaryCard() {
                 value={carbsPercentage}
                 onValueChange={(value) => {
                   adjustPercentages("carbs", value);
-                  validateMacrosDistribution();
                 }}
                 minimumTrackTintColor="#118AB2"
                 maximumTrackTintColor={colors.border}
@@ -1040,7 +1053,6 @@ export default function NutritionSummaryCard() {
                 value={fatPercentage}
                 onValueChange={(value) => {
                   adjustPercentages("fat", value);
-                  validateMacrosDistribution();
                 }}
                 minimumTrackTintColor="#FFD166"
                 maximumTrackTintColor={colors.border}
@@ -1594,15 +1606,18 @@ const styles = StyleSheet.create({
     // Estilo específico para o botão de salvar
   },
   editModeContainer: {
-    borderRadius: 16,
-    shadowOpacity: 0.05,
-    elevation: 3,
-    marginHorizontal: 12,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
   editModeContentContainer: {
-    padding: 12,
-    paddingTop: 10,
-    paddingBottom: 16,
+    padding: 16,
   },
   sliderContainer: {
     width: "100%",

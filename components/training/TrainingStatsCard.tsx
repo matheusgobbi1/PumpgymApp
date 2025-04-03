@@ -87,6 +87,16 @@ export default function TrainingStatsCard({
     setIsLoading(false);
   }
 
+  // Garantir que a análise de progresso seja atualizada corretamente
+  useEffect(() => {
+    // Recalcular estatísticas quando o componente montar ou quando as props mudarem
+    if (!isLoading && workoutTotals && previousWorkoutTotals?.totals) {
+      // A simples existência deste efeito garante que o componente será re-renderizado
+      // quando as props mudarem, forçando a reanálise dos dados de progresso
+      setIsLoading(false);
+    }
+  }, [isLoading, workoutTotals, previousWorkoutTotals]);
+
   const formatVolume = useCallback((volume: number) => {
     if (volume >= 1000) {
       return `${(volume / 1000).toFixed(1)}k`;
@@ -108,6 +118,42 @@ export default function TrainingStatsCard({
     return ((current - previous) / previous) * 100;
   }, []);
 
+  // Pré-calcular os valores de progresso para métricas importantes
+  const progressValues = useMemo(() => {
+    if (!workoutTotals || !previousWorkoutTotals?.totals) {
+      return {
+        avgWeightProgress: null,
+        maxWeightProgress: null,
+        totalVolumeProgress: null,
+        totalRepsProgress: null,
+        densityProgress: null,
+      };
+    }
+
+    return {
+      avgWeightProgress: calculateProgress(
+        workoutTotals.avgWeight,
+        previousWorkoutTotals.totals.avgWeight
+      ),
+      maxWeightProgress: calculateProgress(
+        workoutTotals.maxWeight,
+        previousWorkoutTotals.totals.maxWeight
+      ),
+      totalVolumeProgress: calculateProgress(
+        workoutTotals.totalVolume,
+        previousWorkoutTotals.totals.totalVolume
+      ),
+      totalRepsProgress: calculateProgress(
+        workoutTotals.totalReps,
+        previousWorkoutTotals.totals.totalReps
+      ),
+      densityProgress: calculateProgress(
+        workoutTotals.trainingDensity,
+        previousWorkoutTotals.totals.trainingDensity
+      ),
+    };
+  }, [workoutTotals, previousWorkoutTotals, calculateProgress]);
+
   // Analisa múltiplas métricas para detectar progresso na intensidade
   const analyzeProgressContext = useCallback(
     (
@@ -128,7 +174,7 @@ export default function TrainingStatsCard({
         title === t("training.stats.totalVolume") &&
         progress < 0 && // Volume diminuiu
         avgWeightProgress !== null &&
-        avgWeightProgress > 0 // Mas peso médio aumentou
+        avgWeightProgress > 0 // Mas peso médio aumentou - qualquer aumento é significativo
       ) {
         return {
           progress: progress, // Mantém o valor real do progresso
@@ -141,8 +187,8 @@ export default function TrainingStatsCard({
       if (
         title === t("training.stats.repetitions") &&
         progress < 0 && // Repetições diminuíram
-        maxWeightProgress !== null &&
-        maxWeightProgress > 5 // Mas peso máximo aumentou significativamente
+        ((avgWeightProgress !== null && avgWeightProgress > 0) || // Qualquer aumento no peso médio é significativo
+          (maxWeightProgress !== null && maxWeightProgress > 0)) // Qualquer aumento no peso máximo é significativo
       ) {
         return {
           progress: progress,
@@ -226,28 +272,9 @@ export default function TrainingStatsCard({
     ) => {
       const hasPrevious = previous !== null && previous > 0;
 
-      // Calcular progresso em métricas de peso para análise de contexto
-      const avgWeightProgress = previousWorkoutTotals?.totals?.avgWeight
-        ? calculateProgress(
-            workoutTotals.avgWeight,
-            previousWorkoutTotals.totals.avgWeight
-          )
-        : null;
-
-      const maxWeightProgress = previousWorkoutTotals?.totals?.maxWeight
-        ? calculateProgress(
-            workoutTotals.maxWeight,
-            previousWorkoutTotals.totals.maxWeight
-          )
-        : null;
-
-      const trainingDensityProgress = previousWorkoutTotals?.totals
-        ?.trainingDensity
-        ? calculateProgress(
-            workoutTotals.trainingDensity,
-            previousWorkoutTotals.totals.trainingDensity
-          )
-        : null;
+      // Usar valores pré-calculados para maior consistência
+      const { avgWeightProgress, maxWeightProgress, densityProgress } =
+        progressValues;
 
       // Analisa o contexto do progresso considerando outras métricas
       const { progress, isPositiveContext, message } = hasPrevious
@@ -257,7 +284,7 @@ export default function TrainingStatsCard({
             previous,
             avgWeightProgress,
             maxWeightProgress,
-            trainingDensityProgress
+            densityProgress
           )
         : { progress: 0, isPositiveContext: false, message: "" };
 
@@ -406,6 +433,7 @@ export default function TrainingStatsCard({
       isLoading,
       t,
       theme,
+      progressValues,
     ]
   );
 

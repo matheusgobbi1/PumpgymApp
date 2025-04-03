@@ -119,21 +119,17 @@ const SetCard = ({
     onUpdate({ ...set, restTime });
   };
 
-  // Função para atualizar falha muscular
-  const toggleFailure = () => {
-    const newValue = !toFailure;
-    setToFailure(newValue);
-    onUpdate({
-      ...set,
-      toFailure: newValue,
-      repsInReserve: newValue ? 0 : repsInReserve,
-    });
-  };
-
   // Função para atualizar reps em reserva com slider
   const handleRepsInReserveChange = (value: number) => {
     setRepsInReserve(value);
-    onUpdate({ ...set, repsInReserve: value });
+    // Quando RIR é 0, definimos automaticamente como falha
+    const isFailure = value === 0;
+    setToFailure(isFailure);
+    onUpdate({
+      ...set,
+      repsInReserve: value,
+      toFailure: isFailure,
+    });
   };
 
   // Função para atualizar percepção de esforço com slider
@@ -175,8 +171,8 @@ const SetCard = ({
     // Validar se é um número
     const numValue = parseInt(value);
     if (!isNaN(numValue)) {
-      // Limitar entre 0 e 300 segundos (5 minutos)
-      const validRestTime = Math.min(300, Math.max(0, numValue));
+      // Limitar entre 60 e 300 segundos (5 minutos)
+      const validRestTime = Math.min(300, Math.max(60, numValue));
       onUpdate({ ...set, restTime: validRestTime });
     }
   };
@@ -212,13 +208,13 @@ const SetCard = ({
       }
     } else if (type === "restTime") {
       const numValue = parseInt(restTimeInput);
-      if (isNaN(numValue) || numValue < 0) {
+      if (isNaN(numValue) || numValue < 60) {
         // Se for inválido, resetar para 60 segundos
         setRestTimeInput("60");
         onUpdate({ ...set, restTime: 60 });
       } else {
-        // Limitar entre 0 e 300 segundos (5 minutos)
-        const validRestTime = Math.min(300, Math.max(0, numValue));
+        // Limitar entre 60 e 300 segundos (5 minutos)
+        const validRestTime = Math.min(300, Math.max(60, numValue));
         setRestTimeInput(validRestTime.toString());
         onUpdate({ ...set, restTime: validRestTime });
       }
@@ -226,7 +222,7 @@ const SetCard = ({
   };
 
   // Opções de tempo de descanso pré-definidas
-  const restTimeOptions = [30, 60, 90, 120];
+  const restTimeOptions = [60, 90, 120, 180];
 
   // Obter texto de descrição para percepção de esforço
   const getPerceiveEffortLabel = () => {
@@ -321,208 +317,7 @@ const SetCard = ({
         </View>
       </TouchableOpacity>
 
-      {/* Conteúdo básico sempre visível */}
-      <View style={styles.setCardBasicContent}>
-        {/* Container para repetições e peso lado a lado */}
-        <View style={styles.setMetricsRow}>
-          {/* Repetições */}
-          <View style={styles.setMetricContainer}>
-            <View style={styles.setMetricHeader}>
-              <Ionicons
-                name="repeat-outline"
-                size={16}
-                color={color}
-                style={styles.setMetricIcon}
-              />
-              <Text style={[styles.setMetricLabel, { color: colors.text }]}>
-                {t("exercise.repetitions")}
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.setMetricControls,
-                { backgroundColor: colors.background + "80", borderRadius: 10 },
-              ]}
-            >
-              <TouchableOpacity
-                style={[
-                  styles.setMetricButton,
-                  { backgroundColor: color + "15" },
-                ]}
-                onPress={() => handleRepsChange(Math.max(1, set.reps - 1))}
-              >
-                <Ionicons name="remove" size={18} color={color} />
-              </TouchableOpacity>
-
-              <TextInput
-                style={[styles.setMetricValue, { color: colors.text }]}
-                value={repsInput}
-                onChangeText={handleRepsInputChange}
-                onBlur={() => handleInputBlur("reps")}
-                keyboardType="number-pad"
-                maxLength={2}
-                selectTextOnFocus
-              />
-
-              <TouchableOpacity
-                style={[
-                  styles.setMetricButton,
-                  { backgroundColor: color + "15" },
-                ]}
-                onPress={() => handleRepsChange(Math.min(50, set.reps + 1))}
-              >
-                <Ionicons name="add" size={18} color={color} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Peso */}
-          <View style={styles.setMetricContainer}>
-            <View style={styles.setMetricHeader}>
-              <Ionicons
-                name="barbell-outline"
-                size={16}
-                color={color}
-                style={styles.setMetricIcon}
-              />
-              <Text style={[styles.setMetricLabel, { color: colors.text }]}>
-                {t("exercise.weight")}
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.setMetricControls,
-                { backgroundColor: colors.background + "80", borderRadius: 10 },
-              ]}
-            >
-              <TouchableOpacity
-                style={[
-                  styles.setMetricButton,
-                  { backgroundColor: color + "15" },
-                ]}
-                onPress={() =>
-                  handleWeightChange(Math.max(0, set.weight - 2.5))
-                }
-              >
-                <Ionicons name="remove" size={18} color={color} />
-              </TouchableOpacity>
-
-              <TextInput
-                style={[styles.setMetricValue, { color: colors.text }]}
-                value={weightInput}
-                onChangeText={handleWeightInputChange}
-                onBlur={() => handleInputBlur("weight")}
-                keyboardType="decimal-pad"
-                maxLength={5}
-                selectTextOnFocus
-              />
-
-              <TouchableOpacity
-                style={[
-                  styles.setMetricButton,
-                  { backgroundColor: color + "15" },
-                ]}
-                onPress={() =>
-                  handleWeightChange(Math.min(200, set.weight + 2.5))
-                }
-              >
-                <Ionicons name="add" size={18} color={color} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* Tempo de descanso - sempre visível */}
-        <View style={styles.setMetricContainer}>
-          <View style={styles.setMetricHeader}>
-            <Ionicons
-              name="time-outline"
-              size={16}
-              color={color}
-              style={styles.setMetricIcon}
-            />
-            <Text style={[styles.setMetricLabel, { color: colors.text }]}>
-              {t("exercise.restTime", { defaultValue: "Descanso (s)" })}
-            </Text>
-          </View>
-
-          {/* Opções rápidas de tempo de descanso */}
-          <View style={styles.restTimeOptionsContainer}>
-            {restTimeOptions.map((time) => (
-              <TouchableOpacity
-                key={`rest-time-${time}`}
-                style={[
-                  styles.restTimeOption,
-                  {
-                    backgroundColor:
-                      parseInt(restTimeInput) === time ? color : color + "15",
-                  },
-                ]}
-                onPress={() => handleRestTimeChange(time)}
-              >
-                <Text
-                  style={[
-                    styles.restTimeOptionText,
-                    {
-                      color: parseInt(restTimeInput) === time ? "#FFF" : color,
-                    },
-                  ]}
-                >
-                  {time}s
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Input manual para tempo de descanso */}
-          <View
-            style={[
-              styles.setMetricControls,
-              {
-                backgroundColor: colors.background + "80",
-                borderRadius: 10,
-                marginTop: 8,
-              },
-            ]}
-          >
-            <TouchableOpacity
-              style={[
-                styles.setMetricButton,
-                { backgroundColor: color + "15" },
-              ]}
-              onPress={() =>
-                handleRestTimeChange(Math.max(0, (set.restTime || 60) - 5))
-              }
-            >
-              <Ionicons name="remove" size={18} color={color} />
-            </TouchableOpacity>
-
-            <TextInput
-              style={[styles.setMetricValue, { color: colors.text }]}
-              value={restTimeInput}
-              onChangeText={handleRestTimeInputChange}
-              onBlur={() => handleInputBlur("restTime")}
-              keyboardType="number-pad"
-              maxLength={3}
-              selectTextOnFocus
-            />
-
-            <TouchableOpacity
-              style={[
-                styles.setMetricButton,
-                { backgroundColor: color + "15" },
-              ]}
-              onPress={() =>
-                handleRestTimeChange(Math.min(300, (set.restTime || 60) + 5))
-              }
-            >
-              <Ionicons name="add" size={18} color={color} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-
-      {/* Conteúdo adicional que aparece somente quando expandido */}
+      {/* Todo o conteúdo agora fica dentro do MotiView expandido */}
       {expanded && (
         <MotiView
           from={{ opacity: 0, height: 0 }}
@@ -533,172 +328,288 @@ const SetCard = ({
             { borderTopColor: colors.border + "30" },
           ]}
         >
-          {/* Seção de intensidade com cartões visuais */}
+          {/* Container para repetições e peso lado a lado */}
+          <View style={styles.setMetricsRow}>
+            {/* Repetições */}
+            <View style={styles.setMetricContainer}>
+              <View style={styles.setMetricHeader}>
+                <Text style={[styles.setMetricLabel, { color: colors.text }]}>
+                  {t("exercise.repetitions")}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.setMetricControls,
+                  {
+                    backgroundColor: colors.background + "80",
+                    borderRadius: 10,
+                  },
+                ]}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.setMetricButton,
+                    { backgroundColor: color + "15" },
+                  ]}
+                  onPress={() => handleRepsChange(Math.max(1, set.reps - 1))}
+                >
+                  <Ionicons name="remove" size={18} color={color} />
+                </TouchableOpacity>
+
+                <TextInput
+                  style={[styles.setMetricValue, { color: colors.text }]}
+                  value={repsInput}
+                  onChangeText={handleRepsInputChange}
+                  onBlur={() => handleInputBlur("reps")}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  selectTextOnFocus
+                />
+
+                <TouchableOpacity
+                  style={[
+                    styles.setMetricButton,
+                    { backgroundColor: color + "15" },
+                  ]}
+                  onPress={() => handleRepsChange(Math.min(50, set.reps + 1))}
+                >
+                  <Ionicons name="add" size={18} color={color} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Peso */}
+            <View style={styles.setMetricContainer}>
+              <View style={styles.setMetricHeader}>
+                <Text style={[styles.setMetricLabel, { color: colors.text }]}>
+                  {t("exercise.weight")}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.setMetricControls,
+                  {
+                    backgroundColor: colors.background + "80",
+                    borderRadius: 10,
+                  },
+                ]}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.setMetricButton,
+                    { backgroundColor: color + "15" },
+                  ]}
+                  onPress={() =>
+                    handleWeightChange(Math.max(0, set.weight - 2.5))
+                  }
+                >
+                  <Ionicons name="remove" size={18} color={color} />
+                </TouchableOpacity>
+
+                <TextInput
+                  style={[styles.setMetricValue, { color: colors.text }]}
+                  value={weightInput}
+                  onChangeText={handleWeightInputChange}
+                  onBlur={() => handleInputBlur("weight")}
+                  keyboardType="decimal-pad"
+                  maxLength={5}
+                  selectTextOnFocus
+                />
+
+                <TouchableOpacity
+                  style={[
+                    styles.setMetricButton,
+                    { backgroundColor: color + "15" },
+                  ]}
+                  onPress={() =>
+                    handleWeightChange(Math.min(200, set.weight + 2.5))
+                  }
+                >
+                  <Ionicons name="add" size={18} color={color} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* Tempo de descanso */}
+          <View style={styles.setMetricContainer}>
+            <View style={styles.setMetricHeader}>
+              <Text style={[styles.setMetricLabel, { color: colors.text }]}>
+                {t("exercise.restTime", { defaultValue: "Descanso (s)" })}
+              </Text>
+            </View>
+
+            {/* Opções rápidas de tempo de descanso */}
+            <View style={styles.restTimeOptionsContainer}>
+              {restTimeOptions.map((time) => (
+                <TouchableOpacity
+                  key={`rest-time-${time}`}
+                  style={[
+                    styles.restTimeOption,
+                    {
+                      backgroundColor:
+                        parseInt(restTimeInput) === time ? color : color + "15",
+                    },
+                  ]}
+                  onPress={() => handleRestTimeChange(time)}
+                >
+                  <Text
+                    style={[
+                      styles.restTimeOptionText,
+                      {
+                        color:
+                          parseInt(restTimeInput) === time ? "#FFF" : color,
+                      },
+                    ]}
+                  >
+                    {time}s
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Input manual para tempo de descanso */}
+            <View
+              style={[
+                styles.setMetricControls,
+                {
+                  backgroundColor: colors.background + "80",
+                  borderRadius: 10,
+                  marginTop: 8,
+                },
+              ]}
+            >
+              <TouchableOpacity
+                style={[
+                  styles.setMetricButton,
+                  { backgroundColor: color + "15" },
+                ]}
+                onPress={() =>
+                  handleRestTimeChange(Math.max(60, (set.restTime || 60) - 5))
+                }
+              >
+                <Ionicons name="remove" size={18} color={color} />
+              </TouchableOpacity>
+
+              <TextInput
+                style={[styles.setMetricValue, { color: colors.text }]}
+                value={restTimeInput}
+                onChangeText={handleRestTimeInputChange}
+                onBlur={() => handleInputBlur("restTime")}
+                keyboardType="number-pad"
+                maxLength={3}
+                selectTextOnFocus
+              />
+
+              <TouchableOpacity
+                style={[
+                  styles.setMetricButton,
+                  { backgroundColor: color + "15" },
+                ]}
+                onPress={() =>
+                  handleRestTimeChange(Math.min(300, (set.restTime || 60) + 5))
+                }
+              >
+                <Ionicons name="add" size={18} color={color} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Seção de intensidade */}
           <View style={styles.expandedSection}>
             <Text style={[styles.expandedSectionTitle, { color: color }]}>
               {t("exercise.intensitySection")}
             </Text>
 
-            {/* Falha e Reserva em linha para uma visão mais compacta */}
-            <View style={styles.intensityCardsContainer}>
-              {/* Cartão: Falha Muscular */}
-              <TouchableOpacity
-                style={[
-                  styles.intensityCard,
-                  {
-                    backgroundColor: toFailure
-                      ? color + "25"
-                      : colors.background + "80",
-                    borderColor: toFailure ? color : colors.border + "50",
-                  },
-                ]}
-                onPress={toggleFailure}
-              >
-                <Ionicons
-                  name="flash"
-                  size={22}
-                  color={toFailure ? color : colors.text + "50"}
-                />
-                <Text
-                  style={[
-                    styles.intensityCardTitle,
-                    { color: toFailure ? color : colors.text },
-                  ]}
-                >
-                  {t("exercise.failureState.shortLabel")}
-                </Text>
-                <View
-                  style={[
-                    styles.failureSwitchTrack,
-                    { backgroundColor: toFailure ? color : colors.text + "30" },
-                  ]}
-                >
-                  <View
+            {/* Interface ultra simplificada: Apenas RIR */}
+            <View style={[styles.intensityContainer, { marginTop: 10 }]}>
+              <Text style={[styles.intensityLabel, { color: colors.text }]}>
+                {t("exercise.repsInReserveShort")}
+              </Text>
+              <View style={styles.intensityButtonsRow}>
+                {[0, 1, 2, 3, 4, 5].map((value) => (
+                  <TouchableOpacity
+                    key={`rir-${value}`}
                     style={[
-                      styles.failureSwitchThumb,
+                      styles.intensityButton,
                       {
-                        backgroundColor: "#FFF",
-                        transform: [{ translateX: toFailure ? 16 : 0 }],
+                        width: 36,
+                        height: 36,
+                        borderRadius: 18,
+                        justifyContent: "center",
+                        alignItems: "center",
+                        backgroundColor:
+                          repsInReserve === value
+                            ? value === 0
+                              ? "#F44336"
+                              : color
+                            : "transparent",
+                        borderWidth: 1,
+                        borderColor:
+                          repsInReserve === value
+                            ? value === 0
+                              ? "#F44336"
+                              : color
+                            : colors.border,
                       },
                     ]}
-                  />
-                </View>
-              </TouchableOpacity>
-
-              {/* Cartão: Reserva de Repetições */}
-              <View
-                style={[
-                  styles.intensityCard,
-                  {
-                    backgroundColor: colors.background + "80",
-                    borderColor: colors.border + "50",
-                    opacity: toFailure ? 0.5 : 1,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="fitness"
-                  size={22}
-                  color={toFailure ? colors.text + "30" : color}
-                />
-                <Text
-                  style={[styles.intensityCardTitle, { color: colors.text }]}
-                >
-                  {t("exercise.repsInReserveShort")}
-                </Text>
-                <View style={styles.intensityCardValues}>
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <TouchableOpacity
-                      key={`rir-${value}`}
-                      disabled={toFailure}
+                    onPress={() => handleRepsInReserveChange(value)}
+                  >
+                    <Text
                       style={[
-                        styles.intensityCardValue,
+                        styles.intensityButtonText,
                         {
-                          backgroundColor:
-                            !toFailure && repsInReserve === value
-                              ? color
-                              : colors.text + "10",
+                          color: repsInReserve === value ? "#FFF" : colors.text,
                         },
                       ]}
-                      onPress={() => handleRepsInReserveChange(value)}
                     >
-                      <Text
-                        style={[
-                          styles.intensityCardValueText,
-                          {
-                            color:
-                              !toFailure && repsInReserve === value
-                                ? "#FFF"
-                                : colors.text + "80",
-                          },
-                        ]}
-                      >
-                        {value}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                      {value}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
 
-            {/* Percepção de esforço - visualização melhorada */}
-            <View style={styles.perceivedEffortContainer}>
-              <View style={styles.perceivedEffortHeader}>
-                <Ionicons name={getEffortIcon()} size={18} color={color} />
-                <Text
-                  style={[styles.perceivedEffortTitle, { color: colors.text }]}
-                >
-                  {t("exercise.perceivedEffort.title")}
-                </Text>
-                <Text
-                  style={[styles.perceivedEffortValueText, { color: color }]}
-                >
-                  {perceivedEffort}
-                </Text>
-              </View>
-
-              <View style={styles.perceivedEffortLevels}>
+            {/* Percepção de esforço - ultra minimalista */}
+            <View style={[styles.intensityContainer, { marginTop: 15 }]}>
+              <Text style={[styles.intensityLabel, { color: colors.text }]}>
+                {t("exercise.perceivedEffort.title")}
+              </Text>
+              <View style={styles.intensityButtonsRow}>
                 {[1, 2, 3, 4, 5].map((level) => (
                   <TouchableOpacity
                     key={`effort-${level}`}
                     style={[
-                      styles.perceivedEffortLevel,
+                      styles.intensityButton,
                       {
+                        width: 36,
+                        height: 36,
+                        borderRadius: 18,
+                        justifyContent: "center",
+                        alignItems: "center",
                         backgroundColor:
-                          perceivedEffort === level ? color : colors.background,
+                          perceivedEffort === level ? color : "transparent",
+                        borderWidth: 1,
                         borderColor:
                           perceivedEffort === level ? color : colors.border,
-                        flex: 1,
                       },
                     ]}
                     onPress={() => handlePerceivedEffortChange(level)}
                   >
                     <Text
                       style={[
-                        styles.perceivedEffortLevelText,
+                        styles.intensityButtonText,
                         {
                           color:
-                            perceivedEffort === level
-                              ? "#FFF"
-                              : colors.text + "80",
+                            perceivedEffort === level ? "#FFF" : colors.text,
                         },
                       ]}
-                      numberOfLines={1}
                     >
                       {level}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
-
-              <Text
-                style={[
-                  styles.perceivedEffortDescription,
-                  { color: colors.text },
-                ]}
-              >
-                {getPerceiveEffortLabel()}
-              </Text>
             </View>
           </View>
         </MotiView>
@@ -722,7 +633,7 @@ const CardioCard = ({
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   const toggleExpanded = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -779,12 +690,6 @@ const CardioCard = ({
         <View style={styles.cardioCardContent}>
           <View style={styles.cardioMetricContainer}>
             <View style={styles.cardioMetricHeader}>
-              <Ionicons
-                name="time-outline"
-                size={16}
-                color={color}
-                style={styles.cardioMetricIcon}
-              />
               <Text style={[styles.cardioMetricLabel, { color: colors.text }]}>
                 {t("exercise.cardioConfig.duration")}
               </Text>
@@ -807,12 +712,6 @@ const CardioCard = ({
 
           <View style={styles.cardioMetricContainer}>
             <View style={styles.cardioMetricHeader}>
-              <Ionicons
-                name="speedometer-outline"
-                size={16}
-                color={color}
-                style={styles.cardioMetricIcon}
-              />
               <Text style={[styles.cardioMetricLabel, { color: colors.text }]}>
                 {t("exercise.cardioConfig.intensity")}
               </Text>
@@ -1108,7 +1007,12 @@ const ExerciseDetailsScreen = () => {
                       mode === "edit" && styles.exerciseNameEdit,
                     ]}
                   >
-                    {exercise ? t(`exercises.exercises.${exercise.id}`) : ""}
+                    {exercise &&
+                    exercise.id &&
+                    exercise.id.startsWith("ex") &&
+                    exercise.id.length <= 6
+                      ? t(`exercises.exercises.${exercise.id}`)
+                      : exercise?.name || ""}
                   </Text>
                 )}
 
@@ -1125,6 +1029,12 @@ const ExerciseDetailsScreen = () => {
                         { backgroundColor: workoutColor + "15" },
                       ]}
                     >
+                      <Ionicons
+                        name="body-outline"
+                        size={14}
+                        color={workoutColor}
+                        style={styles.exerciseDetailTagIcon}
+                      />
                       <Text
                         style={[
                           styles.exerciseDetailTagText,
@@ -1132,6 +1042,28 @@ const ExerciseDetailsScreen = () => {
                         ]}
                       >
                         {t(`exercises.muscles.${exercise.muscle}`)}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.exerciseDetailTag,
+                        { backgroundColor: workoutColor + "15" },
+                      ]}
+                    >
+                      <Ionicons
+                        name="barbell-outline"
+                        size={14}
+                        color={workoutColor}
+                        style={styles.exerciseDetailTagIcon}
+                      />
+                      <Text
+                        style={[
+                          styles.exerciseDetailTagText,
+                          { color: workoutColor },
+                        ]}
+                      >
+                        {t(`exercises.equipment.${exercise.equipment}`)}
                       </Text>
                     </View>
                   </View>
@@ -1145,17 +1077,31 @@ const ExerciseDetailsScreen = () => {
                   mode === "edit" && styles.configContainerEdit,
                 ]}
               >
-                <Text
-                  style={[
-                    styles.configTitle,
-                    { color: workoutColor },
-                    mode === "edit" && styles.configTitleEdit,
-                  ]}
-                >
-                  {exercise?.category === "cardio"
-                    ? t("exercise.configuration")
-                    : t("exercise.sets")}
-                </Text>
+                <View style={styles.configTitleContainer}>
+                  <Text
+                    style={[
+                      styles.configTitle,
+                      { color: workoutColor },
+                      mode === "edit" && styles.configTitleEdit,
+                    ]}
+                  >
+                    {exercise?.category === "cardio"
+                      ? t("exercise.configuration")
+                      : t("exercise.sets")}
+                  </Text>
+
+                  {exercise?.category !== "cardio" && (
+                    <TouchableOpacity
+                      style={[
+                        styles.addSetButtonMini,
+                        { backgroundColor: workoutColor },
+                      ]}
+                      onPress={addNewSet}
+                    >
+                      <Ionicons name="add" size={20} color="#FFF" />
+                    </TouchableOpacity>
+                  )}
+                </View>
 
                 {exercise?.category === "cardio" ? (
                   <CardioCard
@@ -1181,32 +1127,6 @@ const ExerciseDetailsScreen = () => {
                         color={workoutColor}
                       />
                     ))}
-
-                    <TouchableOpacity
-                      style={[
-                        styles.addSetButton,
-                        {
-                          borderColor: workoutColor + "40",
-                          backgroundColor: workoutColor + "10",
-                        },
-                        mode === "edit" && styles.addSetButtonEdit,
-                      ]}
-                      onPress={addNewSet}
-                    >
-                      <Ionicons
-                        name="add-circle-outline"
-                        size={18}
-                        color={workoutColor}
-                      />
-                      <Text
-                        style={[
-                          styles.addSetButtonText,
-                          { color: workoutColor },
-                        ]}
-                      >
-                        {t("exercise.addSet")}
-                      </Text>
-                    </TouchableOpacity>
                   </View>
                 )}
 
@@ -1399,10 +1319,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
   },
+  exerciseDetailsEdit: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 10,
+  },
   exerciseDetailTag: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  exerciseDetailTagIcon: {
+    marginRight: 6,
   },
   exerciseDetailTagText: {
     fontSize: 13,
@@ -1430,20 +1361,20 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   configContainer: {
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     paddingTop: 0,
     marginBottom: 24,
   },
   configTitle: {
     fontSize: 20,
     fontWeight: "700",
-    marginBottom: 16,
+    marginBottom: 0,
     letterSpacing: -0.5,
-    paddingHorizontal: 4,
+    paddingHorizontal: 0,
   },
   setsContainer: {
     marginBottom: 30,
-    gap: 16,
+    gap: 8,
   },
   setCard: {
     borderRadius: 16,
@@ -1453,13 +1384,14 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     overflow: "hidden",
-    marginBottom: 12,
+    marginBottom: 6,
   },
   setCardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
+    padding: 18,
+    paddingBottom: 20,
   },
   setCardHeaderLeft: {
     flexDirection: "row",
@@ -1484,8 +1416,9 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   setNumberText: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 17,
+    fontWeight: "700",
+    marginBottom: 3,
   },
   headerActionButton: {
     width: 36,
@@ -1501,7 +1434,7 @@ const styles = StyleSheet.create({
   },
   setCardBasicContent: {
     padding: 16,
-    paddingTop: 0,
+    paddingTop: 6,
     gap: 16,
   },
   setCardExpandedContent: {
@@ -1518,38 +1451,24 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 4,
   },
-  intensityCardsContainer: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 6,
+  intensityContainer: {
+    marginTop: 10,
   },
-  intensityCard: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    gap: 8,
-    borderWidth: 1,
-  },
-  intensityCardTitle: {
-    fontSize: 13,
+  intensityLabel: {
+    fontSize: 14,
     fontWeight: "600",
   },
-  intensityCardValues: {
+  intensityButtonsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    width: "100%",
-    gap: 4,
+    marginTop: 10,
+    paddingHorizontal: 5,
   },
-  intensityCardValue: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
+  intensityButton: {
+    // Estilos serão aplicados inline
   },
-  intensityCardValueText: {
-    fontSize: 12,
+  intensityButtonText: {
+    fontSize: 14,
     fontWeight: "600",
   },
   perceivedEffortContainer: {
@@ -1670,22 +1589,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 4,
   },
-  intensityLabel: {
-    fontSize: 12,
-    opacity: 0.7,
-  },
   exerciseNameEdit: {
     fontSize: 22,
     fontWeight: "700",
     textAlign: "center",
     marginBottom: 16,
     letterSpacing: -0.5,
-  },
-  exerciseDetailsEdit: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: 10,
   },
   descriptionContainerEdit: {
     marginHorizontal: 10,
@@ -1703,10 +1612,6 @@ const styles = StyleSheet.create({
   setsContainerEdit: {
     marginBottom: 15,
     gap: 8,
-  },
-  addSetButtonEdit: {
-    padding: 14,
-    marginTop: 8,
   },
   configTitleEdit: {
     fontSize: 18,
@@ -1729,7 +1634,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   setMetricLabel: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
   },
   setMetricControls: {
@@ -1822,29 +1727,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  addSetButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    marginTop: 10,
-  },
-  addSetButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-    marginLeft: 8,
-  },
   notesContainer: {
     marginTop: 12,
     marginBottom: 16,
   },
   notesLabel: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "600",
-    marginBottom: 8,
+    marginBottom: 10,
     paddingHorizontal: 4,
   },
   notesInput: {
@@ -1853,5 +1743,25 @@ const styles = StyleSheet.create({
     fontSize: 15,
     minHeight: 80,
     textAlignVertical: "top",
+  },
+  configTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 15,
+    paddingHorizontal: 0,
+  },
+  addSetButtonMini: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+    marginRight: 4,
   },
 });

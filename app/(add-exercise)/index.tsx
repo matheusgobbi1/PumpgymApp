@@ -176,7 +176,11 @@ const ExerciseCard = ({
           style={[styles.exerciseName, { color: colors.text }]}
           numberOfLines={2}
         >
-          {t(`exercises.exercises.${exercise.id}`)}
+          {exercise.id &&
+          exercise.id.startsWith("ex") &&
+          exercise.id.length <= 6
+            ? t(`exercises.exercises.${exercise.id}`)
+            : exercise.name}
         </Text>
 
         <View style={styles.exerciseDetails}>
@@ -497,7 +501,11 @@ export default function AddExerciseScreen() {
         >
           <View style={styles.exerciseInfo}>
             <Text style={[styles.exerciseName, { color: colors.text }]}>
-              {t(`exercises.exercises.${exercise.id}`)}
+              {exercise.id &&
+              exercise.id.startsWith("ex") &&
+              exercise.id.length <= 6
+                ? t(`exercises.exercises.${exercise.id}`)
+                : exercise.name}
             </Text>
             <Text
               style={[styles.exerciseCategory, { color: colors.text + "80" }]}

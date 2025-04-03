@@ -30,6 +30,27 @@ export default function WeightGoalScreen() {
   const [error, setError] = useState("");
   const [weightDifference, setWeightDifference] = useState<string>("");
 
+  // Formatar o peso atual para exibição
+  const currentWeightFormatted = nutritionInfo.weight
+    ? `${nutritionInfo.weight} kg`
+    : "";
+
+  // Gerar um placeholder baseado no objetivo do usuário
+  const getWeightSuggestion = () => {
+    if (!nutritionInfo.weight) return "ex: 70";
+
+    if (nutritionInfo.goal === "lose") {
+      // Para perda de peso, sugerir 10% abaixo do peso atual (arredondado)
+      return `ex: ${Math.round(nutritionInfo.weight * 0.9)}`;
+    } else if (nutritionInfo.goal === "gain") {
+      // Para ganho de peso, sugerir 10% acima do peso atual (arredondado)
+      return `ex: ${Math.round(nutritionInfo.weight * 1.1)}`;
+    } else {
+      // Para manter, sugerir o peso atual
+      return `ex: ${nutritionInfo.weight}`;
+    }
+  };
+
   // Função para atualizar a diferença de peso quando o peso alvo muda
   const updateWeightDifference = (value: string) => {
     setTargetWeight(value);
@@ -149,7 +170,7 @@ export default function WeightGoalScreen() {
             label={t("onboarding.weightGoal.targetWeight")}
             value={targetWeight}
             onChangeText={updateWeightDifference}
-            placeholder="70"
+            placeholder={getWeightSuggestion()}
             keyboardType="numeric"
             rightIcon="scale-outline"
             iconColor={colors.primary}
@@ -170,63 +191,61 @@ export default function WeightGoalScreen() {
                 {
                   backgroundColor:
                     theme === "dark"
-                      ? "rgba(28, 154, 190, 0.1)"
+                      ? "rgba(28, 154, 190, 0.08)"
                       : "rgba(255, 255, 255, 0.95)",
-                  borderRadius: 16,
-                  padding: 20,
+                  borderRadius: 12,
+                  padding: 16,
                   borderWidth: 1,
-                  borderColor: safeColorWithOpacity(getDifferenceColor(), 0.3),
+                  borderColor: safeColorWithOpacity(getDifferenceColor(), 0.2),
                   shadowColor: theme === "dark" ? "#000" : colors.text,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: theme === "dark" ? 0.3 : 0.1,
-                  shadowRadius: 8,
-                  elevation: 5,
-                  overflow: "hidden",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: theme === "dark" ? 0.2 : 0.05,
+                  shadowRadius: 4,
+                  elevation: 2,
                 },
               ]}
-              from={{ opacity: 0, scale: 0.9, translateY: 10 }}
-              animate={{ opacity: 1, scale: 1, translateY: 0 }}
-              transition={{ type: "spring", delay: 300 }}
+              from={{ opacity: 0, translateY: 5 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 300 }}
             >
-              <View style={styles.iconContainer}>
+              <View style={styles.differenceHeader}>
                 <Ionicons
                   name={
                     isDifferencePositive()
-                      ? "trending-up"
+                      ? "trending-up-outline"
                       : isDifferenceNegative()
-                      ? "trending-down"
-                      : "remove"
+                      ? "trending-down-outline"
+                      : "remove-outline"
                   }
-                  size={32}
+                  size={22}
                   color={getDifferenceColor()}
-                  style={{ marginBottom: 8 }}
                 />
+                <Text
+                  style={[
+                    styles.differenceText,
+                    {
+                      color: getDifferenceColor(),
+                      fontWeight: "600",
+                      marginLeft: 8,
+                    },
+                  ]}
+                >
+                  {isDifferencePositive()
+                    ? t("onboarding.weightGoal.weightDifference.gain", {
+                        weight: weightDifference,
+                      })
+                    : isDifferenceNegative()
+                    ? t("onboarding.weightGoal.weightDifference.lose", {
+                        weight: getAbsoluteDifference(),
+                      })
+                    : t("onboarding.weightGoal.weightDifference.maintain")}
+                </Text>
               </View>
 
               <Text
                 style={[
-                  styles.differenceText,
-                  {
-                    color: getDifferenceColor(),
-                    fontWeight: "700",
-                  },
-                ]}
-              >
-                {isDifferencePositive()
-                  ? t("onboarding.weightGoal.weightDifference.gain", {
-                      weight: weightDifference,
-                    })
-                  : isDifferenceNegative()
-                  ? t("onboarding.weightGoal.weightDifference.lose", {
-                      weight: getAbsoluteDifference(),
-                    })
-                  : t("onboarding.weightGoal.weightDifference.maintain")}
-              </Text>
-
-              <Text
-                style={[
                   styles.differenceDescription,
-                  { color: safeColorWithOpacity(colors.text, 0.56) },
+                  { color: colors.text, opacity: 0.7 },
                 ]}
               >
                 {isDifferencePositive()
@@ -240,42 +259,43 @@ export default function WeightGoalScreen() {
 
               <View
                 style={[
-                  styles.differenceFooter,
+                  styles.recommendationContainer,
                   {
-                    borderTopColor:
-                      theme === "dark"
-                        ? "rgba(255, 255, 255, 0.05)"
-                        : "rgba(0, 0, 0, 0.05)",
                     backgroundColor:
                       theme === "dark"
-                        ? "rgba(0, 0, 0, 0.2)"
-                        : "rgba(0, 0, 0, 0.02)",
+                        ? "rgba(0, 0, 0, 0.15)"
+                        : "rgba(0, 0, 0, 0.03)",
+                    borderRadius: 8,
+                    padding: 10,
+                    marginTop: 12,
                   },
                 ]}
               >
-                <Ionicons
-                  name="information-circle-outline"
-                  size={16}
-                  color={safeColorWithOpacity(colors.text, 0.44)}
-                />
-                <Text
-                  style={[
-                    styles.footerText,
-                    { color: safeColorWithOpacity(colors.text, 0.44) },
-                  ]}
-                >
-                  {isDifferencePositive()
-                    ? t(
-                        "onboarding.weightGoal.weightDifference.gainRecommendation"
-                      )
-                    : isDifferenceNegative()
-                    ? t(
-                        "onboarding.weightGoal.weightDifference.loseRecommendation"
-                      )
-                    : t(
-                        "onboarding.weightGoal.weightDifference.maintainRecommendation"
-                      )}
-                </Text>
+                <View style={styles.recommendationRow}>
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={15}
+                    color={safeColorWithOpacity(colors.text, 0.6)}
+                  />
+                  <Text
+                    style={[
+                      styles.recommendationText,
+                      { color: safeColorWithOpacity(colors.text, 0.6) },
+                    ]}
+                  >
+                    {isDifferencePositive()
+                      ? t(
+                          "onboarding.weightGoal.weightDifference.gainRecommendation"
+                        )
+                      : isDifferenceNegative()
+                      ? t(
+                          "onboarding.weightGoal.weightDifference.loseRecommendation"
+                        )
+                      : t(
+                          "onboarding.weightGoal.weightDifference.maintainRecommendation"
+                        )}
+                  </Text>
+                </View>
               </View>
             </MotiView>
           )}
@@ -290,35 +310,32 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   differenceContainer: {
-    marginTop: 24,
-    alignItems: "center",
+    marginTop: 20,
+    width: "100%",
   },
-  iconContainer: {
+  differenceHeader: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
   },
   differenceText: {
-    fontSize: 22,
+    fontSize: 16,
     fontWeight: "600",
-    marginBottom: 8,
   },
   differenceDescription: {
-    fontSize: 15,
-    textAlign: "center",
-    marginBottom: 16,
+    fontSize: 14,
+    marginBottom: 8,
   },
-  differenceFooter: {
+  recommendationContainer: {
+    width: "100%",
+  },
+  recommendationRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 12,
-    paddingBottom: 8,
-    borderTopWidth: 1,
-    marginHorizontal: -20,
-    marginBottom: -20,
-    paddingHorizontal: 20,
   },
-  footerText: {
+  recommendationText: {
     fontSize: 13,
     marginLeft: 6,
+    flex: 1,
   },
 });

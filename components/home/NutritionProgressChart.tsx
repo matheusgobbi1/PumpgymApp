@@ -17,6 +17,7 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import InfoModal, { InfoItem } from "../common/InfoModal";
+import { useNutrition } from "../../context/NutritionContext";
 
 const { width } = Dimensions.get("window");
 
@@ -33,6 +34,7 @@ export default function NutritionProgressChart({
   const colors = Colors[theme];
   const { meals, getDayTotals } = useMeals();
   const { t } = useTranslation();
+  const { nutritionInfo } = useNutrition();
 
   const [selectedPeriod, setSelectedPeriod] = useState<Period>("7d");
   const [caloriesData, setCaloriesData] = useState<number[]>([]);
@@ -497,10 +499,10 @@ export default function NutritionProgressChart({
                   style={[styles.statLabel, { color: colors.text }]}
                   numberOfLines={1}
                 >
-                  {t("home.chart.average")}
+                  {t("home.chart.target")}
                 </Text>
                 <Text style={[styles.statValue, { color: colors.text }]}>
-                  {averageCalories}{" "}
+                  {nutritionInfo.calories || 0}{" "}
                   <Text
                     style={[styles.statUnit, { color: colors.text + "60" }]}
                   >

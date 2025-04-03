@@ -3,7 +3,7 @@ import { View, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
-import { useColorScheme } from "react-native";
+import { useTheme } from "../../context/ThemeContext";
 import { useNutrition, Goal } from "../../context/NutritionContext";
 import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
 import SelectionOption from "../../components/onboarding/SelectionOption";
@@ -11,8 +11,8 @@ import { useTranslation } from "react-i18next";
 
 export default function GoalScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme() ?? "light";
-  const colors = Colors[colorScheme];
+  const { theme } = useTheme();
+  const colors = Colors[theme];
   const { nutritionInfo, updateNutritionInfo } = useNutrition();
   const { t } = useTranslation();
   const [selectedGoal, setSelectedGoal] = useState<Goal | undefined>(
@@ -38,7 +38,7 @@ export default function GoalScreen() {
       icon: (
         <Ionicons
           name="trending-down-outline"
-          size={28}
+          size={24}
           color={selectedGoal === "lose" ? colors.primary : colors.text}
         />
       ),
@@ -50,7 +50,7 @@ export default function GoalScreen() {
       icon: (
         <Ionicons
           name="reorder-two-outline"
-          size={28}
+          size={24}
           color={selectedGoal === "maintain" ? colors.primary : colors.text}
         />
       ),
@@ -62,7 +62,7 @@ export default function GoalScreen() {
       icon: (
         <Ionicons
           name="trending-up-outline"
-          size={28}
+          size={24}
           color={selectedGoal === "gain" ? colors.primary : colors.text}
         />
       ),

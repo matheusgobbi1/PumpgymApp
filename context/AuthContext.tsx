@@ -13,8 +13,6 @@ import {
   fetchSignInMethodsForEmail,
   getIdToken,
   signInAnonymously as signInAnonymouslyFirebase,
-  linkWithCredential,
-  EmailAuthProvider,
   updateProfile,
   type User as FirebaseUser,
   type Auth as FirebaseAuth,

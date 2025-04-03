@@ -429,11 +429,11 @@ export default function WorkoutCard({
                     {exercise.sets[0].reps}
                   </Text>
                   {"   "}
-                  <Ionicons
-                    name="time-outline"
-                    size={14}
-                    color={colors.text + "80"}
-                  />{" "}
+                  <Text
+                    style={[styles.macroText, { color: colors.text + "80" }]}
+                  >
+                    T{" "}
+                  </Text>
                   <Text style={[styles.macroNumber, { color: colors.text }]}>
                     {exercise.sets[0].restTime || 60}s
                   </Text>
@@ -441,11 +441,11 @@ export default function WorkoutCard({
               </View>
             ) : (
               <View style={styles.cardioContainer}>
-                <Ionicons
-                  name="time-outline"
-                  size={16}
-                  color={colors.text + "80"}
-                />
+                <Text
+                  style={[styles.cardioText, { color: colors.text + "80" }]}
+                >
+                  T{" "}
+                </Text>
                 <Text style={[styles.cardioText, { color: colors.text }]}>
                   {exercise.cardioDuration} min
                 </Text>
@@ -461,12 +461,6 @@ export default function WorkoutCard({
             />
           </View>
         </TouchableOpacity>
-
-        {exerciseIndex < exercises.length - 1 && (
-          <View
-            style={[styles.separator, { backgroundColor: colors.border }]}
-          />
-        )}
 
         {/* Exibir detalhes das séries quando o exercício estiver expandido */}
         {expandedExercises[exercise.id] &&

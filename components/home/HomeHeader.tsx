@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: Platform.OS === "ios" ? 10 : 10,
     paddingBottom: 20,
-    height: Platform.OS === "ios" ? 90 : 80, // Garantir altura fixa
+    height: Platform.OS === "ios" ? 70 : 60, // Garantir altura fixa
   },
   content: {
     flexDirection: "row",

@@ -22,8 +22,6 @@ export default function Profile() {
   const { nutritionInfo } = useNutrition();
   const { user } = useAuth();
 
-
-
   // Função para navegar para a edição do perfil
   const handleEditProfilePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -36,14 +34,11 @@ export default function Profile() {
     toggleTheme();
   };
 
-
   // Função para navegar para a tela sobre nós
   const handleAboutPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push("/about-modal");
   };
-
-
 
   // Obter status do plano nutricional
   const getNutritionStatus = () => {

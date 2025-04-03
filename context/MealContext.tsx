@@ -117,7 +117,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       // Limpar dados quando não houver usuário (logout)
       resetState();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid]); // Usar user.uid como dependência para detectar mudança de usuário
 
   // Carregar histórico de busca

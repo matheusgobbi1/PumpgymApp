@@ -20,6 +20,7 @@ import ConfirmationModal from "../ui/ConfirmationModal";
 import { useTranslation } from "react-i18next";
 import i18n from "../../i18n";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface ProfileOptionsCardProps {
   onThemeToggle: () => void;
@@ -34,6 +35,8 @@ export default function ProfileOptionsCard({
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { signOut } = useAuth();
+  const { currentLanguage, changeLanguage, isSwitchingLanguage } =
+    useLanguage();
 
   // Estado para controlar a visibilidade dos modais
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
@@ -45,11 +48,8 @@ export default function ProfileOptionsCard({
   // Função para alternar o idioma
   const toggleLanguage = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const currentLang = i18n.language;
-    const newLang = currentLang === "pt-BR" ? "en-US" : "pt-BR";
-
-    await AsyncStorage.setItem("userLanguage", newLang);
-    await i18n.changeLanguage(newLang);
+    const newLang = currentLanguage === "pt-BR" ? "en-US" : "pt-BR";
+    await changeLanguage(newLang);
   };
 
   // Função para mostrar o modal de confirmação de logout
@@ -128,7 +128,7 @@ export default function ProfileOptionsCard({
             />
           </View>
           <Text style={[styles.optionText, { color: colors.text }]}>
-            {i18n.language === "pt-BR" ? "English" : "Português"}
+            {currentLanguage === "pt-BR" ? "English" : "Português"}
           </Text>
           <View
             style={[
@@ -137,7 +137,7 @@ export default function ProfileOptionsCard({
             ]}
           >
             <Text style={[styles.languageCode, { color: colors.primary }]}>
-              {i18n.language === "pt-BR" ? "PT" : "EN"}
+              {currentLanguage === "pt-BR" ? "PT" : "EN"}
             </Text>
           </View>
         </TouchableOpacity>

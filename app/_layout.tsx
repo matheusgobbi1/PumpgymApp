@@ -16,6 +16,7 @@ import { ReminderProvider } from "../context/ReminderContext";
 import { LanguageProvider } from "../context/LanguageContext";
 import { MealProvider } from "../context/MealContext";
 import "../i18n"; // Importando a configuração i18n
+import i18n, { getLanguageStatus } from "../i18n"; // Importar getLanguageStatus para depuração
 import "../firebase/config";
 import OfflineNotice from "../components/notifications/OfflineNotice";
 import Colors from "../constants/Colors";
@@ -27,6 +28,32 @@ export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from "expo-router";
+
+// Componente para carregar o idioma antes da renderização da aplicação
+function LanguageInitializer() {
+  useEffect(() => {
+    const initLanguage = async () => {
+      try {
+        const savedLanguage = await AsyncStorage.getItem("userLanguage");
+        if (savedLanguage && savedLanguage !== i18n.language) {
+          await i18n.changeLanguage(savedLanguage);
+          console.log("Idioma inicializado em _layout:", savedLanguage);
+        } else {
+          console.log("Idioma atual mantido:", i18n.language);
+        }
+      } catch (error) {
+        console.error("Erro ao inicializar idioma:", error);
+      }
+    };
+
+    initLanguage();
+
+    // Imprimir status do i18n para depuração
+    console.log("Status i18n:", getLanguageStatus());
+  }, []);
+
+  return null;
+}
 
 export default function RootLayout() {
   useEffect(() => {
@@ -83,6 +110,7 @@ export default function RootLayout() {
         <ThemeProvider>
           <AuthProvider>
             <LanguageProvider>
+              <LanguageInitializer />
               <BottomSheetModalProvider>
                 <NutritionProvider>
                   <MealProvider>

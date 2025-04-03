@@ -73,7 +73,9 @@
     "goals": {
       "lose": "Lose Weight",
       "maintain": "Maintain Weight",
-      "gain": "Gain Mass"
+      "gain": "Gain Mass",
+      "title": "Goal",
+      "targetWeight": "Target Weight"
     },
     "activityLevels": {
       "sedentary": "Sedentary",
@@ -82,6 +84,7 @@
       "intense": "Intense",
       "athlete": "Athlete"
     },
+    "activityLevel": "Activity Level",
     "dietTypes": {
       "classic": "Classic",
       "vegetarian": "Vegetarian",
@@ -283,6 +286,10 @@
       "subtitle": "This will be used to calibrate your personalized plan",
       "height": "Height (cm)",
       "weight": "Weight (kg)",
+      "imperial": "Imperial",
+      "metric": "Metric",
+      "feet": "Feet",
+      "inches": "Inches",
       "validation": {
         "invalidHeight": "Please enter a valid height",
         "invalidWeight": "Please enter a valid weight",
@@ -312,6 +319,7 @@
       "title": "What is your ideal weight?",
       "subtitle": "Set a realistic goal to achieve your objectives",
       "targetWeight": "Target weight (kg)",
+      "currentWeight": "Current weight",
       "weightDifference": {
         "gain": "Gain {{weight}} kg",
         "lose": "Lose {{weight}} kg",
@@ -430,6 +438,7 @@
     "title": "Your Personalized Plan",
     "profile": {
       "title": "Profile",
+      "subtitle": "Your Physical Data",
       "activityLevel": "Activity Level"
     },
     "goal": {
@@ -443,7 +452,7 @@
       "needsImprovement": "Let's improve your habits!"
     },
     "dailyNeeds": {
-      "title": "Daily Needs",
+      "title": "Nutrition",
       "calories": {
         "title": "Daily Calories",
         "deficit": "Caloric deficit for weight loss",
@@ -541,7 +550,7 @@
     "notes": "Notes",
     "notesPlaceholder": "Add notes about the exercise...",
     "addToWorkout": "Add to",
-    "restTime": "Rest time (s)",
+    "restTime": "Rest time",
     "cardioConfig": {
       "title": "Cardio Configuration",
       "duration": "Duration (minutes)",
@@ -761,7 +770,7 @@
       "last14Days": "Last 14 days",
       "lastMonth": "Last month",
       "noNutritionData": "Add meals to see nutrition data",
-      "average": "Average",
+      "target": "Target",
       "today": "Today",
       "maximum": "Maximum"
     },

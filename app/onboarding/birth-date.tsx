@@ -187,9 +187,7 @@ export default function BirthDateScreen() {
                     {
                       backgroundColor:
                         selectedMonth === index
-                          ? theme === "dark"
-                            ? "rgba(28, 154, 190, 0.1)"
-                            : "rgba(28, 154, 190, 0.05)"
+                          ? colors.primary + "20"
                           : "transparent",
                       borderWidth: selectedMonth === index ? 2 : 0,
                       borderColor:
@@ -260,9 +258,7 @@ export default function BirthDateScreen() {
                     {
                       backgroundColor:
                         selectedDay === day
-                          ? theme === "dark"
-                            ? "rgba(28, 154, 190, 0.1)"
-                            : "rgba(28, 154, 190, 0.05)"
+                          ? colors.primary + "20"
                           : "transparent",
                       borderWidth: selectedDay === day ? 2 : 0,
                       borderColor:
@@ -329,9 +325,7 @@ export default function BirthDateScreen() {
                     {
                       backgroundColor:
                         selectedYear === year
-                          ? theme === "dark"
-                            ? "rgba(28, 154, 190, 0.1)"
-                            : "rgba(28, 154, 190, 0.05)"
+                          ? colors.primary + "20"
                           : "transparent",
                       borderWidth: selectedYear === year ? 2 : 0,
                       borderColor:

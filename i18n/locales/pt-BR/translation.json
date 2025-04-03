@@ -61,7 +61,7 @@
     "nutrition": {
       "calories": "Calorias",
       "protein": "Proteína",
-      "carbs": "Carboidratos",
+      "carbs": "Carbs",
       "fat": "Gorduras",
       "water": "Água",
       "macros": "Macronutrientes",
@@ -73,7 +73,9 @@
     "goals": {
       "lose": "Perder Peso",
       "maintain": "Manter Peso",
-      "gain": "Ganhar Massa"
+      "gain": "Ganhar Massa",
+      "title": "Objetivo",
+      "targetWeight": "Peso Alvo"
     },
     "activityLevels": {
       "sedentary": "Sedentário",
@@ -82,6 +84,7 @@
       "intense": "Intenso",
       "athlete": "Atleta"
     },
+    "activityLevel": "Nível de Atividade",
     "dietTypes": {
       "classic": "Clássica",
       "vegetarian": "Vegetariana",
@@ -307,6 +310,10 @@
       "subtitle": "Isso será usado para calibrar seu plano personalizado",
       "height": "Altura (cm)",
       "weight": "Peso (kg)",
+      "imperial": "Imperial",
+      "metric": "Métrico",
+      "feet": "Pés",
+      "inches": "inches",
       "validation": {
         "invalidHeight": "Por favor, insira uma altura válida",
         "invalidWeight": "Por favor, insira um peso válido",
@@ -336,6 +343,7 @@
       "title": "Qual é o seu peso ideal?",
       "subtitle": "Defina uma meta realista para alcançar seus objetivos",
       "targetWeight": "Peso meta (kg)",
+      "currentWeight": "Peso atual",
       "weightDifference": {
         "gain": "Ganhar {{weight}} kg",
         "lose": "Perder {{weight}} kg",
@@ -454,6 +462,7 @@
     "title": "Seu Plano Personalizado",
     "profile": {
       "title": "Perfil",
+      "subtitle": "Seus Dados Físicos",
       "activityLevel": "Nível de Atividade"
     },
     "goal": {
@@ -467,7 +476,7 @@
       "needsImprovement": "Vamos melhorar seus hábitos!"
     },
     "dailyNeeds": {
-      "title": "Necessidades Diárias",
+      "title": "Nutrição",
       "calories": {
         "title": "Calorias Diárias",
         "deficit": "Déficit calórico para perda de peso",
@@ -565,7 +574,7 @@
     "notes": "Observações",
     "notesPlaceholder": "Adicione observações sobre o exercício...",
     "addToWorkout": "Adicionar ao",
-    "restTime": "Descanso (s)",
+    "restTime": "Descanso",
     "progressSuggestion": {
       "increaseReps": "Tente aumentar de {{current}} para {{target}} repetições no {{name}}",
       "increaseWeight": "Experimente aumentar o peso de {{current}}kg para {{target}}kg no {{name}}"
@@ -602,7 +611,7 @@
     "collapseSet": "Recolher série",
     "expandSet": "Expandir série",
     "notes": "Anotações",
-    "restTime": "Tempo de descanso (s)",
+    "restTime": "Tempo de descanso",
     "addToWorkout": "Adicionar ao",
     "exerciseNamePlaceholder": "Nome do exercício",
     "notesPlaceholder": "Adicione anotações sobre o exercício...",
@@ -837,7 +846,7 @@
       "last14Days": "Últimos 14 dias",
       "lastMonth": "Último mês",
       "noNutritionData": "Adicione refeições para ver dados de nutrição",
-      "average": "Média",
+      "target": "Meta",
       "today": "Hoje",
       "maximum": "Máximo"
     },

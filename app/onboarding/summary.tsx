@@ -12,18 +12,16 @@ import {
 } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
-import Button from "../../components/common/Button";
 import { useNutrition } from "../../context/NutritionContext";
 import { useAuth } from "../../context/AuthContext";
-import CircularProgress from "react-native-circular-progress-indicator";
 import { OfflineStorage } from "../../services/OfflineStorage";
 import { MotiView } from "moti";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
-import { BlurView } from "expo-blur";
+import Svg, { Circle } from "react-native-svg";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -220,6 +218,107 @@ export default function SummaryScreen() {
     fat: calculateMacroPercentage(getMacroCalories.fat),
   };
 
+  const getGoalChipColor = () => {
+    switch (nutritionInfo.goal) {
+      case "lose":
+        return "#EF476F"; // Vermelho para perda de peso
+      case "maintain":
+        return "#06D6A0"; // Verde para manutenção
+      case "gain":
+        return "#118AB2"; // Azul para ganho
+      default:
+        return colors.primary;
+    }
+  };
+
+  // Componente de círculo de progresso para métricas (similar ao do ConsistencyScoreCard)
+  const CircularProgress = ({
+    percentage,
+    color,
+    size = 36,
+    iconName,
+  }: {
+    percentage: number;
+    color: string;
+    size?: number;
+    iconName: keyof typeof MaterialCommunityIcons.glyphMap;
+  }) => {
+    const strokeWidth = size * 0.1;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = radius * 2 * Math.PI;
+    const strokeDashoffset = circumference - (percentage / 100) * circumference;
+    const iconSize = size * 0.45;
+
+    return (
+      <View
+        style={{
+          width: size,
+          height: size,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {/* Background Circle */}
+        <Svg width={size} height={size} style={{ position: "absolute" }}>
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke={color + "20"}
+            strokeWidth={strokeWidth}
+            fill="transparent"
+          />
+        </Svg>
+
+        {/* Progress Circle */}
+        <MotiView
+          from={{ opacity: 0, rotate: "0deg" }}
+          animate={{ opacity: 1, rotate: "360deg" }}
+          transition={{
+            type: "timing",
+            duration: 1000,
+            rotate: {
+              type: "spring",
+              damping: 20,
+            },
+          }}
+          style={{ position: "absolute" }}
+        >
+          <Svg width={size} height={size}>
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              stroke={color}
+              strokeWidth={strokeWidth}
+              fill="transparent"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+            />
+          </Svg>
+        </MotiView>
+
+        {/* Ícone centralizado */}
+        <MotiView
+          from={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{
+            type: "spring",
+            delay: 200,
+            damping: 15,
+          }}
+        >
+          <MaterialCommunityIcons
+            name={iconName}
+            size={iconSize}
+            color={color}
+          />
+        </MotiView>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView
       key={`summary-container-${theme}`}
@@ -252,76 +351,11 @@ export default function SummaryScreen() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: "spring", damping: 15, delay: 200 }}
         >
-          {/* Card de Perfil */}
+          {/* Card Unificado de Perfil e Objetivo */}
           <MotiView
-            key={`profile-card-${theme}`}
+            key={`profile-goal-card-${theme}`}
             style={[
-              styles.profileCard,
-              {
-                backgroundColor: theme === "dark" ? colors.dark : colors.light,
-                borderColor: "transparent",
-                borderWidth: 0,
-                overflow: "hidden",
-              },
-            ]}
-            from={{ opacity: 0, translateX: -30 }}
-            animate={{ opacity: 1, translateX: 0 }}
-            transition={{ type: "spring", damping: 15, delay: 300 }}
-          >
-            <Text style={[styles.cardLabel, { color: colors.text }]}>
-              {t("summary.profile.title")}
-            </Text>
-            <View
-              key={`measurement-row-${theme}`}
-              style={styles.measurementRow}
-            >
-              <View key={`height-item-${theme}`} style={styles.measurementItem}>
-                <Ionicons
-                  key={`height-icon-${theme}`}
-                  name="body-outline"
-                  size={16}
-                  color={colors.primary}
-                />
-                <Text style={[styles.measurementText, { color: colors.text }]}>
-                  {nutritionInfo.height}
-                  {t("common.measurements.cm")}
-                </Text>
-              </View>
-              <View
-                key={`divider-${theme}`}
-                style={[
-                  styles.measurementDivider,
-                  {
-                    backgroundColor:
-                      theme === "dark"
-                        ? "rgba(255,255,255,0.1)"
-                        : "rgba(0,0,0,0.1)",
-                  },
-                ]}
-              />
-              <View key={`weight-item-${theme}`} style={styles.measurementItem}>
-                <Ionicons
-                  key={`weight-icon-${theme}`}
-                  name="scale-outline"
-                  size={16}
-                  color={colors.primary}
-                />
-                <Text style={[styles.measurementText, { color: colors.text }]}>
-                  {nutritionInfo.weight}
-                  {t("common.measurements.kg")}
-                </Text>
-              </View>
-            </View>
-            <Text style={[styles.profileSubValue, { color: colors.text }]}>
-              {getActivityLevelText()}
-            </Text>
-          </MotiView>
-
-          {/* Card de Objetivo */}
-          <MotiView
-            key={`goal-card-${theme}`}
-            style={[
-              styles.goalCard,
+              styles.unifiedProfileGoalCard,
               {
                 backgroundColor: theme === "dark" ? colors.dark : colors.light,
                 borderColor: colors.border,
@@ -329,46 +363,235 @@ export default function SummaryScreen() {
                 overflow: "hidden",
               },
             ]}
-            from={{ opacity: 0, translateX: 20 }}
-            animate={{ opacity: 1, translateX: 0 }}
-            transition={{ type: "spring", delay: 400 }}
+            from={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring", damping: 15, delay: 300 }}
           >
-            <Text style={[styles.cardLabel, { color: colors.text }]}>
-              {t("summary.goal.title")}
-            </Text>
-            <View key={`goal-content-${theme}`} style={styles.goalContent}>
-              <Ionicons
-                key={`goal-icon-${theme}`}
-                name={getGoalIcon()}
-                size={20}
-                color={colors.primary}
-              />
-              <Text style={[styles.goalText, { color: colors.text }]}>
-                {getGoalText()}
-              </Text>
+            {/* Cabeçalho do Card */}
+            <View style={styles.header}>
+              <View style={styles.titleContainer}>
+                <View
+                  style={[
+                    styles.iconContainer,
+                    { backgroundColor: colors.primary + "20" },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="account-outline"
+                    size={18}
+                    color={colors.primary}
+                  />
+                </View>
+                <View>
+                  <Text style={[styles.title, { color: colors.text }]}>
+                    {t("summary.profile.title")}
+                  </Text>
+                  <Text
+                    style={[styles.subtitle, { color: colors.text + "80" }]}
+                  >
+                    {t("summary.profile.subtitle")}
+                  </Text>
+                </View>
+              </View>
             </View>
-            {nutritionInfo.goal !== "maintain" && (
-              <Text style={[styles.goalTarget, { color: colors.text }]}>
-                {t("summary.goal.target", {
-                  weight: nutritionInfo.targetWeight,
-                })}
-              </Text>
-            )}
+
+            {/* Grid de Métricas */}
+            <View style={styles.profileGridContainer}>
+              {/* Altura */}
+              <View
+                style={[
+                  styles.statCard,
+                  styles.gridCard,
+                  { backgroundColor: colors.card },
+                ]}
+              >
+                <View style={styles.statCardContent}>
+                  <View
+                    style={[
+                      styles.statIconContainer,
+                      { backgroundColor: "#0765FF15" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="human-male-height"
+                      size={18}
+                      color="#0765FF"
+                    />
+                  </View>
+                  <View style={styles.statTextContainer}>
+                    <Text
+                      style={[styles.statLabel, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
+                      {t("common.measurements.height")}
+                    </Text>
+                    <Text style={[styles.statValue, { color: colors.text }]}>
+                      {nutritionInfo.height}
+                      <Text
+                        style={[styles.statUnit, { color: colors.text + "60" }]}
+                      >
+                        {t("common.measurements.cm")}
+                      </Text>
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Peso */}
+              <View
+                style={[
+                  styles.statCard,
+                  styles.gridCard,
+                  { backgroundColor: colors.card },
+                ]}
+              >
+                <View style={styles.statCardContent}>
+                  <View
+                    style={[
+                      styles.statIconContainer,
+                      { backgroundColor: "#FFD16615" },
+                    ]}
+                  >
+                    <Ionicons name="scale-outline" size={18} color="#FFD166" />
+                  </View>
+                  <View style={styles.statTextContainer}>
+                    <Text
+                      style={[styles.statLabel, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
+                      {t("common.measurements.weight")}
+                    </Text>
+                    <Text style={[styles.statValue, { color: colors.text }]}>
+                      {nutritionInfo.weight}
+                      <Text
+                        style={[styles.statUnit, { color: colors.text + "60" }]}
+                      >
+                        {t("common.measurements.kg")}
+                      </Text>
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Objetivo */}
+              <View
+                style={[
+                  styles.statCard,
+                  styles.gridCard,
+                  { backgroundColor: colors.card },
+                ]}
+              >
+                <View style={styles.statCardContent}>
+                  <View
+                    style={[
+                      styles.statIconContainer,
+                      { backgroundColor: "#EF476F15" },
+                    ]}
+                  >
+                    <Ionicons name={getGoalIcon()} size={18} color="#EF476F" />
+                  </View>
+                  <View style={styles.statTextContainer}>
+                    <Text
+                      style={[styles.statLabel, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
+                      {t("common.goals.title")}
+                    </Text>
+                    <Text
+                      style={[styles.statValue, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
+                      {getGoalText()}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Peso Alvo ou Atividade Física */}
+              {nutritionInfo.goal !== "maintain" ? (
+                <View
+                  style={[
+                    styles.statCard,
+                    styles.gridCard,
+                    { backgroundColor: colors.card },
+                  ]}
+                >
+                  <View style={styles.statCardContent}>
+                    <View
+                      style={[
+                        styles.statIconContainer,
+                        { backgroundColor: "#FF702515" },
+                      ]}
+                    >
+                      <Ionicons name="flag-outline" size={18} color="#FF7025" />
+                    </View>
+                    <View style={styles.statTextContainer}>
+                      <Text
+                        style={[styles.statLabel, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {t("common.goals.targetWeight")}
+                      </Text>
+                      <Text
+                        style={[styles.statValue, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {nutritionInfo.targetWeight}
+                        <Text
+                          style={[
+                            styles.statUnit,
+                            { color: colors.text + "60" },
+                          ]}
+                        >
+                          {t("common.measurements.kg")}
+                        </Text>
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ) : (
+                <View
+                  style={[
+                    styles.statCard,
+                    styles.gridCard,
+                    { backgroundColor: colors.card },
+                  ]}
+                >
+                  <View style={styles.statCardContent}>
+                    <View
+                      style={[
+                        styles.statIconContainer,
+                        { backgroundColor: "#06D6A015" },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name="run"
+                        size={18}
+                        color="#06D6A0"
+                      />
+                    </View>
+                    <View style={styles.statTextContainer}>
+                      <Text
+                        style={[styles.statLabel, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {t("common.activityLevel")}
+                      </Text>
+                      <Text
+                        style={[styles.statValue, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {getActivityLevelText()}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+            </View>
           </MotiView>
         </MotiView>
 
         {/* Seção de Macros */}
-        <MotiView
-          key={`macros-section-${theme}`}
-          from={{ opacity: 0, translateY: 30 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "spring", damping: 15, delay: 600 }}
-        >
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {t("common.nutrition.dailyNeeds")}
-          </Text>
-        </MotiView>
-
         <MotiView
           key={`macros-container-${theme}`}
           style={styles.macrosContainer}
@@ -376,15 +599,15 @@ export default function SummaryScreen() {
           animate={{ opacity: 1 }}
           transition={{ type: "timing", duration: 800, delay: 700 }}
         >
-          {/* Card de Calorias */}
+          {/* Card Unificado de Calorias, Macros e Água */}
           <MotiView
-            key={`calories-card-${theme}`}
+            key={`unified-nutrition-card-${theme}`}
             style={[
-              styles.caloriesCard,
+              styles.unifiedNutritionCard,
               {
                 backgroundColor: theme === "dark" ? colors.dark : colors.light,
-                borderColor: "transparent",
-                borderWidth: 0,
+                borderColor: colors.border,
+                borderWidth: 1,
                 overflow: "hidden",
               },
             ]}
@@ -392,275 +615,322 @@ export default function SummaryScreen() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: "spring", damping: 15, delay: 800 }}
           >
+            {/* Cabeçalho do Card Nutricional */}
             <View
-              key={`calories-content-${theme}`}
-              style={styles.caloriesContent}
+              style={[styles.header, { paddingTop: 16, paddingHorizontal: 16 }]}
             >
-              <CircularProgress
-                key={`calories-progress-${theme}`}
-                value={100}
-                radius={40}
-                duration={800}
-                progressValueColor={colors.text}
-                maxValue={100}
-                title={formatNumber(nutritionInfo.calories)}
-                titleColor={colors.text}
-                titleStyle={{ fontSize: 18, fontWeight: "bold" }}
-                activeStrokeColor={colors.primary}
-                inActiveStrokeColor={colors.border}
-                inActiveStrokeOpacity={0.15}
-                activeStrokeWidth={10}
-                inActiveStrokeWidth={10}
-                progressValueStyle={{ fontSize: 16, fontWeight: "bold" }}
-                valueSuffix=""
-                delay={100}
-                showProgressValue={false}
-              />
-              <View key={`calories-info-${theme}`} style={styles.caloriesInfo}>
-                <Text style={[styles.caloriesTitle, { color: colors.text }]}>
-                  {t("summary.dailyNeeds.calories.title")}
-                </Text>
-                <Text style={[styles.caloriesValue, { color: colors.primary }]}>
-                  {formatNumber(nutritionInfo.calories)}{" "}
-                  {t("common.nutrition.kcal")}
-                </Text>
-                <Text style={[styles.caloriesDesc, { color: colors.text }]}>
-                  {nutritionInfo.goal === "lose"
-                    ? t("summary.dailyNeeds.calories.deficit")
-                    : nutritionInfo.goal === "gain"
-                    ? t("summary.dailyNeeds.calories.surplus")
-                    : t("summary.dailyNeeds.calories.maintenance")}
-                </Text>
+              <View style={styles.titleContainer}>
+                <View
+                  style={[
+                    styles.iconContainer,
+                    { backgroundColor: colors.primary + "20" },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="nutrition"
+                    size={18}
+                    color={colors.primary}
+                  />
+                </View>
+                <View>
+                  <Text style={[styles.title, { color: colors.text }]}>
+                    Plano Nutricional
+                  </Text>
+                  <Text
+                    style={[styles.subtitle, { color: colors.text + "80" }]}
+                  >
+                    Baseado nas suas informações
+                  </Text>
+                </View>
               </View>
-              <Ionicons
-                key={`calories-icon-${theme}`}
-                name="flame-outline"
-                size={24}
-                color={colors.primary}
-              />
             </View>
-          </MotiView>
 
-          {/* Cards de Macronutrientes */}
-          <MotiView
-            key={`macro-row-${theme}`}
-            style={styles.macroRow}
-            from={{ opacity: 0, translateY: 30 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: "spring", damping: 15, delay: 900 }}
-          >
-            {/* Card de Proteína */}
-            <MotiView
-              key={`protein-card-${theme}`}
-              style={[
-                styles.macroCard,
-                {
-                  backgroundColor:
-                    theme === "dark" ? colors.dark : colors.light,
-                  borderColor: "transparent",
-                  borderWidth: 0,
-                  overflow: "hidden",
-                },
-              ]}
-              from={{ opacity: 0, scale: 0.9, translateY: 20 }}
-              animate={{ opacity: 1, scale: 1, translateY: 0 }}
-              transition={{ type: "spring", damping: 15, delay: 1000 }}
-            >
+            {/* Card de Calorias (Maior e no topo) */}
+            <View style={{ padding: 16, paddingTop: 8 }}>
               <View
-                key={`protein-content-${theme}`}
-                style={styles.macroContent}
+                style={{
+                  backgroundColor: colors.card,
+                  borderRadius: 12,
+                  padding: 16,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
               >
-                <CircularProgress
-                  key={`protein-progress-${theme}`}
-                  value={macroPercentages.protein}
-                  radius={34}
-                  duration={600}
-                  progressValueColor={colors.text}
-                  maxValue={100}
-                  title=""
-                  titleColor={colors.text}
-                  titleStyle={{ fontSize: 12 }}
-                  activeStrokeColor="#FF6B6B"
-                  inActiveStrokeColor={colors.border}
-                  inActiveStrokeOpacity={0.15}
-                  activeStrokeWidth={8}
-                  inActiveStrokeWidth={8}
-                  progressValueStyle={{ fontSize: 14, fontWeight: "bold" }}
-                  valueSuffix="%"
-                  delay={200}
-                  showProgressValue={true}
-                />
-                <View key={`protein-info-${theme}`} style={styles.macroInfo}>
-                  <Ionicons
-                    key={`protein-icon-${theme}`}
-                    name="egg-outline"
-                    size={18}
-                    color="#FF6B6B"
-                  />
-                  <Text style={[styles.macroTitle, { color: colors.text }]}>
-                    {t("common.nutrition.protein")}
-                  </Text>
-                  <Text style={[styles.macroValue, { color: "#FF6B6B" }]}>
-                    {formatNumber(nutritionInfo.protein)}
-                    {t("common.nutrition.grams")}
-                  </Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    flex: 1,
+                  }}
+                >
+                  <View
+                    style={[
+                      styles.statIconContainer,
+                      {
+                        backgroundColor: "#FF1F0215",
+                        width: 48,
+                        height: 48,
+                        borderRadius: 24,
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="fire"
+                      size={24}
+                      color="#FF1F02"
+                    />
+                  </View>
+                  <View style={{ marginLeft: 12, flex: 1 }}>
+                    <Text
+                      style={[
+                        styles.statLabel,
+                        { color: colors.text, fontSize: 14 },
+                      ]}
+                    >
+                      {t("summary.dailyNeeds.calories.title")}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.statValue,
+                        { color: colors.text, fontSize: 24, fontWeight: "700" },
+                      ]}
+                    >
+                      {formatNumber(nutritionInfo.calories)}
+                      <Text
+                        style={[
+                          styles.statUnit,
+                          { color: colors.text + "60", fontSize: 14 },
+                        ]}
+                      >
+                        {" "}
+                        {t("common.nutrition.kcal")}
+                      </Text>
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Chip colorido baseado no objetivo */}
+                <View
+                  style={{
+                    backgroundColor: getGoalChipColor() + "20",
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    borderRadius: 12,
+                    alignSelf: "flex-start",
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Ionicons
+                      name={getGoalIcon()}
+                      size={12}
+                      color={getGoalChipColor()}
+                      style={{ marginRight: 2 }}
+                    />
+                    <Text
+                      style={{
+                        color: getGoalChipColor(),
+                        fontSize: 10,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {nutritionInfo.goal === "lose"
+                        ? t("common.goals.lose")
+                        : nutritionInfo.goal === "gain"
+                        ? t("common.goals.gain")
+                        : t("common.goals.maintain")}
+                    </Text>
+                  </View>
                 </View>
               </View>
-            </MotiView>
+            </View>
 
-            {/* Card de Carboidratos */}
-            <MotiView
-              key={`carbs-card-${theme}`}
-              style={[
-                styles.macroCard,
-                {
-                  backgroundColor:
-                    theme === "dark" ? colors.dark : colors.light,
-                  borderColor: "transparent",
-                  borderWidth: 0,
-                  overflow: "hidden",
-                },
-              ]}
-              from={{ opacity: 0, scale: 0.9, translateY: 20 }}
-              animate={{ opacity: 1, scale: 1, translateY: 0 }}
-              transition={{ type: "spring", damping: 15, delay: 1100 }}
-            >
-              <View key={`carbs-content-${theme}`} style={styles.macroContent}>
-                <CircularProgress
-                  key={`carbs-progress-${theme}`}
-                  value={macroPercentages.carbs}
-                  radius={34}
-                  duration={600}
-                  progressValueColor={colors.text}
-                  maxValue={100}
-                  title=""
-                  titleColor={colors.text}
-                  titleStyle={{ fontSize: 12 }}
-                  activeStrokeColor="#4ECDC4"
-                  inActiveStrokeColor={colors.border}
-                  inActiveStrokeOpacity={0.15}
-                  activeStrokeWidth={8}
-                  inActiveStrokeWidth={8}
-                  progressValueStyle={{ fontSize: 14, fontWeight: "bold" }}
-                  valueSuffix="%"
-                  delay={200}
-                  showProgressValue={true}
-                />
-                <View key={`carbs-info-${theme}`} style={styles.macroInfo}>
-                  <Ionicons
-                    key={`carbs-icon-${theme}`}
-                    name="nutrition-outline"
-                    size={18}
-                    color="#4ECDC4"
-                  />
-                  <Text style={[styles.macroTitle, { color: colors.text }]}>
-                    {t("common.nutrition.carbs")}
-                  </Text>
-                  <Text style={[styles.macroValue, { color: "#4ECDC4" }]}>
-                    {formatNumber(nutritionInfo.carbs)}
-                    {t("common.nutrition.grams")}
-                  </Text>
+            {/* Separador */}
+            <View
+              style={{
+                height: 1,
+                backgroundColor: colors.border,
+                marginHorizontal: 16,
+              }}
+            />
+
+            {/* Seção de Macros */}
+            <View key={`macros-section-${theme}`} style={styles.macrosSection}>
+              {/* Grid de Métricas */}
+              <View style={styles.macroGridContainer}>
+                {/* Proteína */}
+                <View
+                  style={[
+                    styles.statCard,
+                    styles.gridCard,
+                    { backgroundColor: colors.card },
+                  ]}
+                >
+                  <View style={styles.statCardContent}>
+                    <View
+                      style={[
+                        styles.statIconContainer,
+                        { backgroundColor: "#EF476F15" },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name="food-steak"
+                        size={18}
+                        color="#EF476F"
+                      />
+                    </View>
+                    <View style={styles.statTextContainer}>
+                      <Text
+                        style={[styles.statLabel, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {t("common.nutrition.protein")}
+                      </Text>
+                      <Text style={[styles.statValue, { color: colors.text }]}>
+                        {formatNumber(nutritionInfo.protein)}
+                        <Text
+                          style={[
+                            styles.statUnit,
+                            { color: colors.text + "60" },
+                          ]}
+                        >
+                          g
+                        </Text>
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-              </View>
-            </MotiView>
 
-            {/* Card de Gorduras */}
-            <MotiView
-              key={`fat-card-${theme}`}
-              style={[
-                styles.macroCard,
-                {
-                  backgroundColor:
-                    theme === "dark" ? colors.dark : colors.light,
-                  borderColor: "transparent",
-                  borderWidth: 0,
-                  overflow: "hidden",
-                },
-              ]}
-              from={{ opacity: 0, scale: 0.9, translateY: 20 }}
-              animate={{ opacity: 1, scale: 1, translateY: 0 }}
-              transition={{ type: "spring", damping: 15, delay: 1200 }}
-            >
-              <View key={`fat-content-${theme}`} style={styles.macroContent}>
-                <CircularProgress
-                  key={`fat-progress-${theme}`}
-                  value={macroPercentages.fat}
-                  radius={34}
-                  duration={600}
-                  progressValueColor={colors.text}
-                  maxValue={100}
-                  title=""
-                  titleColor={colors.text}
-                  titleStyle={{ fontSize: 12 }}
-                  activeStrokeColor="#FFE66D"
-                  inActiveStrokeColor={colors.border}
-                  inActiveStrokeOpacity={0.15}
-                  activeStrokeWidth={8}
-                  inActiveStrokeWidth={8}
-                  progressValueStyle={{ fontSize: 14, fontWeight: "bold" }}
-                  valueSuffix="%"
-                  delay={200}
-                  showProgressValue={true}
-                />
-                <View key={`fat-info-${theme}`} style={styles.macroInfo}>
-                  <Ionicons
-                    key={`fat-icon-${theme}`}
-                    name="water-outline"
-                    size={18}
-                    color="#FFE66D"
-                  />
-                  <Text style={[styles.macroTitle, { color: colors.text }]}>
-                    {t("common.nutrition.fat")}
-                  </Text>
-                  <Text style={[styles.macroValue, { color: "#FFE66D" }]}>
-                    {formatNumber(nutritionInfo.fat)}
-                    {t("common.nutrition.grams")}
-                  </Text>
+                {/* Carboidratos */}
+                <View
+                  style={[
+                    styles.statCard,
+                    styles.gridCard,
+                    { backgroundColor: colors.card },
+                  ]}
+                >
+                  <View style={styles.statCardContent}>
+                    <View
+                      style={[
+                        styles.statIconContainer,
+                        { backgroundColor: "#118AB215" },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name="bread-slice"
+                        size={18}
+                        color="#118AB2"
+                      />
+                    </View>
+                    <View style={styles.statTextContainer}>
+                      <Text
+                        style={[styles.statLabel, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {t("common.nutrition.carbs")}
+                      </Text>
+                      <Text style={[styles.statValue, { color: colors.text }]}>
+                        {formatNumber(nutritionInfo.carbs)}
+                        <Text
+                          style={[
+                            styles.statUnit,
+                            { color: colors.text + "60" },
+                          ]}
+                        >
+                          g
+                        </Text>
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-              </View>
-            </MotiView>
-          </MotiView>
 
-          {/* Card de Água */}
-          <MotiView
-            key={`water-card-${theme}`}
-            style={[
-              styles.waterCard,
-              {
-                backgroundColor: theme === "dark" ? colors.dark : colors.light,
-                borderColor: "transparent",
-                borderWidth: 0,
-                overflow: "hidden",
-              },
-            ]}
-            from={{ opacity: 0, scale: 0.92, translateY: 20 }}
-            animate={{ opacity: 1, scale: 1, translateY: 0 }}
-            transition={{ type: "spring", damping: 15, delay: 1300 }}
-          >
-            <View key={`water-content-${theme}`} style={styles.waterContent}>
-              <Ionicons
-                key={`water-icon-${theme}`}
-                name="water"
-                size={24}
-                color="#4ECDC4"
-              />
-              <View key={`water-info-${theme}`} style={styles.waterInfo}>
-                <Text style={[styles.waterTitle, { color: colors.text }]}>
-                  {t("summary.dailyNeeds.water.title")}
-                </Text>
-                <Text style={[styles.waterValue, { color: "#4ECDC4" }]}>
-                  {nutritionInfo.waterIntake
-                    ? (nutritionInfo.waterIntake / 1000).toFixed(1)
-                    : "0"}
-                  {t("common.nutrition.liters")}
-                </Text>
-                <Text style={[styles.waterTip, { color: colors.text }]}>
-                  {t("summary.dailyNeeds.water.glasses", {
-                    count: nutritionInfo.waterIntake
-                      ? Math.round(nutritionInfo.waterIntake / 200)
-                      : 0,
-                  })}
-                </Text>
+                {/* Gorduras */}
+                <View
+                  style={[
+                    styles.statCard,
+                    styles.gridCard,
+                    { backgroundColor: colors.card },
+                  ]}
+                >
+                  <View style={styles.statCardContent}>
+                    <View
+                      style={[
+                        styles.statIconContainer,
+                        { backgroundColor: "#FFD16615" },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name="oil"
+                        size={18}
+                        color="#FFD166"
+                      />
+                    </View>
+                    <View style={styles.statTextContainer}>
+                      <Text
+                        style={[styles.statLabel, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {t("common.nutrition.fat")}
+                      </Text>
+                      <Text style={[styles.statValue, { color: colors.text }]}>
+                        {formatNumber(nutritionInfo.fat)}
+                        <Text
+                          style={[
+                            styles.statUnit,
+                            { color: colors.text + "60" },
+                          ]}
+                        >
+                          g
+                        </Text>
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Água */}
+                <View
+                  style={[
+                    styles.statCard,
+                    styles.gridCard,
+                    { backgroundColor: colors.card },
+                  ]}
+                >
+                  <View style={styles.statCardContent}>
+                    <View
+                      style={[
+                        styles.statIconContainer,
+                        { backgroundColor: "#0096FF15" },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name="water"
+                        size={18}
+                        color="#0096FF"
+                      />
+                    </View>
+                    <View style={styles.statTextContainer}>
+                      <Text
+                        style={[styles.statLabel, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {t("common.nutrition.water")}
+                      </Text>
+                      <Text style={[styles.statValue, { color: colors.text }]}>
+                        {nutritionInfo.waterIntake
+                          ? (nutritionInfo.waterIntake / 1000).toFixed(1)
+                          : "0"}
+                        <Text
+                          style={[
+                            styles.statUnit,
+                            { color: colors.text + "60" },
+                          ]}
+                        >
+                          L
+                        </Text>
+                      </Text>
+                    </View>
+                  </View>
+                </View>
               </View>
             </View>
           </MotiView>
@@ -673,8 +943,8 @@ export default function SummaryScreen() {
             styles.infoCard,
             {
               backgroundColor: theme === "dark" ? colors.dark : colors.light,
-              borderColor: "transparent",
-              borderWidth: 0,
+              borderColor: colors.border,
+              borderWidth: 1,
               overflow: "hidden",
             },
           ]}
@@ -698,13 +968,19 @@ export default function SummaryScreen() {
             key={`error-container-${theme}`}
             style={[
               styles.errorContainer,
-              { borderColor: colors.danger, borderWidth: 1 },
+              {
+                borderColor: colors.danger,
+                borderWidth: 1,
+                backgroundColor: "rgba(255, 0, 0, 0.05)",
+              },
             ]}
             from={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: "spring" }}
           >
-            <Text style={styles.errorText}>{t("summary.error")}</Text>
+            <Text style={[styles.errorText, { color: colors.danger }]}>
+              {t("summary.error")}
+            </Text>
           </MotiView>
         )}
       </ScrollView>
@@ -772,75 +1048,84 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   topCardsRow: {
-    flexDirection: "row",
-    gap: 16,
     marginBottom: 24,
   },
-  profileCard: {
-    flex: 1,
+  unifiedProfileGoalCard: {
     borderRadius: 20,
-    padding: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
-  },
-  goalCard: {
-    flex: 1,
-    borderRadius: 20,
+    overflow: "hidden",
     padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
   },
-  cardLabel: {
-    fontSize: 13,
-    opacity: 0.7,
-    marginBottom: 10,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
   },
-  measurementRow: {
+  titleContainer: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
-    marginBottom: 10,
+    alignItems: "center",
+    marginRight: 12,
   },
-  measurementItem: {
+  title: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  subtitle: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  profileGridContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  statCard: {
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  gridCard: {
+    width: "48%",
+    marginBottom: 12,
+  },
+  statCardContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
   },
-  measurementDivider: {
-    width: 1,
-    height: 18,
-    marginHorizontal: 10,
-  },
-  measurementText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  profileSubValue: {
-    fontSize: 13,
-    textAlign: "center",
-    opacity: 0.7,
-  },
-  goalContent: {
-    flexDirection: "row",
+  statIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 6,
+    marginRight: 10,
   },
-  goalText: {
-    fontSize: 16,
-    fontWeight: "600",
+  statTextContainer: {
+    flex: 1,
   },
-  goalTarget: {
+  statLabel: {
     fontSize: 13,
-    opacity: 0.7,
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  statUnit: {
+    fontSize: 12,
+    fontWeight: "500",
   },
   sectionTitle: {
     fontSize: 22,
@@ -851,80 +1136,65 @@ const styles = StyleSheet.create({
   macrosContainer: {
     gap: 16,
   },
-  caloriesCard: {
+  unifiedNutritionCard: {
     borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
+    overflow: "hidden",
+  },
+  caloriesSection: {
+    padding: 16,
+    paddingBottom: 12,
+  },
+  caloriesMacrosDivider: {
+    height: 1,
+    width: "100%",
+    marginVertical: 0,
+  },
+  macrosSection: {
+    padding: 16,
+    paddingTop: 16,
+  },
+  macrosSectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 16,
+    textAlign: "center",
   },
   caloriesContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    justifyContent: "space-between",
   },
   caloriesInfo: {
     flex: 1,
   },
   caloriesTitle: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "600",
     marginBottom: 4,
   },
   caloriesValue: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "700",
     marginBottom: 4,
   },
+  caloriesUnit: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
   caloriesDesc: {
-    fontSize: 13,
+    fontSize: 12,
     opacity: 0.7,
     lineHeight: 16,
   },
-  macroRow: {
+  macroGridContainer: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 12,
-    flexWrap: screenWidth < 360 ? "wrap" : "nowrap",
-    marginBottom: 16,
-  },
-  macroCard: {
-    flex: screenWidth < 360 ? 0 : 1,
-    width: screenWidth < 360 ? "48%" : "auto",
-    borderRadius: 20,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-    marginBottom: screenWidth < 360 ? 12 : 0,
-    minHeight: 160,
-    justifyContent: "center",
-  },
-  macroContent: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 8,
-  },
-  macroInfo: {
-    alignItems: "center",
-    marginTop: 10,
-    paddingBottom: 6,
-  },
-  macroTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 3,
-    textAlign: "center",
-  },
-  macroValue: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 3,
   },
   infoCard: {
     flexDirection: "row",
@@ -945,13 +1215,11 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   errorContainer: {
-    backgroundColor: "rgba(255, 0, 0, 0.1)",
     borderRadius: 16,
     padding: 16,
     marginVertical: 16,
   },
   errorText: {
-    color: "red",
     textAlign: "center",
     fontSize: 13,
     fontWeight: "500",
@@ -966,38 +1234,5 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
-  },
-  waterCard: {
-    borderRadius: 20,
-    padding: 20,
-    marginTop: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  waterContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  waterInfo: {
-    flex: 1,
-  },
-  waterTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 6,
-  },
-  waterValue: {
-    fontSize: 24,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  waterTip: {
-    fontSize: 13,
-    opacity: 0.7,
-    lineHeight: 18,
   },
 });

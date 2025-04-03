@@ -260,11 +260,6 @@ const MealCardComponent = ({
               </Text>
             </View>
           </View>
-          {foodIndex < foods.length - 1 && (
-            <View
-              style={[styles.separator, { backgroundColor: colors.border }]}
-            />
-          )}
         </View>
       </Swipeable>
     ),

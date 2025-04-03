@@ -18,7 +18,7 @@ export default {
     info: "#40C4FF", // Azul vibrante
     light: "#F8F9FA", // Branco levemente acinzentado
     dark: "#212529", // Preto suave
-    border: "#EAEAEA", // Borda mais suave
+    border: "#DADADA", // Borda mais visível para o tema claro
     card: "rgba(0, 0, 0, 0.02)", // Card com sombra sutil
 
     // Cores para gráficos com base monocromática
@@ -44,7 +44,7 @@ export default {
     info: "#5CDDFF", // Azul néon suave
     light: "#181818", // Cinza mais escuro para cards
     dark: "#0A0A0A", // Preto profundo
-    border: "#333333", // Borda mais escura
+    border: "#444444", // Borda mais visível para o tema escuro
     card: "rgba(255, 255, 255, 0.05)", // Card com brilho sutil
 
     // Cores para gráficos com base monocromática

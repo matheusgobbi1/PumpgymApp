@@ -157,26 +157,25 @@ const MetricCard = ({
       from={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ type: "timing", duration: 500 }}
-      style={[styles.metricCard, { backgroundColor: colors.light }]}
+      style={[styles.metricCard, { backgroundColor: colors.card }]}
     >
-      {/* Ícone e Círculo de Progresso */}
-      <View style={styles.metricIconContainer}>
-        <CircularProgress
-          percentage={percentage}
-          color={color}
-          size={44}
-          iconName={iconName}
-        />
-      </View>
-
-      {/* Informações */}
-      <View style={styles.metricInfo}>
-        <Text style={[styles.metricValue, { color }]}>
-          {Math.round(percentage)}%
-        </Text>
-        <Text style={[styles.metricLabel, { color: colors.text + "80" }]}>
-          {label}
-        </Text>
+      <View style={styles.statCardContent}>
+        <View
+          style={[styles.statIconContainer, { backgroundColor: color + "20" }]}
+        >
+          <MaterialCommunityIcons name={iconName} size={20} color={color} />
+        </View>
+        <View style={styles.statTextContainer}>
+          <Text
+            style={[styles.statLabel, { color: colors.text }]}
+            numberOfLines={1}
+          >
+            {label}
+          </Text>
+          <Text style={[styles.statValue, { color }]}>
+            {Math.round(percentage)}%
+          </Text>
+        </View>
       </View>
     </MotiView>
   );
@@ -477,25 +476,6 @@ export default function ConsistencyScoreCard({
             >
               {t("consistency.empty_state_description")}
             </Text>
-
-            <TouchableOpacity
-              style={[
-                styles.startTrackingButton,
-                { backgroundColor: colors.primary },
-              ]}
-              onPress={onPress}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.startTrackingButtonText}>
-                {t("common.startNow", "Começar agora")}
-              </Text>
-              <MaterialCommunityIcons
-                name="arrow-right"
-                size={18}
-                color="#FFF"
-                style={{ marginLeft: 8 }}
-              />
-            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -844,8 +824,9 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     width: "48%",
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 12,
+    marginBottom: 12,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -854,26 +835,29 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+  },
+  statCardContent: {
+    flexDirection: "row",
     alignItems: "center",
   },
-  metricIconContainer: {
-    marginBottom: 12,
-  },
-  metricInfo: {
+  statIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
     alignItems: "center",
+    marginRight: 10,
   },
-  metricValue: {
-    fontSize: 18,
-    fontWeight: "700",
+  statTextContainer: {
+    flex: 1,
+  },
+  statLabel: {
+    fontSize: 13,
     marginBottom: 4,
-    letterSpacing: -0.5,
   },
-  metricLabel: {
-    fontSize: 12,
-    fontWeight: "500",
-    textAlign: "center",
-    letterSpacing: -0.2,
-    opacity: 0.8,
+  statValue: {
+    fontSize: 16,
+    fontWeight: "700",
   },
   emptyContainer: {
     overflow: "hidden",
@@ -912,7 +896,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 22,
     paddingHorizontal: 24,
-    marginBottom: 28,
+    marginBottom: 0,
     letterSpacing: -0.2,
   },
   startTrackingButton: {

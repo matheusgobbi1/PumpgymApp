@@ -743,10 +743,15 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   editModeContainer: {
-    borderRadius: 16,
-    shadowOpacity: 0.05,
-    elevation: 3,
-    marginHorizontal: 12,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
   header: {
     flexDirection: "row",
