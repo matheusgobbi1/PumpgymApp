@@ -235,7 +235,22 @@ export default function ProgressionCard({
           </View>
 
           {expanded && (
-            <View
+            <MotiView
+              from={{
+                height: 0,
+                opacity: 0,
+                scale: 0.95,
+              }}
+              animate={{
+                height: "auto",
+                opacity: 1,
+                scale: 1,
+              }}
+              transition={{
+                type: "spring",
+                damping: 15,
+                stiffness: 150,
+              }}
               style={[
                 styles.exerciseCardContent,
                 { backgroundColor: colors.light },
@@ -398,7 +413,7 @@ export default function ProgressionCard({
                   </View>
                 )}
               </View>
-            </View>
+            </MotiView>
           )}
         </TouchableOpacity>
       </MotiView>

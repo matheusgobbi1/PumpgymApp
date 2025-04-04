@@ -62,7 +62,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
         setIsInitialized(true);
       } catch (error) {
-        console.error("Erro ao carregar preferências de tema:", error);
         setTheme(systemColorScheme);
         setIsInitialized(true);
       }
@@ -89,7 +88,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
             useSystemTheme.toString()
           );
         } catch (error) {
-          console.error("Erro ao salvar preferências de tema:", error);
         }
       };
 

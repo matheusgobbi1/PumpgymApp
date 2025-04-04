@@ -30,20 +30,23 @@ const KEYS = {
 };
 
 // Função utilitária para arredondar valores nutricionais
-const roundNutritionValue = (value: number, type: 'calories' | 'macros' | 'water' | 'weight' = 'macros'): number => {
+const roundNutritionValue = (
+  value: number,
+  type: "calories" | "macros" | "water" | "weight" = "macros"
+): number => {
   if (value === undefined || value === null || isNaN(value)) return 0;
-  
+
   switch (type) {
-    case 'calories':
+    case "calories":
       // Arredondar calorias para múltiplos de 50
       return Math.round(value / 50) * 50;
-    case 'macros':
+    case "macros":
       // Arredondar macronutrientes para inteiros
       return Math.round(value);
-    case 'water':
+    case "water":
       // Arredondar água para múltiplos de 50ml
       return Math.round(value / 50) * 50;
-    case 'weight':
+    case "weight":
       // Arredondar peso para 1 casa decimal
       return Math.round(value * 10) / 10;
     default:
@@ -195,9 +198,6 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
       loadUserData();
     } else {
       // Quando o usuário sair, limpar completamente o estado
-      console.log(
-        "[NutritionContext] Usuário saiu, limpando histórico e dados"
-      );
       resetNutritionInfo();
     }
   }, [user]);
@@ -262,9 +262,6 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
       if (userData) {
         // Garantir que um novo usuário tenha um histórico vazio
         if (isNewUser) {
-          console.log(
-            "[NutritionContext] Novo usuário detectado, inicializando histórico de peso vazio"
-          );
           userData.weightHistory = []; // Inicializar com array vazio para novos usuários
         }
 
@@ -279,9 +276,6 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         setNutritionInfo(userData);
       } else if (isNewUser) {
         // Para um novo usuário sem dados, inicializar com valores padrão
-        console.log(
-          "[NutritionContext] Novo usuário sem dados, inicializando valores padrão"
-        );
         setNutritionInfo({
           ...initialNutritionInfo,
           weightHistory: [], // Garantir que o histórico comece vazio
@@ -289,51 +283,50 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
       }
     } catch (error) {
       // Erro ao carregar dados do usuário
-      console.error("[NutritionContext] Erro ao carregar dados:", error);
     }
   };
 
   const updateNutritionInfo = async (info: Partial<NutritionInfo>) => {
     // Arredondar valores numéricos antes de atualizar
     const roundedInfo = { ...info };
-    
+
     // Arredondar valores específicos
     if (roundedInfo.weight !== undefined) {
-      roundedInfo.weight = roundNutritionValue(roundedInfo.weight, 'weight');
+      roundedInfo.weight = roundNutritionValue(roundedInfo.weight, "weight");
     }
     if (roundedInfo.targetWeight !== undefined) {
-      roundedInfo.targetWeight = roundNutritionValue(roundedInfo.targetWeight, 'weight');
+      roundedInfo.targetWeight = roundNutritionValue(
+        roundedInfo.targetWeight,
+        "weight"
+      );
     }
     if (roundedInfo.calories !== undefined) {
-      roundedInfo.calories = roundNutritionValue(roundedInfo.calories, 'calories');
+      roundedInfo.calories = roundNutritionValue(
+        roundedInfo.calories,
+        "calories"
+      );
     }
     if (roundedInfo.protein !== undefined) {
-      roundedInfo.protein = roundNutritionValue(roundedInfo.protein, 'macros');
+      roundedInfo.protein = roundNutritionValue(roundedInfo.protein, "macros");
     }
     if (roundedInfo.carbs !== undefined) {
-      roundedInfo.carbs = roundNutritionValue(roundedInfo.carbs, 'macros');
+      roundedInfo.carbs = roundNutritionValue(roundedInfo.carbs, "macros");
     }
     if (roundedInfo.fat !== undefined) {
-      roundedInfo.fat = roundNutritionValue(roundedInfo.fat, 'macros');
+      roundedInfo.fat = roundNutritionValue(roundedInfo.fat, "macros");
     }
     if (roundedInfo.waterIntake !== undefined) {
-      roundedInfo.waterIntake = roundNutritionValue(roundedInfo.waterIntake, 'water');
+      roundedInfo.waterIntake = roundNutritionValue(
+        roundedInfo.waterIntake,
+        "water"
+      );
     }
-    
+
     // Criar uma cópia do estado atual para evitar problemas de referência
     const updatedInfo = { ...nutritionInfo, ...roundedInfo };
 
     // Se o peso foi atualizado, adicionar ao histórico de peso
     if (info.weight && info.weight !== nutritionInfo.weight) {
-      console.log(
-        `[NutritionContext] Atualizando peso: ${nutritionInfo.weight} -> ${roundedInfo.weight}`
-      );
-      console.log(
-        `[NutritionContext] isNewUser: ${isNewUser}, historicoAtual: ${
-          nutritionInfo.weightHistory ? nutritionInfo.weightHistory.length : 0
-        } entradas`
-      );
-
       const newWeightEntry: WeightHistoryEntry = {
         date: new Date().toISOString(),
         weight: roundedInfo.weight as number, // Type assertion para corrigir erro do linter
@@ -346,23 +339,15 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         updatedInfo.weightHistory.length === 0;
 
       if (isFirstWeightEntry) {
-        console.log(
-          "[NutritionContext] Inicializando histórico de peso para novo usuário"
-        );
         updatedInfo.weightHistory = [newWeightEntry];
       } else {
         // Verificar se o último peso é diferente para evitar entradas duplicadas
         const lastEntry = updatedInfo.weightHistory?.[0];
         if (!lastEntry || lastEntry.weight !== roundedInfo.weight) {
-          console.log(
-            "[NutritionContext] Adicionando nova entrada ao histórico de peso existente"
-          );
           updatedInfo.weightHistory = [
             newWeightEntry,
             ...(updatedInfo.weightHistory || []),
           ];
-        } else {
-          console.log("[NutritionContext] Ignorando entrada duplicada de peso");
         }
       }
     }
@@ -420,9 +405,9 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
     targetCalories: number
   ) => {
     // Calcular a distribuição original em percentuais
-    const originalProteinPercentage = (protein * 4 / targetCalories) * 100;
-    const originalFatPercentage = (fat * 9 / targetCalories) * 100;
-    const originalCarbsPercentage = (carbs * 4 / targetCalories) * 100;
+    const originalProteinPercentage = ((protein * 4) / targetCalories) * 100;
+    const originalFatPercentage = ((fat * 9) / targetCalories) * 100;
+    const originalCarbsPercentage = ((carbs * 4) / targetCalories) * 100;
 
     switch (dietType) {
       case "vegan":
@@ -431,23 +416,23 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         // Enfatizamos mais carboidratos complexos e aumentamos proteína para compensar biodisponibilidade
         return {
           // Mantemos a mesma distribuição mas com um pequeno ajuste para compensar biodisponibilidade
-          protein: roundNutritionValue((targetCalories * 0.30) / 4, 'macros'),
-          fat: roundNutritionValue((targetCalories * 0.30) / 9, 'macros'),
-          carbs: roundNutritionValue((targetCalories * 0.40) / 4, 'macros'),
+          protein: roundNutritionValue((targetCalories * 0.3) / 4, "macros"),
+          fat: roundNutritionValue((targetCalories * 0.3) / 9, "macros"),
+          carbs: roundNutritionValue((targetCalories * 0.4) / 4, "macros"),
         };
       case "pescatarian":
         // Para pescatarianos, mantemos a proporção, mas com ênfase em gorduras boas (ômega 3)
         return {
-          protein: roundNutritionValue((targetCalories * 0.30) / 4, 'macros'),
-          fat: roundNutritionValue((targetCalories * 0.30) / 9, 'macros'),
-          carbs: roundNutritionValue((targetCalories * 0.40) / 4, 'macros'),
+          protein: roundNutritionValue((targetCalories * 0.3) / 4, "macros"),
+          fat: roundNutritionValue((targetCalories * 0.3) / 9, "macros"),
+          carbs: roundNutritionValue((targetCalories * 0.4) / 4, "macros"),
         };
       default:
         // Para dieta clássica, simplesmente retornamos a proporção original
-        return { 
-          protein: roundNutritionValue((targetCalories * 0.30) / 4, 'macros'),
-          fat: roundNutritionValue((targetCalories * 0.30) / 9, 'macros'),
-          carbs: roundNutritionValue((targetCalories * 0.40) / 4, 'macros'),
+        return {
+          protein: roundNutritionValue((targetCalories * 0.3) / 4, "macros"),
+          fat: roundNutritionValue((targetCalories * 0.3) / 9, "macros"),
+          carbs: roundNutritionValue((targetCalories * 0.4) / 4, "macros"),
         };
     }
   };
@@ -551,7 +536,7 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
     waterBase *= climateMultiplier;
 
     // Usar a função de arredondamento para valores de água
-    return roundNutritionValue(waterBase, 'water');
+    return roundNutritionValue(waterBase, "water");
   };
 
   const calculateMacros = () => {
@@ -576,7 +561,6 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         !goal ||
         !weightChangeRate
       ) {
-        console.warn("Dados insuficientes para calcular macros");
         return;
       }
 
@@ -612,16 +596,25 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
       }
 
       // TDEE (Total Daily Energy Expenditure)
-      const maintenanceCalories = roundNutritionValue(bmr * activityFactor, 'calories');
+      const maintenanceCalories = roundNutritionValue(
+        bmr * activityFactor,
+        "calories"
+      );
 
       // Ajuste calórico baseado no objetivo
       let targetCalories = maintenanceCalories;
       if (goal === "lose") {
         // Déficit de 20-25% para cutting
-        targetCalories = roundNutritionValue(maintenanceCalories * 0.8, 'calories');
+        targetCalories = roundNutritionValue(
+          maintenanceCalories * 0.8,
+          "calories"
+        );
       } else if (goal === "gain") {
         // Superávit de 10-15% para bulking
-        targetCalories = roundNutritionValue(maintenanceCalories * 1.1, 'calories');
+        targetCalories = roundNutritionValue(
+          maintenanceCalories * 1.1,
+          "calories"
+        );
       }
 
       // Usar distribuição fixa de macros 40C/30P/30F
@@ -631,9 +624,18 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
       const fatPercentage = 30;
 
       // Cálculo em gramas usando a distribuição de porcentagem
-      let carbs = roundNutritionValue((targetCalories * (carbsPercentage / 100)) / 4, 'macros');
-      let protein = roundNutritionValue((targetCalories * (proteinPercentage / 100)) / 4, 'macros');
-      let fat = roundNutritionValue((targetCalories * (fatPercentage / 100)) / 9, 'macros');
+      let carbs = roundNutritionValue(
+        (targetCalories * (carbsPercentage / 100)) / 4,
+        "macros"
+      );
+      let protein = roundNutritionValue(
+        (targetCalories * (proteinPercentage / 100)) / 4,
+        "macros"
+      );
+      let fat = roundNutritionValue(
+        (targetCalories * (fatPercentage / 100)) / 9,
+        "macros"
+      );
 
       // Ajuste final para macros
       const adjustedMacros = adjustMacrosByDiet(
@@ -667,8 +669,6 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         activityLevel: trainingFrequency,
       });
     } catch (error) {
-      console.error("Erro ao calcular macros:", error);
-
       // Valores padrão em caso de erro
       updateNutritionInfo({
         calories: 2000,
@@ -865,22 +865,8 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
       // Usar o novo SyncService para sincronizar os dados pendentes
       const syncResult = await SyncService.syncAll();
 
-      // Registrar resultados da sincronização (opcional)
-      if (
-        syncResult.pendingOps.syncedCount > 0 ||
-        syncResult.meals.syncedDates.length > 0
-      ) {
-        console.log("Sincronização concluída com sucesso:", syncResult);
-      }
-
-      // Se houver erros, podemos registrá-los
-      if (syncResult.errors.length > 0) {
-        console.warn("Erros durante a sincronização:", syncResult.errors);
-      }
-
       return syncResult;
     } catch (error) {
-      console.error("Erro ao sincronizar dados pendentes:", error);
       // Não propagar o erro para não interromper a experiência do usuário
     }
   };

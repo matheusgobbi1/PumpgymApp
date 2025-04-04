@@ -204,9 +204,7 @@ export default function NutritionScreen() {
   const handleDeleteMeal = useCallback(async (mealId: string) => {
     try {
       // Implementar função para deletar refeição se necessário
-      console.log("Deletar refeição:", mealId);
     } catch (error) {
-      console.error("Erro ao excluir refeição:", error);
     } finally {
       setModalInfo((prev) => ({ ...prev, visible: false }));
     }
@@ -223,7 +221,6 @@ export default function NutritionScreen() {
       );
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      console.error("Erro ao copiar refeição:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setModalInfo((prev) => ({ ...prev, visible: false }));
@@ -262,8 +259,6 @@ export default function NutritionScreen() {
         router.replace("/nutrition");
       }
     } else {
-      console.error("Referência do bottom sheet é null em NutritionScreen");
-
       // Tentar novamente após um pequeno atraso
       if (params?.openMealConfig === "true") {
         setTimeout(() => {
@@ -271,9 +266,6 @@ export default function NutritionScreen() {
             mealConfigSheetRef.current.present();
             router.replace("/nutrition");
           } else {
-            console.error(
-              "MealConfigSheet ref ainda não disponível após segunda tentativa"
-            );
           }
         }, 500);
       }
@@ -301,7 +293,6 @@ export default function NutritionScreen() {
       try {
         // Verificar se há refeições selecionadas
         if (!configuredMeals || configuredMeals.length === 0) {
-          console.error("Nenhuma refeição selecionada para configuração");
           return;
         }
 
@@ -322,19 +313,13 @@ export default function NutritionScreen() {
         const success = await updateMealTypes(mealTypesToUpdate);
 
         if (success) {
-          // Não precisamos chamar triggerRefresh() aqui pois o contexto já faz isso internamente
-          // Apenas salvar os dados para garantir que persistam
           await saveMeals();
-
-          // Feedback tátil de sucesso
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } else {
-          // Notificar erro se não for bem-sucedido
           Alert.alert(t("common.error"), t("nutrition.errors.configFailed"));
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         }
       } catch (error) {
-        console.error("Erro ao configurar refeições:", error);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         Alert.alert(t("common.error"), t("nutrition.errors.configError"));
       }
@@ -373,7 +358,6 @@ export default function NutritionScreen() {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           }
         } catch (error) {
-          console.error("Erro ao redefinir refeições:", error);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 
           // Mostrar alerta de erro
@@ -381,8 +365,6 @@ export default function NutritionScreen() {
         }
       }, 100);
     } catch (error) {
-      console.error("Erro ao processar redefinição:", error);
-
       // Fechar o modal mesmo em caso de erro
       setResetModalVisible(false);
     }

@@ -17,6 +17,9 @@ import Input from "../../components/common/Input";
 import Button from "../../components/common/Button";
 import { useAuth } from "../../context/AuthContext";
 import CustomModal from "../../components/common/CustomModal";
+import { useTheme } from "../../context/ThemeContext";
+import { handleRegisterError } from "../../utils/errorHandler";
+import ForgotPasswordModal from "../../components/auth/ForgotPasswordModal";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -31,6 +34,7 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showEmailExistsModal, setShowEmailExistsModal] = useState(false);
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
 
   const handleEmailExists = () => {
     setShowEmailExistsModal(true);
@@ -82,20 +86,11 @@ export default function RegisterScreen() {
 
       await register(name, email, password);
       // O redirecionamento será feito automaticamente pelo AuthProvider
-    } catch (err: any) {
-      console.error("Erro ao registrar:", err);
-      if (
-        err.message ===
-          "Este email já está cadastrado. Por favor, faça login." ||
-        err.code === "auth/email-already-in-use"
-      ) {
-        handleEmailExists();
-      } else if (err.code === "auth/invalid-email") {
-        setError("Email inválido");
-      } else if (err.code === "auth/weak-password") {
-        setError("Senha muito fraca");
-      } else {
-        setError("Ocorreu um erro ao registrar. Tente novamente.");
+    } catch (err) {
+      // Usar tratador de erros personalizado com callback para email existente
+      const errorMessage = handleRegisterError(err, handleEmailExists);
+      if (errorMessage) {
+        setError(errorMessage);
       }
     } finally {
       setLoading(false);
@@ -121,7 +116,9 @@ export default function RegisterScreen() {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={[styles.title, { color: colors.primary }]}>FitFolio</Text>
+          <Text style={[styles.title, { color: colors.primary }]}>
+            FitFolio
+          </Text>
         </View>
 
         <View style={styles.formContainer}>
@@ -183,6 +180,12 @@ export default function RegisterScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+
+          <View style={styles.forgotPasswordContainer}>
+            <TouchableOpacity onPress={() => setShowForgotPasswordModal(true)}>
+              <Text style={{ color: colors.primary }}>Esqueceu sua senha?</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <CustomModal
@@ -193,6 +196,12 @@ export default function RegisterScreen() {
           secondaryButtonText="Não, voltar"
           onPrimaryPress={handleLoginWithExistingEmail}
           onSecondaryPress={() => setShowEmailExistsModal(false)}
+        />
+
+        {/* Modal de recuperação de senha */}
+        <ForgotPasswordModal
+          visible={showForgotPasswordModal}
+          onClose={() => setShowForgotPasswordModal(false)}
         />
       </ScrollView>
     </KeyboardAvoidingView>
@@ -242,6 +251,10 @@ const styles = StyleSheet.create({
   loginContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 16,
+    marginTop: 15,
+  },
+  forgotPasswordContainer: {
+    alignItems: "center",
+    marginTop: 10,
   },
 });

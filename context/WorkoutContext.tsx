@@ -323,16 +323,13 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
             }
           }
         } catch (firebaseError) {
-          console.error(
-            "Erro ao carregar dados do Firebase, usando dados locais:",
-            firebaseError
-          );
+          // Erro ao carregar dados do Firebase, usando dados locais
+          return false;
         }
       }
 
       return true;
     } catch (error) {
-      console.error("Erro ao carregar treinos:", error);
       return false;
     } finally {
       setLoading(false);
@@ -455,19 +452,13 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
             },
             { merge: true }
           );
-
-          console.log("Tipos de treino padrão sincronizados com Firebase");
         } catch (firebaseError) {
-          console.error(
-            "Erro ao sincronizar tipos de treino padrão com Firebase:",
-            firebaseError
-          );
+          // Erro ao sincronizar tipos de treino padrão com Firebase:
         }
       }
 
       return true;
     } catch (error) {
-      console.error("Erro ao inicializar tipos de treino padrão:", error);
       return false;
     }
   };
@@ -485,23 +476,13 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           // Verificar se os dados têm formato válido
           if (parsedWorkoutTypes && typeof parsedWorkoutTypes === "object") {
             setWorkoutTypes(parsedWorkoutTypes);
-            console.log("Tipos de treino carregados com sucesso");
             return true;
           } else {
-            console.warn(
-              "Formato inválido de tipos de treino:",
-              parsedWorkoutTypes
-            );
             await AsyncStorage.removeItem(`${KEYS.WORKOUT_TYPES}:${userId}`);
             setWorkoutTypes({});
             return false;
           }
         } catch (parseError) {
-          console.error(
-            "Erro ao analisar dados de tipos de treino:",
-            parseError
-          );
-          // Em caso de erro, limpar os dados para evitar problemas
           await AsyncStorage.removeItem(`${KEYS.WORKOUT_TYPES}:${userId}`);
           setWorkoutTypes({});
           return false;
@@ -510,8 +491,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       return false;
     } catch (error) {
       // Erro ao carregar tipos de treino
-      console.error("Erro ao carregar tipos de treino:", error);
-      // Em caso de erro, limpar os dados para evitar problemas
       await AsyncStorage.removeItem(`${KEYS.WORKOUT_TYPES}:${userId}`);
       setWorkoutTypes({});
       return false;
@@ -530,16 +509,11 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   // Iniciar um treino para uma data específica
   const startWorkoutForDate = async (workoutId: string) => {
     try {
-      console.log(`Iniciando treino ${workoutId} para a data ${selectedDate}`);
-
       // Buscar o tipo de treino
       const workoutType = getWorkoutTypeById(workoutId);
       if (!workoutType) {
-        console.error(`Tipo de treino ${workoutId} não encontrado`);
         return null;
       }
-
-      console.log("Tipo de treino encontrado:", workoutType.name);
 
       // Atualizar o estado
       setWorkoutTypes((prev) => {
@@ -571,24 +545,19 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       // Salvar os treinos no AsyncStorage e Firebase para persistência
       try {
         await saveWorkouts();
-        console.log("Treino iniciado e salvo com sucesso");
       } catch (saveError) {
-        console.error("Erro ao salvar treino iniciado:", saveError);
-
         // Tentar novamente com um pequeno atraso
         setTimeout(async () => {
           try {
             await saveWorkouts();
-            console.log("Treino salvo após tentativa adicional");
           } catch (retryError) {
-            console.error("Falha na segunda tentativa de salvar:", retryError);
+            // Falha na segunda tentativa
           }
         }, 500);
       }
 
       return workoutId;
     } catch (error) {
-      console.error("Erro ao iniciar treino:", error);
       return null;
     }
   };
@@ -669,7 +638,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       return Promise.resolve();
     } catch (error) {
       // Erro ao adicionar tipo de treino
-      console.error("Erro ao adicionar tipo de treino:", error);
       return Promise.reject(error);
     }
   };
@@ -677,8 +645,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   // Redefinir tipos de treino
   const resetWorkoutTypes = async () => {
     try {
-      console.log("Iniciando redefinição de treinos...");
-
       // Limpar todos os estados
       setWorkouts({});
       setWorkoutTypes({});
@@ -703,10 +669,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       );
 
       if (storedWorkouts || storedTypes) {
-        console.warn(
-          "Dados ainda presentes após tentativa de limpeza, tentando novamente..."
-        );
-
         // Forçar uma segunda tentativa de limpeza
         await AsyncStorage.clear(); // Limpar todo o AsyncStorage em caso de erro persistente
         await AsyncStorage.removeItem(`${KEYS.WORKOUT_TYPES}:${userId}`);
@@ -721,14 +683,10 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         }, 500);
       }
 
-      // Feedback tátil
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      console.log("Redefinição de treinos concluída com sucesso");
       return true;
     } catch (error) {
-      // Erro ao redefinir tipos de treino
-      console.error("Erro ao redefinir tipos de treino:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return false;
     }
@@ -781,29 +739,14 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
             },
             { merge: true }
           );
-          console.log("Tipos de treino atualizados no Firebase");
         } catch (firebaseError) {
-          console.error(
-            "Erro ao atualizar tipos de treino no Firebase:",
-            firebaseError
-          );
           // Continuar, pois os dados já foram salvos no AsyncStorage
         }
       }
 
-      // Log para debug
-      console.log("Tipos de treino atualizados:", cleanWorkoutTypes);
-
-      // Filtrar apenas os tipos de treino selecionados
-      const selectedTypes = cleanWorkoutTypes.filter(
-        (type: WorkoutType) => type.selected
-      );
-      console.log("Tipos de treino selecionados:", selectedTypes);
-
       // Retornar verdadeiro para indicar sucesso
       return true;
     } catch (error) {
-      console.error("Erro ao atualizar tipos de treino:", error);
       return false;
     }
   };
@@ -857,8 +800,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
       return true;
     } catch (error) {
-      console.error("Erro ao adicionar exercício:", error);
-
       // Feedback tátil de erro
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 
@@ -872,8 +813,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     exerciseId: string
   ) => {
     try {
-      console.log(`Removendo exercício ${exerciseId} do treino ${workoutId}`);
-
       // Atualizar o estado
       setWorkouts((prev) => {
         const updatedWorkouts = { ...prev };
@@ -897,17 +836,13 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       // Salvar imediatamente para garantir persistência
       try {
         await saveWorkouts();
-        console.log("Exercício removido e alterações salvas com sucesso");
       } catch (saveError) {
-        console.error("Erro ao salvar após remover exercício:", saveError);
-
         // Tentar novamente com um pequeno atraso
         setTimeout(async () => {
           try {
             await saveWorkouts();
-            console.log("Exercício removido após tentativa adicional");
           } catch (retryError) {
-            console.error("Falha na segunda tentativa de salvar:", retryError);
+            // Falha na segunda tentativa
           }
         }, 500);
       }
@@ -915,7 +850,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       // Erro ao remover exercício
-      console.error("Erro ao remover exercício:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
@@ -973,32 +907,13 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           `${KEYS.WORKOUTS}:${userId}`,
           JSON.stringify(currentWorkouts)
         );
-
-        // Verificar se os dados foram salvos corretamente
-        const savedData = await AsyncStorage.getItem(
-          `${KEYS.WORKOUTS}:${userId}`
-        );
-        if (!savedData) {
-          console.warn(
-            "Falha ao verificar se os dados foram salvos corretamente após atualizar exercício"
-          );
-
-          // Tentar novamente com um pequeno atraso
-          setTimeout(async () => {
-            await AsyncStorage.setItem(
-              `${KEYS.WORKOUTS}:${userId}`,
-              JSON.stringify(currentWorkouts)
-            );
-          }, 500);
-        }
       } catch (error) {
-        console.error("Erro ao salvar após atualizar exercício:", error);
+        // Erro ao salvar após atualizar exercício:
       }
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       // Erro ao atualizar exercício
-      console.error("Erro ao atualizar exercício:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
@@ -1006,8 +921,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   // Salvar treinos no AsyncStorage
   const saveWorkouts = async (): Promise<void> => {
     try {
-      console.log("Salvando treinos no storage...");
-
       // Primeiro salvar localmente para garantir persistência
       await AsyncStorage.setItem(
         `${KEYS.WORKOUTS}:${userId}`,
@@ -1019,7 +932,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         `${KEYS.WORKOUTS}:${userId}`
       );
       if (!savedData) {
-        console.warn("Falha ao verificar se os dados foram salvos localmente");
         // Tentar novamente
         await AsyncStorage.setItem(
           `${KEYS.WORKOUTS}:${userId}`,
@@ -1035,9 +947,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           // Verificar se o usuário ainda está autenticado
           const { auth } = require("../firebase/config");
           if (!auth.currentUser) {
-            console.log(
-              "Usuário não está autenticado, dados salvos apenas localmente"
-            );
             return;
           }
 
@@ -1058,16 +967,11 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
             },
             { merge: true }
           );
-          console.log("Treinos sincronizados com Firebase com sucesso");
         } catch (firebaseError) {
-          console.error(
-            "Erro ao salvar no Firebase, dados mantidos localmente:",
-            firebaseError
-          );
+          // Erro ao salvar no Firebase, dados mantidos localmente
         }
       }
     } catch (error) {
-      console.error("Erro ao salvar treinos:", error);
       throw error;
     }
   };
@@ -1509,62 +1413,45 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       const typesJSON = JSON.stringify(cleanTypes);
 
       // Salvar no AsyncStorage
-      try {
-        await AsyncStorage.setItem(
-          `${KEYS.AVAILABLE_WORKOUT_TYPES}:${userId}`,
-          typesJSON
-        );
+      await AsyncStorage.setItem(
+        `${KEYS.AVAILABLE_WORKOUT_TYPES}:${userId}`,
+        typesJSON
+      );
 
-        // Salvar no Firebase se o usuário não for anônimo
-        if (userId && userId !== "anonymous" && userId !== "no-user") {
-          try {
-            const db = getFirestore();
-            const workoutsRef = doc(db, "users", userId, "workouts", "data");
-            await setDoc(
-              workoutsRef,
-              {
-                availableWorkoutTypes: cleanTypes,
-                lastUpdated: serverTimestamp(),
-              },
-              { merge: true }
-            );
-            console.log(
-              "Tipos de treino disponíveis sincronizados com Firebase"
-            );
-          } catch (firebaseError) {
-            console.error(
-              "Erro ao salvar tipos de treino disponíveis no Firebase:",
-              firebaseError
-            );
-            // Continuar, pois os dados já foram salvos no AsyncStorage
-          }
-        }
-
-        // Verificar se os dados foram salvos corretamente
-        const savedData = await AsyncStorage.getItem(
-          `${KEYS.AVAILABLE_WORKOUT_TYPES}:${userId}`
-        );
-        if (!savedData) {
-          console.warn(
-            "Falha ao verificar se os tipos de treino disponíveis foram salvos corretamente"
+      // Salvar no Firebase se o usuário não for anônimo
+      if (userId && userId !== "anonymous" && userId !== "no-user") {
+        try {
+          const db = getFirestore();
+          const workoutsRef = doc(db, "users", userId, "workouts", "data");
+          await setDoc(
+            workoutsRef,
+            {
+              availableWorkoutTypes: cleanTypes,
+              lastUpdated: serverTimestamp(),
+            },
+            { merge: true }
           );
-
-          // Tentar novamente com um pequeno atraso
-          setTimeout(async () => {
-            await AsyncStorage.setItem(
-              `${KEYS.AVAILABLE_WORKOUT_TYPES}:${userId}`,
-              typesJSON
-            );
-          }, 500);
+        } catch (firebaseError) {
+          // Continuar, pois os dados já foram salvos no AsyncStorage
         }
-      } catch (error) {
-        console.error("Erro ao salvar tipos de treino disponíveis:", error);
+      }
+
+      // Verificar se os dados foram salvos corretamente
+      const savedData = await AsyncStorage.getItem(
+        `${KEYS.AVAILABLE_WORKOUT_TYPES}:${userId}`
+      );
+      if (!savedData) {
+        setTimeout(async () => {
+          await AsyncStorage.setItem(
+            `${KEYS.AVAILABLE_WORKOUT_TYPES}:${userId}`,
+            typesJSON
+          );
+        }, 500);
       }
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       // Erro ao salvar tipos de treino disponíveis
-      console.error("Erro ao atualizar tipos de treino disponíveis:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
@@ -1680,7 +1567,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      console.error("Erro ao copiar treino:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
@@ -1688,8 +1574,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   // Salvar tipos de treino no AsyncStorage
   const saveWorkoutTypes = async () => {
     try {
-      console.log("Salvando tipos de treino:", JSON.stringify(workoutTypes));
-
       // Converter para JSON e verificar se é válido
       const workoutTypesJSON = JSON.stringify(workoutTypes);
 
@@ -1707,9 +1591,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           // Verificar se o usuário ainda está autenticado antes de tentar salvar
           const { auth } = require("../firebase/config");
           if (!auth.currentUser) {
-            console.log(
-              "Usuário não está autenticado, pulando sincronização com Firebase"
-            );
             return true;
           }
 
@@ -1745,14 +1626,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
             },
             { merge: true }
           );
-
-          console.log("Tipos de treino sincronizados com Firebase com sucesso");
         } catch (firebaseError) {
-          console.error(
-            "Erro ao salvar tipos de treino no Firebase:",
-            firebaseError
-          );
-
           // Se o erro for de permissão durante o logout, não devemos lançar o erro
           if (
             typeof firebaseError === "object" &&
@@ -1763,13 +1637,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
               .toString()
               .includes("Missing or insufficient permissions")
           ) {
-            console.log(
-              "Erro de permissão ao salvar no Firebase. Provavelmente durante logout."
-            );
             return true; // Continue normalmente, pois os dados foram salvos no AsyncStorage
           }
-
-          // Continuar, pois os dados já foram salvos em AsyncStorage
         }
       }
 
@@ -1779,8 +1648,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       );
 
       if (!savedData) {
-        console.warn("Falha ao verificar se os tipos de treino foram salvos");
-
         // Tentar novamente com um pequeno atraso
         setTimeout(async () => {
           await AsyncStorage.setItem(
@@ -1794,7 +1661,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
       return true;
     } catch (error) {
-      console.error("Erro ao salvar tipos de treino:", error);
       return false;
     }
   };
@@ -1947,7 +1813,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         await saveWorkouts();
         return true;
       } catch (error) {
-        console.error("Erro ao aplicar progressão ao treino:", error);
         return false;
       }
     },

@@ -37,19 +37,15 @@ function LanguageInitializer() {
         const savedLanguage = await AsyncStorage.getItem("userLanguage");
         if (savedLanguage && savedLanguage !== i18n.language) {
           await i18n.changeLanguage(savedLanguage);
-          console.log("Idioma inicializado em _layout:", savedLanguage);
         } else {
-          console.log("Idioma atual mantido:", i18n.language);
         }
       } catch (error) {
-        console.error("Erro ao inicializar idioma:", error);
       }
     };
 
     initLanguage();
 
     // Imprimir status do i18n para depuração
-    console.log("Status i18n:", getLanguageStatus());
   }, []);
 
   return null;
@@ -83,21 +79,14 @@ export default function RootLayout() {
 
           // Se existirem operações pendentes, sincronizar
           if (pendingOps.length > 0 || modifiedDates.length > 0) {
-            console.log(
-              "Operações pendentes encontradas na inicialização. Sincronizando..."
-            );
+         
             // Atraso para garantir que os contexts estejam inicializados
             setTimeout(async () => {
               await SyncService.syncAll();
-              console.log("Sincronização na inicialização concluída");
             }, 3000);
           }
         }
       } catch (error) {
-        console.error(
-          "Erro ao verificar sincronização pendente na inicialização:",
-          error
-        );
       }
     };
 

@@ -89,7 +89,6 @@ export default function CompleteRegistrationScreen() {
       setError("");
       await completeAnonymousRegistration(name, email, password);
     } catch (err: any) {
-      console.error("Erro ao completar registro:", err);
       if (err.code === "auth/email-already-in-use") {
         setError(t("completeRegistration.errors.emailInUse"));
       } else if (err.code === "auth/invalid-email") {

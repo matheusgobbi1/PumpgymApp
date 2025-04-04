@@ -103,7 +103,6 @@ export default function ProgressionModal() {
       // Atualizar estado com as sugestões
       setSuggestions(progressionSuggestions);
     } catch (error) {
-      console.error("Erro ao carregar sugestões:", error);
     } finally {
       setLoading(false);
     }
@@ -217,7 +216,6 @@ export default function ProgressionModal() {
         throw new Error("Falha ao aplicar progressão");
       }
     } catch (error) {
-      console.error("Erro ao aplicar progressão:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert(
         t("progression.modal.alert.error"),

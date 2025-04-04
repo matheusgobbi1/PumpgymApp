@@ -1,35 +1,68 @@
-import React, { useState, useEffect } from "react";
+import React, { useReducer, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Animated,
   TouchableOpacity,
+  Platform,
+  StatusBar,
 } from "react-native";
-import NetInfo from "@react-native-community/netinfo";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNutrition } from "../../context/NutritionContext";
 import { useTranslation } from "react-i18next";
-import { SyncService } from "../../services/SyncService";
 import { Ionicons } from "@expo/vector-icons";
 import { OfflineStorage } from "../../services/OfflineStorage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Definir as cores diretamente para não depender do tema
-const colors = {
-  success: "#4CAF50",
-  error: "#F44336",
-  warning: "#FF9800",
-  info: "#2196F3",
+// Estado inicial para o reducer
+const initialState = {
+  showNotice: false,
+  pendingChanges: false,
+  syncing: false,
+  syncSuccess: null as boolean | null,
+  fadeAnim: new Animated.Value(0),
 };
+
+// Definição dos tipos para o reducer
+type OfflineState = typeof initialState;
+
+type OfflineAction =
+  | { type: "SET_PENDING_CHANGES"; payload: boolean }
+  | { type: "SET_SHOW_NOTICE"; payload: boolean }
+  | { type: "SET_SYNCING"; payload: boolean }
+  | { type: "SET_SYNC_SUCCESS"; payload: boolean | null };
+
+// Reducer para gerenciar estados relacionados
+function offlineReducer(
+  state: OfflineState,
+  action: OfflineAction
+): OfflineState {
+  switch (action.type) {
+    case "SET_PENDING_CHANGES":
+      return { ...state, pendingChanges: action.payload };
+    case "SET_SHOW_NOTICE":
+      return { ...state, showNotice: action.payload };
+    case "SET_SYNCING":
+      return { ...state, syncing: action.payload };
+    case "SET_SYNC_SUCCESS":
+      return { ...state, syncSuccess: action.payload };
+    default:
+      return state;
+  }
+}
 
 const OfflineNotice = () => {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { isOnline, syncPendingData } = useNutrition();
-  const [showNotice, setShowNotice] = useState<boolean>(false);
-  const [pendingChanges, setPendingChanges] = useState<boolean>(false);
-  const [syncing, setSyncing] = useState<boolean>(false);
-  const [syncSuccess, setSyncSuccess] = useState<boolean | null>(null);
-  const [fadeAnim] = useState(new Animated.Value(0));
+
+  const [state, dispatch] = useReducer(offlineReducer, {
+    ...initialState,
+    fadeAnim: new Animated.Value(0),
+  });
+
+  const { showNotice, pendingChanges, syncing, syncSuccess, fadeAnim } = state;
 
   // Verificar se há operações pendentes
   const checkPendingOperations = async () => {
@@ -46,13 +79,18 @@ const OfflineNotice = () => {
           ? JSON.parse(modifiedDatesStr)
           : [];
 
-        setPendingChanges(pendingOps.length > 0 || modifiedDates.length > 0);
+        dispatch({
+          type: "SET_PENDING_CHANGES",
+          payload: pendingOps.length > 0 || modifiedDates.length > 0,
+        });
       } else {
-        setPendingChanges(pendingOps.length > 0);
+        dispatch({
+          type: "SET_PENDING_CHANGES",
+          payload: pendingOps.length > 0,
+        });
       }
     } catch (error) {
-      console.error("Erro ao verificar operações pendentes:", error);
-      setPendingChanges(false);
+      dispatch({ type: "SET_PENDING_CHANGES", payload: false });
     }
   };
 
@@ -70,14 +108,14 @@ const OfflineNotice = () => {
   // Efeito para mostrar/esconder notificação com base no estado da conexão
   useEffect(() => {
     if (!isOnline) {
-      setShowNotice(true);
+      dispatch({ type: "SET_SHOW_NOTICE", payload: true });
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 300,
         useNativeDriver: true,
       }).start();
     } else if (pendingChanges) {
-      setShowNotice(true);
+      dispatch({ type: "SET_SHOW_NOTICE", payload: true });
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 300,
@@ -89,7 +127,7 @@ const OfflineNotice = () => {
         duration: 300,
         useNativeDriver: true,
       }).start(() => {
-        setShowNotice(false);
+        dispatch({ type: "SET_SHOW_NOTICE", payload: false });
       });
     }
   }, [isOnline, pendingChanges, fadeAnim]);
@@ -99,8 +137,8 @@ const OfflineNotice = () => {
     if (!isOnline || syncing) return;
 
     try {
-      setSyncing(true);
-      setSyncSuccess(null);
+      dispatch({ type: "SET_SYNCING", payload: true });
+      dispatch({ type: "SET_SYNC_SUCCESS", payload: null });
 
       const result = await syncPendingData();
 
@@ -111,7 +149,7 @@ const OfflineNotice = () => {
         result.pendingOps.success &&
         result.meals.success;
 
-      setSyncSuccess(success);
+      dispatch({ type: "SET_SYNC_SUCCESS", payload: success });
 
       // Atualizar estado de pendências
       await checkPendingOperations();
@@ -124,16 +162,15 @@ const OfflineNotice = () => {
             duration: 300,
             useNativeDriver: true,
           }).start(() => {
-            setShowNotice(false);
-            setSyncSuccess(null);
+            dispatch({ type: "SET_SHOW_NOTICE", payload: false });
+            dispatch({ type: "SET_SYNC_SUCCESS", payload: null });
           });
         }, 3000);
       }
     } catch (error) {
-      console.error("Erro ao sincronizar:", error);
-      setSyncSuccess(false);
+      dispatch({ type: "SET_SYNC_SUCCESS", payload: false });
     } finally {
-      setSyncing(false);
+      dispatch({ type: "SET_SYNCING", payload: false });
     }
   };
 
@@ -146,16 +183,17 @@ const OfflineNotice = () => {
         styles.container,
         {
           opacity: fadeAnim,
-          backgroundColor:
-            syncSuccess === true
-              ? colors.success
-              : syncSuccess === false
-              ? colors.error
-              : !isOnline
-              ? colors.warning
-              : colors.info,
+          paddingTop: insets.top,
+          backgroundColor: !isOnline
+            ? "rgba(220, 38, 38, 0.85)" // Vermelho transparente para offline
+            : pendingChanges
+            ? "rgba(234, 88, 12, 0.85)" // Laranja transparente para pendências
+            : syncSuccess === true
+            ? "rgba(22, 163, 74, 0.85)" // Verde transparente para sucesso
+            : "rgba(220, 38, 38, 0.85)", // Vermelho transparente para erro
         },
       ]}
+      pointerEvents="box-none" // Permite toques por baixo do componente
     >
       <View style={styles.content}>
         <Ionicons
@@ -200,7 +238,7 @@ const OfflineNotice = () => {
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: 0,
+    top: 0,
     left: 0,
     right: 0,
     padding: 10,
@@ -208,6 +246,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     zIndex: 1000,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
   },
   content: {
     flexDirection: "row",

@@ -60,7 +60,6 @@ export function useContextPreloader(options: ContextPreloadOptions = {}) {
         setStatus("complete");
         onPreloadComplete?.();
       } catch (error) {
-        console.error("Erro no preloading de contexto:", error);
         setStatus("idle");
       }
     },

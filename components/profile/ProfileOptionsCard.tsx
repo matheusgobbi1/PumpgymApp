@@ -64,7 +64,6 @@ export default function ProfileOptionsCard({
     try {
       await signOut();
     } catch (error) {
-      console.error("Erro ao fazer logout:", error);
     }
   };
 

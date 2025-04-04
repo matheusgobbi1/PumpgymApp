@@ -127,7 +127,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
           const history = await OfflineStorage.loadSearchHistory(user.uid);
           setSearchHistory(history);
         } catch (error) {
-          console.error("Erro ao carregar histórico de busca:", error);
+          // Erro ao carregar histórico de busca
         }
       }
     };
@@ -157,9 +157,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
               ...prevMeals,
               [selectedDate]: localMeals,
             }));
-            console.log(
-              "Refeições para a data selecionada carregadas localmente"
-            );
           } else {
             // Verificar conexão com a internet antes de tentar acessar o Firebase
             const isOnline = await OfflineStorage.isOnline();
@@ -195,10 +192,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
                   }));
                 }
               } catch (error) {
-                console.error(
-                  "Erro ao carregar refeições da data selecionada:",
-                  error
-                );
                 // Inicializar com objeto vazio em caso de erro
                 setMeals((prevMeals) => ({
                   ...prevMeals,
@@ -207,7 +200,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
               }
             } else {
               // Se está offline, inicializar com objeto vazio
-              console.log("Dispositivo offline. Usando dados locais vazios.");
               setMeals((prevMeals) => ({
                 ...prevMeals,
                 [selectedDate]: {},
@@ -215,10 +207,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
             }
           }
         } catch (error) {
-          console.error(
-            "Erro ao carregar refeições para a data selecionada:",
-            error
-          );
           // Garantir que temos um objeto vazio em caso de erro
           setMeals((prevMeals) => ({
             ...prevMeals,
@@ -276,14 +264,11 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
 
           if (Object.keys(localMealsData).length > 0) {
             setMeals(localMealsData);
-            console.log(
-              "Todas as refeições carregadas do armazenamento local com sucesso"
-            );
             return; // Retornar se os dados foram carregados localmente
           }
         }
       } catch (localError) {
-        console.error("Erro ao carregar refeições locais:", localError);
+        // Erro ao carregar refeições locais
       }
 
       if (isOnline) {
@@ -348,31 +333,20 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
           });
 
           setMeals(mealsData);
-          console.log(
-            "Todas as refeições carregadas e limpas do Firebase com sucesso"
-          );
 
           // Salvar todos os dados carregados no armazenamento local
           for (const [date, mealData] of Object.entries(mealsData)) {
             await OfflineStorage.saveMealsData(user.uid, date, mealData);
           }
         } catch (firebaseError) {
-          console.error(
-            "Erro ao carregar refeições do Firebase:",
-            firebaseError
-          );
           // Em caso de erro, garantir que os dados estejam limpos
           setMeals({});
         }
       } else {
         // Se está offline, log informativo
-        console.log(
-          "Dispositivo offline. Não foi possível carregar dados do Firebase."
-        );
         // Já tentamos carregar dados locais e não temos, então mantemos vazio
       }
     } catch (error) {
-      console.error("Erro ao carregar refeições:", error);
       // Em caso de erro, garantir que os dados estejam limpos
       setMeals({});
     }
@@ -388,7 +362,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
 
       // Primeiro tentar carregar do AsyncStorage
       try {
-        console.log("Tentando carregar tipos de refeição do AsyncStorage...");
         const localMealTypes = await AsyncStorage.getItem(
           `${KEYS.MEAL_TYPES}:${user.uid}`
         );
@@ -401,19 +374,13 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
             Array.isArray(parsedMealTypes) &&
             parsedMealTypes.length > 0
           ) {
-            console.log(
-              "Tipos de refeição carregados do AsyncStorage com sucesso"
-            );
             setMealTypes(parsedMealTypes);
             setHasMealTypesConfigured(true);
             return; // Retornar se já carregou do storage local
           }
         }
       } catch (localError) {
-        console.error(
-          "Erro ao carregar tipos de refeição do AsyncStorage:",
-          localError
-        );
+        // Erro ao carregar tipos de refeição do AsyncStorage
       }
 
       // Verificar conexão com a internet antes de tentar acessar o Firebase
@@ -442,36 +409,19 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
                 `${KEYS.MEAL_TYPES}:${user.uid}`,
                 JSON.stringify(mealTypesData)
               );
-              console.log(
-                "Tipos de refeição do Firebase salvos no AsyncStorage"
-              );
             } catch (saveError) {
-              console.error(
-                "Erro ao salvar tipos de refeição no AsyncStorage:",
-                saveError
-              );
+              // Erro ao salvar tipos de refeição no AsyncStorage
             }
           } else {
             setHasMealTypesConfigured(false);
           }
         } catch (firebaseError) {
-          console.error(
-            "Erro ao carregar tipos de refeições do Firebase:",
-            firebaseError
-          );
           // Em caso de erro, garantir que os dados estejam limpos
           setMealTypes([]);
           setHasMealTypesConfigured(false);
         }
-      } else {
-        // Se está offline, log informativo
-        console.log(
-          "Dispositivo offline. Não foi possível carregar tipos de refeição do Firebase."
-        );
-        // Já tentamos carregar dados locais e não temos, então mantemos vazio
       }
     } catch (error) {
-      console.error("Erro ao carregar tipos de refeições:", error);
       // Em caso de erro, garantir que os dados estejam limpos
       setMealTypes([]);
       setHasMealTypesConfigured(false);
@@ -499,10 +449,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
             JSON.stringify(updatedTypes)
           );
         } catch (storageError) {
-          console.error(
-            "Erro ao salvar tipo de refeição no AsyncStorage:",
-            storageError
-          );
+          // Erro ao salvar tipo de refeição no AsyncStorage
         }
 
         // Salvar no Firestore se o usuário estiver autenticado
@@ -512,18 +459,14 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
             { types: updatedTypes },
             { merge: true }
           );
-          console.log("Tipos de refeição atualizados no Firebase com sucesso");
         } catch (firebaseError) {
-          console.error(
-            "Erro ao salvar no Firebase, dados mantidos localmente:",
-            firebaseError
-          );
+          // Erro ao salvar no Firebase, dados mantidos localmente
         }
 
         setHasMealTypesConfigured(true);
       }
     } catch (error) {
-      console.error("Erro ao adicionar tipo de refeição:", error);
+      // Erro ao adicionar tipo de refeição
     }
   };
 
@@ -566,7 +509,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
           const currentDayKey = `${KEYS.MEALS_KEY}${user.uid}:${selectedDate}`;
           await AsyncStorage.removeItem(currentDayKey);
         } catch (storageError) {
-          console.error("Erro ao limpar dados do AsyncStorage:", storageError);
+          // Erro ao limpar dados do AsyncStorage
         }
 
         // Limpar dados no Firebase
@@ -602,13 +545,13 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
           // Limpar histórico de pesquisa no Firebase se existir
           await OfflineStorage.clearSearchHistory(user.uid);
         } catch (firebaseError) {
-          console.error("Erro ao limpar dados no Firebase:", firebaseError);
+          // Erro ao limpar dados no Firebase
         }
       }
 
       return true;
     } catch (error) {
-      console.error("Erro ao redefinir tipos de refeições:", error);
+      // Erro ao redefinir tipos de refeições
       return false;
     }
   };
@@ -627,31 +570,12 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       // Primeiro salvar no AsyncStorage para persistência local
       if (user) {
         try {
-          console.log("Salvando tipos de refeição no AsyncStorage...");
           await AsyncStorage.setItem(
             `${KEYS.MEAL_TYPES}:${user.uid}`,
             JSON.stringify(newMealTypes)
           );
-
-          // Verificar se os dados foram salvos
-          const savedData = await AsyncStorage.getItem(
-            `${KEYS.MEAL_TYPES}:${user.uid}`
-          );
-          if (!savedData) {
-            console.warn(
-              "Falha ao verificar persistência dos tipos de refeição"
-            );
-            // Tentar novamente uma vez
-            await AsyncStorage.setItem(
-              `${KEYS.MEAL_TYPES}:${user.uid}`,
-              JSON.stringify(newMealTypes)
-            );
-          }
         } catch (storageError) {
-          console.error(
-            "Erro ao salvar tipos de refeição no AsyncStorage:",
-            storageError
-          );
+          // Erro ao salvar tipos de refeição no AsyncStorage
         }
 
         // Depois tentar salvar no Firebase
@@ -661,21 +585,14 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
             { types: newMealTypes },
             { merge: true }
           );
-          console.log(
-            "Tipos de refeição sincronizados com Firebase com sucesso"
-          );
         } catch (firebaseError) {
-          console.error(
-            "Erro ao salvar no Firebase, dados mantidos localmente:",
-            firebaseError
-          );
-          // Continuar, pois os dados foram salvos no AsyncStorage
+          // Erro ao salvar no Firebase, dados mantidos localmente
         }
       }
 
       return true; // Retornar true para indicar sucesso
     } catch (error) {
-      console.error("Erro ao atualizar tipos de refeições:", error);
+      // Erro ao atualizar tipos de refeições
       return false; // Retornar false para indicar falha
     }
   };
@@ -719,7 +636,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     // para garantir que o estado foi atualizado
     setTimeout(() => {
       saveMeals().catch((error) => {
-        console.error("Erro ao salvar após adicionar alimento:", error);
+        // Erro ao salvar após adicionar alimento
       });
     }, 100);
   };
@@ -741,11 +658,11 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
         try {
           await saveMeals();
         } catch (saveError) {
-          console.error("Erro ao salvar após remover alimento:", saveError);
+          // Erro ao salvar após remover alimento
         }
       }, 100);
     } catch (error) {
-      console.error("Erro ao remover alimento:", error);
+      // Erro ao remover alimento
       throw error;
     }
   };
@@ -773,18 +690,12 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
             doc(db, "users", user.uid, "meals", selectedDate),
             meals[selectedDate] || {}
           );
-          console.log("Refeições sincronizadas com Firebase com sucesso");
         } catch (firebaseError) {
-          console.error(
-            "Erro ao salvar no Firebase, dados mantidos localmente:",
-            firebaseError
-          );
+          // Erro ao salvar no Firebase, dados mantidos localmente
         }
-      } else if (!isOnline) {
-        console.log("Dispositivo offline. Dados salvos apenas localmente.");
       }
     } catch (error) {
-      console.error("Erro ao salvar refeições:", error);
+      // Erro ao salvar refeições
     }
   };
 
@@ -792,7 +703,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     try {
       // Verificar se o mealId é uma string válida
       if (!mealId || typeof mealId !== "string") {
-        console.warn(`mealId inválido: ${mealId}`);
         return { calories: 0, protein: 0, carbs: 0, fat: 0 };
       }
 
@@ -805,9 +715,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!Array.isArray(mealFoods)) {
-        console.warn(
-          `mealFoods para mealId=${mealId} não é um array: ${typeof mealFoods}`
-        );
         return { calories: 0, protein: 0, carbs: 0, fat: 0 };
       }
 
@@ -833,7 +740,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
         { calories: 0, protein: 0, carbs: 0, fat: 0 }
       );
     } catch (error) {
-      console.error(`Erro ao calcular totais para mealId=${mealId}:`, error);
       return { calories: 0, protein: 0, carbs: 0, fat: 0 };
     }
   };
@@ -842,7 +748,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     try {
       // Verificar se o mealId é uma string válida
       if (!mealId || typeof mealId !== "string") {
-        console.warn(`mealId inválido em getFoodsForMeal: ${mealId}`);
         return [];
       }
 
@@ -855,9 +760,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
 
       // Garantir que sempre retorne um array
       if (!Array.isArray(foods)) {
-        console.warn(
-          `foods para mealId=${mealId} não é um array: ${typeof foods}`
-        );
         return [];
       }
 
@@ -875,7 +777,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
           !isNaN(Number(food.portion))
       );
     } catch (error) {
-      console.error(`Erro ao obter alimentos para mealId=${mealId}:`, error);
       return [];
     }
   };
@@ -920,10 +821,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
               fat: acc.fat + (mealTotals.fat || 0),
             };
           } catch (error) {
-            console.error(
-              `Erro ao calcular totais para refeição ${mealId}:`,
-              error
-            );
             // Em caso de erro, retornar os acumuladores sem adicionar nada
             return acc;
           }
@@ -931,7 +828,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
         { calories: 0, protein: 0, carbs: 0, fat: 0 }
       );
     } catch (error) {
-      console.error("Erro ao calcular totais do dia:", error);
       return { calories: 0, protein: 0, carbs: 0, fat: 0 };
     }
   };
@@ -955,7 +851,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       // Persistir o histórico entre sessões
       await OfflineStorage.saveSearchHistory(user.uid, updatedHistory);
     } catch (error) {
-      console.error("Erro ao adicionar ao histórico de busca:", error);
+      // Erro ao adicionar ao histórico de busca
     }
   };
 
@@ -966,7 +862,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       setSearchHistory([]);
       await OfflineStorage.clearSearchHistory(user.uid);
     } catch (error) {
-      console.error("Erro ao limpar histórico de busca:", error);
+      // Erro ao limpar histórico de busca
     }
   };
 
@@ -1019,7 +915,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       // Salvar as alterações
       await saveMeals();
     } catch (error) {
-      console.error("Erro ao copiar refeição:", error);
+      // Erro ao copiar refeição
       throw error;
     }
   };
@@ -1071,11 +967,9 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
               updatedMeals[selectedDate],
               { merge: true }
             );
-
-            console.log("Alimento atualizado e salvo com sucesso");
           }
         } catch (error) {
-          console.error("Erro ao salvar após atualizar alimento:", error);
+          // Erro ao salvar após atualizar alimento
         }
       }, 100);
     },

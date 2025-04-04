@@ -9,7 +9,6 @@ export async function saveAuthToken(token: string): Promise<void> {
   try {
     await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token);
   } catch (error) {
-    console.error("Erro ao salvar token de autenticação:", error);
     throw error;
   }
 }
@@ -19,7 +18,6 @@ export async function getAuthToken(): Promise<string | null> {
   try {
     return await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
   } catch (error) {
-    console.error("Erro ao obter token de autenticação:", error);
     return null;
   }
 }
@@ -29,7 +27,6 @@ export async function removeAuthToken(): Promise<void> {
   try {
     await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
   } catch (error) {
-    console.error("Erro ao remover token de autenticação:", error);
     throw error;
   }
 }
@@ -40,7 +37,6 @@ export async function saveUserData(userData: any): Promise<void> {
     const userDataString = JSON.stringify(userData);
     await SecureStore.setItemAsync(USER_DATA_KEY, userDataString);
   } catch (error) {
-    console.error("Erro ao salvar dados do usuário:", error);
     throw error;
   }
 }
@@ -54,7 +50,6 @@ export async function getUserData(): Promise<any | null> {
     }
     return null;
   } catch (error) {
-    console.error("Erro ao obter dados do usuário:", error);
     return null;
   }
 }
@@ -64,7 +59,6 @@ export async function removeUserData(): Promise<void> {
   try {
     await SecureStore.deleteItemAsync(USER_DATA_KEY);
   } catch (error) {
-    console.error("Erro ao remover dados do usuário:", error);
     throw error;
   }
 }

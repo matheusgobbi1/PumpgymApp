@@ -183,7 +183,6 @@ export function ReminderProvider({ children }: { children: React.ReactNode }) {
                 setReminders([]);
               }
             } catch (parseError) {
-              console.error("Erro ao analisar dados antigos:", parseError);
               setReminders([]);
             }
           } else {
@@ -194,7 +193,6 @@ export function ReminderProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
-      console.error("Erro ao carregar lembretes:", error);
       setReminders([]);
     } finally {
       setLoading(false);
@@ -208,7 +206,6 @@ export function ReminderProvider({ children }: { children: React.ReactNode }) {
     try {
       await AsyncStorage.setItem(storageKey, JSON.stringify(updatedReminders));
     } catch (error) {
-      console.error("Erro ao salvar lembretes:", error);
     }
   };
 

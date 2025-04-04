@@ -173,7 +173,6 @@ function EmptyWorkoutState({
           await workoutContext.saveWorkouts();
         }
       } catch (error) {
-        console.error("Erro ao selecionar treino:", error);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     },

@@ -38,17 +38,8 @@ export default function GenderScreen() {
     // Se a autenticação ainda está carregando, não faça nada
     if (loading) return;
 
-    console.log("GenderScreen - Estado do usuário:", {
-      userExists: !!user,
-      userId: user?.uid,
-      isAnonymous,
-      isNewUser,
-      hasGender: !!nutritionInfo.gender,
-    });
-
     // Se usuário está autenticado, não é anônimo e já completou o onboarding
     if (user && !isAnonymous && !isNewUser) {
-      console.log("Redirecionando para a tela principal da tela de gênero");
       router.replace("/(tabs)");
       return;
     }
@@ -82,7 +73,6 @@ export default function GenderScreen() {
             try {
               await signOut();
             } catch (error) {
-              console.error("Erro ao voltar para login:", error);
             }
           },
         },

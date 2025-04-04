@@ -83,9 +83,7 @@ export default function SummaryScreen() {
     ) {
       try {
         calculateMacros();
-      } catch (error) {
-        console.error("Erro ao calcular macros na tela de resumo:", error);
-      }
+      } catch (error) {}
     }
   }, [nutritionInfo]);
 
@@ -112,7 +110,6 @@ export default function SummaryScreen() {
         router.replace("/(tabs)");
       }
     } catch (err) {
-      console.error("Erro ao salvar informações:", err);
       setError("Ocorreu um erro ao salvar suas informações. Tente novamente.");
     } finally {
       setLoading(false);
@@ -334,9 +331,13 @@ export default function SummaryScreen() {
         {/* Header */}
         <MotiView
           key={`header-${theme}`}
-          from={{ opacity: 0, translateY: -30 }}
+          from={{ opacity: 0, translateY: -20 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "spring", damping: 15 }}
+          transition={{
+            type: "timing",
+            duration: 600,
+            delay: 100,
+          }}
         >
           <Text style={[styles.headerTitle, { color: colors.text }]}>
             {t("summary.title")}
@@ -347,9 +348,13 @@ export default function SummaryScreen() {
         <MotiView
           key={`top-cards-row-${theme}`}
           style={styles.topCardsRow}
-          from={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: "spring", damping: 15, delay: 200 }}
+          from={{ opacity: 0, translateY: 20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{
+            type: "timing",
+            duration: 600,
+            delay: 200,
+          }}
         >
           {/* Card Unificado de Perfil e Objetivo */}
           <MotiView
@@ -363,9 +368,13 @@ export default function SummaryScreen() {
                 overflow: "hidden",
               },
             ]}
-            from={{ opacity: 0, scale: 0.92 }}
+            from={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: "spring", damping: 15, delay: 300 }}
+            transition={{
+              type: "spring",
+              delay: 300,
+              damping: 15,
+            }}
           >
             {/* Cabeçalho do Card */}
             <View style={styles.header}>
@@ -398,7 +407,14 @@ export default function SummaryScreen() {
             {/* Grid de Métricas */}
             <View style={styles.profileGridContainer}>
               {/* Altura */}
-              <View
+              <MotiView
+                from={{ opacity: 0, translateY: 10 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{
+                  type: "timing",
+                  duration: 400,
+                  delay: 350,
+                }}
                 style={[
                   styles.statCard,
                   styles.gridCard,
@@ -435,10 +451,17 @@ export default function SummaryScreen() {
                     </Text>
                   </View>
                 </View>
-              </View>
+              </MotiView>
 
               {/* Peso */}
-              <View
+              <MotiView
+                from={{ opacity: 0, translateY: 10 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{
+                  type: "timing",
+                  duration: 400,
+                  delay: 400,
+                }}
                 style={[
                   styles.statCard,
                   styles.gridCard,
@@ -471,10 +494,17 @@ export default function SummaryScreen() {
                     </Text>
                   </View>
                 </View>
-              </View>
+              </MotiView>
 
               {/* Objetivo */}
-              <View
+              <MotiView
+                from={{ opacity: 0, translateY: 10 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{
+                  type: "timing",
+                  duration: 400,
+                  delay: 450,
+                }}
                 style={[
                   styles.statCard,
                   styles.gridCard,
@@ -505,11 +535,18 @@ export default function SummaryScreen() {
                     </Text>
                   </View>
                 </View>
-              </View>
+              </MotiView>
 
               {/* Peso Alvo ou Atividade Física */}
               {nutritionInfo.goal !== "maintain" ? (
-                <View
+                <MotiView
+                  from={{ opacity: 0, translateY: 10 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  transition={{
+                    type: "timing",
+                    duration: 400,
+                    delay: 500,
+                  }}
                   style={[
                     styles.statCard,
                     styles.gridCard,
@@ -548,9 +585,16 @@ export default function SummaryScreen() {
                       </Text>
                     </View>
                   </View>
-                </View>
+                </MotiView>
               ) : (
-                <View
+                <MotiView
+                  from={{ opacity: 0, translateY: 10 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  transition={{
+                    type: "timing",
+                    duration: 400,
+                    delay: 500,
+                  }}
                   style={[
                     styles.statCard,
                     styles.gridCard,
@@ -585,7 +629,7 @@ export default function SummaryScreen() {
                       </Text>
                     </View>
                   </View>
-                </View>
+                </MotiView>
               )}
             </View>
           </MotiView>
@@ -595,9 +639,13 @@ export default function SummaryScreen() {
         <MotiView
           key={`macros-container-${theme}`}
           style={styles.macrosContainer}
-          from={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ type: "timing", duration: 800, delay: 700 }}
+          from={{ opacity: 0, translateY: 20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{
+            type: "timing",
+            duration: 600,
+            delay: 400,
+          }}
         >
           {/* Card Unificado de Calorias, Macros e Água */}
           <MotiView
@@ -611,9 +659,13 @@ export default function SummaryScreen() {
                 overflow: "hidden",
               },
             ]}
-            from={{ opacity: 0, scale: 0.92 }}
+            from={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: "spring", damping: 15, delay: 800 }}
+            transition={{
+              type: "spring",
+              delay: 500,
+              damping: 15,
+            }}
           >
             {/* Cabeçalho do Card Nutricional */}
             <View
@@ -759,7 +811,14 @@ export default function SummaryScreen() {
               {/* Grid de Métricas */}
               <View style={styles.macroGridContainer}>
                 {/* Proteína */}
-                <View
+                <MotiView
+                  from={{ opacity: 0, translateY: 10 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  transition={{
+                    type: "timing",
+                    duration: 400,
+                    delay: 550,
+                  }}
                   style={[
                     styles.statCard,
                     styles.gridCard,
@@ -799,10 +858,17 @@ export default function SummaryScreen() {
                       </Text>
                     </View>
                   </View>
-                </View>
+                </MotiView>
 
                 {/* Carboidratos */}
-                <View
+                <MotiView
+                  from={{ opacity: 0, translateY: 10 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  transition={{
+                    type: "timing",
+                    duration: 400,
+                    delay: 600,
+                  }}
                   style={[
                     styles.statCard,
                     styles.gridCard,
@@ -842,10 +908,17 @@ export default function SummaryScreen() {
                       </Text>
                     </View>
                   </View>
-                </View>
+                </MotiView>
 
                 {/* Gorduras */}
-                <View
+                <MotiView
+                  from={{ opacity: 0, translateY: 10 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  transition={{
+                    type: "timing",
+                    duration: 400,
+                    delay: 650,
+                  }}
                   style={[
                     styles.statCard,
                     styles.gridCard,
@@ -885,10 +958,17 @@ export default function SummaryScreen() {
                       </Text>
                     </View>
                   </View>
-                </View>
+                </MotiView>
 
                 {/* Água */}
-                <View
+                <MotiView
+                  from={{ opacity: 0, translateY: 10 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  transition={{
+                    type: "timing",
+                    duration: 400,
+                    delay: 700,
+                  }}
                   style={[
                     styles.statCard,
                     styles.gridCard,
@@ -930,7 +1010,7 @@ export default function SummaryScreen() {
                       </Text>
                     </View>
                   </View>
-                </View>
+                </MotiView>
               </View>
             </View>
           </MotiView>
@@ -948,9 +1028,13 @@ export default function SummaryScreen() {
               overflow: "hidden",
             },
           ]}
-          from={{ opacity: 0, translateY: 30 }}
+          from={{ opacity: 0, translateY: 20 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "spring", damping: 15, delay: 1400 }}
+          transition={{
+            type: "timing",
+            duration: 600,
+            delay: 600,
+          }}
         >
           <Ionicons
             key={`info-icon-${theme}`}
@@ -988,9 +1072,13 @@ export default function SummaryScreen() {
       <MotiView
         key={`footer-${theme}`}
         style={styles.footer}
-        from={{ opacity: 0, translateY: 30 }}
+        from={{ opacity: 0, translateY: 20 }}
         animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: "spring", damping: 15, delay: 1600 }}
+        transition={{
+          type: "timing",
+          duration: 600,
+          delay: 700,
+        }}
       >
         <TouchableOpacity
           key={`start-button-${theme}`}

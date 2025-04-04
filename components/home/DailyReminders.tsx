@@ -153,8 +153,6 @@ export default function DailyReminders() {
         await deleteReminder(selectedReminderId);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch (error) {
-        console.error("Erro ao excluir lembrete:", error);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } finally {
         setDeleteModalVisible(false);
         setSelectedReminderId("");

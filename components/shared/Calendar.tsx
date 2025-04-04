@@ -27,7 +27,7 @@ import { useTheme } from "../../context/ThemeContext";
 
 const { width } = Dimensions.get("window");
 const DAYS_TO_SHOW = 35; // 30 dias antes + dia atual + 3 dias depois
-const DAY_ITEM_WIDTH = 48.5; // Largura do item de dia (40px) + marginHorizontal (4px * 2)
+const DAY_ITEM_WIDTH = 49; // Largura do item de dia (40px) + marginHorizontal (4px * 2)
 const WINDOW_SIZE = 7; // Quantidade de dias visíveis por vez
 
 interface CalendarProps {
@@ -203,7 +203,6 @@ export default function Calendar({
           : {};
         return workoutsForDate && Object.keys(workoutsForDate).length > 0;
       } catch (error) {
-        console.error("Erro ao verificar conteúdo para a data:", error);
         return false;
       }
     },

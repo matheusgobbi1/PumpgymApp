@@ -353,7 +353,6 @@ export const validateEmail = (email: string): ValidationResult => {
     !domainLower.endsWith(".com.br")
   ) {
     // Esta é apenas uma verificação suave, não bloqueia o registro
-    console.warn(`Domínio de email não comum: ${domain}`);
     // Poderíamos adicionar uma verificação mais rigorosa aqui se necessário
   }
 

@@ -148,7 +148,6 @@ export function translateMeasure(measure: string): string {
     // Se não encontrar nenhuma tradução, retorna a medida original
     return measure;
   } catch (error) {
-    console.error("Erro na tradução da medida:", error);
     return measure;
   }
 }

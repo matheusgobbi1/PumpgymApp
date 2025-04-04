@@ -390,16 +390,11 @@ export const OfflineStorage = {
     try {
       // Validar parâmetros
       if (!userId || !date) {
-        console.error("Parâmetros inválidos para saveMealsData:", {
-          userId,
-          date,
-        });
         throw new Error("Parâmetros inválidos para saveMealsData");
       }
 
       // Verificar se a data está no formato correto (YYYY-MM-DD)
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        console.error("Formato de data inválido para saveMealsData:", date);
         throw new Error("Formato de data inválido para saveMealsData");
       }
 
@@ -407,18 +402,11 @@ export const OfflineStorage = {
 
       // Validar os dados antes de salvar
       if (!data) {
-        console.warn(
-          "Dados vazios fornecidos para saveMealsData, usando objeto vazio"
-        );
         data = {};
       }
 
       // Convertemos para objeto vazio se não for um objeto
       if (typeof data !== "object") {
-        console.warn(
-          "Dados não são um objeto, usando objeto vazio:",
-          typeof data
-        );
         data = {};
       }
 
@@ -430,8 +418,15 @@ export const OfflineStorage = {
         const dataKeys = Object.keys(data);
 
         // Filtrar metadados comuns que possam estar nos dados
-        const filteredKeys = dataKeys.filter(key => {
-          const metadataKeys = ['data', 'date', 'updatedAt', 'createdAt', 'userId', 'user_id'];
+        const filteredKeys = dataKeys.filter((key) => {
+          const metadataKeys = [
+            "data",
+            "date",
+            "updatedAt",
+            "createdAt",
+            "userId",
+            "user_id",
+          ];
           return !metadataKeys.includes(key);
         });
 
@@ -442,10 +437,10 @@ export const OfflineStorage = {
               // Validar cada item do array para garantir que são objetos Food válidos
               const validFoods = data[mealId].filter((food: any) => {
                 return (
-                  food && 
-                  typeof food === 'object' && 
-                  typeof food.id === 'string' && 
-                  typeof food.name === 'string' &&
+                  food &&
+                  typeof food === "object" &&
+                  typeof food.id === "string" &&
+                  typeof food.name === "string" &&
                   !isNaN(Number(food.calories)) &&
                   !isNaN(Number(food.protein)) &&
                   !isNaN(Number(food.carbs)) &&
@@ -453,23 +448,17 @@ export const OfflineStorage = {
                   !isNaN(Number(food.portion))
                 );
               });
-              
+
               sanitizedData[mealId] = validFoods;
             } else {
-              // Se não for array, criar um array vazio
-              console.warn(
-                `Dados para refeição ${mealId} não são um array, usando array vazio`
-              );
               sanitizedData[mealId] = [];
             }
           } catch (mealError) {
-            console.warn(`Erro ao processar refeição ${mealId}:`, mealError);
             sanitizedData[mealId] = [];
           }
         }
       } catch (keysError) {
-        // Problema ao obter as chaves do objeto (provavelmente não é um objeto válido)
-        console.error("Erro ao processar as chaves dos dados:", keysError);
+        // Problema ao obter as chaves do objeto
       }
 
       // Serializar para garantir que temos uma string JSON válida
@@ -477,7 +466,6 @@ export const OfflineStorage = {
       try {
         jsonData = JSON.stringify(sanitizedData);
       } catch (jsonError) {
-        console.error("Erro ao converter dados para JSON:", jsonError);
         jsonData = "{}"; // Em caso de erro, usar objeto vazio
       }
 
@@ -503,7 +491,6 @@ export const OfflineStorage = {
             dates = [date];
           }
         } catch (modifiedError) {
-          console.warn("Erro ao ler datas modificadas:", modifiedError);
           dates = [date];
         }
 
@@ -512,11 +499,9 @@ export const OfflineStorage = {
           JSON.stringify(dates)
         );
       } catch (datesError) {
-        console.warn("Erro ao salvar datas modificadas:", datesError);
         // Continuar mesmo se houver erro ao atualizar datas modificadas
       }
     } catch (error) {
-      console.error("Erro ao salvar dados de refeições:", error);
       throw error;
     }
   },
@@ -526,16 +511,11 @@ export const OfflineStorage = {
     try {
       // Validar parâmetros
       if (!userId || !date) {
-        console.error("Parâmetros inválidos para loadMealsData:", {
-          userId,
-          date,
-        });
         return {};
       }
 
       // Verificar se a data está no formato correto (YYYY-MM-DD)
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        console.error("Formato de data inválido para loadMealsData:", date);
         return {};
       }
 
@@ -551,7 +531,6 @@ export const OfflineStorage = {
 
         // Validar estrutura básica dos dados
         if (!parsedData || typeof parsedData !== "object") {
-          console.warn("Dados inválidos no armazenamento local:", parsedData);
           return {};
         }
 
@@ -560,10 +539,17 @@ export const OfflineStorage = {
 
         try {
           const mealIds = Object.keys(parsedData);
-          
+
           // Filtrar metadados que não deveriam estar aqui
-          const filteredMealIds = mealIds.filter(mealId => {
-            const metadataKeys = ['data', 'date', 'updatedAt', 'createdAt', 'userId', 'user_id'];
+          const filteredMealIds = mealIds.filter((mealId) => {
+            const metadataKeys = [
+              "data",
+              "date",
+              "updatedAt",
+              "createdAt",
+              "userId",
+              "user_id",
+            ];
             return !metadataKeys.includes(mealId);
           });
 
@@ -572,10 +558,10 @@ export const OfflineStorage = {
               // Validar cada item do array como um objeto Food válido
               const validFoods = parsedData[mealId].filter((food: any) => {
                 return (
-                  food && 
-                  typeof food === 'object' && 
-                  typeof food.id === 'string' && 
-                  typeof food.name === 'string' &&
+                  food &&
+                  typeof food === "object" &&
+                  typeof food.id === "string" &&
+                  typeof food.name === "string" &&
                   !isNaN(Number(food.calories)) &&
                   !isNaN(Number(food.protein)) &&
                   !isNaN(Number(food.carbs)) &&
@@ -583,7 +569,7 @@ export const OfflineStorage = {
                   !isNaN(Number(food.portion))
                 );
               });
-              
+
               // Só adicionar se houver alimentos válidos
               if (validFoods.length > 0) {
                 sanitizedData[mealId] = validFoods;
@@ -591,37 +577,25 @@ export const OfflineStorage = {
                 sanitizedData[mealId] = [];
               }
             } else {
-              console.warn(
-                `Dados para refeição ${mealId} não são um array, usando array vazio`
-              );
               sanitizedData[mealId] = [];
             }
           }
 
           return sanitizedData;
         } catch (keysError) {
-          console.error(
-            "Erro ao processar as chaves dos dados carregados:",
-            keysError
-          );
           return {};
         }
       } catch (parseError) {
-        console.error("Erro ao fazer parse dos dados:", parseError);
         // Se houver erro no parsing, tentar recuperar fazendo backup e limpando
         try {
           await AsyncStorage.setItem(`${key}_backup`, data);
           await AsyncStorage.removeItem(key);
         } catch (backupError) {
-          console.error(
-            "Erro ao fazer backup dos dados corrompidos:",
-            backupError
-          );
+          // Ignorar erro de backup
         }
         return {};
       }
     } catch (error) {
-      console.error("Erro ao carregar dados de refeições:", error);
       return {};
     }
   },
@@ -630,14 +604,12 @@ export const OfflineStorage = {
   getDatesWithMeals: async (userId: string): Promise<string[]> => {
     try {
       if (!userId) {
-        console.warn("ID de usuário não fornecido para getDatesWithMeals");
         return [];
       }
 
       const allKeys = await AsyncStorage.getAllKeys();
 
       if (!allKeys || !Array.isArray(allKeys)) {
-        console.warn("Não foi possível obter chaves do AsyncStorage");
         return [];
       }
 
@@ -665,13 +637,11 @@ export const OfflineStorage = {
           }
         } catch (err) {
           // Ignorar chaves com formato inválido
-          console.warn(`Formato de chave inválido: ${key}`);
         }
       }
 
       return dates;
     } catch (error) {
-      console.error("Erro ao buscar datas com refeições:", error);
       return [];
     }
   },
@@ -735,14 +705,12 @@ export const OfflineStorage = {
   clearAllMealsData: async (userId: string): Promise<void> => {
     try {
       if (!userId) {
-        console.warn("ID de usuário não fornecido para clearAllMealsData");
         return;
       }
 
       // Obter todas as chaves de refeições para o usuário
       const allKeys = await AsyncStorage.getAllKeys();
       if (!allKeys || !Array.isArray(allKeys)) {
-        console.warn("Não foi possível obter chaves do AsyncStorage");
         return;
       }
 
@@ -755,14 +723,10 @@ export const OfflineStorage = {
       // Se houver chaves para remover, usar multiRemove
       if (keysToRemove.length > 0) {
         await AsyncStorage.multiRemove(keysToRemove);
-        console.log(
-          `Removidas ${keysToRemove.length} chaves de refeições para o usuário ${userId}`
-        );
       }
 
       return;
     } catch (error) {
-      console.error("Erro ao limpar todos os dados de refeições:", error);
       // Não lançar erro para permitir que o reset continue mesmo com falha na limpeza
     }
   },

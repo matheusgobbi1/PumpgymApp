@@ -33,7 +33,6 @@ export async function getProductByBarcode(
 
     return response.data;
   } catch (error) {
-    console.error("Erro ao buscar produto:", error);
     throw error;
   }
 }

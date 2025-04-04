@@ -99,7 +99,6 @@ export default function HealthStepsCard({
           setSubscription(sub);
         }
       } catch (error) {
-        console.error("Erro ao acessar pedômetro:", error);
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -152,7 +151,6 @@ export default function HealthStepsCard({
           setSubscription(sub);
         }
       } catch (error) {
-        console.error("Erro ao solicitar permissão:", error);
       } finally {
         setLoading(false);
       }

@@ -278,7 +278,6 @@ export default function TrainingScreen() {
           setNotificationsEnabled(preference === "true");
         }
       } catch (error) {
-        console.error("Erro ao carregar preferência de notificações:", error);
       }
     };
 
@@ -295,7 +294,6 @@ export default function TrainingScreen() {
       await AsyncStorage.setItem("notificationsEnabled", newState.toString());
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (error) {
-      console.error("Erro ao salvar preferência de notificações:", error);
     }
   }, [notificationsEnabled]);
 
@@ -426,7 +424,6 @@ export default function TrainingScreen() {
         await removeExerciseFromWorkout(workoutId, exerciseId);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch (error) {
-        console.error("Erro ao remover exercício:", error);
       }
     },
     [removeExerciseFromWorkout]
@@ -439,7 +436,6 @@ export default function TrainingScreen() {
         await startWorkoutForDate(workoutTypeId);
         await saveWorkouts();
       } catch (error) {
-        console.error("Erro ao iniciar treino:", error);
       }
     },
     [startWorkoutForDate, saveWorkouts]
@@ -453,7 +449,6 @@ export default function TrainingScreen() {
         const workoutsForDate = getWorkoutsForDate(dateString);
         return Object.keys(workoutsForDate).length > 0;
       } catch (error) {
-        console.error("Erro ao verificar treinos para a data:", error);
         return false;
       }
     },
@@ -482,8 +477,6 @@ export default function TrainingScreen() {
           Alert.alert("Erro", "Falha ao atualizar tipos de treino.");
         }
       } catch (error) {
-        console.error("Erro ao configurar treinos:", error);
-        Alert.alert("Erro", "Ocorreu um erro ao configurar os treinos.");
       }
     },
     [updateWorkoutTypes]
@@ -526,7 +519,6 @@ export default function TrainingScreen() {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           }
         } catch (error) {
-          console.error("Erro ao redefinir treinos:", error);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 
           // Mostrar alerta de erro
@@ -534,7 +526,6 @@ export default function TrainingScreen() {
         }
       }, 100);
     } catch (error) {
-      console.error("Erro ao processar redefinição:", error);
 
       // Fechar o modal mesmo em caso de erro
       setResetModalVisible(false);

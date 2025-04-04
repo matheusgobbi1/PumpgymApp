@@ -31,14 +31,12 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
         if (savedLanguage && savedLanguage !== i18nInstance.language) {
           await i18nInstance.changeLanguage(savedLanguage);
           setCurrentLanguage(savedLanguage);
-          console.log("Idioma carregado do storage:", savedLanguage);
         } else {
           // Se não houver idioma salvo ou for o mesmo, apenas atualize o estado
           setCurrentLanguage(i18nInstance.language);
-          console.log("Usando idioma atual:", i18nInstance.language);
         }
       } catch (error) {
-        console.error("Erro ao carregar idioma salvo:", error);
+        // Erro ao carregar idioma salvo
       }
     };
 
@@ -51,7 +49,6 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       setIsSwitchingLanguage(true);
-      console.log("Mudando idioma para:", language);
 
       // Salvar no AsyncStorage antes de mudar no i18n
       await AsyncStorage.setItem("userLanguage", language);
@@ -60,7 +57,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
       await i18nInstance.changeLanguage(language);
       setCurrentLanguage(language);
     } catch (error) {
-      console.error("Erro ao mudar o idioma:", error);
+      // Erro ao mudar o idioma
     } finally {
       setIsSwitchingLanguage(false);
     }

@@ -81,7 +81,6 @@ export default function LoadingScreen() {
             try {
               calculateMacros();
             } catch (error) {
-              console.error("Erro ao calcular macros:", error);
             }
             setCalculationComplete(true);
           }

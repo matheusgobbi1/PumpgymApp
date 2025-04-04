@@ -14,6 +14,7 @@ import {
   getIdToken,
   signInAnonymously as signInAnonymouslyFirebase,
   updateProfile,
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
   type User as FirebaseUser,
   type Auth as FirebaseAuth,
   type AuthError as FirebaseAuthError,
@@ -33,6 +34,7 @@ import { OfflineStorage } from "../services/OfflineStorage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getFirestore } from "firebase/firestore";
 import { KEYS } from "../constants/keys";
+import { FirebaseError } from "firebase/app";
 
 // Garantir que auth é do tipo FirebaseAuth
 const firebaseAuth: FirebaseAuth = auth;
@@ -64,6 +66,7 @@ interface AuthContextType {
   authStateStable: boolean;
   isRestoringSession: boolean;
   navigationAttempted: boolean;
+  sendPasswordResetEmail: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -410,62 +413,100 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       } catch (error) {
         // Erro ao limpar dados de treino
+        console.log("Erro ao limpar dados antigos:", error);
       }
 
-      const userCredential = await signInWithEmailAndPassword(
-        firebaseAuth,
-        email,
-        password
-      );
+      // Validar inputs
+      if (!email || !password) {
+        throw new Error("Email e senha são obrigatórios");
+      }
 
-      // Obter o token de ID do usuário
-      const idToken = await getIdToken(userCredential.user);
+      // Tentar fazer login
+      try {
+        const userCredential = await signInWithEmailAndPassword(
+          firebaseAuth,
+          email,
+          password
+        );
 
-      // Salvar o token no SecureStore
-      await saveAuthToken(idToken);
+        // Obter o token de ID do usuário
+        const idToken = await getIdToken(userCredential.user);
 
-      // Obter dados do usuário do Firestore
-      const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
-      const userDocData = userDoc.data();
+        // Salvar o token no SecureStore
+        await saveAuthToken(idToken);
 
-      // Verificar se o onboarding foi concluído
-      const onboardingCompleted = userDocData
-        ? userDocData.onboardingCompleted
-        : false;
+        // Obter dados do usuário do Firestore
+        const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+        const userDocData = userDoc.data();
 
-      // Salvar dados do usuário no SecureStore, incluindo a senha para restauração de sessão
-      await saveUserData({
-        uid: userCredential.user.uid,
-        email: userCredential.user.email,
-        displayName: userCredential.user.displayName,
-        password: password, // Armazenar a senha para restauração de sessão
-        onboardingCompleted: onboardingCompleted,
-        isAnonymous: userCredential.user.isAnonymous,
-      });
+        // Verificar se o onboarding foi concluído
+        const onboardingCompleted = userDocData
+          ? userDocData.onboardingCompleted
+          : false;
 
-      // Definir o estado de novo usuário
-      setIsNewUser(!onboardingCompleted);
-      setIsAnonymous(userCredential.user.isAnonymous);
+        // Salvar dados do usuário no SecureStore, incluindo a senha para restauração de sessão
+        await saveUserData({
+          uid: userCredential.user.uid,
+          email: userCredential.user.email,
+          displayName: userCredential.user.displayName,
+          password: password, // Armazenar a senha para restauração de sessão
+          onboardingCompleted: onboardingCompleted,
+          isAnonymous: userCredential.user.isAnonymous,
+        });
 
-      // Redirecionar com base no status do onboarding
-      if (!onboardingCompleted) {
-        router.replace("/onboarding/gender");
-      } else {
-        router.replace("/(tabs)");
+        // Definir o estado de novo usuário
+        setIsNewUser(!onboardingCompleted);
+        setIsAnonymous(userCredential.user.isAnonymous);
+
+        // Redirecionar com base no status do onboarding
+        if (!onboardingCompleted) {
+          router.replace("/onboarding/gender");
+        } else {
+          router.replace("/(tabs)");
+        }
+      } catch (error) {
+        // Rethrow para ser capturado pelo tratador de erros externo
+        throw error;
       }
     } catch (error) {
-      throw error;
+      // Mostrar erros específicos para o login
+      if (error instanceof FirebaseError) {
+        throw error;
+      } else if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error("Erro desconhecido ao fazer login");
+      }
     }
   };
 
   const register = async (name: string, email: string, password: string) => {
     try {
-      // Verificar se o email já existe
-      const { exists } = await checkEmailStatus(email);
+      // Validar inputs
+      if (!name || !email || !password) {
+        throw new Error("Nome, email e senha são obrigatórios");
+      }
 
-      if (exists) {
-        throw new Error(
-          "Este email já está cadastrado. Por favor, faça login."
+      // Verificar se o email já existe
+      try {
+        const { exists } = await checkEmailStatus(email);
+
+        if (exists) {
+          throw new Error(
+            "Este email já está cadastrado. Por favor, faça login."
+          );
+        }
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message.includes("já está cadastrado")
+        ) {
+          throw error;
+        }
+        // Se for outro tipo de erro na verificação de email, continue com o cadastro
+        console.log(
+          "Erro ao verificar email, continuando com o cadastro:",
+          error
         );
       }
 
@@ -500,59 +541,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       } catch (e) {
         // Erro ao limpar dados de treino
+        console.log("Erro ao limpar dados antigos:", e);
       }
 
-      const userCredential = await createUserWithEmailAndPassword(
-        firebaseAuth,
-        email,
-        password
-      ).catch((error: FirebaseAuthError) => {
-        if (error.code === "auth/email-already-in-use") {
-          throw new Error(
-            "Este email já está cadastrado. Por favor, faça login."
-          );
-        }
+      try {
+        const userCredential = await createUserWithEmailAndPassword(
+          firebaseAuth,
+          email,
+          password
+        ).catch((error: FirebaseAuthError) => {
+          if (error.code === "auth/email-already-in-use") {
+            throw new Error(
+              "Este email já está cadastrado. Por favor, faça login."
+            );
+          }
+          throw error;
+        });
+
+        // Atualizar o perfil do usuário com o nome
+        await updateProfile(userCredential.user, {
+          displayName: name,
+        });
+
+        // Obter o token de ID do usuário
+        const idToken = await getIdToken(userCredential.user);
+
+        // Salvar o token no SecureStore
+        await saveAuthToken(idToken);
+
+        // Salvar dados do usuário no SecureStore, incluindo a senha para restauração de sessão
+        await saveUserData({
+          uid: userCredential.user.uid,
+          email: userCredential.user.email,
+          displayName: name,
+          password: password, // Armazenar a senha para restauração de sessão
+          onboardingCompleted: false,
+          isAnonymous: false,
+        });
+
+        // Criar um documento de usuário no Firestore
+        await setDoc(doc(db, "users", userCredential.user.uid), {
+          name,
+          email,
+          createdAt: new Date().toISOString(),
+          onboardingCompleted: false,
+        });
+
+        // Definir o usuário e o estado de novo usuário
+        setUser(userCredential.user);
+        setIsNewUser(true);
+        setIsAnonymous(false);
+
+        // Redirecionar explicitamente para o onboarding
+        router.replace("/onboarding/gender");
+      } catch (error) {
+        // Rethrow para captura externa
         throw error;
-      });
-
-      // Atualizar o perfil do usuário com o nome
-      await updateProfile(userCredential.user, {
-        displayName: name,
-      });
-
-      // Obter o token de ID do usuário
-      const idToken = await getIdToken(userCredential.user);
-
-      // Salvar o token no SecureStore
-      await saveAuthToken(idToken);
-
-      // Salvar dados do usuário no SecureStore, incluindo a senha para restauração de sessão
-      await saveUserData({
-        uid: userCredential.user.uid,
-        email: userCredential.user.email,
-        displayName: name,
-        password: password, // Armazenar a senha para restauração de sessão
-        onboardingCompleted: false,
-        isAnonymous: false,
-      });
-
-      // Criar um documento de usuário no Firestore
-      await setDoc(doc(db, "users", userCredential.user.uid), {
-        name,
-        email,
-        createdAt: new Date().toISOString(),
-        onboardingCompleted: false,
-      });
-
-      // Definir o usuário e o estado de novo usuário
-      setUser(userCredential.user);
-      setIsNewUser(true);
-      setIsAnonymous(false);
-
-      // Redirecionar explicitamente para o onboarding
-      router.replace("/onboarding/gender");
+      }
     } catch (error) {
-      throw error;
+      // Mostrar erros específicos para o registro
+      if (error instanceof FirebaseError) {
+        throw error;
+      } else if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error("Erro desconhecido ao cadastrar");
+      }
     }
   };
 
@@ -610,7 +664,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           anonymousTrainingGoals = JSON.parse(trainingGoalsData);
       } catch (e) {
         // Erro ao obter dados de treino do usuário anônimo
-        console.error("Erro ao obter dados do usuário anônimo:", e);
       }
 
       // Criar novo usuário
@@ -670,7 +723,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         await AsyncStorage.removeItem(`@pumpgym:trainingGoals:anonymous`);
       } catch (e) {
         // Erro ao transferir dados de treino
-        console.error("Erro ao transferir dados de treino:", e);
       }
 
       // Salvar dados do usuário localmente
@@ -713,7 +765,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (error) {
       // Em caso de erro, desbloquear a navegação
       setNavigationLocked(false);
-      console.error("Erro ao completar registro anônimo:", error);
       throw error;
     }
   };
@@ -762,17 +813,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 },
                 { merge: true }
               );
-
-              console.log("Treinos sincronizados com Firebase ao fazer logout");
             } catch (firebaseError) {
-              console.error(
-                "Erro ao salvar treinos no Firebase durante logout:",
-                firebaseError
-              );
+              // Erro ao salvar treinos no Firebase durante logout
             }
           }
         } catch (e) {
-          console.error("Erro ao processar dados de treino durante logout:", e);
+          // Erro ao processar dados de treino durante logout
         }
       }
 
@@ -831,6 +877,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // Função para redefinir senha
+  const sendPasswordResetEmail = async (email: string) => {
+    try {
+      // Verificar se o email existe
+      const { exists } = await checkEmailStatus(email);
+
+      if (!exists) {
+        throw new Error(
+          "Não encontramos uma conta com este email. Verifique o endereço ou crie uma nova conta."
+        );
+      }
+
+      // Enviar email de redefinição
+      await firebaseSendPasswordResetEmail(firebaseAuth, email);
+    } catch (error) {
+      throw error; // Repassar o erro para ser tratado pelo handler
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -852,6 +917,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     authStateStable,
     isRestoringSession,
     navigationAttempted,
+    sendPasswordResetEmail,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

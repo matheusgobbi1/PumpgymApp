@@ -337,8 +337,6 @@ const MealCardComponent = ({
         setShowCopySuccess(false);
       }, 3000);
     } catch (error) {
-      console.error("Erro ao copiar refeição:", error);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   }, [selectedSourceDate, meal.id, copyMealFromDate]);
 

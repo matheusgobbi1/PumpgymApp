@@ -31,7 +31,6 @@ const initI18n = async () => {
       await AsyncStorage.setItem("userLanguage", savedLanguage);
     }
   } catch (error) {
-    console.error("Erro ao carregar idioma:", error);
     savedLanguage = "pt-BR"; // Fallback seguro
   }
 
@@ -47,8 +46,6 @@ const initI18n = async () => {
       useSuspense: false, // Para evitar problemas com Suspense
     },
   });
-
-  console.log("i18n inicializado com idioma:", i18n.language);
   return i18n;
 };
 

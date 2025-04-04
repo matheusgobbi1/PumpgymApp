@@ -201,7 +201,6 @@ export default function HomeScreen() {
         // Calcular porcentagem com base nos dias com dados
         return (daysOnTarget / daysWithData) * 100;
       } catch (error) {
-        console.error("Erro ao calcular consistência de água:", error);
         return 0;
       }
     };

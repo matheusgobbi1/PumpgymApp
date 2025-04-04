@@ -109,7 +109,6 @@ const WorkoutIcon = ({
       );
     }
   } catch (error) {
-    console.error("Erro ao renderizar ícone:", error);
     return <Ionicons name="barbell-outline" size={size} color={color} />;
   }
 
@@ -633,7 +632,6 @@ export default function WorkoutProgressChart({
         resetState();
       }
     } catch (error) {
-      console.error("Erro ao carregar dados do treino:", error);
       resetState();
     } finally {
       setIsLoading(false);

@@ -59,7 +59,6 @@ export default function InitialRoute() {
                   }
                 }
               } catch (error) {
-                console.error("Erro ao verificar documento do usuário:", error);
               }
             }
           }
@@ -68,7 +67,6 @@ export default function InitialRoute() {
             setOnboardingCompleted(completed || false);
           }
         } catch (error) {
-          console.error("Erro ao verificar status do onboarding:", error);
           if (isMounted) {
             setOnboardingCompleted(false);
           }

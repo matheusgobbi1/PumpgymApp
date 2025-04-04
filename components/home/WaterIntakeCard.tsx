@@ -105,7 +105,6 @@ export default function WaterIntakeCard() {
         // Atualizar o gerenciador global de dados de água
         waterDataManager.setWaterDataForDate(today, intake);
       } catch (error) {
-        console.error("Erro ao salvar consumo de água:", error);
       }
     },
     [storageKey]
@@ -140,7 +139,6 @@ export default function WaterIntakeCard() {
       setWaterHistory(waterData);
       return waterData;
     } catch (error) {
-      console.error("Erro ao carregar histórico de água:", error);
       return {};
     }
   }, [user, getStorageKeyForDate]);
@@ -172,7 +170,6 @@ export default function WaterIntakeCard() {
 
         return () => clearInterval(intervalId);
       } catch (error) {
-        console.error("Erro ao carregar consumo de água:", error);
         setIsInitialized(true);
       }
     };

@@ -71,24 +71,18 @@ export async function getFatSecretToken(): Promise<string> {
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Erro na resposta:", errorText);
       throw new Error(`Erro ao obter token de acesso: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
     return data.access_token;
   } catch (error) {
-    console.error("Erro detalhado ao obter token de acesso:", error);
     throw error;
   }
 }
 
 // Validação das variáveis de ambiente
 if (!FATSECRET_CONFIG.CLIENT_ID || !FATSECRET_CONFIG.CLIENT_SECRET) {
-  console.error("Erro de configuração FatSecret:", {
-    CLIENT_ID: FATSECRET_CONFIG.CLIENT_ID ? "Definido" : "Não definido",
-    CLIENT_SECRET: FATSECRET_CONFIG.CLIENT_SECRET ? "Definido" : "Não definido",
-  });
   throw new Error(
     "As variáveis de ambiente EXPO_PUBLIC_FATSECRET_CLIENT_ID e EXPO_PUBLIC_FATSECRET_CLIENT_SECRET são obrigatórias."
   );

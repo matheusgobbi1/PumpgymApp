@@ -13,7 +13,6 @@ export const searchFoods = async (query: string): Promise<FoodResponse> => {
 
     return results;
   } catch (error: any) {
-    console.error("Erro na busca local:", error);
     throw error;
   }
 };
@@ -26,7 +25,6 @@ export const getFoodDetails = async (foodId: string): Promise<FoodResponse> => {
     const result = getFoodDetailsMockup(foodId);
     return result;
   } catch (error: any) {
-    console.error("Erro ao obter detalhes localmente:", error);
     throw error;
   }
 };

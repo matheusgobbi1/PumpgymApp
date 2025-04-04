@@ -52,7 +52,6 @@ const parseUrlParams = (params: Record<string, any>) => {
       previousWorkoutTotals: previousWorkoutTotalsData,
     };
   } catch (error) {
-    console.error("Erro ao analisar parâmetros:", error);
     return {
       currentExercises: [],
       previousExercises: [],

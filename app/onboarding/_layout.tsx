@@ -25,16 +25,8 @@ export default function OnboardingLayout() {
     // Ignorar verificações enquanto estiver carregando
     if (loading) return;
 
-    console.log("OnboardingLayout - Estado do usuário:", {
-      userExists: !!user,
-      isAnonymous: isAnonymous,
-      isNewUser: isNewUser,
-    });
-
     // Se o usuário está autenticado, não é anônimo e já completou o onboarding
     if (user && !isAnonymous && !isNewUser) {
-      console.log("OnboardingLayout: Redirecionando para a tela principal");
-
       // Redirecionar para a tela principal e evitar renderização do conteúdo
       router.replace("/(tabs)");
     } else {

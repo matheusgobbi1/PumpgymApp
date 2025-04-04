@@ -43,7 +43,6 @@ const OPTIMAL_RIR_RANGE = { min: 0, max: 2 }; // RIR ideal entre 0-2 para hipert
 function getTranslation(key: string): string {
   // Se i18next não estiver inicializado ou a chave não existir, retornar uma string padrão
   if (!i18next.isInitialized || !i18next.exists(key)) {
-    console.warn(`Translation key "${key}" not found`);
     // Retornar última parte da chave como texto de fallback
     const fallbackText = key.split(".").pop() || key;
     return fallbackText;
@@ -215,7 +214,6 @@ function hasProgressedBetween(newer: Exercise, older: Exercise): boolean {
 
   // Se houver progresso, registrar para depuração
   if (hasAnyProgress) {
-    console.log(`Progresso detectado entre treinos - Exercício: ${newer.name}`);
   }
 
   return hasAnyProgress;
@@ -289,10 +287,6 @@ function analyzeExerciseHistory(history: ExerciseHistory): {
     }
   }
 
-  console.log(
-    `[${history.exerciseName}] Último progresso encontrado no índice: ${lastProgressIndex}`
-  );
-
   // Segundo passo: analisar o platô APENAS a partir do último progresso
   // Se não houve progresso recente, analisamos todo o histórico
   const startIndex = lastProgressIndex === -1 ? 0 : 0;
@@ -357,10 +351,6 @@ function analyzeExerciseHistory(history: ExerciseHistory): {
       }
     }
   }
-
-  console.log(
-    `[${history.exerciseName}] Platô: ${isInPlateau}, Tipo: ${plateauType}, Repetições: ${repeatedWorkouts}, Início do platô: ${plateauStartIndex}`
-  );
 
   // Obter número atual de séries e estatísticas
   const currentSets = orderedExercises[0]?.sets?.length || 0;

@@ -84,7 +84,6 @@ export default function Profile() {
     useCallback(() => {
       try {
       } catch (error) {
-        console.error("Erro ao atualizar tela:", error);
       }
       return () => {};
     }, [])

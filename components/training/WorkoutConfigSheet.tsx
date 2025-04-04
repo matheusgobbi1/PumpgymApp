@@ -333,16 +333,12 @@ const WorkoutConfigSheet = forwardRef<
     useEffect(() => {
       const loadWorkoutTypes = async () => {
         try {
-          console.log("Carregando tipos de treino de AsyncStorage...");
           const storedTypes = await AsyncStorage.getItem(
             `${KEYS.AVAILABLE_WORKOUT_TYPES}:${userId}`
           );
 
           if (storedTypes) {
             const parsedTypes = JSON.parse(storedTypes);
-            console.log(
-              `Carregados ${parsedTypes.length} tipos de treino do AsyncStorage`
-            );
 
             if (Array.isArray(parsedTypes) && parsedTypes.length > 0) {
               setAvailableWorkoutTypes(parsedTypes);
@@ -353,18 +349,13 @@ const WorkoutConfigSheet = forwardRef<
           // Fallback para os tipos do contexto
           const contextTypes = getAvailableWorkoutTypes();
           if (Array.isArray(contextTypes) && contextTypes.length > 0) {
-            console.log(
-              `Usando ${contextTypes.length} tipos de treino do contexto`
-            );
             setAvailableWorkoutTypes(contextTypes);
             return;
           }
 
           // Se não há dados salvos nem no contexto, usar os padrões
-          console.log("Usando tipos de treino padrão");
           setAvailableWorkoutTypes(DEFAULT_WORKOUT_TYPES);
         } catch (error) {
-          console.error("Erro ao carregar tipos de treino:", error);
           setAvailableWorkoutTypes(DEFAULT_WORKOUT_TYPES);
         }
       };
@@ -558,20 +549,12 @@ const WorkoutConfigSheet = forwardRef<
                 },
                 { merge: true }
               );
-
-              console.log("Tipos de treino sincronizados com Firebase");
             } catch (firebaseError) {
-              console.error(
-                "Erro ao sincronizar tipos de treino com Firebase:",
-                firebaseError
-              );
-              // Continuar mesmo com erro no Firebase, pois os dados já foram salvos localmente
+              // Erro ao sincronizar tipos de treino com Firebase
             }
-          } else if (!isOnline) {
-            console.log("Dispositivo offline. Dados salvos apenas localmente.");
           }
         } catch (error) {
-          console.error("Erro ao salvar tipos de treino:", error);
+          // Erro ao salvar tipos de treino
         }
       }, 100);
     };
@@ -602,7 +585,7 @@ const WorkoutConfigSheet = forwardRef<
       <View style={styles.workoutTypesList}>
         {Array.isArray(availableWorkoutTypes) &&
         availableWorkoutTypes.length > 0 ? (
-          availableWorkoutTypes.map((item) => (
+          availableWorkoutTypes.map((item, index) => (
             <Swipeable
               key={item.id}
               renderRightActions={
@@ -614,11 +597,12 @@ const WorkoutConfigSheet = forwardRef<
             >
               <MotiView
                 style={styles.workoutCardWrapper}
-                from={{ opacity: 0, translateY: 20 }}
+                from={{ opacity: 0, translateY: 50 }}
                 animate={{ opacity: 1, translateY: 0 }}
                 transition={{
                   type: "timing",
-                  duration: 300,
+                  duration: 500,
+                  delay: index * 100,
                   easing: Easing.out(Easing.ease),
                 }}
               >

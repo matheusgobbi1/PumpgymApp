@@ -78,7 +78,6 @@ export default function LoginScreen() {
       await signInAnonymously();
       router.replace("/onboarding/gender");
     } catch (err) {
-      console.error("Erro ao iniciar anonimamente:", err);
       setError("Ocorreu um erro ao iniciar. Tente novamente.");
     } finally {
       setLoading(false);

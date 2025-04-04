@@ -15,7 +15,6 @@ export function useAuthPersistence() {
         try {
           await restoreSession();
         } catch (error) {
-          console.error("Erro ao restaurar sessão:", error);
         }
       }
     };

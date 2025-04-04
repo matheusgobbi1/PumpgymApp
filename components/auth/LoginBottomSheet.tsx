@@ -39,6 +39,9 @@ import { useTheme } from "../../context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MotiView } from "moti";
 import { useTranslation } from "react-i18next";
+import { handleLoginError } from "../../utils/errorHandler";
+import { useRouter } from "expo-router";
+import ForgotPasswordModal from "./ForgotPasswordModal";
 
 const { width, height } = Dimensions.get("window");
 
@@ -64,12 +67,14 @@ const LoginBottomSheet = ({
   const insets = useSafeAreaInsets();
   const { login } = useAuth();
   const { t } = useTranslation();
+  const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
 
   // Bottom sheet reference
   const bottomSheetRef = useRef<BottomSheet>(null);
@@ -254,11 +259,9 @@ const LoginBottomSheet = ({
       // Fechar o BottomSheet após o login bem-sucedido
       setBottomSheetIndex(-1);
     } catch (err) {
-      console.error("Erro no login:", err);
+      // Usar nosso tratador de erro personalizado
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-
-      // Usar mensagem de erro traduzida
-      setError(t("login.bottomSheet.errorMessages.invalidCredentials"));
+      setError(handleLoginError(err));
     } finally {
       setLoading(false);
     }
@@ -531,18 +534,21 @@ const LoginBottomSheet = ({
             </View>
 
             {/* Link para recuperação de senha */}
-            <TouchableOpacity
-              style={styles.forgotPasswordContainer}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
-            >
-              <Text
-                style={[styles.forgotPasswordText, { color: colors.primary }]}
+            <View style={styles.forgotPasswordContainer}>
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  // Mostrar o modal de recuperação de senha
+                  setShowForgotPasswordModal(true);
+                }}
               >
-                {t("login.bottomSheet.forgotPassword")}
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[styles.forgotPasswordText, { color: colors.primary }]}
+                >
+                  {t("login.bottomSheet.forgotPassword")}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             {/* Botão de login */}
             <View
@@ -635,6 +641,12 @@ const LoginBottomSheet = ({
           </View>
         </ScrollView>
       </View>
+
+      {/* Modal de recuperação de senha */}
+      <ForgotPasswordModal
+        visible={showForgotPasswordModal}
+        onClose={() => setShowForgotPasswordModal(false)}
+      />
     </BottomSheet>
   );
 };

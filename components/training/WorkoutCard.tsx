@@ -283,15 +283,9 @@ export default function WorkoutCard({
           setTimeout(() => {
             router.push("/training");
           }, 500);
-        } catch (error) {
-          console.error("Erro ao copiar treino:", error);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        }
+        } catch (error) {}
       }, 100);
-    } catch (error) {
-      console.error("Erro ao copiar treino:", error);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    }
+    } catch (error) {}
   }, [
     selectedSourceDate,
     selectedDate,
@@ -833,12 +827,7 @@ export default function WorkoutCard({
             if (exerciseIdToDelete) {
               try {
                 await onDeleteExercise(exerciseIdToDelete);
-              } catch (error) {
-                console.error("Erro ao excluir exercício:", error);
-                Haptics.notificationAsync(
-                  Haptics.NotificationFeedbackType.Error
-                );
-              }
+              } catch (error) {}
             }
           }, 100);
         }}
