@@ -16,4 +16,5 @@ export const KEYS = {
   AVAILABLE_WORKOUT_TYPES: "pumpgym_available_workout_types",
   TRAINING_GOALS: "pumpgym_training_goals",
   WATER_INTAKE: "pumpgym_water_intake",
+  STEPS_COUNT: "pumpgym_steps_count",
 };

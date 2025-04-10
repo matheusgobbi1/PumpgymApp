@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Dimensions,
   Pressable,
   Modal,
+  Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
@@ -19,7 +20,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Input from "../components/common/Input";
-import { useReminders, REMINDER_ICONS } from "../context/ReminderContext";
+import { useReminders, useReminderIcons } from "../context/ReminderContext";
 import { MotiView } from "moti";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useTranslation } from "react-i18next";
@@ -32,8 +33,16 @@ export default function ReminderModal() {
   const colors = Colors[theme];
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const { reminders, addReminder, updateReminder, deleteReminder } =
-    useReminders();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const {
+    reminders,
+    addReminder,
+    updateReminder,
+    deleteReminder,
+    notificationsEnabled,
+    toggleNotificationsEnabled,
+  } = useReminders();
+  const reminderIcons = useReminderIcons();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -280,14 +289,16 @@ export default function ReminderModal() {
       {
         key: "detalhes",
         label: t("reminders.details"),
-        icon: "create-outline",
       },
       {
         key: "icone",
         label: t("reminders.icon"),
-        icon: "color-palette-outline",
       },
-      { key: "agenda", label: t("reminders.days"), icon: "calendar-outline" },
+      { key: "agenda", label: t("reminders.days") },
+      {
+        key: "notificacoes",
+        label: t("reminders.notifications_short"),
+      },
     ];
 
     return (
@@ -308,12 +319,6 @@ export default function ReminderModal() {
             }}
           >
             <View style={styles.segmentContent}>
-              <Ionicons
-                name={segment.icon as any}
-                size={18}
-                color={activeSection === segment.key ? color : colors.text}
-                style={styles.segmentIcon}
-              />
               <Text
                 style={[
                   styles.segmentText,
@@ -322,6 +327,7 @@ export default function ReminderModal() {
                     fontWeight: activeSection === segment.key ? "600" : "400",
                   },
                 ]}
+                numberOfLines={1}
               >
                 {segment.label}
               </Text>
@@ -340,6 +346,7 @@ export default function ReminderModal() {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 70 : 0}
       >
         {/* Cabeçalho */}
         <View style={[styles.header, { backgroundColor: colors.background }]}>
@@ -376,41 +383,42 @@ export default function ReminderModal() {
         </View>
 
         <ScrollView
+          ref={scrollViewRef}
           style={styles.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={[
-            styles.scrollViewContent,
-            { alignItems: "center" },
-          ]}
+          contentContainerStyle={styles.scrollViewContent}
         >
           <MotiView
             from={{ opacity: 0, translateY: 10 }}
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: "timing", duration: 300 }}
-            style={[styles.formContainer, { width: "100%", maxWidth: 480 }]}
+            style={styles.formContainer}
           >
             {/* Seção Detalhes */}
             {activeSection === "detalhes" && (
               <MotiView
                 from={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ type: "timing", duration: 300 }}
+                exit={{ opacity: 0 }}
+                transition={{ type: "timing", duration: 250 }}
                 style={styles.section}
               >
                 <View style={styles.sectionHeaderRow}>
-                  <MaterialCommunityIcons
-                    name={icon as any}
-                    size={28}
-                    color={color}
-                    style={styles.sectionIcon}
-                  />
+                  <View style={styles.sectionIconContainer}>
+                    <MaterialCommunityIcons
+                      name={icon as any}
+                      size={32}
+                      color={color}
+                      style={styles.sectionIcon}
+                    />
+                  </View>
                   <Text style={[styles.sectionTitle, { color: colors.text }]}>
                     {t("reminders.reminderDetails")}
                   </Text>
                 </View>
 
-                <View style={styles.inputContainer}>
+                <View style={[styles.inputContainer, { marginTop: 4 }]}>
                   <Input
                     label={t("reminders.title")}
                     placeholder={t("reminders.titlePlaceholder")}
@@ -420,6 +428,12 @@ export default function ReminderModal() {
                     autoCapitalize="sentences"
                     leftIcon="create-outline"
                     floatingLabel
+                    onFocus={() => {
+                      scrollViewRef.current?.scrollTo({
+                        y: 50,
+                        animated: true,
+                      });
+                    }}
                   />
                 </View>
 
@@ -433,8 +447,12 @@ export default function ReminderModal() {
                     autoCapitalize="sentences"
                     leftIcon="document-text-outline"
                     floatingLabel
-                    multiline
-                    numberOfLines={3}
+                    onFocus={() => {
+                      scrollViewRef.current?.scrollTo({
+                        y: 80,
+                        animated: true,
+                      });
+                    }}
                   />
                 </View>
 
@@ -454,7 +472,13 @@ export default function ReminderModal() {
                       },
                     ]}
                     onPress={openTimePicker}
-                    onPressIn={() => setTimePickerFocused(true)}
+                    onPressIn={() => {
+                      setTimePickerFocused(true);
+                      scrollViewRef.current?.scrollTo({
+                        y: 200,
+                        animated: true,
+                      });
+                    }}
                     onPressOut={() =>
                       !showTimePicker && setTimePickerFocused(false)
                     }
@@ -603,24 +627,27 @@ export default function ReminderModal() {
               <MotiView
                 from={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ type: "timing", duration: 300 }}
+                exit={{ opacity: 0 }}
+                transition={{ type: "timing", duration: 250 }}
                 style={styles.section}
               >
                 <View style={styles.sectionHeaderRow}>
-                  <MaterialCommunityIcons
-                    name={icon as any}
-                    size={28}
-                    color={color}
-                    style={styles.sectionIcon}
-                  />
+                  <View style={styles.sectionIconContainer}>
+                    <MaterialCommunityIcons
+                      name={icon as any}
+                      size={32}
+                      color={color}
+                      style={styles.sectionIcon}
+                    />
+                  </View>
                   <Text style={[styles.sectionTitle, { color: colors.text }]}>
                     {t("reminders.chooseIcon")}
                   </Text>
                 </View>
 
-                <View style={styles.iconGridContainer}>
+                <View style={[styles.iconGridContainer, { marginTop: 4 }]}>
                   <View style={styles.iconGrid}>
-                    {REMINDER_ICONS.map((iconOption) => (
+                    {reminderIcons.map((iconOption) => (
                       <MotiView
                         key={iconOption.name}
                         animate={{
@@ -643,7 +670,7 @@ export default function ReminderModal() {
                               borderColor:
                                 icon === iconOption.name
                                   ? iconOption.color
-                                  : "transparent",
+                                  : iconOption.color + "20",
                             },
                           ]}
                           onPress={() => {
@@ -654,7 +681,7 @@ export default function ReminderModal() {
                         >
                           <MaterialCommunityIcons
                             name={iconOption.name as any}
-                            size={28}
+                            size={32}
                             color={
                               icon === iconOption.name
                                 ? iconOption.color
@@ -691,22 +718,30 @@ export default function ReminderModal() {
               <MotiView
                 from={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ type: "timing", duration: 300 }}
+                exit={{ opacity: 0 }}
+                transition={{ type: "timing", duration: 250 }}
                 style={styles.section}
               >
                 <View style={styles.sectionHeaderRow}>
-                  <MaterialCommunityIcons
-                    name="calendar-outline"
-                    size={24}
-                    color={color}
-                    style={styles.sectionIcon}
-                  />
+                  <View style={styles.sectionIconContainer}>
+                    <MaterialCommunityIcons
+                      name="calendar-month-outline"
+                      size={30}
+                      color={color}
+                      style={styles.sectionIcon}
+                    />
+                  </View>
                   <Text style={[styles.sectionTitle, { color: colors.text }]}>
                     {t("reminders.weekDaysSelection")}
                   </Text>
                 </View>
 
-                <View style={styles.daysContainer}>
+                <View
+                  style={[
+                    styles.daysContainer,
+                    { marginTop: 4, marginBottom: 8 },
+                  ]}
+                >
                   {[0, 1, 2, 3, 4, 5, 6].map((day) => renderDayButton(day))}
                 </View>
 
@@ -718,6 +753,116 @@ export default function ReminderModal() {
                           count: selectedDays.length,
                         })}
                   </Text>
+                </View>
+              </MotiView>
+            )}
+
+            {/* Seção Notificações */}
+            {activeSection === "notificacoes" && (
+              <MotiView
+                from={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ type: "timing", duration: 250 }}
+                style={styles.section}
+              >
+                <View style={styles.sectionHeaderRow}>
+                  <View style={styles.sectionIconContainer}>
+                    <Ionicons
+                      name="notifications-outline"
+                      size={30}
+                      color={color}
+                      style={styles.sectionIcon}
+                    />
+                  </View>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    {t("reminders.notificationSettings")}
+                  </Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.notificationSection,
+                    {
+                      backgroundColor:
+                        theme === "dark" ? colors.card : "#f5f5f5",
+                    },
+                  ]}
+                >
+                  <View style={styles.notificationRow}>
+                    <View style={styles.notificationContent}>
+                      <Text
+                        style={[
+                          styles.notificationTitle,
+                          { color: colors.text },
+                        ]}
+                      >
+                        {t("reminders.enableNotifications")}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.notificationDescription,
+                          { color: colors.text + "99" },
+                        ]}
+                      >
+                        {t("reminders.notificationsDescription")}
+                      </Text>
+                    </View>
+                    <Switch
+                      trackColor={{ false: "#767577", true: color + "80" }}
+                      thumbColor={notificationsEnabled ? color : "#f4f3f4"}
+                      ios_backgroundColor="#3e3e3e"
+                      onValueChange={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        toggleNotificationsEnabled();
+                      }}
+                      value={notificationsEnabled}
+                    />
+                  </View>
+
+                  {notificationsEnabled && (
+                    <>
+                      <View style={styles.notificationInfoContainer}>
+                        <Ionicons
+                          name="information-circle-outline"
+                          size={22}
+                          color={color}
+                          style={styles.infoIcon}
+                        />
+                        <Text
+                          style={[
+                            styles.notificationInfo,
+                            { color: colors.text + "CC" },
+                          ]}
+                        >
+                          {time
+                            ? t("reminders.notificationTimeInfo", { time })
+                            : t("reminders.notificationNoTimeInfo")}
+                        </Text>
+                      </View>
+
+                      <View style={styles.notificationInfoContainer}>
+                        <Ionicons
+                          name="calendar-outline"
+                          size={20}
+                          color={color}
+                          style={styles.infoIcon}
+                        />
+                        <Text
+                          style={[
+                            styles.notificationInfo,
+                            { color: colors.text + "CC" },
+                          ]}
+                        >
+                          {selectedDays.length > 0
+                            ? t("reminders.selectedDaysCount", {
+                                count: selectedDays.length,
+                              })
+                            : t("reminders.noDaysSelected")}
+                        </Text>
+                      </View>
+                    </>
+                  )}
                 </View>
               </MotiView>
             )}
@@ -750,7 +895,9 @@ export default function ReminderModal() {
                 style={styles.saveButtonContent}
               >
                 <Text style={styles.saveButtonText}>
-                  {editingReminder ? "Salvar alterações" : "Criar lembrete"}
+                  {editingReminder
+                    ? t("reminders.saveChanges")
+                    : t("reminders.createReminder")}
                 </Text>
                 <Ionicons
                   name={editingReminder ? "checkmark" : "add"}
@@ -778,7 +925,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 12,
   },
   headerTitle: {
@@ -801,7 +948,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   segmentWrapper: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
   },
   segmentContainer: {
     flexDirection: "row",
@@ -815,16 +962,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
-    marginHorizontal: 4,
+    paddingHorizontal: 2,
+    marginHorizontal: 2,
   },
   segmentContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     opacity: 0.8,
-  },
-  segmentIcon: {
-    marginRight: 6,
   },
   segmentText: {
     fontSize: 15,
@@ -833,56 +978,78 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollViewContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-    paddingBottom: 80,
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingTop: 6,
+    paddingBottom: 20,
   },
   formContainer: {
-    marginBottom: 16,
+    width: "100%",
+    maxWidth: 480,
+    alignItems: "center",
+    justifyContent: "flex-start",
+    paddingHorizontal: 4,
+    minHeight: 500,
   },
   section: {
-    marginBottom: 24,
+    width: "100%",
     borderRadius: 16,
     overflow: "hidden",
-    backgroundColor:
-      Platform.OS === "ios" ? "rgba(255, 255, 255, 0.05)" : undefined,
-    padding: 16,
-    borderWidth: Platform.OS === "android" ? 1 : 0,
-    borderColor: "rgba(0, 0, 0, 0.05)",
+    backgroundColor: "transparent",
+    borderWidth: 0,
+    marginBottom: 10,
   },
   sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 8,
+    marginTop: 6,
+    paddingHorizontal: 2,
+    width: "100%",
+    height: 50,
+  },
+  sectionIconContainer: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
   },
   sectionIcon: {
-    marginRight: 8,
+    textAlign: "center",
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "600",
     letterSpacing: -0.5,
   },
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    width: "100%",
   },
   iconGridContainer: {
-    flex: 1,
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+    paddingHorizontal: 0,
+    marginTop: 4,
   },
   iconGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
-    maxWidth: 420,
-    marginTop: 12,
+    maxWidth: 480,
+    marginTop: 6,
+    width: "100%",
   },
   iconOption: {
-    width: (width - 120) / 3,
-    height: (width - 120) / 3,
-    maxWidth: 120,
-    maxHeight: 120,
+    width: (width - 80) / 3,
+    height: (width - 80) / 3,
+    maxWidth: 140,
+    maxHeight: 140,
     alignItems: "center",
     justifyContent: "center",
     margin: 8,
@@ -892,25 +1059,30 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
-    padding: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.1)",
     overflow: "hidden",
   },
   iconLabel: {
-    fontSize: 12,
-    marginTop: 8,
+    fontSize: 14,
+    marginTop: 10,
     textAlign: "center",
     fontWeight: "500",
-    paddingHorizontal: 2,
+    paddingHorizontal: 4,
     maxWidth: "100%",
   },
   daysContainer: {
     flexDirection: "column",
     marginVertical: 16,
     width: "100%",
+    paddingHorizontal: 0,
+    alignItems: "center",
   },
   dayButtonWrapper: {
     width: "100%",
+    maxWidth: 480,
     marginBottom: 10,
+    paddingHorizontal: 10,
   },
   dayButton: {
     flexDirection: "row",
@@ -1074,5 +1246,49 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 1,
     elevation: 1,
+  },
+  notificationSection: {
+    marginVertical: 8,
+    marginHorizontal: 10,
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  notificationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  notificationContent: {
+    flex: 1,
+    paddingRight: 16,
+  },
+  notificationTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  notificationDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  notificationInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.1)",
+  },
+  infoIcon: {
+    marginRight: 10,
+  },
+  notificationInfo: {
+    fontSize: 14,
+    flex: 1,
   },
 });

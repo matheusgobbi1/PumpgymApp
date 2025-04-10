@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -70,6 +70,24 @@ export default function WeightGoalScreen() {
     }
   };
 
+  // Preencher automaticamente o campo de peso alvo com o peso atual se o objetivo for manter o peso
+  useEffect(() => {
+    if (nutritionInfo.goal === "maintain" && nutritionInfo.weight) {
+      // Definir o targetWeight como o peso atual
+      const currentWeight = nutritionInfo.weight.toString();
+
+      // Atualizar o estado local do componente
+      setTargetWeight(currentWeight);
+      updateWeightDifference(currentWeight);
+
+      // Atualizar o estado global de nutrição
+      updateNutritionInfo({
+        targetWeight: nutritionInfo.weight,
+        weightChangeRate: 0,
+      });
+    }
+  }, [nutritionInfo.goal, nutritionInfo.weight]);
+
   const handleNext = () => {
     if (targetWeight && nutritionInfo.weight) {
       const targetWeightNum = parseFloat(targetWeight);
@@ -92,11 +110,19 @@ export default function WeightGoalScreen() {
         goal = "gain";
       }
 
+      // Atualizar informações de nutrição com o peso alvo
       updateNutritionInfo({
         targetWeight: targetWeightNum,
         goal,
       });
-      router.push("/onboarding/weight-change-rate" as any);
+
+      // Se o objetivo for manter o peso, definir uma taxa de mudança zero e pular para tipo de dieta
+      if (goal === "maintain") {
+        updateNutritionInfo({ weightChangeRate: 0 });
+        router.push("/onboarding/diet-type" as any);
+      } else {
+        router.push("/onboarding/weight-change-rate" as any);
+      }
     }
   };
 

@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "../../i18n";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLanguage } from "../../context/LanguageContext";
+import { useRouter } from "expo-router";
 
 interface ProfileOptionsCardProps {
   onThemeToggle: () => void;
@@ -37,6 +38,7 @@ export default function ProfileOptionsCard({
   const { signOut } = useAuth();
   const { currentLanguage, changeLanguage, isSwitchingLanguage } =
     useLanguage();
+  const router = useRouter();
 
   // Estado para controlar a visibilidade dos modais
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
@@ -52,6 +54,12 @@ export default function ProfileOptionsCard({
     await changeLanguage(newLang);
   };
 
+  // Função para mostrar o modal de configuração de distribuição
+  const handleConfigureDistribution = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push("/meal-distribution-config");
+  };
+
   // Função para mostrar o modal de confirmação de logout
   const showLogoutConfirmation = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -63,8 +71,7 @@ export default function ProfileOptionsCard({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
       await signOut();
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   return (

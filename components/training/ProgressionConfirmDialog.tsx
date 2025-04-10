@@ -131,31 +131,8 @@ export default function ProgressionConfirmDialog({
           </Text>
         </View>
 
-        {/* Controle de falha muscular */}
-        <View style={styles.controlRow}>
-          <View style={styles.controlLabelContainer}>
-            <Ionicons
-              name="flash-outline"
-              size={18}
-              color={workoutColor}
-              style={styles.controlIcon}
-            />
-            <Text style={[styles.controlLabel, { color: colors.text }]}>
-              {t("progression.confirmDialog.toFailure")}
-            </Text>
-          </View>
-
-          <Switch
-            value={set.toFailure}
-            onValueChange={(value) => updateSet(index, { toFailure: value })}
-            trackColor={{ false: colors.border, true: workoutColor + "70" }}
-            thumbColor={set.toFailure ? workoutColor : colors.text + "30"}
-            ios_backgroundColor={colors.border}
-          />
-        </View>
-
         {/* Controle de RIR (Repetições em Reserva) */}
-        <View style={[styles.controlRow, { opacity: set.toFailure ? 0.5 : 1 }]}>
+        <View style={styles.controlRow}>
           <View style={styles.controlLabelContainer}>
             <Ionicons
               name="fitness-outline"
@@ -168,24 +145,47 @@ export default function ProgressionConfirmDialog({
             </Text>
           </View>
 
-          <View style={styles.sliderContainer}>
-            <Slider
-              style={styles.slider}
-              value={set.repsInReserve || 2}
-              minimumValue={1}
-              maximumValue={5}
-              step={1}
-              disabled={set.toFailure}
-              onValueChange={(value) =>
-                updateSet(index, { repsInReserve: value })
-              }
-              minimumTrackTintColor={workoutColor}
-              maximumTrackTintColor={colors.border}
-              thumbTintColor={workoutColor}
-            />
-            <Text style={[styles.sliderValue, { color: colors.text }]}>
-              {set.repsInReserve || 2}
-            </Text>
+          <View style={styles.intensityButtonsRow}>
+            {[0, 1, 2, 3, 4, 5].map((value) => (
+              <TouchableOpacity
+                key={`rir-${value}`}
+                style={[
+                  styles.intensityButton,
+                  {
+                    backgroundColor:
+                      set.repsInReserve === value
+                        ? value === 0
+                          ? "#F44336"
+                          : workoutColor
+                        : "transparent",
+                    borderWidth: 1,
+                    borderColor:
+                      set.repsInReserve === value
+                        ? value === 0
+                          ? "#F44336"
+                          : workoutColor
+                        : colors.border,
+                  },
+                ]}
+                onPress={() => {
+                  updateSet(index, {
+                    repsInReserve: value,
+                    toFailure: value === 0,
+                  });
+                }}
+              >
+                <Text
+                  style={[
+                    styles.intensityButtonText,
+                    {
+                      color: set.repsInReserve === value ? "#FFF" : colors.text,
+                    },
+                  ]}
+                >
+                  {value}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
@@ -203,23 +203,39 @@ export default function ProgressionConfirmDialog({
             </Text>
           </View>
 
-          <View style={styles.sliderContainer}>
-            <Slider
-              style={styles.slider}
-              value={set.perceivedEffort || 3}
-              minimumValue={1}
-              maximumValue={5}
-              step={1}
-              onValueChange={(value) =>
-                updateSet(index, { perceivedEffort: value })
-              }
-              minimumTrackTintColor={workoutColor}
-              maximumTrackTintColor={colors.border}
-              thumbTintColor={workoutColor}
-            />
-            <Text style={[styles.sliderValue, { color: colors.text }]}>
-              {set.perceivedEffort || 3}
-            </Text>
+          <View style={styles.intensityButtonsRow}>
+            {[1, 2, 3, 4, 5].map((value) => (
+              <TouchableOpacity
+                key={`effort-${value}`}
+                style={[
+                  styles.intensityButton,
+                  {
+                    backgroundColor:
+                      set.perceivedEffort === value
+                        ? workoutColor
+                        : "transparent",
+                    borderWidth: 1,
+                    borderColor:
+                      set.perceivedEffort === value
+                        ? workoutColor
+                        : colors.border,
+                  },
+                ]}
+                onPress={() => updateSet(index, { perceivedEffort: value })}
+              >
+                <Text
+                  style={[
+                    styles.intensityButtonText,
+                    {
+                      color:
+                        set.perceivedEffort === value ? "#FFF" : colors.text,
+                    },
+                  ]}
+                >
+                  {value}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
       </View>
@@ -317,13 +333,18 @@ export default function ProgressionConfirmDialog({
               onPress={handleConfirm}
               activeOpacity={0.7}
             >
-              <Text style={styles.confirmButtonText}>
+              <Text
+                style={[
+                  styles.confirmButtonText,
+                  theme === "dark" && { color: "#000000" },
+                ]}
+              >
                 {t("progression.confirmDialog.confirm")}
               </Text>
               <Ionicons
                 name="checkmark-circle"
                 size={18}
-                color="#FFFFFF"
+                color={theme === "dark" ? "#000000" : "#FFFFFF"}
                 style={styles.confirmIcon}
               />
             </TouchableOpacity>
@@ -393,12 +414,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     overflow: "hidden",
+    padding: 16,
   },
   setHeader: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 14,
-    paddingBottom: 18,
+    paddingBottom: 12,
   },
   setIconBadge: {
     width: 32,
@@ -417,44 +438,41 @@ const styles = StyleSheet.create({
     marginLeft: "auto",
   },
   controlRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 14,
-    paddingVertical: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 1,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.3)",
   },
   controlLabelContainer: {
     flexDirection: "row",
     alignItems: "center",
-    flex: 1,
-    minWidth: 130,
+    paddingVertical: 4,
   },
   controlLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    flexShrink: 1,
-    marginRight: 10,
+    fontSize: 15,
+    fontWeight: "600",
   },
   controlIcon: {
-    marginRight: 10,
-    minWidth: 18,
+    marginRight: 12,
   },
-  sliderContainer: {
+  intensityButtonsRow: {
     flexDirection: "row",
-    alignItems: "center",
-    width: 155,
-    marginLeft: 10,
+    justifyContent: "space-between",
+    marginTop: 8,
+    paddingHorizontal: 4,
+    gap: 8,
   },
-  slider: {
-    flex: 1,
+  intensityButton: {
+    width: 40,
     height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  sliderValue: {
-    width: 30,
-    fontSize: 14,
+  intensityButtonText: {
+    fontSize: 15,
     fontWeight: "600",
-    textAlign: "center",
-    marginLeft: 2,
   },
   buttonContainer: {
     flexDirection: "row",

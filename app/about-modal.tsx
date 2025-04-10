@@ -8,6 +8,7 @@ import {
   Image,
   Linking,
   Dimensions,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
@@ -96,8 +97,11 @@ export default function AboutModal() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      edges={["top"]}
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+      }}
+      edges={["bottom"]}
     >
       <MotiView
         from={{ opacity: 0 }}

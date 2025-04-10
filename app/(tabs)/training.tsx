@@ -188,8 +188,17 @@ export default function TrainingScreen() {
   const [resetModalVisible, setResetModalVisible] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
+  // Novo estado para controlar transições de UI
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [removedWorkoutId, setRemovedWorkoutId] = useState<string | null>(null);
+
   // Estado para contar dias de treino
   const [trainingDays, setTrainingDays] = useState(0);
+
+  // Novo estado para controlar modal de remoção de treino
+  const [deleteWorkoutModalVisible, setDeleteWorkoutModalVisible] =
+    useState(false);
+  const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
 
   // Usar o contexto de treinos - desestruturar apenas o que é necessário para este componente
   // Usar os valores memoizados do contexto em vez de calcular novamente
@@ -205,6 +214,8 @@ export default function TrainingScreen() {
     getPreviousWorkoutTotals,
     startWorkoutForDate,
     resetWorkoutTypes,
+    // Novo! Adicionar removeWorkoutForDate do contexto
+    removeWorkoutForDate,
     // Usar valores memoizados do contexto
     workoutsForSelectedDate,
     hasConfiguredWorkouts,
@@ -277,8 +288,7 @@ export default function TrainingScreen() {
         if (preference !== null) {
           setNotificationsEnabled(preference === "true");
         }
-      } catch (error) {
-      }
+      } catch (error) {}
     };
 
     if (isUIReady) {
@@ -293,8 +303,7 @@ export default function TrainingScreen() {
       setNotificationsEnabled(newState);
       await AsyncStorage.setItem("notificationsEnabled", newState.toString());
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (error) {
-    }
+    } catch (error) {}
   }, [notificationsEnabled]);
 
   // Detectar quando o usuário completa um treino (adicionando exercícios)
@@ -423,8 +432,7 @@ export default function TrainingScreen() {
       try {
         await removeExerciseFromWorkout(workoutId, exerciseId);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } catch (error) {
-      }
+      } catch (error) {}
     },
     [removeExerciseFromWorkout]
   );
@@ -435,8 +443,7 @@ export default function TrainingScreen() {
       try {
         await startWorkoutForDate(workoutTypeId);
         await saveWorkouts();
-      } catch (error) {
-      }
+      } catch (error) {}
     },
     [startWorkoutForDate, saveWorkouts]
   );
@@ -476,8 +483,7 @@ export default function TrainingScreen() {
         if (!success) {
           Alert.alert("Erro", "Falha ao atualizar tipos de treino.");
         }
-      } catch (error) {
-      }
+      } catch (error) {}
     },
     [updateWorkoutTypes]
   );
@@ -492,45 +498,150 @@ export default function TrainingScreen() {
   }, []);
 
   // Função para confirmar a redefinição dos tipos de treino
-  const confirmResetWorkoutTypes = useCallback(async () => {
+  const confirmResetWorkoutTypes = useCallback(() => {
     try {
-      // Fechar o modal imediatamente para melhor UX
+      // 1. Fechar o modal imediatamente para feedback visual
       setResetModalVisible(false);
 
-      // Pequeno delay para garantir que o modal foi fechado visualmente
-      // antes de processar a lógica pesada de redefinição
-      setTimeout(async () => {
+      // 2. Feedback tátil para começar
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      // 3. Desativar interação com a UI durante o processamento pesado
+      InteractionManager.runAfterInteractions(async () => {
         try {
-          // Redefinir os treinos
+          // 4. Mostrar um indicador visual sutil sem bloquear a interface
+          // Nota: Não modificamos o estado diretamente, pois não temos acesso a setWorkouts
+          // Apenas chamaremos resetWorkoutTypes que já foi otimizado
+
+          // 5. Chamar a função resetWorkoutTypes que agora está otimizada
           const success = await resetWorkoutTypes();
 
+          // 6. Garantir a atualização da interface após completar
           if (success) {
             // Forçar a recriação do WorkoutConfigSheet
             setWorkoutConfigKey(Date.now());
 
-            // Forçar atualizações
-            await saveWorkouts();
+            // Forçar atualizações através da função disponível
+            saveWorkouts();
 
-            // Feedback tátil
+            // 7. Fornecer feedback tátil de sucesso
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           } else {
-            // Se falhou, informar o usuário
-            Alert.alert(t("common.error"), t("training.errors.resetFailed"));
+            // 8. Fornecer feedback tátil de erro
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           }
         } catch (error) {
+          // 9. Lidar com erros
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-
-          // Mostrar alerta de erro
-          Alert.alert(t("common.error"), t("training.errors.resetError"));
         }
+      });
+    } catch (error) {
+      // 10. Garantir que o modal é fechado mesmo em caso de erro
+      setResetModalVisible(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  }, [resetWorkoutTypes, saveWorkouts]);
+
+  // Nova função para solicitar a remoção de um treino específico
+  const handleRequestDeleteWorkout = useCallback(
+    (workoutId: string) => {
+      console.log(
+        `[TrainingScreen] Solicitando remoção do treino: ${workoutId}`
+      );
+
+      // Verificar se o workout existe
+      const workoutType = getWorkoutTypeById(workoutId);
+      if (!workoutType) {
+        console.log(
+          `[TrainingScreen] Tipo de treino não encontrado: ${workoutId}`
+        );
+        return;
+      }
+
+      // Armazenar o ID do treino a ser excluído
+      setWorkoutToDelete(workoutId);
+
+      // Mostrar modal de confirmação
+      setDeleteWorkoutModalVisible(true);
+
+      // Feedback tátil
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    },
+    [getWorkoutTypeById]
+  );
+
+  // Nova função para confirmar a exclusão do treino
+  const confirmDeleteWorkout = useCallback(async () => {
+    if (!workoutToDelete) return;
+
+    console.log(
+      `[TrainingScreen] Confirmando remoção do treino: ${workoutToDelete}`
+    );
+
+    try {
+      // Fechar o modal imediatamente
+      setDeleteWorkoutModalVisible(false);
+
+      // Iniciar estado de transição
+      setIsRemoving(true);
+      setRemovedWorkoutId(workoutToDelete);
+
+      // Fornecer feedback tátil inicial
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      // Tentar remover o treino com uma breve pausa para feedback visual
+      setTimeout(async () => {
+        // Tentar remover o treino
+        const success = await removeWorkoutForDate(workoutToDelete);
+
+        console.log(
+          `[TrainingScreen] Resultado da remoção: ${
+            success ? "sucesso" : "falha"
+          }`
+        );
+
+        // Forçar a atualização dos workouts para a data selecionada
+        if (success) {
+          // Feedback de sucesso
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+          // Forçar atualização da interface
+          const forceUpdate = async () => {
+            // Recarregar os dados dos treinos
+            await saveWorkouts();
+
+            // Finalizar estado de transição após um breve delay para animação
+            setTimeout(() => {
+              setIsRemoving(false);
+              setRemovedWorkoutId(null);
+            }, 300);
+          };
+
+          // Executar a atualização após um breve atraso
+          forceUpdate();
+        } else {
+          // Feedback de erro
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          setIsRemoving(false);
+          setRemovedWorkoutId(null);
+        }
+
+        // Limpar o ID do treino
+        setWorkoutToDelete(null);
       }, 100);
     } catch (error) {
+      console.error("[TrainingScreen] Erro ao excluir treino:", error);
 
-      // Fechar o modal mesmo em caso de erro
-      setResetModalVisible(false);
+      // Fechar o modal em caso de erro
+      setDeleteWorkoutModalVisible(false);
+      setWorkoutToDelete(null);
+      setIsRemoving(false);
+      setRemovedWorkoutId(null);
+
+      // Feedback de erro
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
-  }, [resetWorkoutTypes, saveWorkouts, t]);
+  }, [workoutToDelete, removeWorkoutForDate, saveWorkouts]);
 
   // Renderizar os cards de treino
   const renderWorkoutCards = useCallback(() => {
@@ -543,6 +654,11 @@ export default function TrainingScreen() {
     const workoutIds = Object.keys(workoutsForSelectedDate);
 
     return workoutIds.map((workoutId, index) => {
+      // Não renderizar se este treino está sendo removido
+      if (isRemoving && removedWorkoutId === workoutId) {
+        return null;
+      }
+
       const workoutType = getWorkoutTypeById(workoutId);
       if (!workoutType) return null;
 
@@ -585,6 +701,8 @@ export default function TrainingScreen() {
     navigateToWorkoutDetails,
     handleDeleteExercise,
     notificationsEnabled,
+    isRemoving,
+    removedWorkoutId,
   ]);
 
   // Memoizar o componente de estado vazio para evitar re-renderizações
@@ -613,8 +731,9 @@ export default function TrainingScreen() {
   );
 
   // Atualizar as ações do menu contextual para incluir a opção de silenciar notificações
-  const menuActions = useMemo<MenuAction[]>(
-    () => [
+  const menuActions = useMemo<MenuAction[]>(() => {
+    // Ações base sempre presentes
+    const baseActions: MenuAction[] = [
       {
         id: "edit",
         label: t("training.menu.editWorkouts"),
@@ -633,22 +752,59 @@ export default function TrainingScreen() {
         type: "default",
         onPress: toggleNotifications,
       },
-      {
-        id: "reset",
-        label: t("training.menu.resetWorkouts"),
-        icon: "refresh-outline",
-        type: "danger",
-        onPress: handleResetWorkoutTypes,
-      },
-    ],
-    [
-      openWorkoutConfigSheet,
-      handleResetWorkoutTypes,
-      notificationsEnabled,
-      toggleNotifications,
-      t,
-    ]
-  );
+    ];
+
+    // Adicionar opção de excluir treino sempre que houver treinos
+    const workoutIds = Object.keys(workoutsForSelectedDate);
+    if (workoutIds.length > 0) {
+      // Se houver mais de um treino, adicionar uma opção para cada treino
+      if (workoutIds.length > 1) {
+        workoutIds.forEach((workoutId) => {
+          const workoutType = getWorkoutTypeById(workoutId);
+          if (workoutType) {
+            baseActions.push({
+              id: `delete-workout-${workoutId}`,
+              label: t("training.menu.deleteWorkoutWithName", {
+                name: workoutType.name,
+              }),
+              icon: "trash-outline",
+              type: "danger" as "danger",
+              onPress: () => handleRequestDeleteWorkout(workoutId),
+            });
+          }
+        });
+      } else {
+        // Se houver apenas um treino, adicionar uma opção simples
+        baseActions.push({
+          id: "delete-workout",
+          label: t("training.menu.deleteWorkout"),
+          icon: "trash-outline",
+          type: "danger" as "danger",
+          onPress: () => handleRequestDeleteWorkout(workoutIds[0]),
+        });
+      }
+    }
+
+    // Sempre adicionar a opção de resetar todos os treinos por último
+    baseActions.push({
+      id: "reset",
+      label: t("training.menu.resetWorkouts"),
+      icon: "refresh-outline",
+      type: "danger" as "danger",
+      onPress: handleResetWorkoutTypes,
+    });
+
+    return baseActions;
+  }, [
+    openWorkoutConfigSheet,
+    handleResetWorkoutTypes,
+    notificationsEnabled,
+    toggleNotifications,
+    t,
+    workoutsForSelectedDate,
+    handleRequestDeleteWorkout,
+    getWorkoutTypeById,
+  ]);
 
   // Função para verificar se o menu deve ser visível
   const isMenuVisible = useMemo(
@@ -663,6 +819,12 @@ export default function TrainingScreen() {
       return <TabPreloader message={t("common.loading")} />;
     }
 
+    const shouldShowEmptyState =
+      !hasWorkoutsForSelectedDate ||
+      (isRemoving &&
+        Object.keys(workoutsForSelectedDate).length === 1 &&
+        workoutsForSelectedDate[removedWorkoutId || ""] !== undefined);
+
     return (
       <>
         {calendarComponent}
@@ -676,9 +838,7 @@ export default function TrainingScreen() {
           removeClippedSubviews={true} // Melhora a performance para listas longas
         >
           {/* Renderizar os cards de treino ou o EmptyState */}
-          {hasWorkoutsForSelectedDate
-            ? renderWorkoutCards()
-            : emptyStateComponent}
+          {shouldShowEmptyState ? emptyStateComponent : renderWorkoutCards()}
         </ScrollView>
       </>
     );
@@ -720,6 +880,19 @@ export default function TrainingScreen() {
         icon="refresh-outline"
         onConfirm={confirmResetWorkoutTypes}
         onCancel={() => setResetModalVisible(false)}
+      />
+
+      {/* Novo Modal para confirmação de exclusão de um treino específico */}
+      <ConfirmationModal
+        visible={deleteWorkoutModalVisible}
+        title={t("training.deleteWorkoutModal.title")}
+        message={t("training.deleteWorkoutModal.message")}
+        confirmText={t("training.deleteWorkoutModal.confirm")}
+        cancelText={t("training.deleteWorkoutModal.cancel")}
+        confirmType="danger"
+        icon="trash-outline"
+        onConfirm={confirmDeleteWorkout}
+        onCancel={() => setDeleteWorkoutModalVisible(false)}
       />
     </SafeAreaView>
   );

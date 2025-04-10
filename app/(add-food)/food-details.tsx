@@ -7,6 +7,10 @@ import {
   ScrollView,
   TextInput,
   Dimensions,
+  Platform,
+  KeyboardAvoidingView,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -139,6 +143,9 @@ export default function FoodDetailsScreen() {
 
   const [, setForceUpdate] = useState({});
 
+  // Estado para controlar a visibilidade do teclado
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
   useEffect(() => {
     setForceUpdate({});
   }, [theme]);
@@ -170,7 +177,28 @@ export default function FoodDetailsScreen() {
         setForceUpdate({});
       });
     }
-  }, [portion]);
+  }, [portion, isLoading, food]);
+
+  // Efeito para detectar quando o teclado é exibido/ocultado
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      "keyboardDidShow",
+      () => {
+        setKeyboardVisible(true);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      "keyboardDidHide",
+      () => {
+        setKeyboardVisible(false);
+      }
+    );
+
+    return () => {
+      keyboardDidHideListener.remove();
+      keyboardDidShowListener.remove();
+    };
+  }, []);
 
   // Extrair parâmetros da refeição
   const foodId = params.foodId as string;
@@ -185,9 +213,29 @@ export default function FoodDetailsScreen() {
   const foodProtein = Number(params.protein || 0);
   const foodCarbs = Number(params.carbs || 0);
   const foodFat = Number(params.fat || 0);
+  const foodFiber = Number(params.fiber || 0);
   const foodPortion = Number(params.portion || 100);
   const foodPortionDescription = params.portionDescription as string;
 
+  // Novo useEffect para garantir que os valores de portion e numberOfPortions sejam configurados corretamente
+  useEffect(() => {
+    if (params.isFromHistory === "true" && foodPortion) {
+      // Garantir que a porção seja definida com o valor correto ao montar o componente
+      setPortion(foodPortion.toString());
+    }
+  }, [params.isFromHistory, foodPortion]);
+
+  // Efeito para atualizar os gráficos quando a porção mudar
+  useEffect(() => {
+    if (!isLoading && food) {
+      // Forçar atualização após mudança na porção
+      requestAnimationFrame(() => {
+        setForceUpdate({});
+      });
+    }
+  }, [portion, isLoading, food]);
+
+  // Efeito principal para lidar com a inicialização do componente
   useEffect(() => {
     // Verificar se estamos no modo de edição
     if (mode === "edit") {
@@ -196,12 +244,18 @@ export default function FoodDetailsScreen() {
 
     // Verificar se o alimento vem do histórico
     if (params.isFromHistory === "true") {
+      console.log("Alimento do histórico:", {
+        foodPortion,
+        foodPortionDescription,
+        foodName,
+        foodCalories,
+      });
+
       setIsFromHistory(true);
 
-      // Se estamos no modo de edição, usar os valores passados
-      if (isEditMode) {
-        setPortion(foodPortion.toString());
-      }
+      // SEMPRE definir a porção correta para alimentos do histórico,
+      // independentemente do modo de edição
+      setPortion(foodPortion.toString());
 
       // Se temos uma descrição de porção personalizada, desabilitar o modo de porção customizada
       if (
@@ -227,17 +281,35 @@ export default function FoodDetailsScreen() {
             protein: foodProtein,
             carbohydrate: foodCarbs,
             fat: foodFat,
+            fiber: foodFiber > 0 ? foodFiber : undefined,
           },
         ],
       };
 
       setFood(historyFood);
       setIsLoading(false);
+
+      // Forçar atualização para garantir que os valores sejam aplicados
+      setTimeout(() => {
+        setForceUpdate({});
+      }, 50);
     } else {
       // Se não for do histórico, carregar dados da API normalmente
       loadFoodDetails();
     }
-  }, [foodId, params.isFromHistory, isEditMode]);
+  }, [
+    foodId,
+    params.isFromHistory,
+    isEditMode,
+    foodPortion,
+    foodPortionDescription,
+    foodName,
+    foodCalories,
+    foodProtein,
+    foodCarbs,
+    foodFat,
+    foodFiber,
+  ]);
 
   // Função para obter a porção preferida para exibição
   const getPreferredServing = (servings: FoodServing[]): FoodServing => {
@@ -423,13 +495,40 @@ export default function FoodDetailsScreen() {
     return null;
   };
 
+  // Função para tratar o input de focus e ajustar o scroll
+  const handleInputFocus = () => {
+    // Damos um pequeno tempo para o teclado aparecer e depois ajustamos o scroll
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({
+        y: 250,
+        animated: true,
+      });
+    }, 100);
+  };
+
+  // Função para fechar o teclado quando toca fora dos inputs
+  const dismissKeyboard = () => {
+    Keyboard.dismiss();
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={["top", "bottom"]}
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+          },
+        ]}
+        edges={["bottom"]}
       >
-        <View style={[styles.header, { backgroundColor: colors.background }]}>
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: colors.background },
+            isEditMode && { paddingTop: Platform.OS === "ios" ? 0 : 16 },
+          ]}
+        >
           <TouchableOpacity
             key={`back-button-${theme}`}
             onPress={() => router.back()}
@@ -607,6 +706,7 @@ export default function FoodDetailsScreen() {
         food.servings[0].serving_description.toLowerCase().includes("copo") ||
         food.servings[0].serving_description.toLowerCase().includes("bar") ||
         food.servings[0].serving_description.toLowerCase().includes("piece") ||
+        food.servings[0].serving_description.toLowerCase().includes("clara") ||
         !food.servings[0].serving_description.toLowerCase().includes("g"));
 
     if (hasSpecialServing) {
@@ -628,6 +728,7 @@ export default function FoodDetailsScreen() {
       protein: calculatedNutrients.protein,
       carbs: calculatedNutrients.carbs,
       fat: calculatedNutrients.fat,
+      fiber: calculatedNutrients.fiber,
       portion: hasSpecialServing
         ? Number(food.servings[0].metric_serving_amount || portion) *
           portionsMultiplier
@@ -656,435 +757,485 @@ export default function FoodDetailsScreen() {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+        },
+      ]}
+      edges={isEditMode ? ["top", "bottom"] : ["bottom"]}
     >
-      {/* Header Redesenhado */}
-      <View style={[styles.header, { backgroundColor: colors.background }]}>
-        <TouchableOpacity
-          key={`back-button-${theme}`}
-          onPress={() => router.back()}
-          style={[styles.backButton, { backgroundColor: colors.card }]}
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.text} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {t(`nutrition.mealTypes.${mealId}`, { defaultValue: mealName })}
-          </Text>
-        </View>
-        <View style={{ width: 40 }} />
-      </View>
-
-      <ScrollView
-        ref={scrollViewRef}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollViewContent}
-        onScroll={() => {
-          if (!shouldRenderCharts) {
-            setShouldRenderCharts(true);
-            setForceUpdate({});
-          }
-        }}
-        scrollEventThrottle={16}
-        maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={
+          // Usar offsets diferentes dependendo do modo
+          isEditMode
+            ? Platform.OS === "ios"
+              ? 10
+              : 0
+            : Platform.OS === "ios"
+            ? 70
+            : 20
+        }
       >
-        {isLoading ? (
-          <LoadingSkeleton />
-        ) : food ? (
-          <MotiView
-            key={`food-details-${food.food_id}-${theme}`}
-            from={{ opacity: 0, translateY: 10 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: "timing", duration: 300 }}
-            style={styles.foodInfo}
+        {/* Header Redesenhado */}
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: colors.background },
+            isEditMode && { paddingTop: Platform.OS === "ios" ? 0 : 16 },
+          ]}
+        >
+          <TouchableOpacity
+            key={`back-button-${theme}`}
+            onPress={() => router.back()}
+            style={[styles.backButton, { backgroundColor: colors.card }]}
           >
-            {/* Nome do Alimento com Design Melhorado */}
-            <Text
-              style={[
-                styles.foodName,
-                {
-                  color: colors.text,
-                  backgroundColor: mealColor + "08",
-                  borderRadius: 30,
-                  paddingVertical: 10,
-                  paddingHorizontal: 16,
-                },
-              ]}
-            >
-              {food.food_name}
+            <Ionicons name="chevron-back" size={22} color={colors.text} />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
+              {t(`nutrition.mealTypes.${mealId}`, { defaultValue: mealName })}
             </Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </View>
 
-            {/* Card Unificado */}
-            <View
-              style={[styles.unifiedCard, { backgroundColor: colors.card }]}
+        <ScrollView
+          ref={scrollViewRef}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.scrollViewContent,
+            isEditMode && styles.scrollViewContentEdit,
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        >
+          {isLoading ? (
+            <LoadingSkeleton />
+          ) : food ? (
+            <MotiView
+              key={`food-details-${food.food_id}-${theme}`}
+              from={{ opacity: 0, translateY: 10 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 300 }}
+              style={styles.foodInfo}
             >
-              {/* Seção Principal - Calorias e Macros */}
-              <View style={styles.mainInfoSection}>
-                {/* Calorias no centro */}
-                <View style={styles.caloriesContainer}>
-                  <View
-                    style={[
-                      styles.iconCircle,
-                      { backgroundColor: mealColor + "15" },
-                    ]}
-                  >
-                    <Ionicons name="flame" size={26} color={mealColor} />
-                  </View>
-                  <Text style={[styles.caloriesValue, { color: mealColor }]}>
-                    {formatNumber(calculatedNutrients.calories)}
-                  </Text>
-                  <Text
-                    style={[styles.caloriesUnit, { color: colors.text + "80" }]}
-                  >
-                    kcal
-                  </Text>
-                </View>
+              {/* Nome do Alimento com Design Melhorado */}
+              <View
+                style={[
+                  styles.foodNameWrapper,
+                  {
+                    backgroundColor: mealColor + "08",
+                    alignSelf: "center",
+                  },
+                ]}
+              >
+                <Text style={[styles.foodName, { color: colors.text }]}>
+                  {food.food_name}
+                </Text>
+              </View>
 
-                {/* Macros em grid de 2x2 */}
-                <View style={styles.macrosGrid}>
-                  <View style={styles.macroItem}>
+              {/* Card Unificado */}
+              <View
+                style={[styles.unifiedCard, { backgroundColor: colors.card }]}
+              >
+                {/* Seção Principal - Calorias e Macros */}
+                <View style={styles.mainInfoSection}>
+                  {/* Calorias no centro */}
+                  <View style={styles.caloriesContainer}>
                     <View
                       style={[
-                        styles.iconContainer,
-                        { backgroundColor: "#FF6B6B15" },
+                        styles.iconCircle,
+                        { backgroundColor: mealColor + "15" },
                       ]}
                     >
-                      <MaterialCommunityIcons
-                        name="food-steak"
-                        size={18}
-                        color="#FF6B6B"
-                      />
+                      <Ionicons name="flame" size={26} color={mealColor} />
                     </View>
-                    <View>
-                      <Text style={[styles.macroName, { color: colors.text }]}>
-                        {t("common.nutrition.protein")}
-                      </Text>
-                      <Text style={[styles.macroValue, { color: "#FF6B6B" }]}>
-                        {formatNumber(calculatedNutrients.protein)}g
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.macroItem}>
-                    <View
+                    <Text style={[styles.caloriesValue, { color: mealColor }]}>
+                      {formatNumber(calculatedNutrients.calories)}
+                    </Text>
+                    <Text
                       style={[
-                        styles.iconContainer,
-                        { backgroundColor: "#4ECDC415" },
+                        styles.caloriesUnit,
+                        { color: colors.text + "80" },
                       ]}
                     >
-                      <MaterialCommunityIcons
-                        name="bread-slice"
-                        size={18}
-                        color="#4ECDC4"
-                      />
-                    </View>
-                    <View>
-                      <Text style={[styles.macroName, { color: colors.text }]}>
-                        {t("common.nutrition.carbs")}
-                      </Text>
-                      <Text style={[styles.macroValue, { color: "#4ECDC4" }]}>
-                        {formatNumber(calculatedNutrients.carbs)}g
-                      </Text>
-                    </View>
+                      kcal
+                    </Text>
                   </View>
 
-                  <View style={styles.macroItem}>
-                    <View
-                      style={[
-                        styles.iconContainer,
-                        { backgroundColor: "#FFD93D15" },
-                      ]}
-                    >
-                      <MaterialCommunityIcons
-                        name="oil"
-                        size={18}
-                        color="#FFD93D"
-                      />
-                    </View>
-                    <View>
-                      <Text style={[styles.macroName, { color: colors.text }]}>
-                        {t("common.nutrition.fat")}
-                      </Text>
-                      <Text style={[styles.macroValue, { color: "#FFD93D" }]}>
-                        {formatNumber(calculatedNutrients.fat)}g
-                      </Text>
-                    </View>
-                  </View>
-
-                  {food.servings[0].fiber ? (
+                  {/* Macros em grid de 2x2 */}
+                  <View style={styles.macrosGrid}>
                     <View style={styles.macroItem}>
                       <View
                         style={[
                           styles.iconContainer,
-                          { backgroundColor: "#A0D99515" },
+                          { backgroundColor: "#FF6B6B15" },
                         ]}
                       >
-                        <Ionicons name="cellular" size={18} color="#A0D995" />
+                        <MaterialCommunityIcons
+                          name="food-steak"
+                          size={18}
+                          color="#FF6B6B"
+                        />
                       </View>
                       <View>
                         <Text
                           style={[styles.macroName, { color: colors.text }]}
                         >
-                          {t("nutrition.foodDetails.fiber")}
+                          {t("common.nutrition.protein")}
                         </Text>
-                        <Text style={[styles.macroValue, { color: "#A0D995" }]}>
-                          {formatNumber(calculatedNutrients.fiber)}g
+                        <Text style={[styles.macroValue, { color: "#FF6B6B" }]}>
+                          {formatNumber(calculatedNutrients.protein)}g
                         </Text>
                       </View>
                     </View>
-                  ) : (
-                    <View style={styles.macroItem}></View>
-                  )}
+
+                    <View style={styles.macroItem}>
+                      <View
+                        style={[
+                          styles.iconContainer,
+                          { backgroundColor: "#4ECDC415" },
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name="bread-slice"
+                          size={18}
+                          color="#4ECDC4"
+                        />
+                      </View>
+                      <View>
+                        <Text
+                          style={[styles.macroName, { color: colors.text }]}
+                        >
+                          {t("common.nutrition.carbs")}
+                        </Text>
+                        <Text style={[styles.macroValue, { color: "#4ECDC4" }]}>
+                          {formatNumber(calculatedNutrients.carbs)}g
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.macroItem}>
+                      <View
+                        style={[
+                          styles.iconContainer,
+                          { backgroundColor: "#FFD93D15" },
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name="oil"
+                          size={18}
+                          color="#FFD93D"
+                        />
+                      </View>
+                      <View>
+                        <Text
+                          style={[styles.macroName, { color: colors.text }]}
+                        >
+                          {t("common.nutrition.fat")}
+                        </Text>
+                        <Text style={[styles.macroValue, { color: "#FFD93D" }]}>
+                          {formatNumber(calculatedNutrients.fat)}g
+                        </Text>
+                      </View>
+                    </View>
+
+                    {food.servings[0].fiber ? (
+                      <View style={styles.macroItem}>
+                        <View
+                          style={[
+                            styles.iconContainer,
+                            { backgroundColor: "#A0D99515" },
+                          ]}
+                        >
+                          <Ionicons name="cellular" size={18} color="#A0D995" />
+                        </View>
+                        <View>
+                          <Text
+                            style={[styles.macroName, { color: colors.text }]}
+                          >
+                            {t("nutrition.foodDetails.fiber")}
+                          </Text>
+                          <Text
+                            style={[styles.macroValue, { color: "#A0D995" }]}
+                          >
+                            {formatNumber(calculatedNutrients.fiber)}g
+                          </Text>
+                        </View>
+                      </View>
+                    ) : (
+                      <View style={styles.macroItem}></View>
+                    )}
+                  </View>
                 </View>
-              </View>
 
-              {/* Separador */}
-              <View
-                style={[styles.divider, { backgroundColor: colors.border }]}
-              />
+                {/* Separador */}
+                <View
+                  style={[styles.divider, { backgroundColor: colors.border }]}
+                />
 
-              {/* Seção de Controles */}
-              <View style={styles.controlsSection}>
-                {/* Porções e Peso */}
-                <View style={styles.quantityControls}>
-                  {/* Número de porções */}
-                  <View style={styles.portionControl}>
-                    <Text style={[styles.controlLabel, { color: colors.text }]}>
-                      Porções
-                    </Text>
-                    <View style={styles.portionCounter}>
-                      <TouchableOpacity
-                        style={[
-                          styles.counterButton,
-                          {
-                            backgroundColor: mealColor + "15",
-                            borderWidth: 1,
-                            borderColor: mealColor + "30",
-                          },
-                        ]}
-                        onPress={decrementPortions}
+                {/* Seção de Controles */}
+                <View style={styles.controlsSection}>
+                  {/* Porções e Peso */}
+                  <View style={styles.quantityControls}>
+                    {/* Número de porções */}
+                    <View style={styles.portionControl}>
+                      <Text
+                        style={[styles.controlLabel, { color: colors.text }]}
                       >
-                        <Ionicons name="remove" size={18} color={mealColor} />
-                      </TouchableOpacity>
+                        Porções
+                      </Text>
+                      <View style={styles.portionCounter}>
+                        <TouchableOpacity
+                          style={[
+                            styles.counterButton,
+                            {
+                              backgroundColor: mealColor + "15",
+                              borderWidth: 1,
+                              borderColor: mealColor + "30",
+                            },
+                          ]}
+                          onPress={decrementPortions}
+                        >
+                          <Ionicons name="remove" size={18} color={mealColor} />
+                        </TouchableOpacity>
 
-                      <TextInput
-                        style={[
-                          styles.portionCounterInput,
-                          { color: colors.text },
-                        ]}
-                        value={numberOfPortions}
-                        onChangeText={(text) => {
-                          // Substituir vírgula por ponto
-                          const sanitizedText = text.replace(",", ".");
+                        <TextInput
+                          style={[
+                            styles.portionCounterInput,
+                            { color: colors.text },
+                          ]}
+                          value={numberOfPortions}
+                          onChangeText={(text) => {
+                            // Substituir vírgula por ponto
+                            const sanitizedText = text.replace(",", ".");
 
-                          // Se o texto estiver vazio, definir como vazio
-                          if (sanitizedText === "") {
-                            setNumberOfPortions("");
-                            return;
-                          }
+                            // Se o texto estiver vazio, definir como vazio
+                            if (sanitizedText === "") {
+                              setNumberOfPortions("");
+                              return;
+                            }
 
-                          // Verificar se é um número válido
-                          if (!/^[0-9]*\.?[0-9]*$/.test(sanitizedText)) {
-                            return; // Ignorar entradas que não são números
-                          }
+                            // Verificar se é um número válido
+                            if (!/^[0-9]*\.?[0-9]*$/.test(sanitizedText)) {
+                              return; // Ignorar entradas que não são números
+                            }
 
-                          // Converter para número e verificar se está entre 0.5 e 99
-                          const numValue = parseFloat(sanitizedText);
-                          if (!isNaN(numValue) && numValue <= 99) {
-                            // Não formatar enquanto o usuário está digitando
-                            setNumberOfPortions(sanitizedText);
-                          }
-                        }}
-                        onBlur={() => {
-                          // Ao perder o foco, formatar corretamente o número
-                          if (numberOfPortions === "") {
-                            setNumberOfPortions("1");
-                          } else {
-                            // Garantir valor mínimo de 0.5
-                            const numValue = parseFloat(numberOfPortions);
-                            const validValue = isNaN(numValue)
-                              ? 1
-                              : Math.max(0.5, numValue);
-                            setNumberOfPortions(formatNumber(validValue));
-                          }
-                        }}
-                        keyboardType="numeric"
-                        maxLength={4}
-                      />
+                            // Converter para número e verificar se está entre 0.5 e 99
+                            const numValue = parseFloat(sanitizedText);
+                            if (!isNaN(numValue) && numValue <= 99) {
+                              // Não formatar enquanto o usuário está digitando
+                              setNumberOfPortions(sanitizedText);
+                            }
+                          }}
+                          onFocus={handleInputFocus}
+                          onBlur={() => {
+                            // Ao perder o foco, formatar corretamente o número
+                            if (numberOfPortions === "") {
+                              setNumberOfPortions("1");
+                            } else {
+                              // Garantir valor mínimo de 0.5
+                              const numValue = parseFloat(numberOfPortions);
+                              const validValue = isNaN(numValue)
+                                ? 1
+                                : Math.max(0.5, numValue);
+                              setNumberOfPortions(formatNumber(validValue));
+                            }
+                          }}
+                          keyboardType="numeric"
+                          maxLength={4}
+                        />
 
-                      <TouchableOpacity
-                        style={[
-                          styles.counterButton,
-                          {
-                            backgroundColor: mealColor + "15",
-                            borderWidth: 1,
-                            borderColor: mealColor + "30",
-                          },
-                        ]}
-                        onPress={incrementPortions}
+                        <TouchableOpacity
+                          style={[
+                            styles.counterButton,
+                            {
+                              backgroundColor: mealColor + "15",
+                              borderWidth: 1,
+                              borderColor: mealColor + "30",
+                            },
+                          ]}
+                          onPress={incrementPortions}
+                        >
+                          <Ionicons name="add" size={18} color={mealColor} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {/* Tamanho da porção */}
+                    <View style={styles.weightControl}>
+                      <Text
+                        style={[styles.controlLabel, { color: colors.text }]}
                       >
-                        <Ionicons name="add" size={18} color={mealColor} />
-                      </TouchableOpacity>
+                        Peso (g)
+                      </Text>
+                      <View style={styles.weightInputContainer}>
+                        <TextInput
+                          style={[styles.weightInput, { color: colors.text }]}
+                          value={portion}
+                          onChangeText={(text) => {
+                            // Substituir vírgula por ponto
+                            const sanitizedText = text.replace(",", ".");
+
+                            // Se o texto estiver vazio, definir como vazio
+                            if (sanitizedText === "") {
+                              setPortion("");
+                              return;
+                            }
+
+                            // Verificar se é um número válido
+                            if (!/^[0-9]*\.?[0-9]*$/.test(sanitizedText)) {
+                              return; // Ignorar entradas que não são números
+                            }
+
+                            // Converter para número e verificar se está entre 1 e 9999
+                            const numValue = parseFloat(sanitizedText);
+                            if (!isNaN(numValue) && numValue <= 9999) {
+                              // Não formatar enquanto o usuário está digitando
+                              setPortion(sanitizedText);
+                            }
+
+                            setIsCustomPortion(true);
+                          }}
+                          onFocus={handleInputFocus}
+                          onBlur={() => {
+                            // Ao perder o foco, formatar corretamente o número
+                            if (portion === "") {
+                              setPortion("0");
+                            } else {
+                              setPortion(formatNumber(portion));
+                            }
+                          }}
+                          keyboardType="numeric"
+                          maxLength={5}
+                        />
+                        <Text
+                          style={[styles.weightUnit, { color: colors.text }]}
+                        >
+                          g
+                        </Text>
+                      </View>
                     </View>
                   </View>
 
-                  {/* Tamanho da porção */}
-                  <View style={styles.weightControl}>
-                    <Text style={[styles.controlLabel, { color: colors.text }]}>
-                      Peso (g)
-                    </Text>
-                    <View style={styles.weightInputContainer}>
-                      <TextInput
-                        style={[styles.weightInput, { color: colors.text }]}
-                        value={portion}
-                        onChangeText={(text) => {
-                          // Substituir vírgula por ponto
-                          const sanitizedText = text.replace(",", ".");
-
-                          // Se o texto estiver vazio, definir como vazio
-                          if (sanitizedText === "") {
-                            setPortion("");
-                            return;
-                          }
-
-                          // Verificar se é um número válido
-                          if (!/^[0-9]*\.?[0-9]*$/.test(sanitizedText)) {
-                            return; // Ignorar entradas que não são números
-                          }
-
-                          // Converter para número e verificar se está entre 1 e 9999
-                          const numValue = parseFloat(sanitizedText);
-                          if (!isNaN(numValue) && numValue <= 9999) {
-                            // Não formatar enquanto o usuário está digitando
-                            setPortion(sanitizedText);
-                          }
-
-                          setIsCustomPortion(true);
-                        }}
-                        onBlur={() => {
-                          // Ao perder o foco, formatar corretamente o número
-                          if (portion === "") {
-                            setPortion("0");
-                          } else {
-                            setPortion(formatNumber(portion));
-                          }
-                        }}
-                        keyboardType="numeric"
-                        maxLength={5}
-                      />
-                      <Text style={[styles.weightUnit, { color: colors.text }]}>
-                        g
+                  {/* Slider para ajuste de porção integrado */}
+                  <View style={styles.sliderContainer}>
+                    <Slider
+                      style={styles.slider}
+                      minimumValue={10}
+                      maximumValue={500}
+                      step={5}
+                      value={Math.min(Math.max(Number(portion), 10), 500)}
+                      onValueChange={handleSliderChange}
+                      minimumTrackTintColor={mealColor}
+                      maximumTrackTintColor={colors.border + "60"}
+                      thumbTintColor={mealColor}
+                    />
+                    <View style={styles.sliderLabelsContainer}>
+                      <Text
+                        style={[
+                          styles.sliderLabel,
+                          { color: colors.text + "80" },
+                        ]}
+                      >
+                        10g
+                      </Text>
+                      <Text
+                        style={[
+                          styles.sliderLabel,
+                          { color: colors.text + "80" },
+                        ]}
+                      >
+                        500g
                       </Text>
                     </View>
                   </View>
-                </View>
 
-                {/* Slider para ajuste de porção integrado */}
-                <View style={styles.sliderContainer}>
-                  <Slider
-                    style={styles.slider}
-                    minimumValue={10}
-                    maximumValue={500}
-                    step={5}
-                    value={Number(portion)}
-                    onValueChange={handleSliderChange}
-                    minimumTrackTintColor={mealColor}
-                    maximumTrackTintColor={colors.border + "60"}
-                    thumbTintColor={mealColor}
-                  />
-                  <View style={styles.sliderLabelsContainer}>
+                  {/* Texto de ajuda */}
+                  {food.servings[0].serving_description && (
                     <Text
-                      style={[
-                        styles.sliderLabel,
-                        { color: colors.text + "80" },
-                      ]}
+                      style={[styles.helperText, { color: colors.text + "80" }]}
                     >
-                      10g
+                      {food.servings[0].serving_description
+                        .toLowerCase()
+                        .includes("bar") ||
+                      food.servings[0].serving_description
+                        .toLowerCase()
+                        .includes("piece") ||
+                      food.servings[0].serving_description
+                        .toLowerCase()
+                        .includes("unit") ||
+                      food.servings[0].serving_description
+                        .toLowerCase()
+                        .includes("unidade") ||
+                      food.servings[0].serving_description
+                        .toLowerCase()
+                        .includes("pacote") ||
+                      food.servings[0].serving_description
+                        .toLowerCase()
+                        .includes("embalagem") ||
+                      food.servings[0].serving_description
+                        .toLowerCase()
+                        .includes("pote") ||
+                      food.servings[0].serving_description
+                        .toLowerCase()
+                        .includes("garrafa") ||
+                      food.servings[0].serving_description
+                        .toLowerCase()
+                        .includes("lata") ||
+                      food.servings[0].serving_description
+                        .toLowerCase()
+                        .includes("copo")
+                        ? `${numberOfPortions}x ${food.servings[0].serving_description}`
+                        : `Total: ${formatNumber(
+                            Number(portion) *
+                              parseFloat(numberOfPortions || "0")
+                          )}g`}
                     </Text>
-                    <Text
-                      style={[
-                        styles.sliderLabel,
-                        { color: colors.text + "80" },
-                      ]}
-                    >
-                      500g
-                    </Text>
-                  </View>
+                  )}
                 </View>
-
-                {/* Texto de ajuda */}
-                {food.servings[0].serving_description && (
-                  <Text
-                    style={[styles.helperText, { color: colors.text + "80" }]}
-                  >
-                    {food.servings[0].serving_description
-                      .toLowerCase()
-                      .includes("bar") ||
-                    food.servings[0].serving_description
-                      .toLowerCase()
-                      .includes("piece") ||
-                    food.servings[0].serving_description
-                      .toLowerCase()
-                      .includes("unit") ||
-                    food.servings[0].serving_description
-                      .toLowerCase()
-                      .includes("unidade") ||
-                    food.servings[0].serving_description
-                      .toLowerCase()
-                      .includes("pacote") ||
-                    food.servings[0].serving_description
-                      .toLowerCase()
-                      .includes("embalagem") ||
-                    food.servings[0].serving_description
-                      .toLowerCase()
-                      .includes("pote") ||
-                    food.servings[0].serving_description
-                      .toLowerCase()
-                      .includes("garrafa") ||
-                    food.servings[0].serving_description
-                      .toLowerCase()
-                      .includes("lata") ||
-                    food.servings[0].serving_description
-                      .toLowerCase()
-                      .includes("copo")
-                      ? `${numberOfPortions}x ${food.servings[0].serving_description}`
-                      : `Total: ${formatNumber(
-                          Number(portion) * parseFloat(numberOfPortions || "0")
-                        )}g`}
-                  </Text>
-                )}
               </View>
-            </View>
-          </MotiView>
-        ) : null}
-      </ScrollView>
+            </MotiView>
+          ) : null}
+        </ScrollView>
 
-      {/* Add Button */}
-      {food && (
-        <MotiView
-          from={{ opacity: 0, translateY: 20 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "timing", duration: 400, delay: 200 }}
-          style={styles.bottomContainer}
-        >
-          <TouchableOpacity
-            style={[styles.addButton, { backgroundColor: mealColor }]}
-            onPress={handleAddFood}
+        {/* Add Button */}
+        {food && (
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "timing", duration: 400, delay: 200 }}
+            style={[
+              styles.bottomContainer,
+              {
+                // Garantir que a barra inferior esteja sempre visível
+                position: "relative",
+                zIndex: 100,
+              },
+            ]}
           >
-            <Text style={styles.addButtonText}>
-              {isEditMode
-                ? t("nutrition.foodDetails.updateMeal")
-                : t("nutrition.foodDetails.addToMeal")}
-            </Text>
-            <Ionicons
-              name={isEditMode ? "checkmark-circle" : "add-circle"}
-              size={20}
-              color="#FFF"
-              style={styles.addButtonIcon}
-            />
-          </TouchableOpacity>
-        </MotiView>
-      )}
+            <TouchableOpacity
+              style={[styles.addButton, { backgroundColor: mealColor }]}
+              onPress={handleAddFood}
+            >
+              <Text style={styles.addButtonText}>
+                {isEditMode
+                  ? t("nutrition.foodDetails.updateMeal")
+                  : t("nutrition.foodDetails.addToMeal")}
+              </Text>
+              <Ionicons
+                name={isEditMode ? "checkmark-circle" : "add-circle"}
+                size={20}
+                color="#FFF"
+                style={styles.addButtonIcon}
+              />
+            </TouchableOpacity>
+          </MotiView>
+        )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -1093,12 +1244,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
   },
   scrollViewContent: {
-    paddingBottom: 100,
+    paddingBottom: 120, // Aumentar o padding inferior para garantir espaço para a barra de botões
     paddingHorizontal: 16,
+  },
+  scrollViewContentEdit: {
+    paddingBottom: 80, // Menos padding no modo de edição
   },
   loadingContainer: {
     flex: 1,
@@ -1150,13 +1307,17 @@ const styles = StyleSheet.create({
   foodInfo: {
     padding: 8,
   },
+  foodNameWrapper: {
+    borderRadius: 30,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
   foodName: {
     fontSize: 22,
     fontWeight: "800",
-    marginBottom: 20,
     textAlign: "center",
     letterSpacing: -0.5,
-    alignSelf: "center",
   },
   // Card Unificado
   unifiedCard: {
@@ -1307,7 +1468,7 @@ const styles = StyleSheet.create({
   // Botão de adicionar
   bottomContainer: {
     padding: 16,
-    paddingBottom: 12,
+    paddingBottom: Platform.OS === "ios" ? 16 : 24, // Aumentar o padding inferior para Android
   },
   addButton: {
     height: 56,
@@ -1368,5 +1529,10 @@ const styles = StyleSheet.create({
   macroCircle: {
     alignItems: "center",
     width: width * 0.3,
+  },
+  recentFoodMeta: {
+    fontSize: 14,
+    fontWeight: "500",
+    letterSpacing: 0.5,
   },
 });

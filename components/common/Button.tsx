@@ -49,10 +49,10 @@ export default function Button({
 }: ButtonProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
-  
+
   // Estado para forçar re-renderização quando o tema mudar
   const [, setForceUpdate] = useState({});
-  
+
   // Efeito para forçar a re-renderização quando o tema mudar
   useEffect(() => {
     setForceUpdate({});
@@ -81,11 +81,11 @@ export default function Button({
       case "primary":
       case "secondary":
       case "gradient":
-        return "#fff";
+        return theme === "dark" ? "#000" : "#fff";
       case "outline":
         return colors.primary;
       default:
-        return "#fff";
+        return theme === "dark" ? "#000" : "#fff";
     }
   };
 
@@ -160,17 +160,31 @@ export default function Button({
   const buttonContent = (
     <>
       {loading ? (
-        <ActivityIndicator key={`button-loader-${theme}`} color={getTextColor()} size="small" />
+        <ActivityIndicator
+          key={`button-loader-${theme}`}
+          color={getTextColor()}
+          size="small"
+        />
       ) : (
-        <View key={`content-container-${theme}`} style={styles.contentContainer}>
+        <View
+          key={`content-container-${theme}`}
+          style={styles.contentContainer}
+        >
           {icon && iconPosition === "left" && (
-            <View key={`icon-left-${theme}`} style={styles.iconLeft}>{icon}</View>
+            <View key={`icon-left-${theme}`} style={styles.iconLeft}>
+              {icon}
+            </View>
           )}
-          <Text key={`button-text-${theme}`} style={[styles.text, { color: getTextColor() }, textStyle]}>
+          <Text
+            key={`button-text-${theme}`}
+            style={[styles.text, { color: getTextColor() }, textStyle]}
+          >
             {title}
           </Text>
           {icon && iconPosition === "right" && (
-            <View key={`icon-right-${theme}`} style={styles.iconRight}>{icon}</View>
+            <View key={`icon-right-${theme}`} style={styles.iconRight}>
+              {icon}
+            </View>
           )}
         </View>
       )}
@@ -181,10 +195,11 @@ export default function Button({
     // Definir cores padrão com tipagem correta para o LinearGradient
     const defaultGradientColors: [string, string] = ["#4ecdc4", "#2ab7ca"];
     // Garantir que gradientColors seja do tipo correto ou usar o padrão
-    const finalGradientColors = gradientColors && gradientColors.length >= 2 
-      ? [gradientColors[0], gradientColors[1]] as [string, string]
-      : defaultGradientColors;
-      
+    const finalGradientColors =
+      gradientColors && gradientColors.length >= 2
+        ? ([gradientColors[0], gradientColors[1]] as [string, string])
+        : defaultGradientColors;
+
     return (
       <TouchableOpacity
         key={`gradient-button-${title}-${theme}`}

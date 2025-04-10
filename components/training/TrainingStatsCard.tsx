@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import Animated, { FadeIn, FadeInRight, Layout } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import { format } from "date-fns";
@@ -268,11 +269,10 @@ export default function TrainingStatsCard({
       previous: number | null,
       unit: string,
       formatter: (value: number) => string = (value) => value.toString(),
-      inverseProgress: boolean = false // Parâmetro adicional para inverter a lógica de progresso (para tempo de descanso)
+      inverseProgress: boolean = false,
+      index: number = 0
     ) => {
       const hasPrevious = previous !== null && previous > 0;
-
-      // Usar valores pré-calculados para maior consistência
       const { avgWeightProgress, maxWeightProgress, densityProgress } =
         progressValues;
 
@@ -312,7 +312,17 @@ export default function TrainingStatsCard({
       const statKey = `stat-${title}-${theme}`;
 
       return (
-        <View key={statKey} style={styles.statRow}>
+        <Animated.View
+          entering={FadeInRight.delay(index * 100)
+            .duration(600)
+            .springify()
+            .withInitialValues({
+              opacity: 0,
+              transform: [{ translateX: 20 }],
+            })}
+          key={statKey}
+          style={styles.statRow}
+        >
           <View style={styles.statInfo}>
             <View style={styles.statHeader}>
               <View
@@ -401,7 +411,8 @@ export default function TrainingStatsCard({
               ]}
             >
               {!isLoading && hasPrevious && (
-                <View
+                <Animated.View
+                  entering={FadeIn.delay(index * 100 + 300).duration(400)}
                   style={[
                     styles.progressFill,
                     {
@@ -420,7 +431,7 @@ export default function TrainingStatsCard({
                   }`}
             </Text>
           </View>
-        </View>
+        </Animated.View>
       );
     },
     [
@@ -451,38 +462,59 @@ export default function TrainingStatsCard({
   const statsContainer = useMemo(() => {
     if (isLoading) return <View style={styles.statsContainer} />;
 
+    const stats = [
+      {
+        title: t("training.stats.calories"),
+        icon: "flame-outline",
+        current: workoutTotals.caloriesBurned,
+        previous: previousWorkoutTotals?.totals?.caloriesBurned || null,
+        unit: " kcal",
+        formatter: (value: number) => value.toString(),
+      },
+      {
+        title: t("training.stats.avgWeight"),
+        icon: "speedometer-outline",
+        current: workoutTotals.avgWeight,
+        previous: previousWorkoutTotals?.totals?.avgWeight || null,
+        unit: " kg",
+        formatter: (value: number) => value.toString(),
+      },
+      {
+        title: t("training.stats.totalVolume"),
+        icon: "barbell-outline",
+        current: workoutTotals.totalVolume,
+        previous: previousWorkoutTotals?.totals?.totalVolume || null,
+        unit: " kg",
+        formatter: formatVolume,
+      },
+      {
+        title: t("training.stats.repetitions"),
+        icon: "repeat-outline",
+        current: workoutTotals.totalReps,
+        previous: previousWorkoutTotals?.totals?.totalReps || null,
+        unit: "",
+        formatter: (value: number) => value.toString(),
+      },
+    ];
+
     return (
-      <View style={styles.statsContainer}>
-        {renderStatRow(
-          t("training.stats.calories"),
-          "flame-outline",
-          workoutTotals.caloriesBurned,
-          previousWorkoutTotals?.totals?.caloriesBurned || null,
-          " kcal"
+      <Animated.View
+        entering={FadeIn.duration(300).springify()}
+        style={styles.statsContainer}
+      >
+        {stats.map((stat, index) =>
+          renderStatRow(
+            stat.title,
+            stat.icon,
+            stat.current,
+            stat.previous,
+            stat.unit,
+            stat.formatter,
+            false,
+            index
+          )
         )}
-        {renderStatRow(
-          t("training.stats.avgWeight"),
-          "speedometer-outline",
-          workoutTotals.avgWeight,
-          previousWorkoutTotals?.totals?.avgWeight || null,
-          " kg"
-        )}
-        {renderStatRow(
-          t("training.stats.totalVolume"),
-          "barbell-outline",
-          workoutTotals.totalVolume,
-          previousWorkoutTotals?.totals?.totalVolume || null,
-          " kg",
-          formatVolume
-        )}
-        {renderStatRow(
-          t("training.stats.repetitions"),
-          "repeat-outline",
-          workoutTotals.totalReps,
-          previousWorkoutTotals?.totals?.totalReps || null,
-          ""
-        )}
-      </View>
+      </Animated.View>
     );
   }, [
     renderStatRow,
@@ -507,11 +539,16 @@ export default function TrainingStatsCard({
       onPress={navigateToDetailsScreen}
       disabled={false}
     >
-      <View
+      <Animated.View
+        entering={FadeIn.duration(400).springify()}
+        layout={Layout.springify()}
         key={`training-stats-card-${theme}`}
         style={[styles.container, { backgroundColor: colors.background }]}
       >
-        <View style={styles.headerContainer}>
+        <Animated.View
+          entering={FadeInRight.duration(500).springify()}
+          style={styles.headerContainer}
+        >
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             {t("training.stats.statistics")}: {workoutName}
           </Text>
@@ -524,10 +561,10 @@ export default function TrainingStatsCard({
               {format(parseISODate(previousWorkoutTotals.date), "dd/MM")}
             </Text>
           )}
-        </View>
+        </Animated.View>
 
         {statsContainer}
-      </View>
+      </Animated.View>
     </TouchableOpacity>
   );
 }

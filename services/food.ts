@@ -4,27 +4,56 @@ import {
   getFoodDetailsMockup,
 } from "../data/foodDatabaseUtils";
 
-// Função para buscar alimentos usando apenas o banco de dados local
-export const searchFoods = async (query: string): Promise<FoodResponse> => {
+// Cache para armazenar resultados de pesquisas recentes
+const searchCache = new Map<string, FoodResponse>();
+
+// Função para buscar alimentos - otimizada com cache
+export const searchFoods = async (
+  query: string,
+  category?: string
+): Promise<FoodResponse> => {
   try {
+    // Criar uma chave única para o cache com a consulta e categoria
+    const cacheKey = `${query}:${category || "all"}`;
 
-    // Buscar no banco de dados local
-    const results = searchFoodsMockup(query);
+    // Verificar se o resultado já está em cache
+    if (searchCache.has(cacheKey)) {
+      return searchCache.get(cacheKey) as FoodResponse;
+    }
 
-    return results;
-  } catch (error: any) {
+    // Usar o mockup para buscar os dados localmente
+    const response = searchFoodsMockup(query, category);
+
+    // Armazenar no cache
+    searchCache.set(cacheKey, response);
+
+    return response;
+  } catch (error) {
+    console.error("Erro ao buscar alimentos:", error);
     throw error;
   }
 };
 
-// Função para obter detalhes de um alimento usando apenas o banco de dados local
+// Cache para detalhes de alimentos
+const detailsCache = new Map<string, FoodResponse>();
+
+// Função para obter detalhes de um alimento pelo ID - otimizada com cache
 export const getFoodDetails = async (foodId: string): Promise<FoodResponse> => {
   try {
+    // Verificar se o resultado já está em cache
+    if (detailsCache.has(foodId)) {
+      return detailsCache.get(foodId) as FoodResponse;
+    }
 
-    // Buscar no banco de dados local
-    const result = getFoodDetailsMockup(foodId);
-    return result;
-  } catch (error: any) {
+    // Usar o mockup para buscar os dados localmente
+    const response = getFoodDetailsMockup(foodId);
+
+    // Armazenar no cache
+    detailsCache.set(foodId, response);
+
+    return response;
+  } catch (error) {
+    console.error("Erro ao obter detalhes do alimento:", error);
     throw error;
   }
 };

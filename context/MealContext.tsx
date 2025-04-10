@@ -23,6 +23,7 @@ import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KEYS } from "../constants/keys";
+import * as Haptics from "expo-haptics";
 
 // Tipos
 export interface Food {
@@ -34,6 +35,7 @@ export interface Food {
   protein: number;
   carbs: number;
   fat: number;
+  fiber?: number; // Adicionando fibra como propriedade opcional
 }
 
 export interface Meal {
@@ -70,7 +72,6 @@ interface MealContextType {
   removeFoodFromMeal: (mealId: string, foodId: string) => Promise<void>;
   saveMeals: () => Promise<void>;
   addMealType: (id: string, name: string, icon: string) => void;
-  resetMealTypes: () => Promise<boolean>;
   updateMealTypes: (mealTypes: MealType[]) => Promise<boolean>;
   hasMealTypesConfigured: boolean;
   searchHistory: Food[];
@@ -470,92 +471,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Função para redefinir os tipos de refeições
-  const resetMealTypes = async () => {
-    try {
-      // Limpar estados locais
-      setMealTypes([]);
-      setHasMealTypesConfigured(false);
-
-      // Garantir que o estado de meals seja completamente limpo
-      // incluindo o dia atual
-      setMeals((prevMeals) => {
-        const emptyMeals: { [date: string]: { [mealId: string]: Food[] } } = {};
-        // Garantir que o dia atual também esteja vazio
-        if (selectedDate) {
-          emptyMeals[selectedDate] = {};
-        }
-        return emptyMeals;
-      });
-
-      setSearchHistory([]);
-
-      if (user) {
-        // Limpar todos os dados do AsyncStorage
-        try {
-          const allKeys = await AsyncStorage.getAllKeys();
-          const keysToRemove = allKeys.filter(
-            (key) =>
-              key.startsWith(`${KEYS.MEALS_KEY}${user.uid}`) ||
-              key.startsWith(`${KEYS.MEAL_TYPES}:${user.uid}`) ||
-              key.startsWith(`${KEYS.SEARCH_HISTORY}:${user.uid}`)
-          );
-
-          if (keysToRemove.length > 0) {
-            await AsyncStorage.multiRemove(keysToRemove);
-          }
-
-          // Forçar limpeza específica do dia atual no AsyncStorage
-          const currentDayKey = `${KEYS.MEALS_KEY}${user.uid}:${selectedDate}`;
-          await AsyncStorage.removeItem(currentDayKey);
-        } catch (storageError) {
-          // Erro ao limpar dados do AsyncStorage
-        }
-
-        // Limpar dados no Firebase
-        try {
-          // Limpar tipos de refeições
-          await setDoc(
-            doc(db, "users", user.uid, "config", "mealTypes"),
-            { types: [] },
-            { merge: true }
-          );
-
-          // Limpar todas as refeições no Firestore
-          const mealsRef = collection(db, "users", user.uid, "meals");
-          const mealsSnap = await getDocs(mealsRef);
-
-          const batch = writeBatch(db);
-          mealsSnap.forEach((doc) => {
-            batch.delete(doc.ref);
-          });
-
-          // Garantir que o documento do dia atual seja explicitamente deletado
-          const currentDayRef = doc(
-            db,
-            "users",
-            user.uid,
-            "meals",
-            selectedDate
-          );
-          batch.delete(currentDayRef);
-
-          await batch.commit();
-
-          // Limpar histórico de pesquisa no Firebase se existir
-          await OfflineStorage.clearSearchHistory(user.uid);
-        } catch (firebaseError) {
-          // Erro ao limpar dados no Firebase
-        }
-      }
-
-      return true;
-    } catch (error) {
-      // Erro ao redefinir tipos de refeições
-      return false;
-    }
-  };
-
   // Função para atualizar todos os tipos de refeições de uma vez
   const updateMealTypes = async (newMealTypes: MealType[]) => {
     try {
@@ -587,6 +502,22 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
           );
         } catch (firebaseError) {
           // Erro ao salvar no Firebase, dados mantidos localmente
+        }
+
+        // Em vez de chamar diretamente, disparar um evento customizado
+        // para sincronizar os contextos sem causar dependência circular
+        const mealTypeIds = newMealTypes.map((mealType) => mealType.id);
+
+        // MODIFICAÇÃO: Remover referência ao objeto document
+        // e usar a função global que adicionamos no NutritionContext
+        // const event = new CustomEvent("mealTypesChanged", {
+        //   detail: { mealTypeIds },
+        // });
+        // document.dispatchEvent(event);
+
+        // Usar a função global se estiver disponível
+        if ((global as any).updateNutritionMealTypes) {
+          (global as any).updateNutritionMealTypes(mealTypeIds);
         }
       }
 
@@ -706,6 +637,11 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
         return { calories: 0, protein: 0, carbs: 0, fat: 0 };
       }
 
+      // Verificar se a data selecionada existe nos dados de refeições
+      if (!meals || !meals[selectedDate]) {
+        return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+      }
+
       // Obter os alimentos para a refeição
       const mealFoods = meals[selectedDate]?.[mealId];
 
@@ -748,6 +684,11 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     try {
       // Verificar se o mealId é uma string válida
       if (!mealId || typeof mealId !== "string") {
+        return [];
+      }
+
+      // Verificar se a data selecionada existe nos dados de refeições
+      if (!meals || !meals[selectedDate]) {
         return [];
       }
 
@@ -991,7 +932,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       removeFoodFromMeal,
       saveMeals,
       addMealType,
-      resetMealTypes,
       updateMealTypes,
       hasMealTypesConfigured,
       searchHistory,
@@ -1011,7 +951,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       removeFoodFromMeal,
       saveMeals,
       addMealType,
-      resetMealTypes,
       updateMealTypes,
       hasMealTypesConfigured,
       searchHistory,

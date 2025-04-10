@@ -206,7 +206,12 @@ const InfoModal: React.FC<InfoModalProps> = ({
               style={[styles.modalButton, { backgroundColor: colors.primary }]}
               onPress={handleClose}
             >
-              <Text style={styles.modalButtonText}>
+              <Text
+                style={[
+                  styles.modalButtonText,
+                  theme === "dark" && { color: "#000000" },
+                ]}
+              >
                 {closeButtonText || t("common.gotIt")}
               </Text>
             </TouchableOpacity>

@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, useRef } from "react";
 import { View, StyleSheet, ScrollView, InteractionManager } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
@@ -23,6 +23,9 @@ export default function Profile() {
   const router = useRouter();
   const { nutritionInfo } = useNutrition();
   const { user } = useAuth();
+
+  // Referência para o ScrollView para permitir rolagem programática
+  const scrollViewRef = useRef<ScrollView>(null);
 
   // Estado para controlar o carregamento
   const [isUIReady, setIsUIReady] = useState(false);
@@ -83,8 +86,7 @@ export default function Profile() {
   useFocusEffect(
     useCallback(() => {
       try {
-      } catch (error) {
-      }
+      } catch (error) {}
       return () => {};
     }, [])
   );
@@ -97,6 +99,7 @@ export default function Profile() {
 
     return (
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -106,7 +109,7 @@ export default function Profile() {
           <ProfileInfoCard onEditPress={handleEditProfilePress} />
 
           {/* Resumo do plano nutricional */}
-          <NutritionSummaryCard />
+          <NutritionSummaryCard scrollViewRef={scrollViewRef} />
 
           {/* Opções do perfil */}
           <ProfileOptionsCard

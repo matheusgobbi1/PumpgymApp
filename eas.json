@@ -1,7 +1,8 @@
 {
   "cli": {
     "version": ">= 15.0.14",
-    "appVersionSource": "remote"
+    "appVersionSource": "remote",
+    "promptToConfigurePushNotifications": false
   },
   "build": {
     "development": {
@@ -40,6 +41,23 @@
         "EXPO_PUBLIC_FATSECRET_CLIENT_SECRET": "5391aa4939854a8b9dfeb8abd911fa7b"
       }
     },
+    "testflight": {
+      "distribution": "store",
+      "channel": "testflight",
+      "env": {
+        "EXPO_PUBLIC_EDAMAM_APP_ID": "97b6d9ed",
+        "EXPO_PUBLIC_EDAMAM_APP_KEY": "9ea5376005812034979c7bb96d1a6491",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyCk87hePbNfLt5xlEBbMMJvUVxGLWpsMBc",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "pumpgym-93f15.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "pumpgym-93f15",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "pumpgym-93f15.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "254079440927",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:254079440927:web:1b7055f8450d98ee839d2a",
+        "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID": "G-15HR39ZP92",
+        "EXPO_PUBLIC_FATSECRET_CLIENT_ID": "5d4300d511234dd0a13500f55c9a267f",
+        "EXPO_PUBLIC_FATSECRET_CLIENT_SECRET": "5391aa4939854a8b9dfeb8abd911fa7b"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "channel": "production",
@@ -59,6 +77,9 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {},
+    "testflight": {
+      "ios": {}
+    }
   }
 }

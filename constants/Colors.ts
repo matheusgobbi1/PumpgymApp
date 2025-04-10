@@ -14,6 +14,7 @@ export default {
     accent: "#6C63FF", // Mantendo roxo como cor de destaque
     success: "#2ECE8D", // Verde mais vibrante
     danger: "#FF5252", // Vermelho vibrante
+    error: "#FF5252", // Adicionado cor de erro
     warning: "#FFB74D", // Laranja âmbar
     info: "#40C4FF", // Azul vibrante
     light: "#F8F9FA", // Branco levemente acinzentado
@@ -29,17 +30,18 @@ export default {
     chartDotFill: "#FFFFFF",
   },
   dark: {
-    text: "#FFFFFF", // Branco puro para texto
+    text: "#e9e2e2", // Branco puro para texto
     background: "#121212", // Fundo escuro
     tint: tintColorDark,
     tabIconDefault: "#404040", // Cinza mais escuro para ícones inativos
     tabIconSelected: tintColorDark,
-    primary: "#F2F2F2", // Branco levemente acinzentado como cor principal
+    primary: "#e9e2e2", // Branco levemente acinzentado como cor principal
     black: "#000000",
     secondary: "#8A8A8A", // Cinza médio para melhor contraste
     accent: "#8B7FFF", // Roxo mais suave
     success: "#4AE3A8", // Verde néon suave
     danger: "#FF6B6B", // Vermelho coral
+    error: "#FF6B6B", // Adicionado cor de erro
     warning: "#FFC857", // Amarelo mais quente
     info: "#5CDDFF", // Azul néon suave
     light: "#181818", // Cinza mais escuro para cards

@@ -56,6 +56,11 @@ export default function ReferralScreen() {
       name: t("onboarding.referral.options.google"),
       icon: "logo-google",
     },
+    {
+      id: "other",
+      name: t("onboarding.referral.options.other"),
+      icon: "ellipsis-horizontal",
+    },
   ];
 
   return (

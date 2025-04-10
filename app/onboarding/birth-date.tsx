@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import { useNutrition } from "../../context/NutritionContext";
 import { validateBirthDate } from "../../utils/validations";
 import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
 import { useTranslation } from "react-i18next";
+import Animated, { FadeInDown, ZoomIn } from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
 
 const { height } = Dimensions.get("window");
 const ITEM_HEIGHT = 52;
@@ -61,6 +63,50 @@ export default function BirthDateScreen() {
   const isNextEnabled =
     selectedMonth !== null && selectedDay !== null && selectedYear !== null;
 
+  // Função para obter o número de dias em um mês
+  const getDaysInMonth = (
+    month: number | null,
+    year: number | null
+  ): number => {
+    if (month === null || year === null) return 31; // Default para 31 dias quando nenhum mês/ano selecionado
+
+    // Meses com 31 dias: Jan (0), Mar (2), Mai (4), Jul (6), Ago (7), Out (9), Dez (11)
+    if ([0, 2, 4, 6, 7, 9, 11].includes(month)) {
+      return 31;
+    }
+
+    // Fevereiro (1)
+    if (month === 1) {
+      // Verificar se é ano bissexto
+      const isLeapYear =
+        (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+      return isLeapYear ? 29 : 28;
+    }
+
+    // Meses com 30 dias: Abr (3), Jun (5), Set (8), Nov (10)
+    return 30;
+  };
+
+  // Recalcular os dias disponíveis quando o mês ou ano mudar
+  const availableDays = useMemo(() => {
+    const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
+    return Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  }, [selectedMonth, selectedYear]);
+
+  // Atualizar o dia selecionado se for inválido para o novo mês
+  useEffect(() => {
+    if (
+      selectedDay !== null &&
+      selectedMonth !== null &&
+      selectedYear !== null
+    ) {
+      const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
+      if (selectedDay > daysInMonth) {
+        setSelectedDay(null);
+      }
+    }
+  }, [selectedMonth, selectedYear]);
+
   const handleNext = () => {
     if (
       selectedMonth !== null &&
@@ -75,13 +121,30 @@ export default function BirthDateScreen() {
         return;
       }
 
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       updateNutritionInfo({ birthDate });
       router.push("/onboarding/measurements" as any);
     }
   };
 
   const handleBack = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     router.back();
+  };
+
+  const handleSelectMonth = (index: number) => {
+    Haptics.selectionAsync();
+    setSelectedMonth(index);
+  };
+
+  const handleSelectDay = (day: number) => {
+    Haptics.selectionAsync();
+    setSelectedDay(day);
+  };
+
+  const handleSelectYear = (year: number) => {
+    Haptics.selectionAsync();
+    setSelectedYear(year);
   };
 
   // Obter nomes dos meses a partir das traduções
@@ -99,8 +162,6 @@ export default function BirthDateScreen() {
     t("months.11"),
     t("months.12"),
   ];
-
-  const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
   // Gerar anos de 1950 até o ano atual
   const currentYear = new Date().getFullYear();
@@ -145,19 +206,18 @@ export default function BirthDateScreen() {
       nextButtonDisabled={!isNextEnabled}
       error={error}
     >
-      <View
-        key={`date-selection-container-${theme}`}
+      <Animated.View
         style={styles.dateSelectionContainer}
+        entering={FadeInDown.duration(600).springify()}
       >
-        <View key={`month-column-${theme}`} style={styles.dateColumn}>
-          <Text
-            key={`month-label-${theme}`}
-            style={[styles.dateLabel, { color: colors.text }]}
-          >
+        <Animated.View
+          style={[styles.dateColumn, { flex: 1.2 }]}
+          entering={FadeInDown.delay(100).duration(500)}
+        >
+          <Text style={[styles.dateLabel, { color: colors.text }]}>
             {t("onboarding.birthDate.month")}
           </Text>
           <View
-            key={`month-picker-container-${theme}`}
             style={[
               styles.datePickerContainer,
               {
@@ -174,14 +234,13 @@ export default function BirthDateScreen() {
           >
             <ScrollView
               ref={monthScrollRef}
-              key={`month-scroll-${theme}`}
               style={styles.dateScrollView}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollViewContent}
             >
               {months.map((month, index) => (
                 <TouchableOpacity
-                  key={`month-${index}-${theme}`}
+                  key={`month-${index}`}
                   style={[
                     styles.dateItem,
                     {
@@ -189,18 +248,19 @@ export default function BirthDateScreen() {
                         selectedMonth === index
                           ? colors.primary + "20"
                           : "transparent",
-                      borderWidth: selectedMonth === index ? 2 : 0,
+                      borderWidth: selectedMonth === index ? 1 : 0,
                       borderColor:
                         selectedMonth === index
                           ? colors.primary
                           : "transparent",
                     },
                   ]}
-                  onPress={() => setSelectedMonth(index)}
+                  onPress={() => handleSelectMonth(index)}
                   activeOpacity={0.7}
                 >
                   <Text
-                    key={`month-text-${index}-${theme}`}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
                     style={[
                       styles.dateItemText,
                       {
@@ -218,17 +278,16 @@ export default function BirthDateScreen() {
               ))}
             </ScrollView>
           </View>
-        </View>
+        </Animated.View>
 
-        <View key={`day-column-${theme}`} style={styles.dateColumn}>
-          <Text
-            key={`day-label-${theme}`}
-            style={[styles.dateLabel, { color: colors.text }]}
-          >
+        <Animated.View
+          style={styles.dateColumn}
+          entering={FadeInDown.delay(200).duration(500)}
+        >
+          <Text style={[styles.dateLabel, { color: colors.text }]}>
             {t("onboarding.birthDate.day")}
           </Text>
           <View
-            key={`day-picker-container-${theme}`}
             style={[
               styles.datePickerContainer,
               {
@@ -245,14 +304,13 @@ export default function BirthDateScreen() {
           >
             <ScrollView
               ref={dayScrollRef}
-              key={`day-scroll-${theme}`}
               style={styles.dateScrollView}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollViewContent}
             >
-              {days.map((day) => (
+              {availableDays.map((day) => (
                 <TouchableOpacity
-                  key={`day-${day}-${theme}`}
+                  key={`day-${day}`}
                   style={[
                     styles.dateItem,
                     {
@@ -260,16 +318,17 @@ export default function BirthDateScreen() {
                         selectedDay === day
                           ? colors.primary + "20"
                           : "transparent",
-                      borderWidth: selectedDay === day ? 2 : 0,
+                      borderWidth: selectedDay === day ? 1 : 0,
                       borderColor:
                         selectedDay === day ? colors.primary : "transparent",
                     },
                   ]}
-                  onPress={() => setSelectedDay(day)}
+                  onPress={() => handleSelectDay(day)}
                   activeOpacity={0.7}
                 >
                   <Text
-                    key={`day-text-${day}-${theme}`}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
                     style={[
                       styles.dateItemText,
                       {
@@ -285,17 +344,16 @@ export default function BirthDateScreen() {
               ))}
             </ScrollView>
           </View>
-        </View>
+        </Animated.View>
 
-        <View key={`year-column-${theme}`} style={styles.dateColumn}>
-          <Text
-            key={`year-label-${theme}`}
-            style={[styles.dateLabel, { color: colors.text }]}
-          >
+        <Animated.View
+          style={styles.dateColumn}
+          entering={FadeInDown.delay(300).duration(500)}
+        >
+          <Text style={[styles.dateLabel, { color: colors.text }]}>
             {t("onboarding.birthDate.year")}
           </Text>
           <View
-            key={`year-picker-container-${theme}`}
             style={[
               styles.datePickerContainer,
               {
@@ -312,14 +370,13 @@ export default function BirthDateScreen() {
           >
             <ScrollView
               ref={yearScrollRef}
-              key={`year-scroll-${theme}`}
               style={styles.dateScrollView}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollViewContent}
             >
               {years.map((year) => (
                 <TouchableOpacity
-                  key={`year-${year}-${theme}`}
+                  key={`year-${year}`}
                   style={[
                     styles.dateItem,
                     {
@@ -327,16 +384,17 @@ export default function BirthDateScreen() {
                         selectedYear === year
                           ? colors.primary + "20"
                           : "transparent",
-                      borderWidth: selectedYear === year ? 2 : 0,
+                      borderWidth: selectedYear === year ? 1 : 0,
                       borderColor:
                         selectedYear === year ? colors.primary : "transparent",
                     },
                   ]}
-                  onPress={() => setSelectedYear(year)}
+                  onPress={() => handleSelectYear(year)}
                   activeOpacity={0.7}
                 >
                   <Text
-                    key={`year-text-${year}-${theme}`}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
                     style={[
                       styles.dateItemText,
                       {
@@ -352,8 +410,8 @@ export default function BirthDateScreen() {
               ))}
             </ScrollView>
           </View>
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     </OnboardingLayout>
   );
 }
@@ -367,6 +425,7 @@ const styles = StyleSheet.create({
   dateColumn: {
     flex: 1,
     alignItems: "center",
+    marginHorizontal: 2,
   },
   dateLabel: {
     fontSize: 16,
@@ -376,7 +435,7 @@ const styles = StyleSheet.create({
   datePickerContainer: {
     borderRadius: 16,
     overflow: "hidden",
-    width: "90%",
+    width: "95%",
     height: Math.min(height * 0.3, 250), // Ajuste responsivo para diferentes tamanhos de tela
   },
   dateScrollView: {
@@ -392,10 +451,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginVertical: 2,
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
   },
   dateItemText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "500",
+    textAlign: "center",
   },
 });

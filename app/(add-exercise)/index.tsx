@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -6,14 +6,11 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
-  Image,
   Dimensions,
   FlatList,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useLocalSearchParams, Stack } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { MotiView } from "moti";
 import * as Haptics from "expo-haptics";
@@ -27,261 +24,396 @@ import {
   getExercisesByMuscle,
 } from "../../data/exerciseDatabase";
 import { debounce } from "lodash";
-import { v4 as uuidv4 } from "uuid";
 import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.44;
 
-// Componente para o esqueleto de carregamento de um item de exercício
-const ExerciseItemSkeleton = ({ index }: { index: number }) => {
-  const { theme } = useTheme();
-  const colors = Colors[theme];
+// Componente para o card de exercício - otimizado com memo
+const ExerciseCard = React.memo(
+  ({
+    exercise,
+    index,
+    workoutColor,
+    onPress,
+  }: {
+    exercise: ExerciseData;
+    index: number;
+    workoutColor: string;
+    onPress: () => void;
+  }) => {
+    const { theme } = useTheme();
+    const colors = Colors[theme];
+    const { t } = useTranslation();
 
-  return (
-    <MotiView
-      key={`skeleton-item-${index}-${theme}`}
-      from={{ opacity: 0.5 }}
-      animate={{ opacity: 1 }}
-      transition={{
-        type: "timing",
-        duration: 1000,
-        loop: true,
-        delay: index * 100,
-      }}
-      style={[styles.exerciseItem, { backgroundColor: colors.light }]}
-    >
-      <View style={styles.exerciseInfo}>
-        <MotiView
-          key={`skeleton-name-${index}-${theme}`}
-          from={{ opacity: 0.5 }}
-          animate={{ opacity: 1 }}
-          transition={{
-            type: "timing",
-            duration: 1000,
-            loop: true,
-          }}
-          style={[
-            styles.skeletonExerciseName,
-            { backgroundColor: colors.text + "20" },
-          ]}
-        />
-        <MotiView
-          key={`skeleton-category-${index}-${theme}`}
-          from={{ opacity: 0.5 }}
-          animate={{ opacity: 1 }}
-          transition={{
-            type: "timing",
-            duration: 1000,
-            loop: true,
-          }}
-          style={[
-            styles.skeletonExerciseCategory,
-            { backgroundColor: colors.text + "20" },
-          ]}
-        />
-      </View>
+    return (
       <MotiView
-        key={`skeleton-button-${index}-${theme}`}
-        from={{ opacity: 0.5 }}
-        animate={{ opacity: 1 }}
-        transition={{
-          type: "timing",
-          duration: 1000,
-          loop: true,
-        }}
-        style={[
-          styles.skeletonAddButton,
-          { backgroundColor: colors.text + "20" },
-        ]}
-      />
-    </MotiView>
-  );
-};
-
-// Componente para o esqueleto de carregamento dos resultados da pesquisa
-const SearchResultsSkeleton = () => {
-  const { theme } = useTheme();
-
-  return (
-    <>
-      {[...Array(5)].map((_, index) => (
-        <ExerciseItemSkeleton
-          key={`skeleton_${index}_${theme}`}
-          index={index}
-        />
-      ))}
-    </>
-  );
-};
-
-// Componente para o card de exercício
-const ExerciseCard = ({
-  exercise,
-  index,
-  workoutColor,
-  onPress,
-}: {
-  exercise: ExerciseData;
-  index: number;
-  workoutColor: string;
-  onPress: () => void;
-}) => {
-  const { theme } = useTheme();
-  const colors = Colors[theme];
-  const { t } = useTranslation();
-
-  return (
-    <MotiView
-      from={{ opacity: 0, translateY: 20 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{ type: "spring", delay: index * 50 }}
-      style={[styles.exerciseCard, { backgroundColor: colors.card }]}
-    >
-      <TouchableOpacity
-        style={styles.exerciseCardContent}
-        onPress={onPress}
-        activeOpacity={0.7}
+        from={{ opacity: 0, translateY: 20 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: "spring", delay: index * 50 }}
+        style={[styles.exerciseCard, { backgroundColor: colors.card }]}
       >
-        <View
-          style={[
-            styles.exerciseCardIcon,
-            { backgroundColor: workoutColor + "20" },
-          ]}
+        <TouchableOpacity
+          style={styles.exerciseCardContent}
+          onPress={onPress}
+          activeOpacity={0.7}
         >
-          <Ionicons
-            name={
-              exercise.muscle === "Peito"
-                ? "fitness-outline"
-                : exercise.muscle === "Costas"
-                ? "body-outline"
-                : exercise.muscle === "Pernas"
-                ? "walk-outline"
-                : exercise.muscle === "Ombros"
-                ? "barbell-outline"
-                : exercise.muscle === "Bíceps" || exercise.muscle === "Tríceps"
-                ? "bicycle-outline"
-                : exercise.muscle === "Abdômen"
-                ? "body-outline"
-                : exercise.muscle === "Cardio"
-                ? "heart-outline"
-                : "barbell-outline"
-            }
-            size={24}
-            color={workoutColor}
-          />
-        </View>
-
-        <Text
-          style={[styles.exerciseName, { color: colors.text }]}
-          numberOfLines={2}
-        >
-          {exercise.id &&
-          exercise.id.startsWith("ex") &&
-          exercise.id.length <= 6
-            ? t(`exercises.exercises.${exercise.id}`)
-            : exercise.name}
-        </Text>
-
-        <View style={styles.exerciseDetails}>
-          <View style={styles.exerciseDetailItem}>
+          <View
+            style={[
+              styles.exerciseCardIcon,
+              { backgroundColor: workoutColor + "20" },
+            ]}
+          >
             <Ionicons
-              name="body-outline"
-              size={14}
-              color={colors.text + "80"}
+              name={
+                exercise.muscle === "Peito"
+                  ? "fitness-outline"
+                  : exercise.muscle === "Costas"
+                  ? "body-outline"
+                  : exercise.muscle === "Pernas"
+                  ? "walk-outline"
+                  : exercise.muscle === "Ombros"
+                  ? "barbell-outline"
+                  : exercise.muscle === "Bíceps" ||
+                    exercise.muscle === "Tríceps"
+                  ? "bicycle-outline"
+                  : exercise.muscle === "Abdômen"
+                  ? "body-outline"
+                  : exercise.muscle === "Cardio"
+                  ? "heart-outline"
+                  : "barbell-outline"
+              }
+              size={24}
+              color={workoutColor}
             />
-            <Text
-              style={[styles.exerciseDetailText, { color: colors.text + "80" }]}
-            >
-              {t(`exercises.muscles.${exercise.muscle}`)}
-            </Text>
           </View>
 
-          <View style={styles.exerciseDetailItem}>
-            <Ionicons
-              name="barbell-outline"
-              size={14}
-              color={colors.text + "80"}
-            />
-            <Text
-              style={[styles.exerciseDetailText, { color: colors.text + "80" }]}
-            >
-              {t(`exercises.equipment.${exercise.equipment}`)}
-            </Text>
+          <Text
+            style={[styles.exerciseName, { color: colors.text }]}
+            numberOfLines={2}
+          >
+            {exercise.id.startsWith("exercise-")
+              ? exercise.name
+              : exercise.id &&
+                exercise.id.startsWith("ex") &&
+                exercise.id.length <= 6
+              ? t(`exercises.exercises.${exercise.id}`)
+              : exercise.name}
+          </Text>
+
+          <View style={styles.exerciseDetails}>
+            <View style={styles.exerciseDetailItem}>
+              <Ionicons
+                name="body-outline"
+                size={14}
+                color={colors.text + "80"}
+              />
+              <Text
+                style={[
+                  styles.exerciseDetailText,
+                  { color: colors.text + "80" },
+                ]}
+              >
+                {t(`exercises.muscles.${exercise.muscle}`)}
+              </Text>
+            </View>
+
+            <View style={styles.exerciseDetailItem}>
+              <Ionicons
+                name="barbell-outline"
+                size={14}
+                color={colors.text + "80"}
+              />
+              <Text
+                style={[
+                  styles.exerciseDetailText,
+                  { color: colors.text + "80" },
+                ]}
+              >
+                {t(`exercises.equipment.${exercise.equipment}`)}
+              </Text>
+            </View>
           </View>
-        </View>
-      </TouchableOpacity>
-    </MotiView>
-  );
-};
+        </TouchableOpacity>
+      </MotiView>
+    );
+  }
+);
 
 // Componente para o filtro de grupo muscular
-const MuscleGroupFilter = ({
-  selectedMuscle,
-  onSelectMuscle,
-}: {
-  selectedMuscle: string | null;
-  onSelectMuscle: (muscle: string | null) => void;
-}) => {
-  const { theme } = useTheme();
-  const colors = Colors[theme];
-  const { t } = useTranslation();
+const MuscleGroupFilter = React.memo(
+  ({
+    selectedMuscle,
+    onSelectMuscle,
+    workoutColor,
+  }: {
+    selectedMuscle: string | null;
+    onSelectMuscle: (muscle: string | null) => void;
+    workoutColor: string;
+  }) => {
+    const { theme } = useTheme();
+    const colors = Colors[theme];
+    const { t } = useTranslation();
 
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.muscleFilterContainer}
-    >
-      <TouchableOpacity
-        style={[
-          styles.muscleFilterItem,
-          selectedMuscle === null && { backgroundColor: colors.primary + "20" },
-        ]}
-        onPress={() => onSelectMuscle(null)}
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.muscleFilterContainer}
       >
-        <Text
-          style={[
-            styles.muscleFilterText,
-            {
-              color:
-                selectedMuscle === null ? colors.primary : colors.text + "80",
-            },
-          ]}
-        >
-          {t("exercise.muscleGroups.all")}
-        </Text>
-      </TouchableOpacity>
-
-      {muscleGroups.map((muscle, index) => (
         <TouchableOpacity
-          key={`muscle-${index}`}
           style={[
             styles.muscleFilterItem,
-            selectedMuscle === muscle && {
-              backgroundColor: colors.primary + "20",
-            },
+            selectedMuscle === null && { backgroundColor: workoutColor + "20" },
           ]}
-          onPress={() => onSelectMuscle(muscle)}
+          onPress={() => onSelectMuscle(null)}
         >
           <Text
             style={[
               styles.muscleFilterText,
               {
                 color:
-                  selectedMuscle === muscle
-                    ? colors.primary
-                    : colors.text + "80",
+                  selectedMuscle === null ? workoutColor : colors.text + "80",
               },
             ]}
           >
-            {t(`exercises.muscles.${muscle}`)}
+            {t("exercise.muscleGroups.all")}
           </Text>
         </TouchableOpacity>
-      ))}
-    </ScrollView>
-  );
-};
+
+        {muscleGroups.map((muscle, index) => (
+          <TouchableOpacity
+            key={`muscle-${index}`}
+            style={[
+              styles.muscleFilterItem,
+              selectedMuscle === muscle && {
+                backgroundColor: workoutColor + "20",
+              },
+            ]}
+            onPress={() => onSelectMuscle(muscle)}
+          >
+            <Text
+              style={[
+                styles.muscleFilterText,
+                {
+                  color:
+                    selectedMuscle === muscle
+                      ? workoutColor
+                      : colors.text + "80",
+                },
+              ]}
+            >
+              {t(`exercises.muscles.${muscle}`)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    );
+  }
+);
+
+// Item de exercício recente
+const RecentExerciseItem = React.memo(
+  ({
+    exercise,
+    index,
+    theme,
+    workoutColor,
+    colors,
+    navigateToExerciseDetails,
+    workoutId,
+    addExerciseToWorkout,
+    t,
+  }: {
+    exercise: Exercise;
+    index: number;
+    theme: string;
+    workoutColor: string;
+    colors: any;
+    navigateToExerciseDetails: Function;
+    workoutId: string;
+    addExerciseToWorkout: Function;
+    t: Function;
+  }) => (
+    <MotiView
+      key={`recent_${exercise.id}_${index}_${theme}`}
+      from={{ opacity: 0, translateY: 10 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ delay: index * 50 }}
+    >
+      <TouchableOpacity
+        key={`recent-exercise-${exercise.id}-${theme}`}
+        style={[styles.exerciseItem, { backgroundColor: colors.light }]}
+        onPress={() => navigateToExerciseDetails(exercise)}
+      >
+        <View style={styles.exerciseInfo}>
+          <Text style={[styles.exerciseName, { color: colors.text }]}>
+            {exercise.id &&
+            exercise.id.startsWith("ex") &&
+            exercise.id.length <= 6
+              ? t(`exercises.exercises.${exercise.id}`)
+              : exercise.name}
+          </Text>
+          <Text
+            style={[styles.exerciseCategory, { color: colors.text + "80" }]}
+          >
+            {exercise.sets?.length || 0} séries •{" "}
+            {exercise.sets?.[0]?.reps || 0} reps •{" "}
+            {exercise.sets?.[0]?.weight || 0}kg
+          </Text>
+        </View>
+        <TouchableOpacity
+          key={`recent-add-button-${exercise.id}-${theme}`}
+          style={[styles.addButton, { backgroundColor: workoutColor }]}
+          onPress={() => {
+            const exerciseId =
+              exercise.id &&
+              exercise.id.startsWith("ex") &&
+              exercise.id.length <= 6
+                ? exercise.id
+                : `exercise-${Date.now()}`;
+
+            const exerciseName =
+              exercise.id &&
+              exercise.id.startsWith("ex") &&
+              exercise.id.length <= 6
+                ? t(`exercises.exercises.${exercise.id}`)
+                : exercise.name;
+
+            const newExercise: Exercise = {
+              id: exerciseId,
+              name: exerciseName,
+              notes: exercise.notes,
+              category: exercise.category,
+              completed: false,
+              sets: (exercise.sets || []).map((set) => ({
+                id: `set-${Date.now()}-${Math.random()}`,
+                reps: set.reps,
+                weight: set.weight,
+                restTime: set.restTime || 60,
+                completed: false,
+              })),
+            };
+            addExerciseToWorkout(workoutId, newExercise);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }}
+        >
+          <Ionicons name="add" size={20} color="#FFF" />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </MotiView>
+  )
+);
+
+// Item de resultado de busca
+const SearchResultItem = React.memo(
+  ({
+    exercise,
+    index,
+    theme,
+    workoutColor,
+    colors,
+    navigateToExerciseDetails,
+    addExerciseToWorkout,
+    workoutId,
+    t,
+  }: {
+    exercise: ExerciseData;
+    index: number;
+    theme: string;
+    workoutColor: string;
+    colors: any;
+    navigateToExerciseDetails: Function;
+    addExerciseToWorkout: Function;
+    workoutId: string;
+    t: Function;
+  }) => (
+    <MotiView
+      key={`${exercise.id}_${index}_${theme}`}
+      from={{ opacity: 0, translateY: 20 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ delay: index * 100 }}
+    >
+      <TouchableOpacity
+        key={`exercise-item-${exercise.id}-${theme}`}
+        style={[styles.exerciseItem, { backgroundColor: colors.light }]}
+        onPress={() => navigateToExerciseDetails(exercise)}
+      >
+        <View style={styles.exerciseInfo}>
+          <Text style={[styles.exerciseName, { color: colors.text }]}>
+            {exercise.id.startsWith("exercise-")
+              ? exercise.name
+              : exercise.id &&
+                exercise.id.startsWith("ex") &&
+                exercise.id.length <= 6
+              ? t(`exercises.exercises.${exercise.id}`)
+              : exercise.name}
+          </Text>
+          <Text
+            style={[styles.exerciseCategory, { color: colors.text + "80" }]}
+          >
+            {t(`exercises.muscles.${exercise.muscle}`)} •{" "}
+            {t(`exercises.equipment.${exercise.equipment}`)}
+          </Text>
+        </View>
+        <TouchableOpacity
+          key={`add-button-${exercise.id}-${theme}`}
+          style={[styles.addButton, { backgroundColor: workoutColor }]}
+          onPress={() => {
+            const exerciseId =
+              exercise.id &&
+              exercise.id.startsWith("ex") &&
+              exercise.id.length <= 6
+                ? exercise.id
+                : `exercise-${Date.now()}`;
+
+            const exerciseName =
+              exercise.id &&
+              exercise.id.startsWith("ex") &&
+              exercise.id.length <= 6
+                ? t(`exercises.exercises.${exercise.id}`)
+                : exercise.name;
+
+            const newExercise: Exercise = {
+              id: exerciseId,
+              name: exerciseName,
+              category: exercise.category,
+              notes: `${exercise.muscle} - ${exercise.equipment}`,
+              sets: [
+                {
+                  id: `set-${Date.now()}-1`,
+                  reps: 12,
+                  weight: 10,
+                  completed: false,
+                  restTime: 60,
+                },
+                {
+                  id: `set-${Date.now()}-2`,
+                  reps: 12,
+                  weight: 10,
+                  completed: false,
+                  restTime: 60,
+                },
+                {
+                  id: `set-${Date.now()}-3`,
+                  reps: 12,
+                  weight: 10,
+                  completed: false,
+                  restTime: 60,
+                },
+              ],
+              completed: false,
+            };
+            addExerciseToWorkout(workoutId, newExercise);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }}
+        >
+          <Ionicons name="add" size={20} color="#FFF" />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </MotiView>
+  )
+);
 
 export default function AddExerciseScreen() {
   const router = useRouter();
@@ -302,71 +434,58 @@ export default function AddExerciseScreen() {
 
   // Estados
   const [searchQuery, setSearchQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<ExerciseData[]>([]);
   const [recentExercises, setRecentExercises] = useState<Exercise[]>([]);
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
 
-  // Estado para forçar re-renderização quando o tema mudar
-  const [, setForceUpdate] = useState({});
-
-  // Efeito para forçar a re-renderização quando o tema mudar
-  useEffect(() => {
-    setForceUpdate({});
-  }, [theme]);
-
-  // Efeito para carregar exercícios recentes
+  // Efeito para carregar exercícios recentes - otimizado com useMemo
   useEffect(() => {
     // Carregar exercícios recentes do usuário
     if (workouts) {
       const recentExercisesList: Exercise[] = [];
 
-      // Percorrer todas as datas
-      Object.keys(workouts).forEach((date) => {
-        // Percorrer todos os treinos da data
-        Object.keys(workouts[date] || {}).forEach((workoutId) => {
-          const exercises = workouts[date][workoutId];
-          if (Array.isArray(exercises)) {
-            exercises.forEach((exercise) => {
-              // Verificar se o exercício já está na lista
-              const existingExercise = recentExercisesList.find(
-                (e) => e.name === exercise.name
-              );
-              if (!existingExercise) {
-                recentExercisesList.push(exercise);
-              }
-            });
-          }
-        });
+      // Usar Object.entries para melhor performance
+      Object.entries(workouts).forEach(([date, dateWorkouts]) => {
+        if (dateWorkouts) {
+          Object.entries(dateWorkouts).forEach(([wkId, exercises]) => {
+            if (Array.isArray(exercises)) {
+              exercises.forEach((exercise) => {
+                if (
+                  !recentExercisesList.some((e) => e.name === exercise.name)
+                ) {
+                  recentExercisesList.push(exercise);
+                }
+              });
+            }
+          });
+        }
       });
 
-      // Ordenar por ordem de adição (assumindo que os mais recentes estão no final do array)
-      // e limitar a 5 itens
+      // Ordenar e limitar a 5 itens
       setRecentExercises(recentExercisesList.slice(-5).reverse());
     }
   }, [workouts]);
 
-  // Função de busca com debounce
+  // Função de busca com debounce - otimizada
   const debouncedSearch = useCallback(
     debounce((query: string) => {
       if (!query.trim()) {
         if (selectedMuscle) {
-          setSearchResults(getExercisesByMuscle(selectedMuscle));
+          // Usar requestAnimationFrame para melhorar a performance
+          requestAnimationFrame(() => {
+            setSearchResults(getExercisesByMuscle(selectedMuscle));
+          });
         } else {
           setSearchResults([]);
         }
-        setIsLoading(false);
         return;
       }
 
-      setIsLoading(true);
-
-      // Pequeno delay para melhorar a experiência do usuário
-      setTimeout(() => {
+      // Usar requestAnimationFrame para separar a busca da renderização
+      requestAnimationFrame(() => {
         const results = searchExercises(query);
         setSearchResults(results);
-        setIsLoading(false);
-      }, 300);
+      });
     }, 300),
     [selectedMuscle]
   );
@@ -377,23 +496,28 @@ export default function AddExerciseScreen() {
     return () => debouncedSearch.cancel();
   }, [searchQuery, debouncedSearch]);
 
-  // Função para selecionar um grupo muscular
-  const handleSelectMuscle = useCallback((muscle: string | null) => {
-    setSelectedMuscle(muscle);
-    setSearchQuery("");
+  // Função para selecionar um grupo muscular - otimizada com useCallback
+  const handleSelectMuscle = useCallback(
+    (muscle: string | null) => {
+      if (muscle === selectedMuscle) return; // Evita re-renderizações desnecessárias
 
-    if (muscle) {
-      setIsLoading(true);
-      setTimeout(() => {
-        setSearchResults(getExercisesByMuscle(muscle));
-        setIsLoading(false);
-      }, 300);
-    } else {
-      setSearchResults([]);
-    }
-  }, []);
+      setSelectedMuscle(muscle);
+      setSearchQuery("");
 
-  // Função para adicionar exercício diretamente
+      if (muscle) {
+        // Usar requestAnimationFrame para melhorar a performance
+        requestAnimationFrame(() => {
+          const results = getExercisesByMuscle(muscle);
+          setSearchResults(results);
+        });
+      } else {
+        setSearchResults([]);
+      }
+    },
+    [selectedMuscle]
+  );
+
+  // Função para adicionar exercício diretamente - otimizada com useCallback e memo
   const handleQuickAdd = useCallback(
     (exercise: ExerciseData) => {
       const exerciseId =
@@ -401,9 +525,14 @@ export default function AddExerciseScreen() {
           ? exercise.id
           : `exercise-${Date.now()}`;
 
+      const exerciseName =
+        exercise.id && exercise.id.startsWith("ex") && exercise.id.length <= 6
+          ? t(`exercises.exercises.${exercise.id}`)
+          : exercise.name;
+
       const newExercise: Exercise = {
         id: exerciseId,
-        name: exercise.name,
+        name: exerciseName,
         category: exercise.category,
         notes: `${exercise.muscle} - ${exercise.equipment}`,
         sets: [
@@ -431,35 +560,49 @@ export default function AddExerciseScreen() {
         ],
         completed: false,
       };
+
       addExerciseToWorkout(workoutId, newExercise);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     },
-    [workoutId, addExerciseToWorkout]
+    [workoutId, addExerciseToWorkout, t]
   );
 
-  // Função para navegar para a tela de detalhes do exercício
+  // Função para navegar para a tela de detalhes do exercício - otimizada
   const navigateToExerciseDetails = useCallback(
-    (exercise: ExerciseData) => {
+    (exercise: ExerciseData | Exercise) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      router.push({
-        pathname: "exercise-details",
-        params: {
-          exerciseId: exercise.id,
-          workoutId,
-          workoutColor,
-        },
-      });
+      // Verificar se é um Exercise (com sets) ou ExerciseData (sem sets)
+      if ("sets" in exercise) {
+        // É um exercício do histórico recente, passar como exerciseData
+        router.push({
+          pathname: "/(add-exercise)/exercise-details",
+          params: {
+            exerciseId: exercise.id,
+            workoutId,
+            workoutColor,
+            mode: "edit",
+            exerciseData: JSON.stringify(exercise),
+            fromRecent: "true", // Indicar que vem do histórico recente
+          },
+        });
+      } else {
+        // É um exercício do banco de dados
+        router.push({
+          pathname: "/(add-exercise)/exercise-details",
+          params: {
+            exerciseId: exercise.id,
+            workoutId,
+            workoutColor,
+          },
+        });
+      }
     },
     [workoutId, workoutColor, router]
   );
 
-  // Renderizar os resultados da pesquisa
-  const renderSearchResults = () => {
-    if (isLoading) {
-      return <SearchResultsSkeleton />;
-    }
-
+  // Memoizar os resultados para evitar re-renderizações desnecessárias
+  const renderSearchResults = useCallback(() => {
     if (searchResults.length === 0 && searchQuery.trim()) {
       return (
         <View style={styles.centerContainer}>
@@ -470,7 +613,7 @@ export default function AddExerciseScreen() {
             style={[styles.addCustomButton, { backgroundColor: workoutColor }]}
             onPress={() => {
               router.push({
-                pathname: "exercise-details",
+                pathname: "/(add-exercise)/exercise-details",
                 params: {
                   customName: searchQuery,
                   workoutId,
@@ -487,86 +630,35 @@ export default function AddExerciseScreen() {
       );
     }
 
-    return searchResults.map((exercise, index) => (
-      <MotiView
-        key={`${exercise.id}_${index}_${theme}`}
-        from={{ opacity: 0, translateY: 20 }}
-        animate={{ opacity: 1, translateY: 0 }}
-        transition={{ delay: index * 100 }}
-      >
-        <TouchableOpacity
-          key={`exercise-item-${exercise.id}-${theme}`}
-          style={[styles.exerciseItem, { backgroundColor: colors.light }]}
-          onPress={() => navigateToExerciseDetails(exercise)}
-        >
-          <View style={styles.exerciseInfo}>
-            <Text style={[styles.exerciseName, { color: colors.text }]}>
-              {exercise.id &&
-              exercise.id.startsWith("ex") &&
-              exercise.id.length <= 6
-                ? t(`exercises.exercises.${exercise.id}`)
-                : exercise.name}
-            </Text>
-            <Text
-              style={[styles.exerciseCategory, { color: colors.text + "80" }]}
-            >
-              {t(`exercises.muscles.${exercise.muscle}`)} •{" "}
-              {t(`exercises.equipment.${exercise.equipment}`)}
-            </Text>
-          </View>
-          <TouchableOpacity
-            key={`add-button-${exercise.id}-${theme}`}
-            style={[styles.addButton, { backgroundColor: workoutColor }]}
-            onPress={() => {
-              const exerciseId =
-                exercise.id &&
-                exercise.id.startsWith("ex") &&
-                exercise.id.length <= 6
-                  ? exercise.id
-                  : `exercise-${Date.now()}`;
+    // Limitar resultados para melhorar performance
+    const limitedResults = searchResults.slice(0, 15);
 
-              const newExercise: Exercise = {
-                id: exerciseId,
-                name: exercise.name,
-                category: exercise.category,
-                notes: `${exercise.muscle} - ${exercise.equipment}`,
-                sets: [
-                  {
-                    id: `set-${Date.now()}-1`,
-                    reps: 12,
-                    weight: 10,
-                    completed: false,
-                    restTime: 60,
-                  },
-                  {
-                    id: `set-${Date.now()}-2`,
-                    reps: 12,
-                    weight: 10,
-                    completed: false,
-                    restTime: 60,
-                  },
-                  {
-                    id: `set-${Date.now()}-3`,
-                    reps: 12,
-                    weight: 10,
-                    completed: false,
-                    restTime: 60,
-                  },
-                ],
-                completed: false,
-              };
-              addExerciseToWorkout(workoutId, newExercise);
-              Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success
-              );
-            }}
-          >
-            <Ionicons name="add" size={20} color="#FFF" />
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </MotiView>
+    return limitedResults.map((exercise, index) => (
+      <SearchResultItem
+        key={`search-result-${exercise.id}-${index}`}
+        exercise={exercise}
+        index={index}
+        theme={theme}
+        workoutColor={workoutColor}
+        colors={colors}
+        navigateToExerciseDetails={navigateToExerciseDetails}
+        addExerciseToWorkout={addExerciseToWorkout}
+        workoutId={workoutId}
+        t={t}
+      />
     ));
-  };
+  }, [
+    searchResults,
+    searchQuery,
+    colors,
+    workoutColor,
+    theme,
+    t,
+    navigateToExerciseDetails,
+    addExerciseToWorkout,
+    workoutId,
+    router,
+  ]);
 
   return (
     <SafeAreaView
@@ -575,7 +667,6 @@ export default function AddExerciseScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          key={`back-button-${theme}`}
           onPress={() => router.back()}
           style={styles.backButton}
         >
@@ -593,10 +684,7 @@ export default function AddExerciseScreen() {
       </View>
 
       {/* Search Bar */}
-      <View
-        key={`search-container-${theme}`}
-        style={[styles.searchContainer, { backgroundColor: colors.light }]}
-      >
+      <View style={[styles.searchContainer, { backgroundColor: colors.light }]}>
         <Ionicons
           name="search"
           size={20}
@@ -611,10 +699,7 @@ export default function AddExerciseScreen() {
           onChangeText={setSearchQuery}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity
-            key={`clear-search-${theme}`}
-            onPress={() => setSearchQuery("")}
-          >
+          <TouchableOpacity onPress={() => setSearchQuery("")}>
             <Ionicons name="close-circle" size={20} color={colors.text} />
           </TouchableOpacity>
         )}
@@ -622,61 +707,11 @@ export default function AddExerciseScreen() {
 
       {/* Muscle Group Filter */}
       <View style={styles.filterWrapper}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.muscleFilterContainer}
-          style={styles.filterScrollView}
-        >
-          <TouchableOpacity
-            style={[
-              styles.muscleFilterItem,
-              selectedMuscle === null && {
-                backgroundColor: workoutColor + "20",
-              },
-            ]}
-            onPress={() => handleSelectMuscle(null)}
-          >
-            <Text
-              style={[
-                styles.muscleFilterText,
-                {
-                  color:
-                    selectedMuscle === null ? workoutColor : colors.text + "80",
-                },
-              ]}
-            >
-              {t("exercise.muscleGroups.all")}
-            </Text>
-          </TouchableOpacity>
-
-          {muscleGroups.map((muscle, index) => (
-            <TouchableOpacity
-              key={`muscle-${index}`}
-              style={[
-                styles.muscleFilterItem,
-                selectedMuscle === muscle && {
-                  backgroundColor: workoutColor + "20",
-                },
-              ]}
-              onPress={() => handleSelectMuscle(muscle)}
-            >
-              <Text
-                style={[
-                  styles.muscleFilterText,
-                  {
-                    color:
-                      selectedMuscle === muscle
-                        ? workoutColor
-                        : colors.text + "80",
-                  },
-                ]}
-              >
-                {t(`exercises.muscles.${muscle}`)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <MuscleGroupFilter
+          selectedMuscle={selectedMuscle}
+          onSelectMuscle={handleSelectMuscle}
+          workoutColor={workoutColor}
+        />
       </View>
 
       <ScrollView
@@ -686,95 +721,24 @@ export default function AddExerciseScreen() {
       >
         {/* Exercícios Recentes */}
         {recentExercises.length > 0 && !searchQuery && !selectedMuscle && (
-          <View
-            key={`recent-exercises-${theme}`}
-            style={styles.recentExercisesSection}
-          >
+          <View style={styles.recentExercisesSection}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               {t("exercise.recentExercises")}
             </Text>
 
             {recentExercises.map((exercise, index) => (
-              <MotiView
-                key={`recent_${exercise.id}_${index}_${theme}`}
-                from={{ opacity: 0, translateY: 10 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                transition={{ delay: index * 50 }}
-              >
-                <TouchableOpacity
-                  key={`recent-exercise-${exercise.id}-${theme}`}
-                  style={[
-                    styles.exerciseItem,
-                    { backgroundColor: colors.light },
-                  ]}
-                  onPress={() =>
-                    navigateToExerciseDetails({
-                      id: exercise.id,
-                      name: exercise.name,
-                      muscle: exercise.notes?.split(" - ")[0] || "",
-                      equipment: exercise.notes?.split(" - ")[1] || "",
-                      category: exercise.category || "força",
-                      weightIncrement: 2.5,
-                    })
-                  }
-                >
-                  <View style={styles.exerciseInfo}>
-                    <Text style={[styles.exerciseName, { color: colors.text }]}>
-                      {exercise.id &&
-                      exercise.id.startsWith("ex") &&
-                      exercise.id.length <= 6
-                        ? t(`exercises.exercises.${exercise.id}`)
-                        : exercise.name}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.exerciseCategory,
-                        { color: colors.text + "80" },
-                      ]}
-                    >
-                      {exercise.sets?.length || 0} séries •{" "}
-                      {exercise.sets?.[0]?.reps || 0} reps •{" "}
-                      {exercise.sets?.[0]?.weight || 0}kg
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    key={`recent-add-button-${exercise.id}-${theme}`}
-                    style={[
-                      styles.addButton,
-                      { backgroundColor: workoutColor },
-                    ]}
-                    onPress={() => {
-                      const exerciseId =
-                        exercise.id &&
-                        exercise.id.startsWith("ex") &&
-                        exercise.id.length <= 6
-                          ? exercise.id
-                          : `exercise-${Date.now()}`;
-
-                      const newExercise: Exercise = {
-                        id: exerciseId,
-                        name: exercise.name,
-                        notes: exercise.notes,
-                        category: exercise.category,
-                        completed: false,
-                        sets: (exercise.sets || []).map((set) => ({
-                          id: `set-${Date.now()}-${Math.random()}`,
-                          reps: set.reps,
-                          weight: set.weight,
-                          restTime: set.restTime || 60,
-                          completed: false,
-                        })),
-                      };
-                      addExerciseToWorkout(workoutId, newExercise);
-                      Haptics.notificationAsync(
-                        Haptics.NotificationFeedbackType.Success
-                      );
-                    }}
-                  >
-                    <Ionicons name="add" size={20} color="#FFF" />
-                  </TouchableOpacity>
-                </TouchableOpacity>
-              </MotiView>
+              <RecentExerciseItem
+                key={`recent-exercise-item-${exercise.id}-${index}`}
+                exercise={exercise}
+                index={index}
+                theme={theme}
+                workoutColor={workoutColor}
+                colors={colors}
+                navigateToExerciseDetails={navigateToExerciseDetails}
+                workoutId={workoutId}
+                addExerciseToWorkout={addExerciseToWorkout}
+                t={t}
+              />
             ))}
           </View>
         )}
@@ -829,7 +793,7 @@ const styles = StyleSheet.create({
   },
   filterWrapper: {
     height: 32,
-    marginBottom: 0,
+    marginBottom: 10,
   },
   filterScrollView: {
     height: 32,
@@ -899,22 +863,6 @@ const styles = StyleSheet.create({
   },
   exerciseCategory: {
     fontSize: 14,
-  },
-  skeletonExerciseName: {
-    height: 16,
-    width: width * 0.4,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  skeletonExerciseCategory: {
-    height: 14,
-    width: width * 0.6,
-    borderRadius: 7,
-  },
-  skeletonAddButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
   },
   sectionTitle: {
     fontSize: 18,

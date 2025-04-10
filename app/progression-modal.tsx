@@ -14,12 +14,19 @@ import { useTheme } from "../context/ThemeContext";
 import Colors from "../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  Layout,
+  withTiming,
+  Easing,
+} from "react-native-reanimated";
 import {
   useWorkoutContext,
   Exercise,
   ExerciseSet,
 } from "../context/WorkoutContext";
-import { MotiView } from "moti";
 import {
   generateWorkoutProgressionWithHistory,
   ProgressionSuggestion,
@@ -115,8 +122,8 @@ export default function ProgressionModal() {
     const [year, month, day] = dateString.split("-").map(Number);
     const date = new Date(year, month - 1, day);
 
-    // Usar toLocaleDateString em vez de format
-    return date.toLocaleDateString("pt-BR", {
+    // Usar o idioma atual do aplicativo para formatação de data
+    return date.toLocaleDateString(undefined, {
       weekday: "long",
       day: "numeric",
       month: "long",
@@ -229,15 +236,14 @@ export default function ProgressionModal() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["top", "bottom"]}
+      edges={["bottom"]}
     >
-      {/* Cabeçalho */}
-      <View
+      <Animated.View
+        entering={FadeIn.duration(300).easing(Easing.ease)}
         style={[
           styles.header,
           {
             backgroundColor: colors.background,
-            borderBottomColor: colors.border,
           },
         ]}
       >
@@ -249,28 +255,27 @@ export default function ProgressionModal() {
           <Ionicons name="chevron-down" size={24} color={colors.text} />
         </TouchableOpacity>
 
-        <View style={styles.headerTitleContainer}>
+        <Animated.View
+          entering={FadeIn.delay(150).duration(300)}
+          style={styles.headerTitleContainer}
+        >
           <Text style={[styles.headerTitle, { color: colors.text }]}>
             {t("progression.modal.title")}
           </Text>
-          <View
-            style={[
-              styles.headerUnderline,
-              { backgroundColor: workoutColor as string },
-            ]}
-          />
-        </View>
+        </Animated.View>
 
         <View style={{ width: 40 }} />
-      </View>
+      </Animated.View>
 
-      {/* Conteúdo */}
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.workoutInfoContainer}>
+        <Animated.View
+          entering={FadeIn.delay(200).duration(400)}
+          style={styles.workoutInfoContainer}
+        >
           <View
             style={[
               styles.workoutInfo,
@@ -281,7 +286,10 @@ export default function ProgressionModal() {
               },
             ]}
           >
-            <View style={styles.workoutInfoRow}>
+            <Animated.View
+              entering={FadeIn.delay(300).duration(400)}
+              style={styles.workoutInfoRow}
+            >
               <Ionicons
                 name="barbell-outline"
                 size={22}
@@ -293,10 +301,11 @@ export default function ProgressionModal() {
               >
                 {workoutName as string}
               </Text>
-            </View>
+            </Animated.View>
 
             {previousDate && (
-              <View
+              <Animated.View
+                entering={FadeIn.delay(400).duration(300)}
                 style={[
                   styles.dateContainer,
                   { borderTopColor: colors.border },
@@ -320,22 +329,28 @@ export default function ProgressionModal() {
                         date: formatDate(previousDate),
                       })}
                 </Text>
-              </View>
+              </Animated.View>
             )}
           </View>
-        </View>
+        </Animated.View>
 
         {loading ? (
-          <View style={styles.loadingContainer}>
+          <Animated.View
+            entering={FadeIn.duration(400)}
+            style={styles.loadingContainer}
+          >
             <ActivityIndicator size="large" color={workoutColor as string} />
             <Text style={[styles.loadingText, { color: colors.text }]}>
               {t("progression.modal.calculating")}
             </Text>
-          </View>
+          </Animated.View>
         ) : (
           <>
             {suggestions.length === 0 ? (
-              <View style={styles.emptyContainer}>
+              <Animated.View
+                entering={FadeIn.delay(300).duration(400)}
+                style={styles.emptyContainer}
+              >
                 <Ionicons
                   name="fitness-outline"
                   size={40}
@@ -347,10 +362,13 @@ export default function ProgressionModal() {
                 <Text style={[styles.emptyText, { color: colors.secondary }]}>
                   {t("progression.modal.noWorkoutsDescription")}
                 </Text>
-              </View>
+              </Animated.View>
             ) : (
               <>
-                <View style={styles.sectionTitleContainer}>
+                <Animated.View
+                  entering={FadeIn.delay(400).duration(300)}
+                  style={styles.sectionTitleContainer}
+                >
                   <Text style={[styles.sectionTitle, { color: colors.text }]}>
                     {t("progression.modal.suggestionsTitle")}
                   </Text>
@@ -365,31 +383,40 @@ export default function ProgressionModal() {
                       style={styles.infoIcon}
                     />
                   </TouchableOpacity>
-                </View>
-                <Text
+                </Animated.View>
+
+                <Animated.Text
+                  entering={FadeIn.delay(450).duration(300)}
                   style={[
                     styles.sectionDescription,
                     { color: colors.secondary },
                   ]}
                 >
                   {t("progression.modal.selectExercisesDescription")}
-                </Text>
+                </Animated.Text>
 
-                <View style={styles.suggestionsContainer}>
+                <Animated.View
+                  entering={FadeIn.delay(500).duration(400)}
+                  style={styles.suggestionsContainer}
+                >
                   {suggestions.map((suggestion, index) => (
-                    <ProgressionCard
+                    <Animated.View
                       key={suggestion.exerciseId}
-                      suggestion={suggestion}
-                      index={index}
-                      isSelected={selectedExercises.includes(
-                        suggestion.exerciseId
-                      )}
-                      workoutColor={workoutColor as string}
-                      theme={theme}
-                      onToggleSelection={toggleSuggestionSelection}
-                    />
+                      entering={FadeIn.delay(600 + index * 50).duration(400)}
+                    >
+                      <ProgressionCard
+                        suggestion={suggestion}
+                        index={index}
+                        isSelected={selectedExercises.includes(
+                          suggestion.exerciseId
+                        )}
+                        workoutColor={workoutColor as string}
+                        theme={theme}
+                        onToggleSelection={toggleSuggestionSelection}
+                      />
+                    </Animated.View>
                   ))}
-                </View>
+                </Animated.View>
               </>
             )}
           </>
@@ -398,10 +425,8 @@ export default function ProgressionModal() {
 
       {/* Botão de aplicar */}
       {suggestions.length > 0 && (
-        <MotiView
-          from={{ opacity: 0, translateY: 20 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "timing", duration: 300 }}
+        <Animated.View
+          entering={FadeIn.delay(700).duration(400)}
           style={[
             styles.bottomBar,
             {
@@ -439,7 +464,7 @@ export default function ProgressionModal() {
               </>
             )}
           </TouchableOpacity>
-        </MotiView>
+        </Animated.View>
       )}
 
       {/* Modal de informações */}
@@ -495,8 +520,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingTop: Platform.OS === "ios" ? 8 : 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
+    paddingBottom: 12,
   },
   headerTitleContainer: {
     alignItems: "center",
@@ -504,12 +528,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
-    marginBottom: 4,
-  },
-  headerUnderline: {
-    height: 3,
-    width: 40,
-    borderRadius: 2,
   },
   closeButton: {
     padding: 8,

@@ -120,29 +120,30 @@ export default function LoginScreen() {
               },
             ]}
           >
-            {/* Botão de seleção de idioma no canto superior direito */}
-            <Animated.View
-              entering={FadeIn.delay(700).duration(500)}
-              style={styles.languageToggleContainer}
-            >
-              <TouchableOpacity
-                style={styles.languageToggleButton}
-                onPress={toggleLanguage}
-                activeOpacity={0.8}
+            {/* Logo e Nome do App junto com botão de idioma */}
+            <View style={styles.headerContainer}>
+              <Animated.View
+                entering={FadeInDown.delay(100).duration(1000)}
+                style={styles.logoContainer}
               >
-                <Text style={styles.languageText}>
-                  {currentLanguage === "pt-BR" ? "🇧🇷" : "🇺🇸"}
-                </Text>
-              </TouchableOpacity>
-            </Animated.View>
+                <Text style={styles.appName}>{t("login.appName")}</Text>
+              </Animated.View>
 
-            {/* Logo e Nome do App */}
-            <Animated.View
-              entering={FadeInDown.delay(100).duration(1000)}
-              style={styles.logoContainer}
-            >
-              <Text style={styles.appName}>{t("login.appName")}</Text>
-            </Animated.View>
+              <Animated.View
+                entering={FadeIn.delay(700).duration(500)}
+                style={styles.languageToggleContainer}
+              >
+                <TouchableOpacity
+                  style={styles.languageToggleButton}
+                  onPress={toggleLanguage}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.languageText}>
+                    {currentLanguage === "pt-BR" ? "🇧🇷" : "🇺🇸"}
+                  </Text>
+                </TouchableOpacity>
+              </Animated.View>
+            </View>
 
             {/* Espaço vazio para dar mais destaque à imagem de fundo */}
             <View style={styles.spacer} />
@@ -336,10 +337,17 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     textDecorationLine: "underline",
   },
+  headerContainer: {
+    flexDirection: "row",
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    marginBottom: 20,
+  },
   logoContainer: {
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
   },
   appName: {
     color: "#FFFFFF",
@@ -351,14 +359,12 @@ const styles = StyleSheet.create({
   },
   languageToggleContainer: {
     position: "absolute",
-    top: 50,
     right: 20,
-    zIndex: 10,
   },
   languageToggleButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",

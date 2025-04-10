@@ -4,7 +4,7 @@ import { Redirect } from "expo-router";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { OfflineStorage } from "../services/OfflineStorage";
-import { View, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator, Text } from "react-native";
 import Colors from "../constants/Colors";
 import { useTheme } from "../context/ThemeContext";
 
@@ -21,6 +21,7 @@ export default function InitialRoute() {
   const [onboardingCompleted, setOnboardingCompleted] = useState<
     boolean | null
   >(null);
+  const [error, setError] = useState<string | null>(null);
   const { theme } = useTheme();
 
   // Verificar o status de onboarding quando o usuário estiver autenticado
@@ -31,6 +32,7 @@ export default function InitialRoute() {
     if (!user) {
       setOnboardingCompleted(null);
       setIsCheckingOnboarding(false);
+      setError(null);
       return;
     }
 
@@ -59,16 +61,24 @@ export default function InitialRoute() {
                   }
                 }
               } catch (error) {
+                if (isMounted) {
+                  console.error("Erro ao verificar onboarding:", error);
+                  // Em caso de erro na verificação online, assumir não completado
+                  completed = false;
+                }
               }
             }
           }
 
           if (isMounted) {
             setOnboardingCompleted(completed || false);
+            setError(null);
           }
         } catch (error) {
           if (isMounted) {
+            console.error("Erro ao verificar status do onboarding:", error);
             setOnboardingCompleted(false);
+            setError("Erro ao inicializar a aplicação.");
           }
         } finally {
           if (isMounted) {
@@ -84,6 +94,41 @@ export default function InitialRoute() {
       isMounted = false;
     };
   }, [user, isCheckingOnboarding, onboardingCompleted]);
+
+  // Caso haja erro na inicialização
+  if (error) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: Colors[theme].background,
+          padding: 20,
+        }}
+      >
+        <Text
+          style={{
+            color: Colors[theme].error,
+            fontSize: 16,
+            textAlign: "center",
+            marginBottom: 20,
+          }}
+        >
+          {error}
+        </Text>
+        <Text
+          style={{
+            color: Colors[theme].text,
+            fontSize: 14,
+            textAlign: "center",
+          }}
+        >
+          Por favor, tente reiniciar o aplicativo.
+        </Text>
+      </View>
+    );
+  }
 
   // Mostrar indicador de carregamento enquanto verifica autenticação e onboarding
   if (

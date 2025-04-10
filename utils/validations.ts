@@ -75,7 +75,41 @@ const calculateAge = (birthDate: Date): number => {
   return age;
 };
 
+// Função auxiliar para verificar se a data é válida
+const isValidDate = (date: Date): boolean => {
+  // Verificar se a data é válida
+  if (isNaN(date.getTime())) {
+    return false;
+  }
+
+  // Obter os componentes da data
+  const year = date.getFullYear();
+  const month = date.getMonth(); // 0-11
+  const day = date.getDate();
+
+  // Criar uma nova data com os mesmos componentes
+  // Se os componentes originais forem inválidos (como 31 de fevereiro),
+  // JavaScript ajustará automaticamente para uma data válida
+  const newDate = new Date(year, month, day);
+
+  // Comparar se a data original e a nova coincidem
+  // Se não coincidirem, significa que a data foi ajustada e era inválida
+  return (
+    newDate.getFullYear() === year &&
+    newDate.getMonth() === month &&
+    newDate.getDate() === day
+  );
+};
+
 export const validateBirthDate = (birthDate: Date): ValidationResult => {
+  // Verificar se é uma data válida
+  if (!isValidDate(birthDate)) {
+    return {
+      isValid: false,
+      message: i18n.t("onboarding.birthDate.validation.invalidDate"),
+    };
+  }
+
   const age = calculateAge(birthDate);
 
   if (age < ValidationRules.AGE.MIN) {

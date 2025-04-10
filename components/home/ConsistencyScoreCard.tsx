@@ -100,16 +100,12 @@ const CircularProgress = ({
       {/* Progress Circle with Animation */}
       <MotiView
         from={{ opacity: 0, rotate: "0deg" }}
-        animate={{ opacity: 1, rotate: "360deg" }}
+        animate={{ opacity: 1, rotate: "0deg" }}
         transition={{
           type: "timing",
           duration: 1000,
-          rotate: {
-            type: "spring",
-            damping: 20,
-          },
         }}
-        style={{ position: "absolute" }}
+        style={{ position: "absolute", transform: [{ rotate: "-90deg" }] }}
       >
         <Svg width={size} height={size}>
           <Circle
@@ -122,6 +118,8 @@ const CircularProgress = ({
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
+            originX={size / 2}
+            originY={size / 2}
           />
         </Svg>
       </MotiView>
@@ -447,7 +445,7 @@ export default function ConsistencyScoreCard({
         style={[
           styles.container,
           {
-            backgroundColor: colors.card || colors.background,
+            backgroundColor: colors.light,
             borderWidth: 1,
             borderColor: colors.border,
           },
@@ -722,6 +720,9 @@ const CircularScoreDisplay = ({
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
+          originX={size / 2}
+          originY={size / 2}
+          transform={`rotate(-90, ${size / 2}, ${size / 2})`}
         />
       </Svg>
       <View style={styles.scoreValueContainer}>

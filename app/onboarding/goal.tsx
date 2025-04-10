@@ -22,7 +22,16 @@ export default function GoalScreen() {
   const handleNext = () => {
     if (selectedGoal) {
       updateNutritionInfo({ goal: selectedGoal });
-      router.push("/onboarding/weight-goal" as any);
+
+      if (selectedGoal === "maintain") {
+        updateNutritionInfo({
+          weightChangeRate: 0,
+          targetWeight: nutritionInfo.weight,
+        });
+        router.push("/onboarding/diet-type" as any);
+      } else {
+        router.push("/onboarding/weight-goal" as any);
+      }
     }
   };
 

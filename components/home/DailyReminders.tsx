@@ -40,18 +40,6 @@ export interface Reminder {
   repeatDays: number[]; // 0 = domingo, 1 = segunda, ..., 6 = sábado
 }
 
-// Ícones predefinidos para escolher
-const REMINDER_ICONS = [
-  { name: "water", label: "Água", color: "#0096FF" },
-  { name: "pill", label: "Suplemento", color: "#9575CD" },
-  { name: "dumbbell", label: "Treino", color: "#FF5252" },
-  { name: "nutrition", label: "Refeição", color: "#4CAF50" },
-  { name: "timer", label: "Tempo", color: "#FFA000" },
-  { name: "bed", label: "Dormir", color: "#78909C" },
-  { name: "walk", label: "Caminhar", color: "#FF7043" },
-  { name: "scale", label: "Peso", color: "#9C27B0" },
-];
-
 export default function DailyReminders() {
   const { theme } = useTheme();
   const colors = Colors[theme];
@@ -63,6 +51,7 @@ export default function DailyReminders() {
     toggleCompleted,
     getTodayReminders,
     deleteReminder,
+    notificationsEnabled,
   } = useReminders();
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -248,37 +237,42 @@ export default function DailyReminders() {
           {/* Conteúdo do lembrete */}
           <View style={styles.reminderContent}>
             <View style={styles.reminderHeader}>
-              <Text
-                style={[
-                  styles.reminderTitle,
-                  {
-                    color: colors.text,
-                    textDecorationLine: reminder.completed
-                      ? "line-through"
-                      : "none",
-                  },
-                ]}
-                numberOfLines={1}
-              >
-                {reminder.title}
-              </Text>
-            </View>
-
-            {reminder.time && (
-              <View style={styles.timeContainer}>
-                <Ionicons
-                  name="time-outline"
-                  size={12}
-                  color={colors.text + "80"}
-                  style={styles.timeIcon}
-                />
+              <View style={styles.titleTimeContainer}>
                 <Text
-                  style={[styles.reminderTime, { color: colors.text + "90" }]}
+                  style={[
+                    styles.reminderTitle,
+                    {
+                      color: colors.text,
+                      textDecorationLine: reminder.completed
+                        ? "line-through"
+                        : "none",
+                    },
+                  ]}
+                  numberOfLines={1}
                 >
-                  {reminder.time}
+                  {reminder.title}
                 </Text>
+
+                {reminder.time && (
+                  <View style={styles.timeContainer}>
+                    <Ionicons
+                      name="time-outline"
+                      size={12}
+                      color={colors.text + "80"}
+                      style={styles.timeIcon}
+                    />
+                    <Text
+                      style={[
+                        styles.reminderTime,
+                        { color: colors.text + "90" },
+                      ]}
+                    >
+                      {reminder.time}
+                    </Text>
+                  </View>
+                )}
               </View>
-            )}
+            </View>
 
             {reminder.description && (
               <Text
@@ -591,6 +585,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexShrink: 0,
     marginLeft: 8,
+    alignSelf: "center",
   },
   reminderContent: {
     flex: 1,
@@ -602,16 +597,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 2,
+    marginBottom: 6,
+  },
+  titleTimeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
   },
   reminderTitle: {
     fontSize: 14,
     fontWeight: "600",
+    marginRight: 8,
   },
   timeContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 4,
   },
   timeIcon: {
     marginRight: 4,
@@ -622,7 +622,6 @@ const styles = StyleSheet.create({
   },
   reminderDescription: {
     fontSize: 12,
-    marginTop: 2,
     lineHeight: 16,
   },
   emptyContainer: {
@@ -667,6 +666,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     flexShrink: 0,
+    alignSelf: "center",
   },
   separator: {
     height: 1.5,

@@ -82,7 +82,12 @@ function EmptyNutritionState({
               end={{ x: 1, y: 1 }}
               style={styles.buttonGradient}
             >
-              <Text style={styles.buttonText}>
+              <Text
+                style={[
+                  styles.buttonText,
+                  { color: theme === "dark" ? "#000000" : "white" },
+                ]}
+              >
                 {t("nutrition.emptyState.configButton")}
               </Text>
             </LinearGradient>
@@ -174,7 +179,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   buttonText: {
-    color: "white",
     fontSize: 17,
     fontWeight: "600",
     marginRight: 8,

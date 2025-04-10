@@ -24,6 +24,7 @@ import Colors from "../../constants/Colors";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 const DAYS_TO_SHOW = 35; // 30 dias antes + dia atual + 3 dias depois
@@ -61,12 +62,32 @@ const CalendarDay = React.memo(
     colors,
     theme,
   }: CalendarDayProps) => {
+    const { t } = useTranslation();
     const todayBackgroundColor = theme === "light" ? colors.light : "#333333";
+    const dayOfWeek = format(date, "eee").toLowerCase();
+
+    // Mapeia o formato 'eee' para a chave de tradução correta
+    const getDayTranslation = () => {
+      type DayKey = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
+
+      const shortDays: Record<DayKey, string> = {
+        sun: t("dates.weekdays.shortSunday"),
+        mon: t("dates.weekdays.shortMonday"),
+        tue: t("dates.weekdays.shortTuesday"),
+        wed: t("dates.weekdays.shortWednesday"),
+        thu: t("dates.weekdays.shortThursday"),
+        fri: t("dates.weekdays.shortFriday"),
+        sat: t("dates.weekdays.shortSaturday"),
+      };
+
+      const key = dayOfWeek.substring(0, 3) as DayKey;
+      return shortDays[key] || format(date, "EEE").slice(0, 3);
+    };
 
     return (
       <View style={styles.dayColumn}>
         <Text style={[styles.weekDayText, { color: colors.text }]}>
-          {format(date, "EEE").slice(0, 3)}
+          {getDayTranslation()}
         </Text>
         <TouchableOpacity
           onPress={() => onPress(date)}

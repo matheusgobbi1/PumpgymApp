@@ -7,6 +7,7 @@ import {
   Dimensions,
   TextInput,
   Alert,
+  ScrollView,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
@@ -23,7 +24,13 @@ import InfoModal, { InfoItem } from "../common/InfoModal";
 
 const { width } = Dimensions.get("window");
 
-export default function NutritionSummaryCard() {
+interface NutritionSummaryCardProps {
+  scrollViewRef?: React.RefObject<ScrollView>;
+}
+
+export default function NutritionSummaryCard({
+  scrollViewRef,
+}: NutritionSummaryCardProps = {}) {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const colors = Colors[theme];
@@ -710,6 +717,12 @@ export default function NutritionSummaryCard() {
                     keyboardType="numeric"
                     maxLength={5}
                     selectTextOnFocus
+                    onFocus={() => {
+                      scrollViewRef?.current?.scrollTo({
+                        y: 110,
+                        animated: true,
+                      });
+                    }}
                   />
                   <Text
                     style={[styles.statUnit, { color: colors.text + "60" }]}
@@ -838,6 +851,12 @@ export default function NutritionSummaryCard() {
                       keyboardType="numeric"
                       maxLength={3}
                       selectTextOnFocus
+                      onFocus={() => {
+                        scrollViewRef?.current?.scrollTo({
+                          y: 260,
+                          animated: true,
+                        });
+                      }}
                     />
                     <Text
                       style={[styles.statUnit, { color: colors.text + "60" }]}
@@ -932,6 +951,12 @@ export default function NutritionSummaryCard() {
                       keyboardType="numeric"
                       maxLength={3}
                       selectTextOnFocus
+                      onFocus={() => {
+                        scrollViewRef?.current?.scrollTo({
+                          y: 260,
+                          animated: true,
+                        });
+                      }}
                     />
                     <Text
                       style={[styles.statUnit, { color: colors.text + "60" }]}
@@ -1022,6 +1047,12 @@ export default function NutritionSummaryCard() {
                       keyboardType="numeric"
                       maxLength={3}
                       selectTextOnFocus
+                      onFocus={() => {
+                        scrollViewRef?.current?.scrollTo({
+                          y: 430,
+                          animated: true,
+                        });
+                      }}
                     />
                     <Text
                       style={[styles.statUnit, { color: colors.text + "60" }]}
@@ -1112,6 +1143,12 @@ export default function NutritionSummaryCard() {
                       keyboardType="numeric"
                       maxLength={5}
                       selectTextOnFocus
+                      onFocus={() => {
+                        scrollViewRef?.current?.scrollTo({
+                          y: 430,
+                          animated: true,
+                        });
+                      }}
                     />
                     <Text
                       style={[styles.statUnit, { color: colors.text + "60" }]}
@@ -1271,31 +1308,33 @@ export default function NutritionSummaryCard() {
         activeOpacity={0.9}
         disabled={!hasNutritionInfo || isEditMode}
       >
-        <View
-          style={[
-            styles.container,
-            {
-              backgroundColor: colors.light,
-              borderWidth: 1,
-              borderColor: colors.border,
-            },
-            isEditMode && styles.editModeContainer,
-          ]}
-        >
-          {!hasNutritionInfo ? (
-            renderEmptyState()
-          ) : (
-            <View
-              style={[
-                styles.contentContainer,
-                isEditMode && styles.editModeContentContainer,
-              ]}
-            >
-              {renderCaloriesHeader()}
-              {renderStatsCards()}
-            </View>
-          )}
-        </View>
+        <ScrollView ref={scrollViewRef} nestedScrollEnabled={true}>
+          <View
+            style={[
+              styles.container,
+              {
+                backgroundColor: colors.light,
+                borderWidth: 1,
+                borderColor: colors.border,
+              },
+              isEditMode && styles.editModeContainer,
+            ]}
+          >
+            {!hasNutritionInfo ? (
+              renderEmptyState()
+            ) : (
+              <View
+                style={[
+                  styles.contentContainer,
+                  isEditMode && styles.editModeContentContainer,
+                ]}
+              >
+                {renderCaloriesHeader()}
+                {renderStatsCards()}
+              </View>
+            )}
+          </View>
+        </ScrollView>
       </TouchableOpacity>
 
       {/* Modal Informativo */}

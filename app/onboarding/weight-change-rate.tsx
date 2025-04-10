@@ -30,6 +30,24 @@ export default function WeightChangeRateScreen() {
   const sliderRef = useRef<any>(null);
   const animatedScale = useRef(new Animated.Value(1)).current;
 
+  // Redirecionar se o objetivo for manter o peso ou se peso atual e alvo forem iguais
+  React.useEffect(() => {
+    const checkWeightDifference = () => {
+      if (!nutritionInfo.weight || !nutritionInfo.targetWeight) return;
+
+      // Se não houver diferença de peso a ser alcançada, não faz sentido mostrar esta tela
+      if (
+        nutritionInfo.goal === "maintain" ||
+        Math.abs(nutritionInfo.weight - nutritionInfo.targetWeight) < 0.1
+      ) {
+        updateNutritionInfo({ weightChangeRate: 0 });
+        router.replace("/onboarding/diet-type" as any);
+      }
+    };
+
+    checkWeightDifference();
+  }, [nutritionInfo.weight, nutritionInfo.targetWeight, nutritionInfo.goal]);
+
   // Estado para armazenar a cor atual do gráfico
   const [chartColor, setChartColor] = useState<string>(colors.primary);
 

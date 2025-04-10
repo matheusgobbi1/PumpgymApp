@@ -97,7 +97,12 @@
     "copy": "Copy",
     "user": "User",
     "loading": "Loading data...",
-    "gotIt": "Got it"
+    "gotIt": "Got it",
+    "close": "Close",
+    "pleaseWait": "Please wait",
+    "success": "Success",
+    "ok": "OK",
+    "add": "Add"
   },
   "reminders": {
     "newReminder": "New Reminder",
@@ -105,6 +110,16 @@
     "details": "Details",
     "icon": "Icon",
     "days": "Days",
+    "notifications": "Notifications",
+    "notifications_short": "Notif.",
+    "notificationSettings": "Notification Settings",
+    "enableNotifications": "Enable Notifications",
+    "notificationsDescription": "Receive alerts about your reminders on scheduled days and times",
+    "notificationTimeInfo": "You will receive a notification at {{time}} on selected days",
+    "notificationNoTimeInfo": "You will receive notifications only when opening the app, as no time has been set",
+    "selectedDaysCount": "Scheduled for {{count}} selected day",
+    "selectedDaysCount_plural": "Scheduled for {{count}} selected days",
+    "noDaysSelected": "No day selected. Select at least one to receive notifications",
     "reminderDetails": "Reminder Details",
     "title": "Title",
     "titlePlaceholder": "Ex: Drink water",
@@ -143,15 +158,47 @@
     "errors": {
       "titleRequired": "Please add a title for the reminder.",
       "daysRequired": "Please select at least one day of the week."
+    },
+    "icons": {
+      "water": "Water",
+      "pill": "Supplement",
+      "dumbbell": "Workout",
+      "nutrition": "Meal",
+      "timer": "Time",
+      "bed": "Sleep",
+      "walk": "Walk",
+      "scale": "Weight",
+      "heart-pulse": "Health"
     }
   },
   "training": {
     "title": "Your workouts",
+    "subtitle": "Track your workouts",
+    "noTraining": "No workouts recorded",
+    "workoutsToday": "Today's workouts",
+    "emptyState": {
+      "title": "Configure your workouts",
+      "subtitle": "Customize your workouts to easily track your progress",
+      "configButton": "Configure Workouts"
+    },
     "menu": {
-      "editWorkouts": "Edit Workouts",
-      "muteNotifications": "Mute Notifications",
-      "enableNotifications": "Enable Notifications",
-      "resetWorkouts": "Reset Workouts"
+      "editWorkouts": "Edit workout types",
+      "muteNotifications": "Mute notifications",
+      "enableNotifications": "Enable notifications",
+      "resetWorkouts": "Reset all workouts",
+      "deleteWorkout": "Delete this workout"
+    },
+    "resetModal": {
+      "title": "Reset workouts",
+      "message": "This will delete all configured workout types and their exercises. This action cannot be undone.",
+      "confirm": "Reset",
+      "cancel": "Cancel"
+    },
+    "deleteWorkoutModal": {
+      "title": "Delete workout",
+      "message": "This will delete this workout and all its exercises. You can select another workout type afterwards. This action cannot be undone.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
     },
     "stats": {
       "exercises": "Exercises",
@@ -179,17 +226,12 @@
       "maintained": "Maintained",
       "firstWorkout": "First workout",
       "avgWeight": "Avg Weight",
-      "strengthProgress": "Strength +",
-      "intensityIncrease": "Intensity +",
+      "strengthProgress": "Strength",
+      "intensityIncrease": "Intensity",
       "trainingDensity": "Training Density",
       "restTime": "Rest Time",
       "summary": "Summary",
       "firstWorkoutNoComparison": "This is the first recorded workout. Complete more workouts to see your evolution over time."
-    },
-    "emptyState": {
-      "title": "No workout for today",
-      "subtitle": "Configure your workouts to start tracking your progress",
-      "configButton": "Configure Workouts"
     },
     "tips": {
       "organize": "Organize your workouts by muscle groups",
@@ -199,12 +241,6 @@
     "workoutTypes": {
       "title": "Choose your Workout",
       "subtitle": "Select the type of workout you want to do today"
-    },
-    "resetModal": {
-      "title": "Reset Workouts",
-      "message": "Are you sure you want to reset all workout types? This action cannot be undone.",
-      "confirm": "Reset",
-      "cancel": "Cancel"
     },
     "errors": {
       "resetFailed": "Could not reset workouts. Please try again.",
@@ -278,7 +314,8 @@
       "year": "Year",
       "validation": {
         "tooYoung": "You must be at least 14 years old to use the app",
-        "tooOld": "The maximum allowed age is 100 years"
+        "tooOld": "The maximum allowed age is 100 years",
+        "invalidDate": "Invalid date. Please select a valid date."
       }
     },
     "measurements": {
@@ -399,7 +436,8 @@
         "facebook": "Facebook",
         "tiktok": "TikTok",
         "youtube": "YouTube",
-        "google": "Google"
+        "google": "Google",
+        "other": "Other"
       }
     },
     "loading": {
@@ -625,6 +663,7 @@
     "loading": "Loading...",
     "excess": "Excess",
     "remaining": "Remaining",
+    "targetReached": "Target reached",
     "configSheet": {
       "title": "Configure your Meals",
       "subtitle": "Select the meals you want to track",
@@ -643,11 +682,18 @@
       "title": "Add Food",
       "searchPlaceholder": "Search food...",
       "scanCode": "Scan Code",
-      "quickAdd": "Quick Add",
+      "quickAdd": "Manual  Add",
       "recentlyAdded": "Recently Added",
       "clear": "Clear",
       "noFoodFound": "No food found",
-      "searchError": "Error searching for food. Try again."
+      "searchError": "Error searching for food. Try again.",
+      "name": "Food Name",
+      "namePlaceholder": "Ex: Grilled Chicken",
+      "portion": "Portion",
+      "calories": "Calories",
+      "protein": "Protein",
+      "carbs": "Carbs",
+      "fat": "Fat"
     },
     "foodDetails": {
       "title": "Food Details",
@@ -725,6 +771,52 @@
       "kcal": "kcal"
     },
     "mealCopiedSuccess": "Meal copied successfully!",
+    "recommendation": {
+      "previewValues": "Preview Values",
+      "suggestedValues": "Suggested Values",
+      "withSelectedFoods": "With selected foods",
+      "ofDailyNeeds": "of your daily plan",
+      "withCurrentSelections": "With current selections",
+      "calculating": "Calculating recommendations...",
+      "suggestedFoods": "Suggested Foods",
+      "remainingLabel": "{{calories}} kcal remaining",
+      "noFoodsFound": "No food suggestions found for this meal.",
+      "noDataTitle": "No nutrition data",
+      "noDataDescription": "Complete your nutrition plan to receive personalized recommendations for your meals.",
+      "addSelectedFoods": "Add {{count}} food(s)",
+      "alert": {
+        "attention": "Attention",
+        "selectAtLeastOne": "Select at least one food to add to the meal.",
+        "error": "Error",
+        "addFailed": "Could not add the selected foods."
+      }
+    },
+    "mealDistribution": {
+      "title": "Calorie Distribution",
+      "subtitle": "Customize the calorie distribution among your meals",
+      "description": "Define the percentage of daily calories for each meal. The total must be exactly 100%.",
+      "mealType": "Meal Type",
+      "percentage": "Percentage (%)",
+      "total": "Total",
+      "totalError": "Total must be 100%",
+      "distributeEqually": "Distribute equally",
+      "resetDefault": "Reset",
+      "saveError": "Could not save configuration",
+      "resetError": "Could not reset configuration",
+      "configOption": "Calorie Distribution",
+      "saveSuccess": "Distribution saved successfully",
+      "resetSuccess": "Distribution reset successfully",
+      "calories": "Calories",
+      "macros": "Macronutrients",
+      "remaining": "Remaining",
+      "excess": "Excess of",
+      "macroValidationHint": "The total macronutrient distribution must be exactly 100% to save"
+    },
+    "foodSuggestion": {
+      "noAlternatives": "No alternatives available for this food",
+      "alternatives": "Similar alternatives",
+      "alternativesDescription": "Find options to replace"
+    },
     "progressInfo": {
       "title": "Caloric Consumption",
       "subtitle": "How to monitor and analyze your daily caloric intake",
@@ -756,13 +848,26 @@
       "afternoon": "Good afternoon",
       "evening": "Good evening"
     },
-    "reminders": "Diary",
+    "reminders": "Daily",
     "progress": "Progress",
     "stats": {
-      "steps": "Steps",
+      "steps": "steps",
       "target": "Target",
       "pedometerNotAvailable": "Pedometer not available on this device",
-      "connect": "Connect"
+      "connect": "Connect",
+      "permissionDenied": "Permission denied to access pedometer",
+      "tryAgain": "Try again",
+      "stepCount": "Step Count",
+      "permissionTitle": "Permission Required",
+      "healthKitPermissionMessage": "To access accurate step data, please grant permission to Apple Health in your device settings.",
+      "dataFromAppleHealth": "Data obtained through Apple Health.",
+      "dataFromPedometer": "Data obtained from device motion sensor.",
+      "goalReached": "Congratulations! You've reached your daily goal.",
+      "progressPercentage": "{{progress}}% of daily goal completed.",
+      "goal": "Goal",
+      "noStepsData": "No step data available. Keep using the app to track your steps.",
+      "settingsAccessIOS": "Access settings to allow pedometer access",
+      "settingsAccessAndroid": "Access app settings to allow pedometer access"
     },
     "chart": {
       "dailyCalories": "Daily Calories",
@@ -1194,7 +1299,9 @@
       "Corda": "Rope",
       "Caixa": "Box",
       "Paralelas": "Parallel Bars",
-      "Roda": "Wheel"
+      "Roda": "Wheel",
+      "Piscina": "Swimming Pool",
+      "Escada": "Stairs"
     },
     "difficulty": {
       "iniciante": "Beginner",
@@ -1364,7 +1471,93 @@
       "ex232": "Cable Wrist Curl",
       "ex233": "Cable Reverse Wrist Curl",
       "ex234": "Dumbbell Romanian Deadlift",
-      "ex235": "Sumo Deadlift"
+      "ex235": "Sumo Deadlift",
+      "ex236": "Swimming",
+      "ex237": "Walking",
+      "ex238": "Stair Climbing",
+      "ex239": "Dancing",
+      "ex240": "Zumba",
+      "ex241": "Jump Training",
+      "ex242": "Jump Rope",
+      "ex243": "HIIT",
+      "ex244": "Water Aerobics",
+      "ex245": "Spinning"
+    }
+  },
+  "dates": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "tomorrow": "Tomorrow",
+    "formats": {
+      "short": "MM/dd/yyyy",
+      "medium": "MMM dd, yyyy",
+      "long": "MMMM dd, yyyy",
+      "weekday": "EEEE, MMMM dd",
+      "weekdayShort": "EEEE, MM/dd",
+      "time": "h:mm a",
+      "dateTime": "MM/dd/yyyy h:mm a"
+    },
+    "weekdays": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday",
+      "shortMonday": "Mon",
+      "shortTuesday": "Tue",
+      "shortWednesday": "Wed",
+      "shortThursday": "Thu",
+      "shortFriday": "Fri",
+      "shortSaturday": "Sat",
+      "shortSunday": "Sun"
+    },
+    "months": {
+      "january": "January",
+      "february": "February",
+      "march": "March",
+      "april": "April",
+      "may": "May",
+      "june": "June",
+      "july": "July",
+      "august": "August",
+      "september": "September",
+      "october": "October",
+      "november": "November",
+      "december": "December",
+      "shortJanuary": "Jan",
+      "shortFebruary": "Feb",
+      "shortMarch": "Mar",
+      "shortApril": "Apr",
+      "shortMay": "May",
+      "shortJune": "Jun",
+      "shortJuly": "Jul",
+      "shortAugust": "Aug",
+      "shortSeptember": "Sep",
+      "shortOctober": "Oct",
+      "shortNovember": "Nov",
+      "shortDecember": "Dec"
+    }
+  },
+  "permissions": {
+    "title": "Permission Required",
+    "stepsMessage": "To count your steps, we need access to the pedometer. Please grant permission in app settings.",
+    "settings": "Settings",
+    "cancel": "Cancel"
+  },
+  "waterIntake": {
+    "title": "Water Intake",
+    "goal": "Goal",
+    "today": "Today",
+    "weekDays": {
+      "sunday": "S",
+      "monday": "M",
+      "tuesday": "T",
+      "wednesday": "W",
+      "thursday": "T",
+      "friday": "F",
+      "saturday": "S"
     }
   }
 } 

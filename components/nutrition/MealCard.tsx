@@ -1,4 +1,4 @@
-import React, { useState, useCallback, memo, useRef } from "react";
+import React, { useState, useCallback, memo, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,9 @@ import {
   TouchableOpacity,
   Dimensions,
   Alert,
+  Platform,
+  UIManager,
+  LayoutAnimation,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -17,6 +20,8 @@ import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
+import { useNutrition } from "../../context/NutritionContext";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 interface MealCardProps {
   meal: {
@@ -43,6 +48,13 @@ interface MealCardProps {
 
 const { width } = Dimensions.get("window");
 
+// Habilitar LayoutAnimation para Android
+if (Platform.OS === "android") {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
+
 const MealCardComponent = ({
   meal,
   foods,
@@ -62,10 +74,57 @@ const MealCardComponent = ({
   const userId = user?.uid || "no-user";
   const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
   const { t } = useTranslation();
+  const { nutritionInfo } = useNutrition();
 
   // Removendo os estados de modal daqui, já que serão gerenciados no componente pai
   const [showCopySuccess, setShowCopySuccess] = useState(false);
   const [selectedSourceDate, setSelectedSourceDate] = useState<string>("");
+
+  // Estado para rastrear o Swipeable atualmente aberto
+  const [activeSwipeable, setActiveSwipeable] = useState<string | null>(null);
+
+  // Estado para itens expandidos (para potencial uso futuro similar ao WorkoutCard)
+  const [expandedItems, setExpandedItems] = useState<{
+    [key: string]: boolean;
+  }>({});
+
+  // Efeito para limpar as referências quando o componente é desmontado
+  useEffect(() => {
+    return () => {
+      // Fechar todos os swipeables quando o componente for desmontado
+      Array.from(swipeableRefs.current.entries()).forEach(([_, swipeable]) => {
+        if (swipeable) {
+          swipeable.close();
+        }
+      });
+      // Limpar as referências
+      swipeableRefs.current.clear();
+    };
+  }, []);
+
+  // Função para fechar todos os Swipeables exceto o ativo
+  const closeOtherSwipeables = useCallback((currentId: string) => {
+    Array.from(swipeableRefs.current.entries()).forEach(([id, swipeable]) => {
+      if (id !== currentId && swipeable) {
+        swipeable.close();
+      }
+    });
+  }, []);
+
+  // Função para lidar com o swipe aberto
+  const handleSwipeableOpen = useCallback(
+    (foodId: string) => {
+      // Fechar itens expandidos se implementarmos essa feature no futuro
+      if (Object.keys(expandedItems).some((id) => expandedItems[id])) {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setExpandedItems({});
+      }
+
+      setActiveSwipeable(foodId);
+      closeOtherSwipeables(foodId);
+    },
+    [expandedItems, closeOtherSwipeables]
+  );
 
   // Função para obter datas anteriores que têm esta refeição
   const getPreviousDatesWithMeal = useCallback(() => {
@@ -101,6 +160,9 @@ const MealCardComponent = ({
     (food: Food) => {
       handleHapticFeedback();
 
+      // Limpar o estado do swipeable ativo
+      setActiveSwipeable(null);
+
       // Navegar para a tela de detalhes do alimento com os dados do alimento
       router.push({
         pathname: "/(add-food)/food-details",
@@ -117,6 +179,7 @@ const MealCardComponent = ({
           portion: food.portion.toString(),
           foodId: food.id,
           mode: "edit",
+          fiber: food.fiber?.toString() || "",
         },
       });
     },
@@ -133,41 +196,19 @@ const MealCardComponent = ({
             styles.swipeActionLeft,
             { backgroundColor: meal.color + "CC" },
           ]}
-          onPress={() => navigateToFoodDetails(food)}
+          onPress={() => {
+            // Fechar o swipeable após a ação
+            if (swipeableRefs.current.has(food.id)) {
+              swipeableRefs.current.get(food.id)?.close();
+            }
+            navigateToFoodDetails(food);
+          }}
         >
           <Ionicons name="create-outline" size={20} color="white" />
         </TouchableOpacity>
       </View>
     ),
     [meal.color, navigateToFoodDetails]
-  );
-
-  // Função para renderizar as ações de deslize à direita (excluir)
-  const renderRightActions = useCallback(
-    (foodId: string) => (
-      <View style={styles.swipeActionContainer}>
-        <TouchableOpacity
-          style={[
-            styles.swipeAction,
-            styles.swipeActionRight,
-            { backgroundColor: colors.danger + "CC" },
-          ]}
-          onPress={() => {
-            handleHapticFeedback();
-            // Chamar a função que mostrará o modal no componente pai
-            setModalInfo({
-              type: "deleteFood",
-              foodId: foodId,
-              mealId: meal.id,
-              visible: true,
-            });
-          }}
-        >
-          <Ionicons name="trash-outline" size={20} color="white" />
-        </TouchableOpacity>
-      </View>
-    ),
-    [colors.danger, handleHapticFeedback, meal.id, setModalInfo]
   );
 
   // Função para renderizar as ações de deslize à direita para o card de refeição
@@ -183,12 +224,25 @@ const MealCardComponent = ({
           ]}
           onPress={() => {
             handleHapticFeedback();
+
+            // Limpar qualquer swipeable aberto
+            if (activeSwipeable && swipeableRefs.current.has(activeSwipeable)) {
+              swipeableRefs.current.get(activeSwipeable)?.close();
+              setActiveSwipeable(null);
+            }
+
             // Chamar a função que mostrará o modal no componente pai
             setModalInfo({
               type: "deleteMeal",
               mealId: meal.id,
               mealName: meal.name,
               visible: true,
+              // Incluir callback para limpeza após exclusão
+              onSuccess: () => {
+                // Limpar todas as referências de swipeable após excluir a refeição
+                swipeableRefs.current.clear();
+                setActiveSwipeable(null);
+              },
             });
           }}
         >
@@ -205,7 +259,59 @@ const MealCardComponent = ({
     onDeleteMeal,
     setModalInfo,
     t,
+    activeSwipeable,
   ]);
+
+  // Função para renderizar as ações de deslize à direita (excluir)
+  const renderRightActions = useCallback(
+    (foodId: string) => (
+      <View style={styles.swipeActionContainer}>
+        <TouchableOpacity
+          style={[
+            styles.swipeAction,
+            styles.swipeActionRight,
+            { backgroundColor: colors.danger + "CC" },
+          ]}
+          onPress={() => {
+            handleHapticFeedback();
+
+            // Fechar o swipeable após a ação
+            if (swipeableRefs.current.has(foodId)) {
+              swipeableRefs.current.get(foodId)?.close();
+            }
+
+            // Chamar a função que mostrará o modal no componente pai
+            setModalInfo({
+              type: "deleteFood",
+              foodId: foodId,
+              mealId: meal.id,
+              visible: true,
+              // Incluir callback para limpeza após exclusão
+              onSuccess: () => {
+                // Limpar a referência do swipeable excluído
+                if (swipeableRefs.current.has(foodId)) {
+                  swipeableRefs.current.delete(foodId);
+                }
+                // Limpar o estado ativo se for o mesmo que estamos excluindo
+                if (activeSwipeable === foodId) {
+                  setActiveSwipeable(null);
+                }
+              },
+            });
+          }}
+        >
+          <Ionicons name="trash-outline" size={20} color="white" />
+        </TouchableOpacity>
+      </View>
+    ),
+    [
+      colors.danger,
+      handleHapticFeedback,
+      meal.id,
+      setModalInfo,
+      activeSwipeable,
+    ]
+  );
 
   const renderFoodItem = useCallback(
     (food: Food, foodIndex: number) => (
@@ -216,13 +322,23 @@ const MealCardComponent = ({
         friction={2}
         overshootRight={false}
         overshootLeft={false}
+        onSwipeableOpen={() => handleSwipeableOpen(food.id)}
         ref={(ref) => {
           if (ref) {
             swipeableRefs.current.set(food.id, ref);
+          } else {
+            swipeableRefs.current.delete(food.id);
           }
         }}
       >
-        <View
+        <Animated.View
+          entering={FadeInDown.delay(foodIndex * 100)
+            .duration(400)
+            .springify()
+            .withInitialValues({
+              opacity: 0,
+              transform: [{ translateY: 10 }],
+            })}
           style={[
             styles.foodItemContainer,
             { backgroundColor: colors.light },
@@ -230,7 +346,19 @@ const MealCardComponent = ({
             foodIndex === foods.length - 1 && styles.lastFoodItem,
           ]}
         >
-          <View style={styles.foodItemContent}>
+          <View
+            style={styles.foodItemContent}
+            onTouchStart={() => {
+              // Se houver algum swipeable aberto, fechá-lo
+              if (
+                activeSwipeable &&
+                swipeableRefs.current.has(activeSwipeable)
+              ) {
+                swipeableRefs.current.get(activeSwipeable)?.close();
+                setActiveSwipeable(null);
+              }
+            }}
+          >
             <View style={styles.foodItemLeft}>
               <View style={styles.foodTextContainer}>
                 <Text style={[styles.foodName, { color: colors.text }]}>
@@ -239,9 +367,9 @@ const MealCardComponent = ({
                 <Text
                   style={[styles.foodPortion, { color: colors.text + "80" }]}
                 >
-                  {food.portion}
-                  {t("nutrition.units.gram")} • {food.calories}{" "}
-                  {t("nutrition.units.kcal")}
+                  {food.portionDescription ||
+                    `${food.portion}${t("nutrition.units.gram")}`}{" "}
+                  • {food.calories} {t("nutrition.units.kcal")}
                 </Text>
               </View>
             </View>
@@ -265,10 +393,18 @@ const MealCardComponent = ({
               </Text>
             </View>
           </View>
-        </View>
+        </Animated.View>
       </Swipeable>
     ),
-    [colors, foods.length, renderLeftActions, renderRightActions, t]
+    [
+      colors,
+      foods.length,
+      renderLeftActions,
+      renderRightActions,
+      t,
+      activeSwipeable,
+      handleSwipeableOpen,
+    ]
   );
 
   const handleAddFood = useCallback(
@@ -336,8 +472,7 @@ const MealCardComponent = ({
       setTimeout(() => {
         setShowCopySuccess(false);
       }, 3000);
-    } catch (error) {
-    }
+    } catch (error) {}
   }, [selectedSourceDate, meal.id, copyMealFromDate]);
 
   return (
@@ -365,7 +500,7 @@ const MealCardComponent = ({
               onPress={() => {
                 handleHapticFeedback();
                 router.push({
-                  pathname: "/(add-food)",
+                  pathname: "/nutrition-recommendation-modal",
                   params: {
                     mealId: meal.id,
                     mealName: meal.name,
@@ -428,6 +563,35 @@ const MealCardComponent = ({
                       />
                     </TouchableOpacity>
                   )}
+
+                  {/* Novo botão de recomendação nutricional */}
+                  <TouchableOpacity
+                    style={[
+                      styles.headerActionButton,
+                      {
+                        borderColor: meal.color,
+                        backgroundColor: meal.color + "10",
+                      },
+                    ]}
+                    onPress={() => {
+                      handleHapticFeedback();
+                      router.push({
+                        pathname: "/nutrition-recommendation-modal",
+                        params: {
+                          mealId: meal.id,
+                          mealName: meal.name,
+                          mealColor: meal.color,
+                        },
+                      });
+                    }}
+                  >
+                    <Ionicons
+                      name="nutrition-outline"
+                      size={20}
+                      color={meal.color}
+                    />
+                  </TouchableOpacity>
+
                   <TouchableOpacity
                     style={[
                       styles.headerActionButton,
@@ -452,7 +616,8 @@ const MealCardComponent = ({
                   )}
                 </View>
               ) : (
-                <View
+                <Animated.View
+                  entering={FadeInDown.duration(400).springify()}
                   key={`empty-container-${meal.id}`}
                   style={styles.emptyContainer}
                 >
@@ -472,12 +637,13 @@ const MealCardComponent = ({
                       {t("nutrition.addFirstFood")}
                     </Text>
                   </LinearGradient>
-                </View>
+                </Animated.View>
               )}
 
               {/* Mensagem de sucesso após copiar refeição */}
               {showCopySuccess && (
-                <View
+                <Animated.View
+                  entering={FadeInDown.duration(300).springify()}
                   style={[
                     styles.successMessage,
                     { backgroundColor: meal.color + "20" },
@@ -493,7 +659,7 @@ const MealCardComponent = ({
                   >
                     {t("nutrition.mealCopiedSuccess")}
                   </Text>
-                </View>
+                </Animated.View>
               )}
             </View>
           </View>

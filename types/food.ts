@@ -21,6 +21,7 @@ export interface FoodData {
     id: string;
     label: string;
     weight: number;
+    portionDescription?: string;
   }[];
   brandName?: string;
   category?: string;

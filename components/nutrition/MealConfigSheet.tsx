@@ -14,7 +14,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
-  Animated,
   Platform,
   Keyboard,
   KeyboardAvoidingView,
@@ -30,7 +29,7 @@ import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
-import { MotiView } from "moti";
+import { MotiView, AnimatePresence } from "moti";
 import { Easing } from "react-native-reanimated";
 import { useMeals } from "../../context/MealContext";
 import ButtonNew from "../common/ButtonNew";
@@ -127,12 +126,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
     const [mealTypes, setMealTypes] = useState<MealType[]>([]);
     const [keyboardVisible, setKeyboardVisible] = useState(false);
 
-    // Animações
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-    const scaleAnim = useRef(new Animated.Value(0.9)).current;
-
     // Pontos de ancoragem do bottom sheet
-    // Definimos apenas um snap point: 90% da altura da tela
     const snapPoints = useMemo(() => ["70%"], []);
 
     // Inicializar os tipos de refeições com os existentes ou os padrões
@@ -250,7 +244,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
         return;
       }
 
-      // Primeiro chamar o callback para atualizar o estado no contexto
+      // Chamar o callback para atualizar o estado no contexto
       onMealConfigured(selectedMeals);
 
       // Então fechar o modal
@@ -264,37 +258,104 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
       return mealTypes.some((meal) => meal.selected);
     }, [mealTypes]);
 
-    // Efeito para animar a entrada do componente
-    useEffect(() => {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          friction: 8,
-          tension: 40,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }, []);
+    // Função para obter a cor da refeição selecionada
+    // Se houver múltiplas refeições selecionadas, usamos a cor da última refeição selecionada
+    const getSelectedMealColor = useCallback(() => {
+      const selectedMeals = mealTypes.filter((m) => m.selected);
+
+      if (selectedMeals.length === 0) {
+        return undefined;
+      }
+
+      // Retorna a cor da última refeição selecionada
+      return selectedMeals[selectedMeals.length - 1].color;
+    }, [mealTypes]);
+
+    // Verifica se há múltiplas refeições selecionadas
+    const hasMultipleMealsSelected = useCallback(() => {
+      return mealTypes.filter((m) => m.selected).length > 1;
+    }, [mealTypes]);
+
+    // Função para obter todas as cores das refeições selecionadas
+    const getSelectedMealColors = useCallback(() => {
+      return mealTypes.filter((m) => m.selected).map((m) => m.color);
+    }, [mealTypes]);
+
+    // Função para renderizar os indicadores de cor
+    const renderColorIndicators = () => {
+      const selectedColors = getSelectedMealColors();
+
+      if (selectedColors.length === 0) return null;
+
+      // Limitar o número de indicadores para não sobrecarregar a UI
+      const maxIndicators = 4;
+      const colorsToShow = selectedColors.slice(0, maxIndicators);
+      const hasMore = selectedColors.length > maxIndicators;
+
+      return (
+        <View style={styles.colorIndicatorsContainer}>
+          {colorsToShow.map((color, index) => (
+            <View
+              key={`color-${index}`}
+              style={[
+                styles.colorIndicator,
+                {
+                  backgroundColor: color,
+                  // Um pequeno efeito de escalonamento para os círculos
+                  transform: [{ scale: 1 - index * 0.05 }],
+                  zIndex: colorsToShow.length - index,
+                  marginLeft: index > 0 ? -6 : 0, // Sobreposição parcial
+                },
+              ]}
+            />
+          ))}
+          {hasMore && (
+            <View
+              style={[
+                styles.colorIndicatorMore,
+                { backgroundColor: colors.text + "30" },
+              ]}
+            >
+              <Text
+                style={[styles.colorIndicatorMoreText, { color: colors.text }]}
+              >
+                +{selectedColors.length - maxIndicators}
+              </Text>
+            </View>
+          )}
+        </View>
+      );
+    };
 
     // Componente de renderização para cada item de refeição
     const renderMealItem = useCallback(
       (meal: MealType, index: number) => {
+        // Calcular posição inicial para efeito de entrada
+        const entryDirection = index % 2 === 0 ? -1 : 1;
+
         return (
           <MotiView
             key={`meal-${meal.id}-${theme}`}
             style={styles.mealCardWrapper}
-            from={{ opacity: 0, translateY: 20 }}
-            animate={{ opacity: 1, translateY: 0 }}
+            from={{
+              opacity: 0,
+              translateY: 50,
+              translateX: entryDirection * 20,
+              scale: 0.9,
+              rotate: `${entryDirection * 5}deg`,
+            }}
+            animate={{
+              opacity: 1,
+              translateY: 0,
+              translateX: 0,
+              scale: 1,
+              rotate: "0deg",
+            }}
             transition={{
-              type: "timing",
-              duration: 300,
-              delay: index * 50,
-              easing: Easing.out(Easing.ease),
+              type: "spring",
+              delay: index * 100,
+              damping: 15,
+              mass: 0.8,
             }}
           >
             <TouchableOpacity
@@ -359,7 +420,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                   <Ionicons
                     name="ellipsis-vertical"
                     size={20}
-                    color={colors.text + "70"}
+                    color={meal.selected ? meal.color : colors.text + "70"}
                   />
                 </TouchableOpacity>
               </View>
@@ -422,16 +483,17 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Refeições pré-definidas */}
             <View style={styles.mealTypesContainer}>
-              {mealTypes.map((meal, index) => renderMealItem(meal, index))}
+              <AnimatePresence>
+                {mealTypes.map((meal, index) => renderMealItem(meal, index))}
+              </AnimatePresence>
             </View>
           </ScrollView>
 
           <MotiView
             from={{ opacity: 0, translateY: 20 }}
             animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: "spring", damping: 15 }}
+            transition={{ type: "spring", damping: 15, delay: 300 }}
             style={[
               styles.footer,
               { borderTopColor: colors.text + "10" },
@@ -443,12 +505,32 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
               onPress={confirmMealConfig}
               variant="primary"
               disabled={!hasMealsSelected}
-              style={styles.confirmButton}
-              textStyle={styles.confirmButtonText}
+              style={
+                getSelectedMealColor()
+                  ? {
+                      backgroundColor: getSelectedMealColor(),
+                      height: 56,
+                      borderRadius: 28,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.15,
+                      shadowRadius: 8,
+                    }
+                  : styles.confirmButton
+              }
+              textStyle={{
+                color: "#FFFFFF",
+                fontWeight: "700",
+                fontSize: 16,
+                letterSpacing: -0.3,
+              }}
               hapticFeedback="notification"
               size="large"
               rounded={true}
-              elevation={3}
+              elevation={0}
+              leftComponent={renderColorIndicators()}
             />
           </MotiView>
         </KeyboardAvoidingView>
@@ -541,7 +623,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   confirmButtonText: {
-    color: "white",
     fontSize: 16,
     fontWeight: "700",
     letterSpacing: -0.3,
@@ -553,6 +634,33 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
+    fontWeight: "bold",
+  },
+  // Estilos para os indicadores de cor
+  colorIndicatorsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  colorIndicator: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: "white",
+  },
+  colorIndicatorMore: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginLeft: -2,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "white",
+  },
+  colorIndicatorMoreText: {
+    fontSize: 9,
     fontWeight: "bold",
   },
 });

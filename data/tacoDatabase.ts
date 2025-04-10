@@ -2,11 +2,15 @@ import { FoodData } from "../types/food";
 
 // Alimentos da Tabela TACO (Tabela Brasileira de Composição de Alimentos)
 // Fonte: https://www.nepa.unicamp.br/taco/
-export const tacoFoods: FoodData[] = [
+export const tacoFoods: (FoodData & {
+  alternatives?: string[];
+  portionDescription?: string;
+})[] = [
   // Cereais e derivados
   {
     id: "taco_001",
-    name: "Arroz branco, cozido",
+    name: "Arroz branco cozido",
+    category: "Grãos e Cereais",
     nutrients: {
       calories: 128,
       protein: 2.5,
@@ -31,10 +35,12 @@ export const tacoFoods: FoodData[] = [
         weight: 160,
       },
     ],
+    alternatives: ["taco_002", "taco_004", "food_arroz_branco"],
   },
   {
     id: "taco_002",
-    name: "Arroz integral, cozido",
+    name: "Arroz integral cozido",
+    category: "Grãos e Cereais",
     nutrients: {
       calories: 124,
       protein: 2.6,
@@ -59,10 +65,12 @@ export const tacoFoods: FoodData[] = [
         weight: 160,
       },
     ],
+    alternatives: ["taco_001", "taco_004", "food_arroz_integral"],
   },
   {
     id: "taco_003",
     name: "Pão francês",
+    category: "Pães",
     nutrients: {
       calories: 300,
       protein: 8.0,
@@ -80,12 +88,15 @@ export const tacoFoods: FoodData[] = [
         id: "measure_taco_003_unidade",
         label: "unidade (50g)",
         weight: 50,
+        portionDescription: "1 unidade",
       },
     ],
+    alternatives: ["taco_020", "food_pao_frances", "food_pao_forma"],
   },
   {
     id: "taco_004",
     name: "Macarrão, cozido",
+    category: "Grãos e Cereais",
     nutrients: {
       calories: 122,
       protein: 3.9,
@@ -110,12 +121,14 @@ export const tacoFoods: FoodData[] = [
         weight: 220,
       },
     ],
+    alternatives: ["taco_001", "taco_002", "food_macarrao"],
   },
 
   // Leguminosas
   {
     id: "taco_005",
-    name: "Feijão preto, cozido",
+    name: "Feijão preto cozido",
+    category: "Leguminosas",
     nutrients: {
       calories: 77,
       protein: 4.5,
@@ -131,7 +144,7 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_005_concha",
-        label: "concha média (80g)",
+        label: "concha (80g)",
         weight: 80,
       },
       {
@@ -140,10 +153,12 @@ export const tacoFoods: FoodData[] = [
         weight: 180,
       },
     ],
+    alternatives: ["taco_006", "food_feijao_preto", "food_feijao_carioca"],
   },
   {
     id: "taco_006",
-    name: "Feijão carioca, cozido",
+    name: "Feijão carioca cozido",
+    category: "Leguminosas",
     nutrients: {
       calories: 76,
       protein: 4.8,
@@ -159,7 +174,7 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_006_concha",
-        label: "concha média (80g)",
+        label: "concha (80g)",
         weight: 80,
       },
       {
@@ -168,70 +183,14 @@ export const tacoFoods: FoodData[] = [
         weight: 180,
       },
     ],
-  },
-
-  // Hortaliças
-  {
-    id: "taco_007",
-    name: "Alface, crespa, crua",
-    nutrients: {
-      calories: 11,
-      protein: 1.3,
-      fat: 0.2,
-      carbs: 1.7,
-      fiber: 1.8,
-    },
-    measures: [
-      {
-        id: "measure_taco_007_100g",
-        label: "100g",
-        weight: 100,
-      },
-      {
-        id: "measure_taco_007_folha",
-        label: "folha média (10g)",
-        weight: 10,
-      },
-      {
-        id: "measure_taco_007_prato",
-        label: "prato (80g)",
-        weight: 80,
-      },
-    ],
-  },
-  {
-    id: "taco_008",
-    name: "Tomate, com semente, cru",
-    nutrients: {
-      calories: 15,
-      protein: 0.9,
-      fat: 0.2,
-      carbs: 3.1,
-      fiber: 1.2,
-    },
-    measures: [
-      {
-        id: "measure_taco_008_100g",
-        label: "100g",
-        weight: 100,
-      },
-      {
-        id: "measure_taco_008_unidade",
-        label: "unidade média (90g)",
-        weight: 90,
-      },
-      {
-        id: "measure_taco_008_fatia",
-        label: "fatia média (15g)",
-        weight: 15,
-      },
-    ],
+    alternatives: ["taco_005", "food_feijao_carioca", "food_feijao_preto"],
   },
 
   // Frutas
   {
     id: "taco_009",
     name: "Banana, prata",
+    category: "Frutas",
     nutrients: {
       calories: 98,
       protein: 1.3,
@@ -247,14 +206,16 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_009_unidade",
-        label: "unidade média (100g)",
+        label: "unidade (100g)",
         weight: 100,
       },
     ],
+    alternatives: ["taco_010", "food_banana", "food_maca"],
   },
   {
     id: "taco_010",
     name: "Laranja, pêra",
+    category: "Frutas",
     nutrients: {
       calories: 37,
       protein: 1.0,
@@ -270,16 +231,18 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_010_unidade",
-        label: "unidade média (130g)",
+        label: "unidade (130g)",
         weight: 130,
       },
     ],
+    alternatives: ["taco_009", "food_orange", "food_apple"],
   },
 
   // Carnes e ovos
   {
     id: "taco_011",
-    name: "Carne bovina, acém, sem gordura, cozida",
+    name: "Acém cozido sem gordura",
+    category: "Carnes",
     nutrients: {
       calories: 215,
       protein: 27.3,
@@ -299,10 +262,12 @@ export const tacoFoods: FoodData[] = [
         weight: 100,
       },
     ],
+    alternatives: ["taco_012", "taco_050", "taco_052"],
   },
   {
     id: "taco_012",
-    name: "Frango, peito, sem pele, cozido",
+    name: "Peito de frango cozido sem pele",
+    category: "Carnes",
     nutrients: {
       calories: 163,
       protein: 31.5,
@@ -322,10 +287,23 @@ export const tacoFoods: FoodData[] = [
         weight: 100,
       },
     ],
+    alternatives: [
+      "taco_054", // Coxa de frango assada com pele
+      "taco_055", // Sobrecoxa de frango assada com pele
+      "food_frango_peito", // Peito de frango (versão básica)
+      "taco_041", // Atum fresco cru
+      "taco_042", // Bacalhau salgado cru
+      "taco_052", // Patinho grelhado sem gordura
+      "food_peito_peru", // Peito de peru
+      "food_tilapia", // Filé de tilápia
+      "food_salmao", // Salmão
+      "food_atum", // Atum em conserva
+    ],
   },
   {
     id: "taco_013",
     name: "Ovo",
+    category: "Ovos",
     nutrients: {
       calories: 146,
       protein: 13.3,
@@ -341,16 +319,19 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_013_unidade",
-        label: "unidade média (50g)",
+        label: "unidade (50g)",
         weight: 50,
+        portionDescription: "1 unidade",
       },
     ],
+    alternatives: ["taco_064", "food_ovo", "food_clara_ovo"],
   },
 
   // Leite e derivados
   {
     id: "taco_014",
-    name: "Leite, de vaca, integral",
+    name: "Leite integral",
+    category: "Laticínios",
     nutrients: {
       calories: 61,
       protein: 3.2,
@@ -370,10 +351,16 @@ export const tacoFoods: FoodData[] = [
         weight: 200,
       },
     ],
+    alternatives: [
+      "food_leite",
+      "food_iogurte_natural",
+      "food_leite_desnatado",
+    ],
   },
   {
     id: "taco_015",
-    name: "Queijo, minas, frescal",
+    name: "Queijo minas frescal",
+    category: "Laticínios",
     nutrients: {
       calories: 264,
       protein: 17.4,
@@ -389,16 +376,22 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_015_fatia",
-        label: "fatia média (30g)",
+        label: "fatia (30g)",
         weight: 30,
       },
+    ],
+    alternatives: [
+      "food_queijo_minas",
+      "food_requeijao",
+      "food_queijo_cottage",
     ],
   },
 
   // Açúcares e doces
   {
     id: "taco_016",
-    name: "Açúcar, refinado",
+    name: "Açúcar refinado",
+    category: "Açúcares e Doces",
     nutrients: {
       calories: 387,
       protein: 0.0,
@@ -420,35 +413,11 @@ export const tacoFoods: FoodData[] = [
     ],
   },
 
-  // Óleos e gorduras
-  {
-    id: "taco_017",
-    name: "Azeite, de oliva, extra virgem",
-    nutrients: {
-      calories: 884,
-      protein: 0.0,
-      fat: 100.0,
-      carbs: 0.0,
-      fiber: 0.0,
-    },
-    measures: [
-      {
-        id: "measure_taco_017_100g",
-        label: "100ml",
-        weight: 100,
-      },
-      {
-        id: "measure_taco_017_colher",
-        label: "colher de sopa (10ml)",
-        weight: 10,
-      },
-    ],
-  },
-
   // Bebidas
   {
     id: "taco_018",
     name: "Café, infusão 10%",
+    category: "Bebidas",
     nutrients: {
       calories: 2,
       protein: 0.2,
@@ -470,33 +439,10 @@ export const tacoFoods: FoodData[] = [
     ],
   },
 
-  // Alimentos preparados
-  {
-    id: "taco_019",
-    name: "Feijoada",
-    nutrients: {
-      calories: 117,
-      protein: 6.6,
-      fat: 5.1,
-      carbs: 12.5,
-      fiber: 5.1,
-    },
-    measures: [
-      {
-        id: "measure_taco_019_100g",
-        label: "100g",
-        weight: 100,
-      },
-      {
-        id: "measure_taco_019_concha",
-        label: "concha média (140g)",
-        weight: 140,
-      },
-    ],
-  },
   {
     id: "taco_020",
-    name: "Pão de queijo, assado",
+    name: "Pão de queijo assado",
+    category: "Pães",
     nutrients: {
       calories: 363,
       protein: 5.1,
@@ -512,7 +458,7 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_020_unidade",
-        label: "unidade média (20g)",
+        label: "unidade (20g)",
         weight: 20,
       },
     ],
@@ -521,7 +467,8 @@ export const tacoFoods: FoodData[] = [
   // Carnes Processadas
   {
     id: "taco_021",
-    name: "Presunto, cozido",
+    name: "Presunto cozido",
+    category: "Carnes Processadas",
     nutrients: {
       calories: 109,
       protein: 14.5,
@@ -537,14 +484,16 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_021_fatia",
-        label: "fatia média (15g)",
+        label: "fatia (15g)",
         weight: 15,
       },
     ],
+    alternatives: ["taco_025", "taco_036", "taco_022"],
   },
   {
     id: "taco_022",
     name: "Mortadela",
+    category: "Carnes Processadas",
     nutrients: {
       calories: 269,
       protein: 12.8,
@@ -560,14 +509,16 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_022_fatia",
-        label: "fatia média (15g)",
+        label: "fatia (15g)",
         weight: 15,
       },
     ],
+    alternatives: ["taco_021", "taco_036", "taco_040"],
   },
   {
     id: "taco_023",
     name: "Salsicha",
+    category: "Carnes Processadas",
     nutrients: {
       calories: 257,
       protein: 13.5,
@@ -583,14 +534,16 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_023_unidade",
-        label: "unidade média (50g)",
+        label: "unidade (50g)",
         weight: 50,
       },
     ],
+    alternatives: ["taco_024", "taco_039", "taco_022"],
   },
   {
     id: "taco_024",
-    name: "Linguiça, porco, crua",
+    name: "Linguiça de porco crua",
+    category: "Carnes Processadas",
     nutrients: {
       calories: 227,
       protein: 16.0,
@@ -610,10 +563,12 @@ export const tacoFoods: FoodData[] = [
         weight: 60,
       },
     ],
+    alternatives: ["taco_039", "taco_023", "food_linguica"],
   },
   {
     id: "taco_025",
-    name: "Peito de peru, defumado",
+    name: "Peito de peru defumado",
+    category: "Carnes Processadas",
     nutrients: {
       calories: 119,
       protein: 17.0,
@@ -633,12 +588,14 @@ export const tacoFoods: FoodData[] = [
         weight: 20,
       },
     ],
+    alternatives: ["taco_021", "taco_036", "food_peito_peru"],
   },
 
   // Farinhas e Derivados
   {
     id: "taco_026",
-    name: "Farinha, de trigo, tipo 1",
+    name: "Farinha de trigo",
+    category: "Farinhas",
     nutrients: {
       calories: 360,
       protein: 9.8,
@@ -663,10 +620,12 @@ export const tacoFoods: FoodData[] = [
         weight: 15,
       },
     ],
+    alternatives: ["taco_028", "taco_029", "taco_030"],
   },
   {
     id: "taco_027",
-    name: "Farinha, de mandioca, torrada",
+    name: "Farinha de mandioca torrada",
+    category: "Farinhas",
     nutrients: {
       calories: 361,
       protein: 1.2,
@@ -691,10 +650,12 @@ export const tacoFoods: FoodData[] = [
         weight: 15,
       },
     ],
+    alternatives: ["taco_028", "food_farofa", "food_mandioca"],
   },
   {
     id: "taco_028",
-    name: "Farinha, de milho, amarela",
+    name: "Farinha de milho amarela",
+    category: "Farinhas",
     nutrients: {
       calories: 351,
       protein: 7.2,
@@ -719,10 +680,12 @@ export const tacoFoods: FoodData[] = [
         weight: 15,
       },
     ],
+    alternatives: ["taco_026", "taco_027", "food_milho_verde"],
   },
   {
     id: "taco_029",
-    name: "Farinha, de centeio, integral",
+    name: "Farinha de centeio integral",
+    category: "Farinhas",
     nutrients: {
       calories: 336,
       protein: 12.5,
@@ -747,10 +710,12 @@ export const tacoFoods: FoodData[] = [
         weight: 15,
       },
     ],
+    alternatives: ["taco_026", "taco_030", "food_aveia"],
   },
   {
     id: "taco_030",
-    name: "Farinha, de aveia",
+    name: "Farinha de aveia",
+    category: "Farinhas",
     nutrients: {
       calories: 394,
       protein: 13.9,
@@ -775,12 +740,14 @@ export const tacoFoods: FoodData[] = [
         weight: 15,
       },
     ],
+    alternatives: ["taco_029", "food_aveia", "food_granola"],
   },
 
   // Oleaginosas
   {
     id: "taco_031",
-    name: "Amendoim, cru",
+    name: "Amendoim cru",
+    category: "Oleaginosas",
     nutrients: {
       calories: 544,
       protein: 27.2,
@@ -805,10 +772,12 @@ export const tacoFoods: FoodData[] = [
         weight: 15,
       },
     ],
+    alternatives: ["taco_032", "taco_033", "taco_034"],
   },
   {
     id: "taco_032",
-    name: "Castanha de caju, torrada, salgada",
+    name: "Castanha de caju torrada salgada",
+    category: "Oleaginosas",
     nutrients: {
       calories: 570,
       protein: 18.5,
@@ -836,7 +805,8 @@ export const tacoFoods: FoodData[] = [
   },
   {
     id: "taco_033",
-    name: "Castanha do Pará, crua",
+    name: "Castanha do Pará crua",
+    category: "Oleaginosas",
     nutrients: {
       calories: 643,
       protein: 14.5,
@@ -852,7 +822,7 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_033_unidade",
-        label: "unidade média (5g)",
+        label: "unidade (5g)",
         weight: 5,
       },
       {
@@ -861,10 +831,12 @@ export const tacoFoods: FoodData[] = [
         weight: 15,
       },
     ],
+    alternatives: ["taco_031", "taco_034", "taco_035"],
   },
   {
     id: "taco_034",
-    name: "Amêndoa, crua",
+    name: "Amêndoa crua",
+    category: "Oleaginosas",
     nutrients: {
       calories: 579,
       protein: 21.3,
@@ -892,7 +864,8 @@ export const tacoFoods: FoodData[] = [
   },
   {
     id: "taco_035",
-    name: "Noz, crua",
+    name: "Noz crua",
+    category: "Oleaginosas",
     nutrients: {
       calories: 620,
       protein: 14.4,
@@ -922,7 +895,8 @@ export const tacoFoods: FoodData[] = [
   // Embutidos
   {
     id: "taco_036",
-    name: "Apresuntado",
+    name: "Apresuntado fatiado",
+    category: "Carnes Processadas",
     nutrients: {
       calories: 129,
       protein: 13.5,
@@ -938,14 +912,15 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_036_fatia",
-        label: "fatia média (15g)",
+        label: "fatia (15g)",
         weight: 15,
       },
     ],
   },
   {
     id: "taco_037",
-    name: "Bacon, defumado",
+    name: "Bacon defumado",
+    category: "Carnes Processadas",
     nutrients: {
       calories: 541,
       protein: 27.0,
@@ -961,14 +936,15 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_037_fatia",
-        label: "fatia média (15g)",
+        label: "fatia (15g)",
         weight: 15,
       },
     ],
   },
   {
     id: "taco_038",
-    name: "Copa (tipo salame)",
+    name: "Copa tipo salame",
+    category: "Carnes Processadas",
     nutrients: {
       calories: 432,
       protein: 20.3,
@@ -991,7 +967,8 @@ export const tacoFoods: FoodData[] = [
   },
   {
     id: "taco_039",
-    name: "Linguiça, frango, crua",
+    name: "Linguiça de frango crua",
+    category: "Carnes Processadas",
     nutrients: {
       calories: 219,
       protein: 14.8,
@@ -1014,7 +991,8 @@ export const tacoFoods: FoodData[] = [
   },
   {
     id: "taco_040",
-    name: "Salame",
+    name: "Salame fatiado",
+    category: "Carnes Processadas",
     nutrients: {
       calories: 398,
       protein: 25.8,
@@ -1039,7 +1017,8 @@ export const tacoFoods: FoodData[] = [
   // Peixes e Frutos do Mar
   {
     id: "taco_041",
-    name: "Atum, fresco, cru",
+    name: "Atum fresco cru",
+    category: "Peixes e Frutos do Mar",
     nutrients: {
       calories: 118,
       protein: 25.7,
@@ -1055,14 +1034,16 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_041_posta",
-        label: "posta média (100g)",
+        label: "posta (100g)",
         weight: 100,
       },
     ],
+    alternatives: ["taco_047", "taco_049", "taco_048"],
   },
   {
     id: "taco_042",
-    name: "Bacalhau, salgado, cru",
+    name: "Bacalhau salgado cru",
+    category: "Peixes e Frutos do Mar",
     nutrients: {
       calories: 138,
       protein: 29.0,
@@ -1078,14 +1059,16 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_042_posta",
-        label: "posta média (120g)",
+        label: "posta (120g)",
         weight: 120,
       },
     ],
+    alternatives: ["taco_045", "taco_046", "food_bacalhau"],
   },
   {
     id: "taco_043",
-    name: "Cação, posta, cozida",
+    name: "Cação cozido",
+    category: "Peixes e Frutos do Mar",
     nutrients: {
       calories: 124,
       protein: 26.9,
@@ -1101,14 +1084,15 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_043_posta",
-        label: "posta média (100g)",
+        label: "posta (100g)",
         weight: 100,
       },
     ],
   },
   {
     id: "taco_044",
-    name: "Camarão, cozido",
+    name: "Camarão cozido",
+    category: "Peixes e Frutos do Mar",
     nutrients: {
       calories: 90,
       protein: 19.0,
@@ -1124,7 +1108,7 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_044_unidade",
-        label: "unidade média (8g)",
+        label: "unidade (8g)",
         weight: 8,
       },
       {
@@ -1136,7 +1120,8 @@ export const tacoFoods: FoodData[] = [
   },
   {
     id: "taco_045",
-    name: "Merluza, filé, cozido",
+    name: "Filé de merluza cozido",
+    category: "Peixes e Frutos do Mar",
     nutrients: {
       calories: 122,
       protein: 26.7,
@@ -1156,10 +1141,12 @@ export const tacoFoods: FoodData[] = [
         weight: 100,
       },
     ],
+    alternatives: ["taco_046", "taco_049", "food_tilapia"],
   },
   {
     id: "taco_046",
-    name: "Pescada, filé, cru",
+    name: "Filé de pescada cru",
+    category: "Peixes e Frutos do Mar",
     nutrients: {
       calories: 89,
       protein: 16.6,
@@ -1182,7 +1169,8 @@ export const tacoFoods: FoodData[] = [
   },
   {
     id: "taco_047",
-    name: "Salmão, filé, cru",
+    name: "Filé de salmão cru",
+    category: "Peixes e Frutos do Mar",
     nutrients: {
       calories: 170,
       protein: 19.2,
@@ -1202,10 +1190,12 @@ export const tacoFoods: FoodData[] = [
         weight: 100,
       },
     ],
+    alternatives: ["taco_041", "taco_049", "food_salmao"],
   },
   {
     id: "taco_048",
-    name: "Sardinha, assada",
+    name: "Sardinha assada",
+    category: "Peixes e Frutos do Mar",
     nutrients: {
       calories: 164,
       protein: 32.0,
@@ -1221,18 +1211,19 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_048_unidade",
-        label: "unidade média (25g)",
+        label: "unidade (25g)",
         weight: 25,
       },
     ],
   },
   {
     id: "taco_049",
-    name: "Tilápia, filé, cru",
+    name: "Filé de tilápia grelhado",
+    category: "Peixes e Frutos do Mar",
     nutrients: {
-      calories: 96,
-      protein: 20.1,
-      fat: 1.3,
+      calories: 129,
+      protein: 26.2,
+      fat: 2.7,
       carbs: 0.0,
       fiber: 0.0,
     },
@@ -1253,7 +1244,8 @@ export const tacoFoods: FoodData[] = [
   // Carnes e Derivados (Complemento)
   {
     id: "taco_050",
-    name: "Carne bovina, contra-filé, grelhado",
+    name: "Contra-filé grelhado",
+    category: "Carnes",
     nutrients: {
       calories: 239,
       protein: 32.3,
@@ -1273,10 +1265,12 @@ export const tacoFoods: FoodData[] = [
         weight: 100,
       },
     ],
+    alternatives: ["taco_052", "taco_065", "taco_053"],
   },
   {
     id: "taco_051",
-    name: "Carne bovina, costela, assada",
+    name: "Costela bovina assada",
+    category: "Carnes",
     nutrients: {
       calories: 373,
       protein: 28.8,
@@ -1299,7 +1293,8 @@ export const tacoFoods: FoodData[] = [
   },
   {
     id: "taco_052",
-    name: "Carne bovina, patinho, sem gordura, grelhado",
+    name: "Patinho grelhado sem gordura",
+    category: "Carnes",
     nutrients: {
       calories: 219,
       protein: 35.9,
@@ -1319,10 +1314,12 @@ export const tacoFoods: FoodData[] = [
         weight: 100,
       },
     ],
+    alternatives: ["taco_050", "taco_065", "food_carne_bovina"],
   },
   {
     id: "taco_053",
-    name: "Carne bovina, picanha, grelhada",
+    name: "Picanha grelhada",
+    category: "Carnes",
     nutrients: {
       calories: 289,
       protein: 27.8,
@@ -1338,14 +1335,16 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_053_fatia",
-        label: "fatia média (100g)",
+        label: "fatia (100g)",
         weight: 100,
       },
     ],
+    alternatives: ["taco_050", "taco_065", "food_picanha"],
   },
   {
     id: "taco_054",
-    name: "Frango, coxa, com pele, assada",
+    name: "Coxa de frango assada com pele",
+    category: "Carnes",
     nutrients: {
       calories: 215,
       protein: 26.9,
@@ -1361,14 +1360,16 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_054_unidade",
-        label: "unidade média (65g)",
+        label: "unidade (65g)",
         weight: 65,
       },
     ],
+    alternatives: ["taco_055", "taco_012", "food_frango_peito"],
   },
   {
     id: "taco_055",
-    name: "Frango, sobrecoxa, com pele, assada",
+    name: "Sobrecoxa de frango assada com pele",
+    category: "Carnes",
     nutrients: {
       calories: 232,
       protein: 27.5,
@@ -1384,14 +1385,16 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_055_unidade",
-        label: "unidade média (80g)",
+        label: "unidade(80g)",
         weight: 80,
       },
     ],
+    alternatives: ["taco_054", "taco_012", "food_frango_peito"],
   },
   {
     id: "taco_056",
-    name: "Carne suína, lombo, assado",
+    name: "Lombo suíno assado",
+    category: "Carnes",
     nutrients: {
       calories: 210,
       protein: 31.8,
@@ -1407,14 +1410,16 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_056_fatia",
-        label: "fatia média (100g)",
+        label: "fatia (100g)",
         weight: 100,
       },
     ],
+    alternatives: ["taco_057", "taco_058", "food_linguica"],
   },
   {
     id: "taco_057",
-    name: "Carne suína, pernil, assado",
+    name: "Pernil suíno assado",
+    category: "Carnes",
     nutrients: {
       calories: 262,
       protein: 29.8,
@@ -1430,14 +1435,16 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_057_fatia",
-        label: "fatia média (100g)",
+        label: "fatia (100g)",
         weight: 100,
       },
     ],
+    alternatives: ["taco_056", "taco_058", "taco_059"],
   },
   {
     id: "taco_058",
-    name: "Carne suína, costela, assada",
+    name: "Costela suína assada",
+    category: "Carnes",
     nutrients: {
       calories: 397,
       protein: 25.8,
@@ -1457,10 +1464,12 @@ export const tacoFoods: FoodData[] = [
         weight: 100,
       },
     ],
+    alternatives: ["taco_056", "taco_057", "taco_051"],
   },
   {
     id: "taco_059",
-    name: "Cordeiro, pernil, assado",
+    name: "Pernil de cordeiro assado",
+    category: "Carnes",
     nutrients: {
       calories: 235,
       protein: 28.5,
@@ -1476,9 +1485,496 @@ export const tacoFoods: FoodData[] = [
       },
       {
         id: "measure_taco_059_fatia",
-        label: "fatia média (100g)",
+        label: "fatia (100g)",
         weight: 100,
       },
     ],
+    alternatives: ["taco_057", "taco_056", "taco_052"],
+  },
+
+  // Cacau e Derivados
+  {
+    id: "taco_060",
+    name: "Cacau em pó 50%",
+    category: "Açúcares e Doces",
+    nutrients: {
+      calories: 350,
+      protein: 20.0,
+      fat: 12.0,
+      carbs: 45.0,
+      fiber: 10.0,
+    },
+    measures: [
+      {
+        id: "measure_taco_060_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_taco_060_colher",
+        label: "colher de sopa (10g)",
+        weight: 10,
+      },
+      {
+        id: "measure_taco_060_xicara",
+        label: "xícara (85g)",
+        weight: 85,
+      },
+    ],
+    alternatives: ["taco_061", "taco_062"],
+  },
+  {
+    id: "taco_061",
+    name: "Cacau em pó 70%",
+    category: "Açúcares e Doces",
+    nutrients: {
+      calories: 380,
+      protein: 22.0,
+      fat: 15.0,
+      carbs: 40.0,
+      fiber: 12.0,
+    },
+    measures: [
+      {
+        id: "measure_taco_061_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_taco_061_colher",
+        label: "colher de sopa (10g)",
+        weight: 10,
+      },
+      {
+        id: "measure_taco_061_xicara",
+        label: "xícara (85g)",
+        weight: 85,
+      },
+    ],
+    alternatives: ["taco_060", "taco_062"],
+  },
+  {
+    id: "taco_062",
+    name: "Cacau em pó 100%",
+    category: "Açúcares e Doces",
+    nutrients: {
+      calories: 410,
+      protein: 25.0,
+      fat: 18.0,
+      carbs: 35.0,
+      fiber: 15.0,
+    },
+    measures: [
+      {
+        id: "measure_taco_062_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_taco_062_colher",
+        label: "colher de sopa (10g)",
+        weight: 10,
+      },
+      {
+        id: "measure_taco_062_xicara",
+        label: "xícara (85g)",
+        weight: 85,
+      },
+    ],
+    alternatives: ["taco_060", "taco_061"],
+  },
+  {
+    id: "taco_064",
+    name: "Clara de ovo cozida",
+    category: "Ovos",
+    nutrients: {
+      calories: 57,
+      protein: 12.6,
+      fat: 0.0,
+      carbs: 0.0,
+      fiber: 0.0,
+    },
+    measures: [
+      {
+        id: "measure_taco_064_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_taco_064_unidade",
+        label: "unidade (30g)",
+        weight: 30,
+        portionDescription: "1 clara",
+      },
+    ],
+    alternatives: ["taco_013", "food_clara_ovo", "food_albumina"],
+  },
+  {
+    id: "taco_065",
+    name: "Filé mignon grelhado",
+    category: "Carnes",
+    nutrients: {
+      calories: 214,
+      protein: 32.8,
+      fat: 8.8,
+      carbs: 0.0,
+      fiber: 0.0,
+    },
+    measures: [
+      {
+        id: "measure_taco_065_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_taco_065_bife",
+        label: "bife médio (100g)",
+        weight: 100,
+      },
+    ],
+    alternatives: ["taco_050", "taco_052", "food_file_mignon"],
+  },
+
+  // Frutas
+  {
+    id: "taco_066",
+    name: "Abacate cru",
+    category: "Frutas",
+    nutrients: {
+      calories: 96,
+      protein: 1.2,
+      fat: 8.4,
+      carbs: 6.0,
+      fiber: 6.3,
+    },
+    measures: [
+      {
+        id: "measure_taco_066_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_taco_066_colher",
+        label: "colher de sopa (30g)",
+        weight: 30,
+      },
+      {
+        id: "measure_taco_066_unidade",
+        label: "unidade média (170g)",
+        weight: 170,
+        portionDescription: "1 unidade média",
+      },
+    ],
+    alternatives: ["taco_009", "taco_010", "food_abacate"],
+  },
+
+  // Proteínas Vegetais
+  {
+    id: "taco_067",
+    name: "Tofu",
+    category: "Proteínas Vegetais",
+    nutrients: {
+      calories: 76,
+      protein: 8.1,
+      fat: 4.8,
+      carbs: 1.2,
+      fiber: 1.1,
+    },
+    measures: [
+      {
+        id: "measure_taco_067_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_taco_067_fatia",
+        label: "fatia (40g)",
+        weight: 40,
+      },
+      {
+        id: "measure_taco_067_xicara",
+        label: "xícara (140g)",
+        weight: 140,
+      },
+    ],
+    alternatives: ["taco_068", "taco_069", "food_proteina_vegetal"],
+  },
+  {
+    id: "taco_068",
+    name: "Proteína texturizada de soja",
+    category: "Proteínas Vegetais",
+    nutrients: {
+      calories: 341,
+      protein: 46.5,
+      fat: 1.0,
+      carbs: 35.3,
+      fiber: 23.0,
+    },
+    measures: [
+      {
+        id: "measure_taco_068_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_taco_068_xicara",
+        label: "xícara (40g)",
+        weight: 40,
+      },
+      {
+        id: "measure_taco_068_colher",
+        label: "colher de sopa (7g)",
+        weight: 7,
+      },
+    ],
+    alternatives: ["taco_067", "taco_069", "food_soja"],
+  },
+  {
+    id: "taco_069",
+    name: "Seitan (glúten de trigo)",
+    category: "Proteínas Vegetais",
+    nutrients: {
+      calories: 118,
+      protein: 24.0,
+      fat: 1.9,
+      carbs: 4.4,
+      fiber: 0.8,
+    },
+    measures: [
+      {
+        id: "measure_taco_069_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_taco_069_porcao",
+        label: "porção (80g)",
+        weight: 80,
+      },
+      {
+        id: "measure_taco_069_fatia",
+        label: "fatia (25g)",
+        weight: 25,
+      },
+    ],
+    alternatives: ["taco_067", "taco_068", "food_seitan"],
+  },
+  {
+    id: "taco_070",
+    name: "Tempeh",
+    category: "Proteínas Vegetais",
+    nutrients: {
+      calories: 192,
+      protein: 18.2,
+      fat: 10.8,
+      carbs: 9.4,
+      fiber: 5.4,
+    },
+    measures: [
+      {
+        id: "measure_taco_070_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_taco_070_fatia",
+        label: "fatia (50g)",
+        weight: 50,
+      },
+      {
+        id: "measure_taco_070_xicara",
+        label: "xícara (166g)",
+        weight: 166,
+      },
+    ],
+    alternatives: ["taco_067", "taco_068", "taco_069"],
+  },
+
+  // Leguminosas
+  {
+    id: "taco_071",
+    name: "Lentilha cozida",
+    category: "Leguminosas",
+    nutrients: {
+      calories: 93,
+      protein: 6.3,
+      fat: 0.5,
+      carbs: 16.3,
+      fiber: 7.9,
+    },
+    measures: [
+      {
+        id: "measure_taco_071_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_taco_071_concha",
+        label: "concha (80g)",
+        weight: 80,
+      },
+      {
+        id: "measure_taco_071_colher",
+        label: "colher de sopa (20g)",
+        weight: 20,
+      },
+    ],
+    alternatives: ["taco_005", "taco_006", "taco_072"],
+  },
+  {
+    id: "taco_072",
+    name: "Grão-de-bico cozido",
+    category: "Leguminosas",
+    nutrients: {
+      calories: 121,
+      protein: 7.0,
+      fat: 2.1,
+      carbs: 19.7,
+      fiber: 8.1,
+    },
+    measures: [
+      {
+        id: "measure_taco_072_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_taco_072_concha",
+        label: "concha (80g)",
+        weight: 80,
+      },
+      {
+        id: "measure_taco_072_colher",
+        label: "colher de sopa (25g)",
+        weight: 25,
+      },
+    ],
+    alternatives: ["taco_005", "taco_006", "taco_071"],
+  },
+
+  // Grãos e Cereais
+  {
+    id: "taco_073",
+    name: "Quinoa cozida",
+    category: "Grãos e Cereais",
+    nutrients: {
+      calories: 120,
+      protein: 4.4,
+      fat: 1.9,
+      carbs: 21.3,
+      fiber: 2.8,
+    },
+    measures: [
+      {
+        id: "measure_taco_073_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_taco_073_xicara",
+        label: "xícara (170g)",
+        weight: 170,
+      },
+      {
+        id: "measure_taco_073_colher",
+        label: "colher de sopa (20g)",
+        weight: 20,
+      },
+    ],
+    alternatives: ["taco_001", "taco_002", "food_quinoa"],
+  },
+
+  // Sementes e Oleaginosas
+  {
+    id: "taco_074",
+    name: "Semente de chia",
+    category: "Sementes e Oleaginosas",
+    nutrients: {
+      calories: 486,
+      protein: 16.5,
+      fat: 30.7,
+      carbs: 42.1,
+      fiber: 34.4,
+    },
+    measures: [
+      {
+        id: "measure_taco_074_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_taco_074_colher",
+        label: "colher de sopa (10g)",
+        weight: 10,
+      },
+      {
+        id: "measure_taco_074_colher_cha",
+        label: "colher de chá (5g)",
+        weight: 5,
+      },
+    ],
+    alternatives: ["taco_075", "food_chia", "taco_031"],
+  },
+  {
+    id: "taco_075",
+    name: "Semente de linhaça",
+    category: "Sementes e Oleaginosas",
+    nutrients: {
+      calories: 495,
+      protein: 14.1,
+      fat: 32.3,
+      carbs: 43.3,
+      fiber: 22.3,
+    },
+    measures: [
+      {
+        id: "measure_taco_075_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_taco_075_colher",
+        label: "colher de sopa (10g)",
+        weight: 10,
+      },
+      {
+        id: "measure_taco_075_colher_cha",
+        label: "colher de chá (5g)",
+        weight: 5,
+      },
+    ],
+    alternatives: ["taco_074", "food_linhaca", "taco_031"],
+  },
+
+  // Açúcares e Doces
+  {
+    id: "taco_076",
+    name: "Mel",
+    category: "Açúcares e Doces",
+    nutrients: {
+      calories: 309,
+      protein: 0.3,
+      fat: 0.0,
+      carbs: 84.0,
+      fiber: 0.0,
+    },
+    measures: [
+      {
+        id: "measure_taco_076_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_taco_076_colher",
+        label: "colher de sopa (20g)",
+        weight: 20,
+      },
+      {
+        id: "measure_taco_076_colher_cha",
+        label: "colher de chá (7g)",
+        weight: 7,
+      },
+    ],
+    alternatives: ["taco_016", "food_mel", "food_agave"],
   },
 ];

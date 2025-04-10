@@ -103,6 +103,14 @@ export default function WeightProgressChart({
       // Para "all", não precisamos filtrar
     }
 
+    // Garantir que temos dados depois da filtragem
+    if (!filteredHistory || filteredHistory.length === 0) {
+      setWeightData([]);
+      setLabels([]);
+      setIsLoading(false);
+      return;
+    }
+
     // Preparar dados para o gráfico
     const formattedData = filteredHistory.map((entry) => ({
       weight: entry.weight,

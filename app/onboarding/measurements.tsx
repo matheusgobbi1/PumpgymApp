@@ -18,7 +18,8 @@ import { useNutrition } from "../../context/NutritionContext";
 import { validateMeasurements } from "../../utils/validations";
 import OnboardingLayout from "../../components/onboarding/OnboardingLayout";
 import { useTranslation } from "react-i18next";
-import { MotiView } from "moti";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
 
 const { width, height } = Dimensions.get("window");
 const ITEM_HEIGHT = 50;
@@ -161,6 +162,7 @@ export default function MeasurementsScreen() {
   }, [useMetric]);
 
   const handleSystemToggle = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setUseMetric(!useMetric);
 
     // Converter os valores selecionados para o novo sistema
@@ -214,6 +216,7 @@ export default function MeasurementsScreen() {
       return;
     }
 
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     updateNutritionInfo({
       height: heightNum,
       weight: weightNum,
@@ -222,14 +225,44 @@ export default function MeasurementsScreen() {
   };
 
   const handleBack = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     router.back();
+  };
+
+  const handleSelectHeight = (value: number) => {
+    Haptics.selectionAsync();
+    setSelectedHeight(value);
+  };
+
+  const handleSelectWeight = (value: number) => {
+    Haptics.selectionAsync();
+    setSelectedWeight(value);
+  };
+
+  const handleSelectFeet = (value: number) => {
+    Haptics.selectionAsync();
+    setSelectedHeight({
+      feet: value,
+      inches: selectedHeight ? (selectedHeight as any).inches || 0 : 0,
+    });
+  };
+
+  const handleSelectInches = (value: number) => {
+    Haptics.selectionAsync();
+    setSelectedHeight({
+      feet: selectedHeight ? (selectedHeight as any).feet || 5 : 5,
+      inches: value,
+    });
   };
 
   const isNextDisabled = selectedHeight === null || selectedWeight === null;
 
   const renderMetricPickers = () => (
     <View style={styles.pickersContainer}>
-      <View style={styles.pickerColumn}>
+      <Animated.View
+        style={styles.pickerColumn}
+        entering={FadeIn.duration(800).delay(100)}
+      >
         <Text style={[styles.pickerLabel, { color: colors.text }]}>
           {t("onboarding.measurements.height")}
         </Text>
@@ -258,12 +291,12 @@ export default function MeasurementsScreen() {
                       selectedHeight === cm
                         ? colors.primary + "20"
                         : "transparent",
-                    borderWidth: selectedHeight === cm ? 2 : 0,
+                    borderWidth: selectedHeight === cm ? 1 : 0,
                     borderColor:
                       selectedHeight === cm ? colors.primary : "transparent",
                   },
                 ]}
-                onPress={() => setSelectedHeight(cm)}
+                onPress={() => handleSelectHeight(cm)}
                 activeOpacity={0.7}
               >
                 <Text
@@ -282,9 +315,12 @@ export default function MeasurementsScreen() {
             ))}
           </ScrollView>
         </View>
-      </View>
+      </Animated.View>
 
-      <View style={styles.pickerColumn}>
+      <Animated.View
+        style={styles.pickerColumn}
+        entering={FadeIn.duration(800).delay(200)}
+      >
         <Text style={[styles.pickerLabel, { color: colors.text }]}>
           {t("onboarding.measurements.weight")}
         </Text>
@@ -313,12 +349,12 @@ export default function MeasurementsScreen() {
                       selectedWeight === kg
                         ? colors.primary + "20"
                         : "transparent",
-                    borderWidth: selectedWeight === kg ? 2 : 0,
+                    borderWidth: selectedWeight === kg ? 1 : 0,
                     borderColor:
                       selectedWeight === kg ? colors.primary : "transparent",
                   },
                 ]}
-                onPress={() => setSelectedWeight(kg)}
+                onPress={() => handleSelectWeight(kg)}
                 activeOpacity={0.7}
               >
                 <Text
@@ -337,14 +373,17 @@ export default function MeasurementsScreen() {
             ))}
           </ScrollView>
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
 
   const renderImperialPickers = () => (
     <View style={styles.pickersContainer}>
       <View style={styles.imperialHeightContainer}>
-        <View style={[styles.pickerColumn, { flex: 1 }]}>
+        <Animated.View
+          style={[styles.pickerColumn, { flex: 1 }]}
+          entering={FadeIn.duration(800).delay(100)}
+        >
           <Text style={[styles.pickerLabel, { color: colors.text }]}>
             {t("onboarding.measurements.feet")}
           </Text>
@@ -375,7 +414,7 @@ export default function MeasurementsScreen() {
                           : "transparent",
                       borderWidth:
                         selectedHeight && (selectedHeight as any).feet === feet
-                          ? 2
+                          ? 1
                           : 0,
                       borderColor:
                         selectedHeight && (selectedHeight as any).feet === feet
@@ -383,14 +422,7 @@ export default function MeasurementsScreen() {
                           : "transparent",
                     },
                   ]}
-                  onPress={() =>
-                    setSelectedHeight({
-                      feet,
-                      inches: selectedHeight
-                        ? (selectedHeight as any).inches || 0
-                        : 0,
-                    })
-                  }
+                  onPress={() => handleSelectFeet(feet)}
                   activeOpacity={0.7}
                 >
                   <Text
@@ -416,9 +448,12 @@ export default function MeasurementsScreen() {
               ))}
             </ScrollView>
           </View>
-        </View>
+        </Animated.View>
 
-        <View style={[styles.pickerColumn, { flex: 1, marginLeft: 10 }]}>
+        <Animated.View
+          style={[styles.pickerColumn, { flex: 1, marginLeft: 10 }]}
+          entering={FadeIn.duration(800).delay(150)}
+        >
           <Text style={[styles.pickerLabel, { color: colors.text }]}>
             {t("onboarding.measurements.inches")}
           </Text>
@@ -451,7 +486,7 @@ export default function MeasurementsScreen() {
                       borderWidth:
                         selectedHeight &&
                         (selectedHeight as any).inches === inches
-                          ? 2
+                          ? 1
                           : 0,
                       borderColor:
                         selectedHeight &&
@@ -460,14 +495,7 @@ export default function MeasurementsScreen() {
                           : "transparent",
                     },
                   ]}
-                  onPress={() =>
-                    setSelectedHeight({
-                      feet: selectedHeight
-                        ? (selectedHeight as any).feet || 5
-                        : 5,
-                      inches,
-                    })
-                  }
+                  onPress={() => handleSelectInches(inches)}
                   activeOpacity={0.7}
                 >
                   <Text
@@ -493,10 +521,13 @@ export default function MeasurementsScreen() {
               ))}
             </ScrollView>
           </View>
-        </View>
+        </Animated.View>
       </View>
 
-      <View style={styles.pickerColumn}>
+      <Animated.View
+        style={styles.pickerColumn}
+        entering={FadeIn.duration(800).delay(200)}
+      >
         <Text style={[styles.pickerLabel, { color: colors.text }]}>
           {t("onboarding.measurements.weight")}
         </Text>
@@ -525,12 +556,12 @@ export default function MeasurementsScreen() {
                       selectedWeight === lbs
                         ? colors.primary + "20"
                         : "transparent",
-                    borderWidth: selectedWeight === lbs ? 2 : 0,
+                    borderWidth: selectedWeight === lbs ? 1 : 0,
                     borderColor:
                       selectedWeight === lbs ? colors.primary : "transparent",
                   },
                 ]}
-                onPress={() => setSelectedWeight(lbs)}
+                onPress={() => handleSelectWeight(lbs)}
                 activeOpacity={0.7}
               >
                 <Text
@@ -549,7 +580,7 @@ export default function MeasurementsScreen() {
             ))}
           </ScrollView>
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
 
@@ -568,14 +599,15 @@ export default function MeasurementsScreen() {
         nextButtonDisabled={isNextDisabled}
         error={error}
       >
-        <MotiView
+        <Animated.View
           style={styles.container}
-          from={{ opacity: 0, translateY: 10 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "timing", duration: 300 }}
+          entering={FadeInDown.duration(500).springify()}
           key={`measurements-container-${useMetric ? "metric" : "imperial"}`}
         >
-          <View style={styles.toggleContainer}>
+          <Animated.View
+            style={styles.toggleContainer}
+            entering={FadeIn.duration(800)}
+          >
             <Text style={[styles.toggleLabel, { color: colors.text }]}>
               {t("onboarding.measurements.imperial")}
             </Text>
@@ -589,10 +621,10 @@ export default function MeasurementsScreen() {
             <Text style={[styles.toggleLabel, { color: colors.text }]}>
               {t("onboarding.measurements.metric")}
             </Text>
-          </View>
+          </Animated.View>
 
           {useMetric ? renderMetricPickers() : renderImperialPickers()}
-        </MotiView>
+        </Animated.View>
       </OnboardingLayout>
     </KeyboardAvoidingView>
   );

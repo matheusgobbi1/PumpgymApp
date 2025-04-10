@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -41,6 +41,17 @@ export default function CompleteRegistrationScreen() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { completeAnonymousRegistration, isAnonymous } = useAuth();
+
+  // Referência para o ScrollView
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Mapa para rastrear as posições de scroll de cada campo
+  const fieldPositionsRef = useRef<Record<string, number>>({
+    name: 0,
+    email: 130, // ajustar conforme necessário
+    password: 150, // ajustar conforme necessário
+    confirmPassword: 180, // ajustar conforme necessário
+  });
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -134,10 +145,32 @@ export default function CompleteRegistrationScreen() {
     Keyboard.dismiss();
   };
 
+  // Função para lidar com o foco dos inputs
+  const handleInputFocus = useCallback((fieldName: string) => {
+    setActiveField(fieldName);
+
+    // Rolar até a posição do campo de entrada
+    if (
+      scrollViewRef.current &&
+      fieldPositionsRef.current[fieldName] !== undefined
+    ) {
+      const yOffset = fieldPositionsRef.current[fieldName];
+
+      // Pequeno atraso para garantir que o teclado já esteja aberto
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({
+          y: yOffset,
+          animated: true,
+        });
+      }, 100);
+    }
+  }, []);
+
   return (
     <SafeAreaView
       key={`registration-container-${theme}`}
-      style={styles.container}
+      style={[styles.container, { paddingTop: 0 }]}
+      edges={["bottom"]}
     >
       <StatusBar style={theme === "dark" ? "light" : "dark"} />
 
@@ -147,9 +180,13 @@ export default function CompleteRegistrationScreen() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
         <ScrollView
+          ref={scrollViewRef}
           contentContainerStyle={[
             styles.scrollContent,
-            { backgroundColor: colors.background },
+            {
+              backgroundColor: colors.background,
+              paddingTop: 0,
+            },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -284,7 +321,7 @@ export default function CompleteRegistrationScreen() {
                           value={name}
                           onChangeText={setName}
                           autoCapitalize="words"
-                          onFocus={() => setActiveField("name")}
+                          onFocus={() => handleInputFocus("name")}
                           onBlur={() => setActiveField("")}
                           leftIcon="person-outline"
                           isActive={activeField === "name"}
@@ -301,7 +338,7 @@ export default function CompleteRegistrationScreen() {
                           onChangeText={setEmail}
                           keyboardType="email-address"
                           autoCapitalize="none"
-                          onFocus={() => setActiveField("email")}
+                          onFocus={() => handleInputFocus("email")}
                           onBlur={() => setActiveField("")}
                           leftIcon="mail-outline"
                           isActive={activeField === "email"}
@@ -317,13 +354,18 @@ export default function CompleteRegistrationScreen() {
                         onPress={nextStep}
                         activeOpacity={0.8}
                       >
-                        <Text style={styles.nextButtonText}>
+                        <Text
+                          style={[
+                            styles.nextButtonText,
+                            { color: theme === "dark" ? "black" : "white" },
+                          ]}
+                        >
                           {t("completeRegistration.buttons.continue")}
                         </Text>
                         <Ionicons
                           name="arrow-forward"
                           size={20}
-                          color="white"
+                          color={theme === "dark" ? "black" : "white"}
                         />
                       </TouchableOpacity>
 
@@ -433,7 +475,7 @@ export default function CompleteRegistrationScreen() {
                           value={password}
                           onChangeText={handlePasswordChange}
                           secureTextEntry={!showPassword}
-                          onFocus={() => setActiveField("password")}
+                          onFocus={() => handleInputFocus("password")}
                           onBlur={() => setActiveField("")}
                           leftIcon="lock-closed-outline"
                           rightIcon={
@@ -490,7 +532,7 @@ export default function CompleteRegistrationScreen() {
                           value={confirmPassword}
                           onChangeText={setConfirmPassword}
                           secureTextEntry={!showConfirmPassword}
-                          onFocus={() => setActiveField("confirmPassword")}
+                          onFocus={() => handleInputFocus("confirmPassword")}
                           onBlur={() => setActiveField("")}
                           leftIcon="shield-checkmark-outline"
                           rightIcon={
@@ -544,12 +586,17 @@ export default function CompleteRegistrationScreen() {
                               <Ionicons
                                 name="sync"
                                 size={24}
-                                color="white"
+                                color={theme === "dark" ? "black" : "white"}
                                 style={styles.loadingIcon}
                               />
                             </MotiView>
                           ) : (
-                            <Text style={styles.createAccountButtonText}>
+                            <Text
+                              style={[
+                                styles.createAccountButtonText,
+                                { color: theme === "dark" ? "black" : "white" },
+                              ]}
+                            >
                               {t("completeRegistration.buttons.createAccount")}
                             </Text>
                           )}
@@ -687,7 +734,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   nextButtonText: {
-    color: "white",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -738,7 +784,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   createAccountButtonText: {
-    color: "white",
     fontSize: 16,
     fontWeight: "600",
   },

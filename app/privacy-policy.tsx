@@ -6,21 +6,30 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../constants/Colors";
 import { useTheme } from "../context/ThemeContext";
 
 export default function PrivacyPolicyScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const colors = Colors[theme];
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+          paddingTop: 0,
+        },
+      ]}
+      edges={["bottom"]}
+    >
       <StatusBar
         barStyle={theme === "dark" ? "light-content" : "dark-content"}
         backgroundColor="transparent"
@@ -32,8 +41,8 @@ export default function PrivacyPolicyScreen() {
         style={[
           styles.header,
           {
-            paddingTop: insets.top,
             backgroundColor: colors.card,
+            paddingTop: 12,
           },
         ]}
       >
@@ -52,10 +61,7 @@ export default function PrivacyPolicyScreen() {
       {/* Content */}
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[
-          styles.contentContainer,
-          { paddingBottom: insets.bottom + 20 },
-        ]}
+        contentContainerStyle={styles.contentContainer}
       >
         <Text style={[styles.lastUpdated, { color: colors.secondary }]}>
           Última atualização: {new Date().toLocaleDateString("pt-BR")}
@@ -260,7 +266,7 @@ export default function PrivacyPolicyScreen() {
         {/* Espaço extra no final para permitir deslizar mais para cima */}
         <View style={styles.extraSpace} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

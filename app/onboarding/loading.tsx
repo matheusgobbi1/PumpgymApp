@@ -80,8 +80,7 @@ export default function LoadingScreen() {
           if (step === LOADING_STEPS.length - 2) {
             try {
               calculateMacros();
-            } catch (error) {
-            }
+            } catch (error) {}
             setCalculationComplete(true);
           }
 
@@ -111,6 +110,7 @@ export default function LoadingScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["bottom"]}
     >
       <View style={styles.content}>
         <Text style={[styles.title, { color: colors.text }]}>
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 60,
+    paddingTop: 16,
     position: "relative",
   },
   title: {

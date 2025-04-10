@@ -148,7 +148,12 @@ const ConfirmationModalComponent = ({
                     onPress={handleConfirm}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
+                    <Text
+                      style={[
+                        styles.buttonText,
+                        { color: theme === "dark" ? "#000000" : "#FFFFFF" },
+                      ]}
+                    >
                       {confirmText}
                     </Text>
                   </TouchableOpacity>

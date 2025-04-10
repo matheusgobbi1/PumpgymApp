@@ -75,32 +75,31 @@ const LoginBottomSheet = ({
   const [error, setError] = useState("");
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [snapPoints, setSnapPoints] = useState<(string | number)[]>([
+    "60%",
+    "75%",
+  ]);
 
   // Bottom sheet reference
   const bottomSheetRef = useRef<BottomSheet>(null);
   const passwordInputRef = useRef<TextInput>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Snap points for bottom sheet
-  // Usamos snapPoints dinâmicos baseados no estado do teclado
-  const snapPoints = useMemo(() => {
-    // Se o teclado estiver visível, só permitimos o snapPoint maior
-    if (keyboardVisible) {
-      return ["85%"]; // Aumentei para 90% para garantir mais espaço visível
-    }
-    // Caso contrário, permitimos ambos os snapPoints
-    return ["65%", "85%"]; // Aumentei ambos os snapPoints para garantir mais espaço
-  }, [keyboardVisible]);
-
   // Referência para controlar se estamos no meio de uma animação
   const isAnimatingRef = useRef(false);
   // Referência para controlar o último snapPoint
   const lastSnapPointRef = useRef(0);
 
+  // Mapa para rastrear as posições de scroll de cada campo
+  const fieldPositionsRef = useRef({
+    email: 10,
+    password: 100, // valores aproximados, ajuste conforme necessário
+  });
+
   // Efeito para controlar a abertura e fechamento do bottom sheet
   useEffect(() => {
     if (bottomSheetIndex >= 0 && bottomSheetRef.current) {
-      // Abrir no primeiro snapPoint (70% ou 90% dependendo do estado do teclado)
+      // Abrir no primeiro snapPoint (65% ou 85% dependendo do estado do teclado)
       bottomSheetRef.current.snapToIndex(0);
       lastSnapPointRef.current = 0;
     } else if (bottomSheetIndex === -1 && bottomSheetRef.current) {
@@ -136,6 +135,8 @@ const LoginBottomSheet = ({
             setKeyboardVisible(true);
 
             // Forçar o BottomSheet a ir para o snapPoint maior
+            // e ajustar o snapPoint para 80% para mais espaço
+            setSnapPoints(["80%"]);
             if (bottomSheetRef.current) {
               bottomSheetRef.current.snapToIndex(0);
             }
@@ -150,6 +151,8 @@ const LoginBottomSheet = ({
           setKeyboardVisible(true);
 
           // Forçar o BottomSheet a ir para o snapPoint maior
+          // e ajustar o snapPoint para 80% para mais espaço
+          setSnapPoints(["80%"]);
           if (bottomSheetRef.current) {
             bottomSheetRef.current.snapToIndex(0);
           }
@@ -162,6 +165,9 @@ const LoginBottomSheet = ({
         ? Keyboard.addListener("keyboardWillHide", () => {
             configureLayoutAnimation();
             setKeyboardVisible(false);
+
+            // Restaurar os snapPoints originais
+            setSnapPoints(["60%", "75%"]);
           })
         : null;
 
@@ -172,6 +178,9 @@ const LoginBottomSheet = ({
           configureLayoutAnimation();
         }
         setKeyboardVisible(false);
+
+        // Restaurar os snapPoints originais
+        setSnapPoints(["60%", "75%"]);
       }
     );
 
@@ -292,11 +301,29 @@ const LoginBottomSheet = ({
   // Função para lidar com o foco dos inputs e expandir o BottomSheet
   const handleInputFocus = useCallback(
     (inputType: "email" | "password") => {
-      // Expandir para o snapPoint maior (90%) de forma segura
+      // Expandir para o snapPoint maior (80%) de forma segura
       safelyExpandBottomSheet();
 
       // Garantir que o estado de teclado visível seja atualizado
       setKeyboardVisible(true);
+
+      // Ajustar o snapPoint para dar mais espaço quando o teclado estiver aberto
+      setSnapPoints(["80%"]);
+
+      // Rolar até a posição do campo de entrada
+      if (scrollViewRef.current) {
+        // Definimos uma rolagem progressiva com base no tipo de input
+        // O campo de senha tem uma posição mais baixa, então precisamos rolar mais
+        const yOffset = fieldPositionsRef.current[inputType];
+
+        // Adicionar uma pequena animação de atraso para garantir que o teclado já esteja aberto
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({
+            y: yOffset,
+            animated: true,
+          });
+        }, 100);
+      }
     },
     [safelyExpandBottomSheet]
   );
@@ -427,10 +454,11 @@ const LoginBottomSheet = ({
         </TouchableWithoutFeedback>
 
         <ScrollView
+          ref={scrollViewRef}
           style={styles.scrollView}
           contentContainerStyle={[
             styles.scrollViewContent,
-            { paddingBottom: keyboardVisible ? 200 : 80 },
+            { paddingBottom: keyboardVisible ? 250 : 80 }, // Aumentei o espaço inferior para garantir mais margem quando o teclado está visível
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={true}

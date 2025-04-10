@@ -13,6 +13,7 @@ import { useAuth } from "../../context/AuthContext";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import ContextMenu, { MenuAction } from "../shared/ContextMenu";
 import { useTranslation } from "react-i18next";
+import { useDateLocale } from "../../hooks/useDateLocale";
 
 const { width } = Dimensions.get("window");
 
@@ -47,6 +48,7 @@ export default function HomeHeader({
   const colors = Colors[theme];
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
+  const { formatDateWithWeekday } = useDateLocale();
 
   // Usar useMemo para calcular saudação baseada na hora do dia
   const greeting = useMemo(() => {
@@ -60,20 +62,11 @@ export default function HomeHeader({
     }
   }, [t]);
 
-  // Usar useMemo para formatar a data atual
+  // Usar useMemo para formatar a data atual usando a função centralizada
   const currentDate = useMemo(() => {
     const today = new Date();
-    let options: Intl.DateTimeFormatOptions;
-
-    if (i18n.language === "pt-BR") {
-      options = { weekday: "long", day: "numeric", month: "long" };
-    } else {
-      options = { weekday: "long", month: "long", day: "numeric" };
-    }
-
-    const formattedDate = today.toLocaleDateString(i18n.language, options);
-    return formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
-  }, [i18n.language]);
+    return formatDateWithWeekday(today);
+  }, [formatDateWithWeekday]); // Depende do hook que já observa mudanças de idioma
 
   // Cor do ícone (usar a fornecida ou a de aviso padrão)
   const actualIconColor = iconColor || "#FF1F02";

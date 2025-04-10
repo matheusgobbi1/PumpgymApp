@@ -46,6 +46,8 @@ interface ButtonNewProps {
   animated?: boolean;
   uppercase?: boolean;
   elevation?: number;
+  leftComponent?: React.ReactNode;
+  rightComponent?: React.ReactNode;
 }
 
 export default function ButtonNew({
@@ -69,6 +71,8 @@ export default function ButtonNew({
   animated = true,
   uppercase = false,
   elevation = 0,
+  leftComponent,
+  rightComponent,
 }: ButtonNewProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
@@ -124,7 +128,7 @@ export default function ButtonNew({
       case "success":
         return "#fff";
       case "outline":
-        return colors.primary;
+        return theme === "dark" ? "#fff" : colors.primary;
       case "ghost":
         return colors.text;
       default:
@@ -265,6 +269,7 @@ export default function ButtonNew({
         <ActivityIndicator color={getTextColor()} size="small" />
       ) : (
         <View style={styles.contentContainer}>
+          {leftComponent}
           {iconName && iconPosition === "left" && renderIcon()}
           <Text
             style={[
@@ -280,6 +285,7 @@ export default function ButtonNew({
             {title}
           </Text>
           {iconName && iconPosition === "right" && renderIcon()}
+          {rightComponent}
         </View>
       )}
     </>
@@ -378,6 +384,9 @@ const styles = StyleSheet.create({
   text: {
     fontWeight: "600",
     textAlign: "center",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 0,
+    textShadowColor: "transparent",
   },
   iconLeft: {
     marginRight: 8,

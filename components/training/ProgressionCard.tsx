@@ -172,9 +172,13 @@ export default function ProgressionCard({
         style={[
           styles.exerciseCard,
           {
-            backgroundColor: theme === "dark" ? colors.light : "#FFFFFF",
-            borderWidth: isSelected ? 2 : 1,
-            borderColor: isSelected ? workoutColor : colors.border,
+            backgroundColor: isSelected
+              ? workoutColor + "15"
+              : theme === "dark"
+              ? colors.light
+              : "#FFFFFF",
+            borderWidth: isSelected ? 1 : 1,
+            borderColor: isSelected ? workoutColor + "50" : colors.border,
           },
         ]}
       >
@@ -189,7 +193,13 @@ export default function ProgressionCard({
               <View
                 style={[
                   styles.iconContainer,
-                  { backgroundColor: workoutColor + "20" },
+                  {
+                    backgroundColor: isSelected
+                      ? workoutColor + "30"
+                      : workoutColor + "20",
+                    borderWidth: isSelected ? 1 : 0,
+                    borderColor: isSelected ? workoutColor : "transparent",
+                  },
                 ]}
               >
                 <MaterialCommunityIcons
@@ -200,7 +210,13 @@ export default function ProgressionCard({
               </View>
               <View style={styles.textContainer}>
                 <Text
-                  style={[styles.title, { color: colors.text }]}
+                  style={[
+                    styles.title,
+                    {
+                      color: colors.text,
+                      fontWeight: isSelected ? "700" : "600",
+                    },
+                  ]}
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
@@ -256,163 +272,202 @@ export default function ProgressionCard({
                 { backgroundColor: colors.light },
               ]}
             >
-              <View style={styles.reasonContainer}>
+              <MotiView
+                from={{
+                  opacity: 0,
+                  translateY: 5,
+                }}
+                animate={{
+                  opacity: 1,
+                  translateY: 0,
+                }}
+                transition={{
+                  type: "timing",
+                  duration: 300,
+                  delay: 200,
+                }}
+                style={styles.reasonContainer}
+              >
                 <Text style={[styles.reasonText, { color: colors.secondary }]}>
                   {suggestion.reasonForSuggestion}
                 </Text>
-              </View>
+              </MotiView>
 
-              {/* Tabs para alternar entre treino anterior e progressão sugerida */}
-              <View style={styles.tabsContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.tabButton,
-                    activeTab === "previous" && {
-                      borderBottomWidth: 2,
-                      borderBottomColor: colors.secondary,
-                    },
-                  ]}
-                  onPress={(e) => {
-                    e.stopPropagation(); // Prevenir que o card seja selecionado
-                    setActiveTab("previous");
-                  }}
-                >
-                  <Text
+              <MotiView
+                from={{
+                  opacity: 0,
+                  translateY: 10,
+                }}
+                animate={{
+                  opacity: 1,
+                  translateY: 0,
+                }}
+                transition={{
+                  type: "timing",
+                  duration: 400,
+                  delay: 500,
+                }}
+              >
+                {/* Tabs para alternar entre treino anterior e progressão sugerida */}
+                <View style={styles.tabsContainer}>
+                  <TouchableOpacity
                     style={[
-                      styles.tabText,
-                      {
-                        color:
-                          activeTab === "previous"
-                            ? colors.secondary
-                            : colors.text + "80",
+                      styles.tabButton,
+                      activeTab === "previous" && {
+                        borderBottomWidth: 2,
+                        borderBottomColor: colors.secondary,
                       },
-                      activeTab === "previous" && { fontWeight: "600" },
                     ]}
+                    onPress={(e) => {
+                      e.stopPropagation(); // Prevenir que o card seja selecionado
+                      setActiveTab("previous");
+                    }}
                   >
-                    {t("progression.card.previousWorkout")}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.tabButton,
-                    activeTab === "suggested" && {
-                      borderBottomWidth: 2,
-                      borderBottomColor: workoutColor,
-                    },
-                  ]}
-                  onPress={(e) => {
-                    e.stopPropagation(); // Prevenir que o card seja selecionado
-                    setActiveTab("suggested");
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.tabText,
-                      {
-                        color:
-                          activeTab === "suggested"
-                            ? workoutColor
-                            : colors.text + "80",
-                      },
-                      activeTab === "suggested" && { fontWeight: "600" },
-                    ]}
-                  >
-                    {t("progression.card.suggestedProgression")}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Conteúdo da aba */}
-              <View style={styles.tabContent}>
-                {activeTab === "previous" ? (
-                  <View style={styles.tableContainer}>
-                    <View
-                      style={[styles.setsTable, { borderColor: colors.border }]}
+                    <Text
+                      style={[
+                        styles.tabText,
+                        {
+                          color:
+                            activeTab === "previous"
+                              ? colors.secondary
+                              : colors.text + "80",
+                        },
+                        activeTab === "previous" && { fontWeight: "600" },
+                      ]}
                     >
+                      {t("progression.card.previousWorkout")}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.tabButton,
+                      activeTab === "suggested" && {
+                        borderBottomWidth: 2,
+                        borderBottomColor: workoutColor,
+                      },
+                    ]}
+                    onPress={(e) => {
+                      e.stopPropagation(); // Prevenir que o card seja selecionado
+                      setActiveTab("suggested");
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.tabText,
+                        {
+                          color:
+                            activeTab === "suggested"
+                              ? workoutColor
+                              : colors.text + "80",
+                        },
+                        activeTab === "suggested" && { fontWeight: "600" },
+                      ]}
+                    >
+                      {t("progression.card.suggestedProgression")}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Conteúdo da aba */}
+                <View style={styles.tabContent}>
+                  {activeTab === "previous" ? (
+                    <View style={styles.tableContainer}>
                       <View
                         style={[
-                          styles.setsHeader,
-                          { backgroundColor: colors.card },
+                          styles.setsTable,
+                          { borderColor: colors.border },
                         ]}
                       >
-                        <Text
+                        <View
                           style={[
-                            styles.setsHeaderText,
-                            { color: colors.secondary },
+                            styles.setsHeader,
+                            { backgroundColor: colors.card },
                           ]}
                         >
-                          {t("progression.card.weight")}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.setsHeaderText,
-                            { color: colors.secondary },
-                          ]}
-                        >
-                          {t("progression.card.reps")}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.setsHeaderText,
-                            { color: colors.secondary },
-                          ]}
-                        >
-                          {t("progression.card.restTime")}
-                        </Text>
+                          <Text
+                            style={[
+                              styles.setsHeaderText,
+                              { color: colors.secondary },
+                            ]}
+                          >
+                            {t("progression.card.weight")}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.setsHeaderText,
+                              { color: colors.secondary },
+                            ]}
+                          >
+                            {t("progression.card.reps")}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.setsHeaderText,
+                              { color: colors.secondary },
+                            ]}
+                          >
+                            {t("progression.card.restTime")}
+                          </Text>
+                        </View>
+                        {suggestion.previousSets.map((set) =>
+                          renderSetRow(set)
+                        )}
                       </View>
-                      {suggestion.previousSets.map((set) => renderSetRow(set))}
                     </View>
-                  </View>
-                ) : (
-                  <View style={styles.tableContainer}>
-                    <View
-                      style={[styles.setsTable, { borderColor: colors.border }]}
-                    >
+                  ) : (
+                    <View style={styles.tableContainer}>
                       <View
                         style={[
-                          styles.setsHeader,
-                          { backgroundColor: colors.card },
+                          styles.setsTable,
+                          { borderColor: colors.border },
                         ]}
                       >
-                        <Text
+                        <View
                           style={[
-                            styles.setsHeaderText,
-                            { color: workoutColor },
+                            styles.setsHeader,
+                            { backgroundColor: colors.card },
                           ]}
                         >
-                          {t("progression.card.weight")}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.setsHeaderText,
-                            { color: workoutColor },
-                          ]}
-                        >
-                          {t("progression.card.reps")}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.setsHeaderText,
-                            { color: workoutColor },
-                          ]}
-                        >
-                          {t("progression.card.restTime")}
-                        </Text>
+                          <Text
+                            style={[
+                              styles.setsHeaderText,
+                              { color: workoutColor },
+                            ]}
+                          >
+                            {t("progression.card.weight")}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.setsHeaderText,
+                              { color: workoutColor },
+                            ]}
+                          >
+                            {t("progression.card.reps")}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.setsHeaderText,
+                              { color: workoutColor },
+                            ]}
+                          >
+                            {t("progression.card.restTime")}
+                          </Text>
+                        </View>
+                        {suggestion.suggestedSets.map((set, idx) =>
+                          renderSetRow(
+                            set,
+                            true,
+                            idx < suggestion.previousSets.length
+                              ? suggestion.previousSets[idx]
+                              : undefined
+                          )
+                        )}
                       </View>
-                      {suggestion.suggestedSets.map((set, idx) =>
-                        renderSetRow(
-                          set,
-                          true,
-                          idx < suggestion.previousSets.length
-                            ? suggestion.previousSets[idx]
-                            : undefined
-                        )
-                      )}
                     </View>
-                  </View>
-                )}
-              </View>
+                  )}
+                </View>
+              </MotiView>
             </MotiView>
           )}
         </TouchableOpacity>

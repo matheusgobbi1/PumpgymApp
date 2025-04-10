@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
-  ActivityIndicator,
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -24,6 +23,7 @@ import { useMeals, Food } from "../../context/MealContext";
 import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
 import { useTranslation } from "react-i18next";
+import { getFoodCategories } from "../../data/foodDatabaseUtils";
 
 const { width } = Dimensions.get("window");
 
@@ -68,83 +68,91 @@ const recentFoods: RecentFoodItem[] = [
   },
 ];
 
-// Componente de Skeleton para os itens da lista
-const FoodItemSkeleton = ({ index }: { index: number }) => {
-  const { theme } = useTheme();
-  const colors = Colors[theme];
+// Otimizar o componente de filtro de categoria para usar memo
+const FoodCategoryFilter = React.memo(
+  ({
+    selectedCategory,
+    onSelectCategory,
+    mealColor,
+  }: {
+    selectedCategory: string | null;
+    onSelectCategory: (category: string | null) => void;
+    mealColor: string;
+  }) => {
+    const { theme } = useTheme();
+    const colors = Colors[theme];
+    const { t } = useTranslation();
 
-  return (
-    <MotiView
-      key={`skeleton-item-${index}-${theme}`}
-      from={{ opacity: 0.5 }}
-      animate={{ opacity: 1 }}
-      transition={{
-        type: "timing",
-        duration: 1000,
-        loop: true,
-        delay: index * 100,
-      }}
-      style={[styles.foodItem, { backgroundColor: colors.light }]}
-    >
-      <View style={styles.foodInfo}>
-        <MotiView
-          key={`skeleton-name-${index}-${theme}`}
-          from={{ opacity: 0.5 }}
-          animate={{ opacity: 1 }}
-          transition={{
-            type: "timing",
-            duration: 1000,
-            loop: true,
-          }}
+    // Usar useMemo para evitar recriação do array de categorias a cada renderização
+    const foodCategories = useMemo(() => getFoodCategories(), []);
+
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoryFilterContainer}
+      >
+        <TouchableOpacity
           style={[
-            styles.skeletonFoodName,
-            { backgroundColor: colors.text + "20" },
+            styles.categoryFilterItem,
+            selectedCategory === null && {
+              backgroundColor: mealColor + "20",
+            },
           ]}
-        />
-        <MotiView
-          key={`skeleton-portion-${index}-${theme}`}
-          from={{ opacity: 0.5 }}
-          animate={{ opacity: 1 }}
-          transition={{
-            type: "timing",
-            duration: 1000,
-            loop: true,
-          }}
-          style={[
-            styles.skeletonFoodCategory,
-            { backgroundColor: colors.text + "20" },
-          ]}
-        />
-      </View>
-      <MotiView
-        key={`skeleton-button-${index}-${theme}`}
-        from={{ opacity: 0.5 }}
-        animate={{ opacity: 1 }}
-        transition={{
-          type: "timing",
-          duration: 1000,
-          loop: true,
-        }}
-        style={[
-          styles.skeletonAddButton,
-          { backgroundColor: colors.text + "20" },
-        ]}
-      />
-    </MotiView>
-  );
-};
+          onPress={() => onSelectCategory(null)}
+        >
+          <Text
+            style={[
+              styles.categoryFilterText,
+              {
+                color:
+                  selectedCategory === null ? mealColor : colors.text + "80",
+              },
+            ]}
+          >
+            {t("exercise.allCategories")}
+          </Text>
+        </TouchableOpacity>
 
-// Componente de Skeleton para a lista de resultados
-const SearchResultsSkeleton = () => {
-  const { theme } = useTheme();
+        {foodCategories.map((category, index) => (
+          <TouchableOpacity
+            key={`category-${index}`}
+            style={[
+              styles.categoryFilterItem,
+              selectedCategory === category && {
+                backgroundColor: mealColor + "20",
+              },
+            ]}
+            onPress={() => onSelectCategory(category)}
+          >
+            <Text
+              style={[
+                styles.categoryFilterText,
+                {
+                  color:
+                    selectedCategory === category
+                      ? mealColor
+                      : colors.text + "80",
+                },
+              ]}
+            >
+              {t(`nutrition.categories.${category}`, {
+                defaultValue: category,
+              })}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    );
+  }
+);
 
-  return (
-    <>
-      {[...Array(8)].map((_, index) => (
-        <FoodItemSkeleton key={`skeleton_${index}_${theme}`} index={index} />
-      ))}
-    </>
-  );
+// Adicionar função para remover acentos de um texto
+const removeAccents = (text: string) => {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 };
 
 export default function AddFoodScreen() {
@@ -155,8 +163,8 @@ export default function AddFoodScreen() {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<FoodItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const {
     meals,
     selectedDate,
@@ -178,14 +186,6 @@ export default function AddFoodScreen() {
       fat: number;
     }[]
   >([]);
-
-  // Adicionar estado para forçar re-renderização quando o tema mudar
-  const [, setForceUpdate] = useState({});
-
-  // Adicionar efeito para forçar re-renderização quando o tema mudar
-  useEffect(() => {
-    setForceUpdate({});
-  }, [theme]);
 
   // Extrair parâmetros da refeição
   const mealId = params.mealId as string;
@@ -261,180 +261,226 @@ export default function AddFoodScreen() {
     }
   }, [meals]);
 
-  // Função de busca com debounce
-  const debouncedSearch = debounce(async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
+  // Função para selecionar uma categoria - otimizada para evitar re-renderizações desnecessárias
+  const handleSelectCategory = useCallback(
+    (category: string | null) => {
+      if (category === selectedCategory) return; // Evitar re-renderização se a categoria for a mesma
 
-    setIsLoading(true);
-    setError(null);
+      setSelectedCategory(category);
 
-    try {
-      const response = await searchFoods(query);
-      setSearchResults(response.items || []);
-    } catch (err) {
-      setError(t("nutrition.addFood.searchError"));
-    } finally {
-      setIsLoading(false);
-    }
-  }, 500);
+      // Usar requestAnimationFrame para separar a operação de renderização e processamento
+      requestAnimationFrame(() => {
+        searchFoods(searchQuery, category || undefined)
+          .then((response) => {
+            setSearchResults(response.items || []);
+          })
+          .catch((err) => {
+            setError(t("nutrition.addFood.searchError"));
+          });
+      });
+    },
+    [searchQuery, selectedCategory, t]
+  );
+
+  // Função de busca com debounce - melhorar o desempenho
+  const debouncedSearch = useCallback(
+    debounce(async (query: string, category: string | null) => {
+      if (!query.trim() && !category) {
+        setSearchResults([]);
+        return;
+      }
+
+      try {
+        // Remover acentos na consulta antes de enviar
+        const normalizedQuery = removeAccents(query);
+        const response = await searchFoods(
+          normalizedQuery,
+          category || undefined
+        );
+        setSearchResults(response.items || []);
+      } catch (err) {
+        setError(t("nutrition.addFood.searchError"));
+      }
+    }, 300), // Reduzir o atraso do debounce de 500 para 300ms
+    [t]
+  );
 
   useEffect(() => {
-    debouncedSearch(searchQuery);
+    debouncedSearch(searchQuery, selectedCategory);
     return () => debouncedSearch.cancel();
-  }, [searchQuery]);
+  }, [searchQuery, selectedCategory, debouncedSearch]);
 
   // Função para adicionar alimento diretamente
-  const handleQuickAdd = async (food: {
-    name: string;
-    portion: number;
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-  }) => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  const handleQuickAdd = useCallback(
+    async (food: {
+      name: string;
+      portion: number;
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+    }) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    const newFood: Food = {
-      id: uuidv4(),
-      name: food.name,
-      calories: food.calories,
-      protein: food.protein,
-      carbs: food.carbs,
-      fat: food.fat,
-      portion: food.portion,
-    };
+      const newFood: Food = {
+        id: uuidv4(),
+        name: food.name,
+        calories: food.calories,
+        protein: food.protein,
+        carbs: food.carbs,
+        fat: food.fat,
+        portion: food.portion,
+      };
 
-    // Adicionar o alimento à refeição
-    addFoodToMeal(mealId, newFood);
+      // Adicionar o alimento à refeição
+      addFoodToMeal(mealId, newFood);
 
-    // Adicionar ao histórico de busca
-    await addToSearchHistory(newFood);
-  };
+      // Adicionar ao histórico de busca
+      await addToSearchHistory(newFood);
+    },
+    [mealId, addFoodToMeal, addToSearchHistory]
+  );
 
   // Função para adicionar alimento da pesquisa diretamente
-  const handleQuickAddFromSearch = async (food: FoodItem) => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  const handleQuickAddFromSearch = useCallback(
+    async (food: FoodItem) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    // Encontrar a porção mais adequada para exibição
-    const preferredServing = getPreferredServing(food.servings);
+      // Encontrar a porção mais adequada para exibição
+      const preferredServing = getPreferredServing(food.servings);
 
-    // Calcula os valores nutricionais baseado na porção preferida
-    const calculatedNutrients = {
-      calories: Math.round(preferredServing.calories),
-      protein: Math.round(preferredServing.protein * 10) / 10,
-      carbs: Math.round(preferredServing.carbohydrate * 10) / 10,
-      fat: Math.round(preferredServing.fat * 10) / 10,
-    };
+      // Calcula os valores nutricionais baseado na porção preferida
+      const calculatedNutrients = {
+        calories: Math.round(preferredServing.calories),
+        protein: Math.round(preferredServing.protein * 10) / 10,
+        carbs: Math.round(preferredServing.carbohydrate * 10) / 10,
+        fat: Math.round(preferredServing.fat * 10) / 10,
+      };
 
-    const newFood: Food = {
-      id: uuidv4(),
-      name: food.food_name,
-      calories: calculatedNutrients.calories,
-      protein: calculatedNutrients.protein,
-      carbs: calculatedNutrients.carbs,
-      fat: calculatedNutrients.fat,
-      portion: preferredServing.metric_serving_amount || 100,
-      portionDescription: preferredServing.serving_description,
-    };
+      const newFood: Food = {
+        id: uuidv4(),
+        name: food.food_name,
+        calories: calculatedNutrients.calories,
+        protein: calculatedNutrients.protein,
+        carbs: calculatedNutrients.carbs,
+        fat: calculatedNutrients.fat,
+        portion: preferredServing.metric_serving_amount || 100,
+        portionDescription: preferredServing.serving_description,
+      };
 
-    // Adicionar o alimento à refeição
-    addFoodToMeal(mealId, newFood);
+      // Adicionar o alimento à refeição
+      addFoodToMeal(mealId, newFood);
 
-    // Adicionar ao histórico de busca
-    await addToSearchHistory(newFood);
-  };
+      // Adicionar ao histórico de busca
+      await addToSearchHistory(newFood);
+    },
+    [mealId, addFoodToMeal, addToSearchHistory]
+  );
 
   // Função para obter a porção preferida para exibição
-  const getPreferredServing = (servings: FoodServing[]): FoodServing => {
-    if (!servings || servings.length === 0) {
-      // Fallback para uma porção padrão se não houver nenhuma
-      return {
-        serving_id: "default",
-        serving_description: "100g",
-        metric_serving_amount: 100,
-        metric_serving_unit: "g",
-        calories: 0,
-        protein: 0,
-        fat: 0,
-        carbohydrate: 0,
-      };
-    }
+  const getPreferredServing = useCallback(
+    (servings: FoodServing[]): FoodServing => {
+      if (!servings || servings.length === 0) {
+        // Fallback para uma porção padrão se não houver nenhuma
+        return {
+          serving_id: "default",
+          serving_description: "100g",
+          metric_serving_amount: 100,
+          metric_serving_unit: "g",
+          calories: 0,
+          protein: 0,
+          fat: 0,
+          carbohydrate: 0,
+        };
+      }
 
-    // Verificar se há uma porção de embalagem (como "1 unidade", "1 pacote", etc.)
-    const packageServing = servings.find(
-      (serving) =>
-        serving.serving_description.toLowerCase().includes("unidade") ||
-        serving.serving_description.toLowerCase().includes("pacote") ||
-        serving.serving_description.toLowerCase().includes("embalagem") ||
-        serving.serving_description.toLowerCase().includes("pote") ||
-        serving.serving_description.toLowerCase().includes("garrafa") ||
-        serving.serving_description.toLowerCase().includes("lata") ||
-        serving.serving_description.toLowerCase().includes("copo") ||
-        serving.serving_description.toLowerCase().includes("bar") ||
-        serving.serving_description.toLowerCase().includes("piece") ||
-        serving.serving_description.toLowerCase().includes("scoop") ||
-        serving.serving_description.toLowerCase().includes("fatia") ||
-        (serving.serving_description.toLowerCase().includes("g") &&
-          !serving.serving_description.toLowerCase().includes("100g"))
-    );
+      // Verificar se há uma porção de embalagem (como "1 unidade", "1 pacote", etc.)
+      const packageServing = servings.find(
+        (serving) =>
+          serving.serving_description.toLowerCase().includes("unidade") ||
+          serving.serving_description.toLowerCase().includes("pacote") ||
+          serving.serving_description.toLowerCase().includes("embalagem") ||
+          serving.serving_description.toLowerCase().includes("pote") ||
+          serving.serving_description.toLowerCase().includes("garrafa") ||
+          serving.serving_description.toLowerCase().includes("lata") ||
+          serving.serving_description.toLowerCase().includes("copo") ||
+          serving.serving_description.toLowerCase().includes("bar") ||
+          serving.serving_description.toLowerCase().includes("piece") ||
+          serving.serving_description.toLowerCase().includes("clara") ||
+          serving.serving_description.toLowerCase().includes("fatia") ||
+          (serving.serving_description.toLowerCase().includes("g") &&
+            !serving.serving_description.toLowerCase().includes("100g"))
+      );
 
-    // Se encontrou uma porção de embalagem, use-a
-    if (packageServing) {
-      return packageServing;
-    }
+      // Se encontrou uma porção de embalagem, use-a
+      if (packageServing) {
+        return packageServing;
+      }
 
-    // Caso contrário, use a primeira porção (geralmente 100g)
-    return servings[0];
-  };
+      // Caso contrário, use a primeira porção (geralmente 100g)
+      return servings[0];
+    },
+    []
+  );
 
   // Função para exibir a descrição da porção de forma amigável
-  const getServingDescription = (food: FoodItem): string => {
-    if (!food.servings || food.servings.length === 0) {
-      return "100g";
-    }
+  const getServingDescription = useCallback(
+    (food: FoodItem): string => {
+      if (!food.servings || food.servings.length === 0) {
+        return "100g";
+      }
 
-    const preferredServing = getPreferredServing(food.servings);
+      const preferredServing = getPreferredServing(food.servings);
 
-    // Se for uma porção especial (não apenas gramas), mostrar a descrição e calorias
-    if (
-      preferredServing.serving_description &&
-      (preferredServing.serving_description.toLowerCase().includes("unidade") ||
-        preferredServing.serving_description.toLowerCase().includes("pacote") ||
-        preferredServing.serving_description
+      // Se for uma porção especial (não apenas gramas), mostrar a descrição e calorias
+      if (
+        preferredServing.serving_description &&
+        (preferredServing.serving_description
           .toLowerCase()
-          .includes("embalagem") ||
-        preferredServing.serving_description.toLowerCase().includes("pote") ||
-        preferredServing.serving_description
-          .toLowerCase()
-          .includes("garrafa") ||
-        preferredServing.serving_description.toLowerCase().includes("lata") ||
-        preferredServing.serving_description.toLowerCase().includes("copo") ||
-        preferredServing.serving_description.toLowerCase().includes("bar") ||
-        preferredServing.serving_description.toLowerCase().includes("piece") ||
-        preferredServing.serving_description.toLowerCase().includes("scoop") ||
-        preferredServing.serving_description.toLowerCase().includes("fatia") ||
-        !preferredServing.serving_description.toLowerCase().includes("g"))
-    ) {
-      return `${preferredServing.serving_description} (${preferredServing.calories} kcal)`;
-    }
+          .includes("unidade") ||
+          preferredServing.serving_description
+            .toLowerCase()
+            .includes("pacote") ||
+          preferredServing.serving_description
+            .toLowerCase()
+            .includes("embalagem") ||
+          preferredServing.serving_description.toLowerCase().includes("pote") ||
+          preferredServing.serving_description
+            .toLowerCase()
+            .includes("garrafa") ||
+          preferredServing.serving_description.toLowerCase().includes("lata") ||
+          preferredServing.serving_description.toLowerCase().includes("copo") ||
+          preferredServing.serving_description.toLowerCase().includes("bar") ||
+          preferredServing.serving_description
+            .toLowerCase()
+            .includes("piece") ||
+          preferredServing.serving_description
+            .toLowerCase()
+            .includes("scoop") ||
+          preferredServing.serving_description
+            .toLowerCase()
+            .includes("fatia") ||
+          !preferredServing.serving_description.toLowerCase().includes("g"))
+      ) {
+        return `${preferredServing.serving_description} • ${preferredServing.calories} kcal`;
+      }
 
-    // Para porções em gramas que não são 100g, mostrar o peso
-    if (
-      preferredServing.metric_serving_amount &&
-      preferredServing.metric_serving_amount !== 100 &&
-      preferredServing.serving_description.toLowerCase().includes("g")
-    ) {
-      return `${preferredServing.serving_description} (${preferredServing.calories} kcal)`;
-    }
+      // Para porções em gramas que não são 100g, mostrar o peso
+      if (
+        preferredServing.metric_serving_amount &&
+        preferredServing.metric_serving_amount !== 100 &&
+        preferredServing.serving_description.toLowerCase().includes("g")
+      ) {
+        return `${preferredServing.serving_description} • ${preferredServing.calories} kcal`;
+      }
 
-    // Para 100g, mostrar apenas o peso
-    return `${Math.round(
-      preferredServing.metric_serving_amount || 100
-    )}g por porção`;
-  };
+      // Para 100g, mostrar apenas o peso
+      return `${Math.round(
+        preferredServing.metric_serving_amount || 100
+      )}g por porção`;
+    },
+    [getPreferredServing]
+  );
 
   const handleFoodSelect = (food: FoodItem) => {
     router.push({
@@ -466,6 +512,7 @@ export default function AddFoodScreen() {
     protein: number;
     carbs: number;
     fat: number;
+    fiber?: number;
     portionDescription?: string;
   }) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -487,16 +534,13 @@ export default function AddFoodScreen() {
         fat: food.fat,
         portion: food.portion,
         portionDescription: food.portionDescription || "",
+        fiber: food.fiber?.toString() || "",
         isFromHistory: "true",
       },
     });
   };
 
   const renderSearchResults = () => {
-    if (isLoading) {
-      return <SearchResultsSkeleton />;
-    }
-
     if (error) {
       return (
         <View style={styles.centerContainer}>
@@ -513,6 +557,23 @@ export default function AddFoodScreen() {
           <Text style={[styles.emptyText, { color: colors.text }]}>
             {t("nutrition.addFood.noFoodFound")}
           </Text>
+          <TouchableOpacity
+            style={[styles.addCustomButton, { backgroundColor: mealColor }]}
+            onPress={() => {
+              router.push({
+                pathname: "/(add-food)/quick-add",
+                params: {
+                  mealId,
+                  mealColor,
+                  customName: searchQuery,
+                },
+              });
+            }}
+          >
+            <Text style={styles.addCustomButtonText}>
+              {t("nutrition.addFood.quickAdd")}
+            </Text>
+          </TouchableOpacity>
         </View>
       );
     }
@@ -531,7 +592,7 @@ export default function AddFoodScreen() {
           key={`${result.food_id}_${index}_${theme}`}
           from={{ opacity: 0, translateY: 20 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ delay: index * 100 }}
+          transition={{ delay: index * 50 }}
         >
           <TouchableOpacity
             key={`food-item-${result.food_id}-${theme}`}
@@ -602,6 +663,8 @@ export default function AddFoodScreen() {
           placeholderTextColor={colors.text + "80"}
           value={searchQuery}
           onChangeText={setSearchQuery}
+          autoCorrect={false}
+          spellCheck={false}
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity
@@ -613,23 +676,61 @@ export default function AddFoodScreen() {
         )}
       </View>
 
+      {/* Categoria Filter */}
+      <View style={styles.filterWrapper}>
+        <FoodCategoryFilter
+          selectedCategory={selectedCategory}
+          onSelectCategory={handleSelectCategory}
+          mealColor={mealColor}
+        />
+      </View>
+
       {/* Quick Actions */}
       <View style={styles.quickActions}>
-        <TouchableOpacity
-          key={`scan-button-${theme}`}
-          style={[styles.quickActionButton, { backgroundColor: colors.light }]}
-          onPress={() => router.push("/(add-food)/barcode-scanner")}
-        >
-          <Ionicons name="barcode-outline" size={24} color={colors.primary} />
-          <Text style={[styles.quickActionText, { color: colors.text }]}>
-            {t("nutrition.addFood.scanCode")}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.quickActionWrapper}>
+          <TouchableOpacity
+            key={`scan-button-${theme}`}
+            style={[
+              styles.quickActionButton,
+              { backgroundColor: colors.light },
+            ]}
+            disabled={true}
+          >
+            <Ionicons
+              name="barcode-outline"
+              size={24}
+              color={colors.text + "40"}
+            />
+            <Text
+              style={[styles.quickActionText, { color: colors.text + "40" }]}
+            >
+              {t("nutrition.addFood.scanCode")}
+            </Text>
+          </TouchableOpacity>
+          <View
+            style={[
+              styles.comingSoonOverlay,
+              { backgroundColor: colors.background + "70" },
+            ]}
+          >
+            <Text style={[styles.comingSoonText, { color: colors.primary }]}>
+              Em breve
+            </Text>
+          </View>
+        </View>
 
         <TouchableOpacity
           key={`quick-add-button-${theme}`}
           style={[styles.quickActionButton, { backgroundColor: colors.light }]}
-          onPress={() => router.push("/(add-food)/quick-add")}
+          onPress={() =>
+            router.push({
+              pathname: "/(add-food)/quick-add",
+              params: {
+                mealId,
+                mealColor,
+              },
+            })
+          }
         >
           <Ionicons
             name="add-circle-outline"
@@ -647,7 +748,7 @@ export default function AddFoodScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Histórico de Adições Recentes */}
-        {searchHistory.length > 0 && !searchQuery && (
+        {searchHistory.length > 0 && !searchQuery && !selectedCategory && (
           <View
             key={`recent-history-${theme}`}
             style={styles.recentHistorySection}
@@ -657,17 +758,23 @@ export default function AddFoodScreen() {
                 {t("nutrition.addFood.recentlyAdded")}
               </Text>
               <TouchableOpacity onPress={clearSearchHistory}>
-                <Text
+                <View
                   style={[
-                    styles.clearHistoryText,
+                    styles.clearHistoryWrapper,
                     {
-                      color: colors.text + "80",
                       backgroundColor: colors.light,
                     },
                   ]}
                 >
-                  {t("nutrition.addFood.clear")}
-                </Text>
+                  <Text
+                    style={[
+                      styles.clearHistoryText,
+                      { color: colors.text + "80" },
+                    ]}
+                  >
+                    {t("nutrition.addFood.clear")}
+                  </Text>
+                </View>
               </TouchableOpacity>
             </View>
 
@@ -717,7 +824,7 @@ export default function AddFoodScreen() {
         )}
 
         {/* Resultados da Busca */}
-        {searchQuery.trim() && renderSearchResults()}
+        {(searchQuery.trim() || selectedCategory) && renderSearchResults()}
       </ScrollView>
     </SafeAreaView>
   );
@@ -752,6 +859,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     margin: 20,
+    marginBottom: 10,
     paddingHorizontal: 16,
     height: 50,
     borderRadius: 25,
@@ -768,6 +876,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 12,
     marginBottom: 20,
+  },
+  quickActionWrapper: {
+    flex: 1,
+    position: "relative",
   },
   quickActionButton: {
     flex: 1,
@@ -834,29 +946,6 @@ const styles = StyleSheet.create({
   macro: {
     fontSize: 14,
   },
-  skeletonFoodName: {
-    height: 16,
-    width: width * 0.4,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  skeletonFoodCategory: {
-    height: 14,
-    width: width * 0.6,
-    borderRadius: 7,
-  },
-  skeletonCalories: {
-    height: 16,
-    width: 60,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  skeletonMacro: {
-    height: 14,
-    width: 30,
-    borderRadius: 7,
-    marginHorizontal: 4,
-  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
@@ -891,22 +980,70 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginLeft: 8,
   },
-  skeletonAddButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-  },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
   },
-  clearHistoryText: {
-    fontSize: 14,
-    fontWeight: "400",
+  clearHistoryWrapper: {
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 8,
+  },
+  clearHistoryText: {
+    fontSize: 14,
+    fontWeight: "400",
+  },
+  // Estilos para o filtro de categoria
+  filterWrapper: {
+    height: 32,
+    marginBottom: 10,
+    marginTop: 0,
+  },
+  categoryFilterContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 0,
+    flexDirection: "row",
+    height: 32,
+  },
+  categoryFilterItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginRight: 8,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  categoryFilterText: {
+    fontSize: 14,
+    fontWeight: "500",
+    lineHeight: 16,
+  },
+  comingSoonOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  comingSoonText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  addCustomButton: {
+    padding: 16,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  addCustomButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
   },
 });

@@ -23,6 +23,18 @@ import Colors from "../constants/Colors";
 import "react-native-reanimated";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Notifications from "expo-notifications";
+import { useRouter } from "expo-router";
+import NotificationService from "../services/NotificationService";
+
+// Configurar como as notificações serão tratadas quando o app estiver em segundo plano
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -39,8 +51,7 @@ function LanguageInitializer() {
           await i18n.changeLanguage(savedLanguage);
         } else {
         }
-      } catch (error) {
-      }
+      } catch (error) {}
     };
 
     initLanguage();
@@ -52,6 +63,34 @@ function LanguageInitializer() {
 }
 
 export default function RootLayout() {
+  // Adicionar o listener para notificações
+  useEffect(() => {
+    // Lidar com notificações quando o app é aberto a partir de uma notificação
+    const responseListener =
+      Notifications.addNotificationResponseReceivedListener(
+        async (response) => {
+          const data = response.notification.request.content.data;
+
+          // Processar ações específicas (completar, adiar)
+          await NotificationService.handleNotificationAction(response);
+
+          // Se tiver ID do lembrete e for uma ação de toque normal (sem botão específico)
+          if (
+            data &&
+            data.reminderId &&
+            response.actionIdentifier ===
+              Notifications.DEFAULT_ACTION_IDENTIFIER
+          ) {
+            AsyncStorage.setItem("@open_reminder_id", String(data.reminderId));
+          }
+        }
+      );
+
+    return () => {
+      Notifications.removeNotificationSubscription(responseListener);
+    };
+  }, []);
+
   useEffect(() => {
     // Verificar sincronização pendente na inicialização do app
     const checkPendingSyncOnStartup = async () => {
@@ -79,15 +118,13 @@ export default function RootLayout() {
 
           // Se existirem operações pendentes, sincronizar
           if (pendingOps.length > 0 || modifiedDates.length > 0) {
-         
             // Atraso para garantir que os contexts estejam inicializados
             setTimeout(async () => {
               await SyncService.syncAll();
             }, 3000);
           }
         }
-      } catch (error) {
-      }
+      } catch (error) {}
     };
 
     checkPendingSyncOnStartup();
@@ -123,6 +160,29 @@ export default function RootLayout() {
 function AppContent() {
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const router = useRouter();
+
+  // Verificar se há intenção de abrir um lembrete específico
+  useEffect(() => {
+    const checkPendingNavigation = async () => {
+      try {
+        const reminderId = await AsyncStorage.getItem("@open_reminder_id");
+        if (reminderId) {
+          // Navegar para a tela do lembrete
+          router.push({
+            pathname: "/reminder-modal",
+            params: { id: reminderId },
+          });
+          // Limpar a intenção para não reabrir em outros momentos
+          await AsyncStorage.removeItem("@open_reminder_id");
+        }
+      } catch (error) {
+        // Ignorar erros
+      }
+    };
+
+    checkPendingNavigation();
+  }, [router]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -177,6 +237,28 @@ function AppContent() {
         />
         <Stack.Screen
           name="progression-modal"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+          }}
+        />
+        <Stack.Screen
+          name="(add-exercise)/exercise-details"
+          options={({ route }: { route: { params?: { mode?: string } } }) => ({
+            presentation: route?.params?.mode === "edit" ? "card" : "modal",
+            animation:
+              route?.params?.mode === "edit" ? "default" : "slide_from_bottom",
+          })}
+        />
+        <Stack.Screen
+          name="nutrition-recommendation-modal"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+          }}
+        />
+        <Stack.Screen
+          name="meal-distribution-config"
           options={{
             presentation: "modal",
             animation: "slide_from_bottom",

@@ -42,6 +42,8 @@ import HomeHeader from "../../components/home/HomeHeader";
 import { useTranslation } from "react-i18next";
 import { useTabPreloader } from "../../hooks/useTabPreloader";
 import TabPreloader from "../../components/TabPreloader";
+import { formatDateWithWeekday } from "../../utils/dateUtils";
+import { useDateLocale } from "../../hooks/useDateLocale";
 
 const { width } = Dimensions.get("window");
 
@@ -102,6 +104,7 @@ export default function NutritionScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { t } = useTranslation();
+  const { formatDateWithWeekday } = useDateLocale();
 
   // Estado para controlar o carregamento
   const [isUIReady, setIsUIReady] = useState(false);
@@ -122,7 +125,6 @@ export default function NutritionScreen() {
     addMealType,
     mealTypes,
     hasMealTypesConfigured,
-    resetMealTypes,
     updateMealTypes,
     saveMeals,
     copyMealFromDate,
@@ -141,9 +143,6 @@ export default function NutritionScreen() {
 
   // Estado para forçar a recriação do MealConfigSheet
   const [mealConfigKey, setMealConfigKey] = useState(Date.now());
-
-  // Estado para controlar a visibilidade do modal de confirmação
-  const [resetModalVisible, setResetModalVisible] = useState(false);
 
   // Novo estado para gerenciar modais
   const [modalInfo, setModalInfo] = useState({
@@ -229,17 +228,7 @@ export default function NutritionScreen() {
 
   // Função para formatar a data para exibição
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-
-    // Determinar o idioma atual do app (usando o mesmo idioma do i18n)
-    const currentLocale = t("language.name") === "Language" ? "en-US" : "pt-BR";
-
-    // Formatar a data normalmente
-    return date.toLocaleDateString(currentLocale, {
-      weekday: "long",
-      day: "2-digit",
-      month: "2-digit",
-    });
+    return formatDateWithWeekday(getLocalDate(dateString));
   };
 
   const dailyTotals = useMemo(() => {
@@ -327,49 +316,6 @@ export default function NutritionScreen() {
     [updateMealTypes, saveMeals, t]
   );
 
-  // Função para redefinir as refeições
-  const handleResetMealTypes = useCallback(() => {
-    // Fornecer feedback tátil imediatamente
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    // Mostrar o modal de confirmação imediatamente
-    setResetModalVisible(true);
-  }, []);
-
-  // Função para confirmar a redefinição das refeições
-  const confirmResetMealTypes = useCallback(async () => {
-    try {
-      // Fechar o modal imediatamente para melhor UX
-      setResetModalVisible(false);
-
-      // Pequeno delay para garantir que o modal foi fechado visualmente
-      // antes de processar a lógica pesada de redefinição
-      setTimeout(async () => {
-        try {
-          // Redefinir as refeições
-          const success = await resetMealTypes();
-
-          if (success) {
-            // Forçar a recriação do componente MealConfigSheet
-            setMealConfigKey(Date.now());
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          } else {
-            Alert.alert(t("common.error"), t("nutrition.errors.resetFailed"));
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          }
-        } catch (error) {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-
-          // Mostrar alerta de erro
-          Alert.alert(t("common.error"), t("nutrition.errors.resetError"));
-        }
-      }, 100);
-    } catch (error) {
-      // Fechar o modal mesmo em caso de erro
-      setResetModalVisible(false);
-    }
-  }, [resetMealTypes, t]);
-
   // Obter os tipos de refeições configuradas com uma técnica mais eficiente
   const configuredMealTypes = useMemo(() => {
     // Verificar se há tipos de refeição definidos
@@ -443,14 +389,20 @@ export default function NutritionScreen() {
         onPress: openMealConfigSheet,
       },
       {
-        id: "reset",
-        label: t("nutrition.menu.resetMeals"),
-        icon: "refresh-outline",
-        type: "danger",
-        onPress: handleResetMealTypes,
+        id: "macroDistribution",
+        label: t(
+          "nutrition.mealDistribution.configOption",
+          "Distribuição Calórica"
+        ),
+        icon: "nutrition-outline",
+        type: "default",
+        onPress: () => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push("/meal-distribution-config");
+        },
       },
     ],
-    [openMealConfigSheet, handleResetMealTypes, t]
+    [openMealConfigSheet, router, t]
   );
 
   // Verificar se há configuração e conteúdo de refeições para mostrar o menu
@@ -571,7 +523,11 @@ export default function NutritionScreen() {
           showsVerticalScrollIndicator={false}
           removeClippedSubviews={true}
         >
-          <MacrosCard dayTotals={dailyTotals} nutritionInfo={nutritionInfo} />
+          <MacrosCard
+            dayTotals={dailyTotals}
+            nutritionInfo={nutritionInfo}
+            date={selectedDate}
+          />
 
           {configuredMealTypes.map((meal, index) => (
             <MealCard
@@ -621,19 +577,6 @@ export default function NutritionScreen() {
 
         {/* Renderizar modais fora do ScrollView */}
         {renderModals()}
-
-        {/* Modal de confirmação para redefinir refeições */}
-        <ConfirmationModal
-          visible={resetModalVisible}
-          title={t("nutrition.resetModal.title")}
-          message={t("nutrition.resetModal.message")}
-          confirmText={t("nutrition.resetModal.confirm")}
-          cancelText={t("nutrition.resetModal.cancel")}
-          confirmType="danger"
-          icon="refresh-outline"
-          onConfirm={confirmResetMealTypes}
-          onCancel={() => setResetModalVisible(false)}
-        />
       </View>
     </SafeAreaView>
   );

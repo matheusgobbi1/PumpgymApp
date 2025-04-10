@@ -27,6 +27,8 @@ export default function AddFoodLayout() {
         name="quick-add"
         options={{
           headerShown: false,
+          presentation: "modal",
+          animation: "slide_from_bottom",
         }}
       />
     </Stack>

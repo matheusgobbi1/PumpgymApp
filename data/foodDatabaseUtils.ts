@@ -2,6 +2,56 @@ import { FoodData } from "../types/food";
 import { combinedFoodDatabase } from "./foodDatabase";
 import { FoodResponse, FoodItem, FoodServing } from "../types/food";
 
+// Função para remover acentos de um texto
+const removeAccents = (text: string) => {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+};
+
+// Pré-processar as categorias únicas para evitar recálculos
+const _uniqueFoodCategories = (() => {
+  const categories = combinedFoodDatabase.map(
+    (food) => food.category || "Outros"
+  );
+  return [...new Set(categories)].sort();
+})();
+
+// Crie um índice para alimentos por categoria para acesso mais rápido
+const _foodsByCategory = (() => {
+  const foodIndex = new Map<string, FoodData[]>();
+
+  // Inicializar com todas as categorias, mesmo que vazias
+  _uniqueFoodCategories.forEach((category) => {
+    foodIndex.set(category, []);
+  });
+
+  // Preencher o índice com os alimentos
+  combinedFoodDatabase.forEach((food) => {
+    const category = food.category || "Outros";
+    const categoryFoods = foodIndex.get(category) || [];
+    categoryFoods.push(food);
+    foodIndex.set(category, categoryFoods);
+  });
+
+  return foodIndex;
+})();
+
+// Função otimizada para extrair todas as categorias únicas
+export const getFoodCategories = (): string[] => {
+  return _uniqueFoodCategories;
+};
+
+// Função otimizada para buscar alimentos por categoria
+export const getFoodsByCategory = (category: string): FoodData[] => {
+  if (!category) {
+    return combinedFoodDatabase;
+  }
+
+  return _foodsByCategory.get(category) || [];
+};
+
 // Função para converter FoodData para FoodItem
 export const convertFoodDataToFoodItem = (food: FoodData): FoodItem => {
   // Criar servings a partir das measures
@@ -70,23 +120,39 @@ export const convertFoodDataToFoodItem = (food: FoodData): FoodItem => {
 };
 
 // Função para buscar alimentos no banco de dados local
-export const searchFoodsMockup = (query: string): FoodResponse => {
+export const searchFoodsMockup = (
+  query: string,
+  category?: string
+): FoodResponse => {
   if (!query || query.trim() === "") {
+    if (category) {
+      // Se não houver consulta, mas houver categoria, retornar todos os alimentos da categoria
+      const foodsByCategory = getFoodsByCategory(category);
+      const items = foodsByCategory.map((food) =>
+        convertFoodDataToFoodItem(food)
+      );
+      return { items };
+    }
     return { items: [] };
   }
 
-  const normalizedQuery = query.toLowerCase().trim();
+  const normalizedQuery = removeAccents(query.trim());
   // Dividir a consulta em palavras-chave individuais
   const keywords = normalizedQuery
     .split(/\s+/)
     .filter((keyword) => keyword.length > 1);
 
   // Buscar alimentos que contenham todas as palavras-chave no nome, em qualquer ordem
-  const results = combinedFoodDatabase.filter((food) => {
-    const normalizedName = food.name.toLowerCase();
+  let results = combinedFoodDatabase.filter((food) => {
+    const normalizedName = removeAccents(food.name);
     // Verificar se todas as palavras-chave estão presentes no nome do alimento
     return keywords.every((keyword) => normalizedName.includes(keyword));
   });
+
+  // Se houver uma categoria selecionada, filtrar por categoria
+  if (category) {
+    results = results.filter((food) => food.category === category);
+  }
 
   // Converter para o formato FoodItem
   const items = results.map((food) => convertFoodDataToFoodItem(food));

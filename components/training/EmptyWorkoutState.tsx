@@ -12,6 +12,17 @@ import { Ionicons } from "@expo/vector-icons";
 import type { Icon } from "@expo/vector-icons/build/createIconSet";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  Layout,
+  SlideInDown,
+  withSpring,
+  withTiming,
+  withSequence,
+  withDelay,
+  FadeOut,
+} from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { useWorkoutContext } from "../../context/WorkoutContext";
 import Colors from "../../constants/Colors";
@@ -36,15 +47,20 @@ const TipItem = memo(
     icon,
     text,
     color,
+    index,
   }: {
     icon: IoniconsNames;
     text: string;
     color: string;
+    index: number;
   }) => (
-    <View style={styles.tipItem}>
+    <Animated.View
+      entering={FadeInDown.delay(index * 200).springify()}
+      style={styles.tipItem}
+    >
       <Ionicons name={icon} size={20} color={color} />
       <Text style={[styles.tipText, { color: color + "70" }]}>{text}</Text>
-    </View>
+    </Animated.View>
   )
 );
 
@@ -64,7 +80,11 @@ const WorkoutTypeCard = memo(
     const iconColor = workoutType.color || colors.primary;
 
     return (
-      <View style={styles.workoutTypeCardContainer}>
+      <Animated.View
+        entering={FadeInDown.delay(index * 150).springify()}
+        layout={Layout.springify()}
+        style={styles.workoutTypeCardContainer}
+      >
         <TouchableOpacity
           style={[
             styles.workoutTypeCard,
@@ -91,7 +111,8 @@ const WorkoutTypeCard = memo(
             end={{ x: 1, y: 1 }}
             style={styles.workoutTypeGradient}
           >
-            <View
+            <Animated.View
+              entering={FadeIn.delay(index * 200).springify()}
               style={[
                 styles.workoutTypeIconContainer,
                 { backgroundColor: `${iconColor}20` },
@@ -107,13 +128,16 @@ const WorkoutTypeCard = memo(
                 size={32}
                 color={iconColor}
               />
-            </View>
-            <Text style={[styles.workoutTypeName, { color: iconColor }]}>
+            </Animated.View>
+            <Animated.Text
+              entering={FadeIn.delay(index * 250).springify()}
+              style={[styles.workoutTypeName, { color: iconColor }]}
+            >
               {workoutType.name}
-            </Text>
+            </Animated.Text>
           </LinearGradient>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
     );
   }
 );
@@ -181,8 +205,23 @@ function EmptyWorkoutState({
 
   // Renderizar o estado quando não há tipos de treino configurados
   const renderNoWorkoutTypesState = () => (
-    <View style={styles.emptyContainer}>
-      <View style={styles.illustrationContainer}>
+    <Animated.View
+      entering={FadeIn.duration(200).springify().withInitialValues({
+        opacity: 0,
+      })}
+      exiting={FadeOut.duration(150)}
+      style={styles.emptyContainer}
+    >
+      <Animated.View
+        entering={FadeIn.delay(50)
+          .duration(300)
+          .springify()
+          .withInitialValues({
+            opacity: 0,
+            transform: [{ translateY: 20 }],
+          })}
+        style={styles.illustrationContainer}
+      >
         <LinearGradient
           colors={[`${colors.primary}40`, `${colors.primary}15`]}
           style={styles.illustrationGradient}
@@ -193,21 +232,46 @@ function EmptyWorkoutState({
             <Ionicons name="barbell-outline" size={64} color={colors.primary} />
           </View>
         </LinearGradient>
-      </View>
+      </Animated.View>
 
-      <View>
+      <Animated.View
+        entering={FadeIn.delay(100)
+          .duration(300)
+          .springify()
+          .withInitialValues({
+            opacity: 0,
+            transform: [{ translateY: 15 }],
+          })}
+      >
         <Text style={[styles.title, { color: colors.text }]}>
           {t("training.emptyState.title")}
         </Text>
-      </View>
+      </Animated.View>
 
-      <View>
+      <Animated.View
+        entering={FadeIn.delay(150)
+          .duration(300)
+          .springify()
+          .withInitialValues({
+            opacity: 0,
+            transform: [{ translateY: 10 }],
+          })}
+      >
         <Text style={[styles.description, { color: colors.text + "80" }]}>
           {t("training.emptyState.subtitle")}
         </Text>
-      </View>
+      </Animated.View>
 
-      <View style={styles.buttonContainer}>
+      <Animated.View
+        entering={FadeIn.delay(200)
+          .duration(300)
+          .springify()
+          .withInitialValues({
+            opacity: 0,
+            transform: [{ translateY: 10 }],
+          })}
+        style={styles.buttonContainer}
+      >
         <TouchableOpacity
           style={styles.button}
           onPress={openWorkoutConfig}
@@ -219,20 +283,32 @@ function EmptyWorkoutState({
             end={{ x: 1, y: 1 }}
             style={styles.buttonGradient}
           >
-            <Text style={styles.buttonText}>
+            <Text
+              style={[
+                styles.buttonText,
+                { color: theme === "dark" ? "#000000" : "white" },
+              ]}
+            >
               {t("training.emptyState.configButton")}
             </Text>
           </LinearGradient>
         </TouchableOpacity>
-      </View>
-    </View>
+      </Animated.View>
+    </Animated.View>
   );
 
   // Renderizar o estado quando há tipos de treino configurados
   const renderWorkoutTypesState = () => {
     return (
-      <View style={styles.workoutTypesStateContainer}>
-        <View style={styles.workoutTypesContainer}>
+      <Animated.View
+        entering={FadeIn.duration(300).springify()}
+        exiting={FadeOut.duration(150)}
+        style={styles.workoutTypesStateContainer}
+      >
+        <Animated.View
+          entering={FadeInDown.delay(100).springify()}
+          style={styles.workoutTypesContainer}
+        >
           {selectedWorkoutTypes.map((workoutType, index) => (
             <WorkoutTypeCard
               key={workoutType.id}
@@ -241,13 +317,15 @@ function EmptyWorkoutState({
               index={index}
             />
           ))}
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     );
   };
 
   return (
-    <View
+    <Animated.View
+      layout={Layout.springify()}
+      entering={FadeIn.duration(200).springify()}
       style={
         hasSelectedWorkoutTypes
           ? styles.containerWithWorkouts
@@ -257,7 +335,7 @@ function EmptyWorkoutState({
       {hasSelectedWorkoutTypes
         ? renderWorkoutTypesState()
         : renderNoWorkoutTypesState()}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -347,7 +425,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   buttonText: {
-    color: "white",
     fontSize: 17,
     fontWeight: "600",
     marginRight: 8,

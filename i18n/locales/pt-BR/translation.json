@@ -97,7 +97,12 @@
     "copy": "Copiar",
     "user": "Usuário",
     "loading": "Carregando dados...",
-    "gotIt": "Entendi"
+    "gotIt": "Entendi",
+    "close": "Fechar",
+    "pleaseWait": "Aguarde",
+    "success": "Sucesso",
+    "ok": "OK",
+    "add": "Adicionar"
   },
   "reminders": {
     "newReminder": "Novo Lembrete",
@@ -105,6 +110,16 @@
     "details": "Detalhes",
     "icon": "Ícone",
     "days": "Dias",
+    "notifications": "Notificações",
+    "notifications_short": "Notif.",
+    "notificationSettings": "Configurações de Notificações",
+    "enableNotifications": "Ativar Notificações",
+    "notificationsDescription": "Receba alertas sobre seus lembretes nos dias e horários programados",
+    "notificationTimeInfo": "Você receberá uma notificação às {{time}} nos dias selecionados",
+    "notificationNoTimeInfo": "Você receberá notificações apenas quando abrir o aplicativo, pois nenhum horário foi definido",
+    "selectedDaysCount": "Programado para {{count}} dia selecionado",
+    "selectedDaysCount_plural": "Programado para {{count}} dias selecionados",
+    "noDaysSelected": "Nenhum dia selecionado. Selecione pelo menos um para receber notificações",
     "reminderDetails": "Detalhes do Lembrete",
     "title": "Título",
     "titlePlaceholder": "Ex: Beber água",
@@ -143,15 +158,47 @@
     "errors": {
       "titleRequired": "Por favor, adicione um título para o lembrete.",
       "daysRequired": "Por favor, selecione pelo menos um dia da semana."
+    },
+    "icons": {
+      "water": "Água",
+      "pill": "Suplemento",
+      "dumbbell": "Treino",
+      "nutrition": "Refeição",
+      "timer": "Tempo",
+      "bed": "Dormir",
+      "walk": "Caminhar",
+      "scale": "Peso",
+      "heart-pulse": "Saúde"
     }
   },
   "training": {
     "title": "Seus treinos",
+    "subtitle": "Registre seus treinos",
+    "noTraining": "Nenhum treino registrado",
+    "workoutsToday": "Treinos de hoje",
+    "emptyState": {
+      "title": "Configure seus treinos",
+      "subtitle": "Personalize seus treinos para facilitar o acompanhamento do seu progresso",
+      "configButton": "Configurar Treinos"
+    },
     "menu": {
-      "editWorkouts": "Editar Treinos",
-      "muteNotifications": "Silenciar Notificações",
-      "enableNotifications": "Ativar Notificações",
-      "resetWorkouts": "Redefinir Treinos"
+      "editWorkouts": "Editar tipos de treino",
+      "muteNotifications": "Silenciar notificações",
+      "enableNotifications": "Ativar notificações",
+      "resetWorkouts": "Redefinir todos os treinos",
+      "deleteWorkout": "Excluir este treino"
+    },
+    "resetModal": {
+      "title": "Redefinir treinos",
+      "message": "Isso excluirá todos os tipos de treino configurados e seus respectivos exercícios. Esta ação não pode ser desfeita.",
+      "confirm": "Redefinir",
+      "cancel": "Cancelar"
+    },
+    "deleteWorkoutModal": {
+      "title": "Excluir treino",
+      "message": "Isso excluirá este treino e todos os seus exercícios. Você poderá selecionar outro tipo de treino depois. Esta ação não pode ser desfeita.",
+      "confirm": "Excluir",
+      "cancel": "Cancelar"
     },
     "stats": {
       "exercises": "Exercícios",
@@ -179,8 +226,8 @@
       "maintained": "Manteve",
       "firstWorkout": "Primeiro treino",
       "avgWeight": "Peso Médio",
-      "strengthProgress": "Força +",
-      "intensityIncrease": "Intensidade +",
+      "strengthProgress": "Força",
+      "intensityIncrease": "Intensidade",
       "trainingDensity": "Densidade do Treino",
       "restTime": "Tempo de Descanso",
       "summary": "Resumo",
@@ -216,11 +263,6 @@
     "deleteExerciseConfirm": "Tem certeza que deseja excluir este exercício? Esta ação não pode ser desfeita.",
     "copyWorkout": "Copiar treino {{name}}",
     "copyWorkoutFrom": "Deseja copiar o treino de {{date}}?",
-    "emptyState": {
-      "title": "Nenhum treino para hoje",
-      "subtitle": "Configure seus treinos para começar a registrar seu progresso",
-      "configButton": "Configurar Treinos"
-    },
     "tips": {
       "organize": "Organize seus treinos por grupos musculares",
       "track": "Registre exercícios, séries e repetições",
@@ -229,12 +271,6 @@
     "workoutTypes": {
       "title": "Escolha seu Treino",
       "subtitle": "Selecione o tipo de treino que deseja realizar hoje"
-    },
-    "resetModal": {
-      "title": "Redefinir Treinos",
-      "message": "Tem certeza que deseja redefinir todos os tipos de treino? Esta ação não pode ser desfeita.",
-      "confirm": "Redefinir",
-      "cancel": "Cancelar"
     },
     "errors": {
       "resetFailed": "Não foi possível redefinir os treinos. Tente novamente.",
@@ -302,7 +338,8 @@
       "year": "Ano",
       "validation": {
         "tooYoung": "Você precisa ter pelo menos 14 anos para usar o app",
-        "tooOld": "A idade máxima permitida é 100 anos"
+        "tooOld": "A idade máxima permitida é 100 anos",
+        "invalidDate": "Data inválida. Por favor, selecione uma data válida."
       }
     },
     "measurements": {
@@ -423,7 +460,8 @@
         "facebook": "Facebook",
         "tiktok": "TikTok",
         "youtube": "Youtube",
-        "google": "Google"
+        "google": "Google",
+        "other": "Outro"
       }
     },
     "loading": {
@@ -617,8 +655,62 @@
     "notesPlaceholder": "Adicione anotações sobre o exercício...",
     "intensitySection": "Configurações de intensidade"
   },
-  "yesterday": "Ontem",
-  "minutes": "minutos",
+  "dates": {
+    "today": "Hoje",
+    "yesterday": "Ontem",
+    "tomorrow": "Amanhã",
+    "formats": {
+      "short": "dd/MM/yyyy",
+      "medium": "dd 'de' MMM 'de' yyyy",
+      "long": "dd 'de' MMMM 'de' yyyy",
+      "weekday": "EEEE, dd 'de' MMMM",
+      "weekdayShort": "EEEE, dd/MM",
+      "time": "HH:mm",
+      "dateTime": "dd/MM/yyyy HH:mm"
+    },
+    "weekdays": {
+      "monday": "Segunda-feira",
+      "tuesday": "Terça-feira",
+      "wednesday": "Quarta-feira",
+      "thursday": "Quinta-feira",
+      "friday": "Sexta-feira",
+      "saturday": "Sábado",
+      "sunday": "Domingo",
+      "shortMonday": "Seg",
+      "shortTuesday": "Ter",
+      "shortWednesday": "Qua",
+      "shortThursday": "Qui",
+      "shortFriday": "Sex",
+      "shortSaturday": "Sáb",
+      "shortSunday": "Dom"
+    },
+    "months": {
+      "january": "Janeiro",
+      "february": "Fevereiro",
+      "march": "Março",
+      "april": "Abril",
+      "may": "Maio",
+      "june": "Junho",
+      "july": "Julho",
+      "august": "Agosto",
+      "september": "Setembro",
+      "october": "Outubro",
+      "november": "Novembro",
+      "december": "Dezembro",
+      "shortJanuary": "Jan",
+      "shortFebruary": "Fev",
+      "shortMarch": "Mar",
+      "shortApril": "Abr",
+      "shortMay": "Mai",
+      "shortJune": "Jun",
+      "shortJuly": "Jul",
+      "shortAugust": "Ago",
+      "shortSeptember": "Set",
+      "shortOctober": "Out",
+      "shortNovember": "Nov",
+      "shortDecember": "Dez"
+    }
+  },
   "nutrition": {
     "title": "Suas refeições",
     "menu": {
@@ -676,11 +768,18 @@
       "title": "Adicionar Alimento",
       "searchPlaceholder": "Buscar alimento...",
       "scanCode": "Escanear Código",
-      "quickAdd": "Adição Rápida",
+      "quickAdd": "Adição Manual",
       "recentlyAdded": "Adicionados Recentemente",
       "clear": "Limpar",
       "noFoodFound": "Nenhum alimento encontrado",
-      "searchError": "Erro ao buscar alimentos. Tente novamente."
+      "searchError": "Erro ao buscar alimentos. Tente novamente.",
+      "name": "Nome do Alimento",
+      "namePlaceholder": "Ex: Frango Grelhado",
+      "portion": "Porção",
+      "calories": "Calorias",
+      "protein": "Proteína",
+      "carbs": "Carboidratos",
+      "fat": "Gordura"
     },
     "foodDetails": {
       "title": "Detalhes do Alimento",
@@ -782,7 +881,60 @@
       "kcal": "kcal"
     },
     "addFirstFood": "Adicione seu primeiro alimento",
-    "mealCopiedSuccess": "Refeição copiada com sucesso!"
+    "mealCopiedSuccess": "Refeição copiada com sucesso!",
+    "recommendation": {
+      "previewValues": "Prévia dos Valores",
+      "suggestedValues": "Valores Recomendados",
+      "withSelectedFoods": "Com alimentos selecionados",
+      "ofDailyNeeds": "do seu plano diário",
+      "withCurrentSelections": "Com seleções atuais",
+      "calculating": "Calculando recomendações...",
+      "suggestedFoods": "Alimentos Sugeridos",
+      "remainingLabel": "Faltam {{calories}} kcal para completar",
+      "noFoodsFound": "Nenhuma sugestão de alimento encontrada para esta refeição.",
+      "noDataTitle": "Sem dados nutricionais",
+      "noDataDescription": "Complete seu plano nutricional para receber recomendações personalizadas para suas refeições.",
+      "addSelectedFoods": "Adicionar {{count}} alimento(s)",
+      "alert": {
+        "attention": "Atenção",
+        "selectAtLeastOne": "Selecione pelo menos um alimento para adicionar à refeição.",
+        "error": "Erro",
+        "addFailed": "Não foi possível adicionar os alimentos selecionados."
+      }
+    },
+    "mealDistribution": {
+      "title": "Distribuição Calórica",
+      "subtitle": "Personalize a distribuição calórica entre suas refeições",
+      "description": "Defina a porcentagem de calorias diárias para cada refeição. O total deve ser exatamente 100%.",
+      "mealType": "Tipo de Refeição",
+      "percentage": "Porcentagem (%)",
+      "total": "Total",
+      "totalError": "O total deve ser 100%",
+      "distributeEqually": "Distribuir igualmente",
+      "resetDefault": "Resetar",
+      "saveError": "Não foi possível salvar a configuração",
+      "resetError": "Não foi possível resetar a configuração",
+      "configOption": "Distribuição Calórica",
+      "saveSuccess": "Distribuição salva com sucesso",
+      "resetSuccess": "Distribuição resetada com sucesso",
+      "calories": "Calorias",
+      "macros": "Macronutrientes",
+      "remaining": "Faltam",
+      "excess": "Excesso de",
+      "macroValidationHint": "O total dos macronutrientes deve ser exatamente 100% para salvar"
+    },
+    "foodSuggestion": {
+      "noAlternatives": "Não há alternativas disponíveis para este alimento",
+      "alternatives": "Alternativas similares",
+      "alternativesDescription": "Encontre opções para substituir"
+    },
+    "dailyProgress": "Progresso Diário",
+    "configureMacrosMessage": "Configure suas metas de macronutrientes para acompanhar seu progresso diário",
+    "configureTargets": "Configurar Metas",
+    "loading": "Carregando...",
+    "excess": "Excesso",
+    "remaining": "Restam",
+    "targetReached": "Meta atingida"
   },
   "home": {
     "greeting": {
@@ -793,10 +945,23 @@
     "reminders": "Diário",
     "progress": "Progresso",
     "stats": {
-      "steps": "Passos",
+      "steps": "passos",
       "target": "Meta",
       "pedometerNotAvailable": "Pedômetro não disponível neste dispositivo",
-      "connect": "Conectar"
+      "connect": "Conectar",
+      "permissionDenied": "Permissão negada para acessar o pedômetro",
+      "tryAgain": "Tentar novamente",
+      "stepCount": "Contagem de Passos",
+      "permissionTitle": "Permissão Necessária",
+      "healthKitPermissionMessage": "Para acessar dados precisos de passos, conceda permissão ao Apple Health nas configurações do seu dispositivo.",
+      "dataFromAppleHealth": "Dados obtidos através do Apple Health.",
+      "dataFromPedometer": "Dados obtidos através do sensor de movimento do dispositivo.",
+      "goalReached": "Parabéns! Você atingiu sua meta diária.",
+      "progressPercentage": "{{progress}}% da meta diária completada.",
+      "goal": "Meta",
+      "noStepsData": "Nenhum dado de passos disponível. Continue usando o app para registrar seus passos.",
+      "settingsAccessIOS": "Acesse as configurações para permitir o acesso ao pedômetro",
+      "settingsAccessAndroid": "Acesse as configurações do app para permitir o acesso ao pedômetro"
     },
     "consistency": {
       "title": "Consistência",
@@ -1180,7 +1345,9 @@
       "Corda": "Corda",
       "Caixa": "Caixa",
       "Paralelas": "Paralelas",
-      "Roda": "Roda"
+      "Roda": "Roda",
+      "Piscina": "Piscina",
+      "Escada": "Escada"
     },
     "difficulty": {
       "iniciante": "Iniciante",
@@ -1350,7 +1517,17 @@
       "ex232": "Rosca de Punho com Cabo",
       "ex233": "Rosca Inversa com Cabo",
       "ex234": "Stiff com Halteres",
-      "ex235": "Levantamento Terra Sumô"
+      "ex235": "Levantamento Terra Sumô",
+      "ex236": "Natação",
+      "ex237": "Caminhada",
+      "ex238": "Subida de Escada",
+      "ex239": "Dança",
+      "ex240": "Zumba",
+      "ex241": "Jump",
+      "ex242": "Corda",
+      "ex243": "HIIT",
+      "ex244": "Hidroginástica",
+      "ex245": "Spinning"
     }
   },
   "progression": {
@@ -1435,6 +1612,26 @@
         "lowIntensityNearTarget": "Sua intensidade está baixa. Sugerimos aumentar levemente o peso e manter as repetições atuais para estimular melhor o músculo.",
         "lowIntensityLowReps": "Sua intensidade está baixa. Recomendamos um aumento significativo nas repetições."
       }
+    }
+  },
+  "permissions": {
+    "title": "Permissão Necessária",
+    "stepsMessage": "Para contar seus passos, precisamos de acesso ao pedômetro. Por favor, conceda a permissão nas configurações do aplicativo.",
+    "settings": "Configurações",
+    "cancel": "Cancelar"
+  },
+  "waterIntake": {
+    "title": "Consumo de Água",
+    "goal": "Meta",
+    "today": "Hoje",
+    "weekDays": {
+      "sunday": "D",
+      "monday": "S",
+      "tuesday": "T",
+      "wednesday": "Q",
+      "thursday": "Q",
+      "friday": "S",
+      "saturday": "S"
     }
   }
 } 

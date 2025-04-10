@@ -303,6 +303,12 @@ const WorkoutConfigSheet = forwardRef<
     // Referência interna para o bottom sheet
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 
+    // Referência para o ScrollView
+    const scrollViewRef = useRef<ScrollView>(null);
+
+    // Referência para manter controle de qual item está sendo editado e sua posição
+    const editingItemRef = useRef<{ id: string; index: number } | null>(null);
+
     // Estado para controlar os snapPoints do BottomSheet
     const [snapPoints, setSnapPoints] = useState<(string | number)[]>(["70%"]);
 
@@ -378,10 +384,37 @@ const WorkoutConfigSheet = forwardRef<
     }, []);
 
     // Iniciar edição inline
-    const startEditingWorkout = (workout: WorkoutType) => {
+    const startEditingWorkout = (workout: WorkoutType, index: number) => {
       setEditingWorkoutId(workout.id);
       setEditingWorkoutName(workout.name);
       setSelectedWorkoutForOptions(workout.id);
+
+      // Armazenar referência de qual item está sendo editado e sua posição
+      editingItemRef.current = { id: workout.id, index };
+
+      // Ajustar o snapPoint para dar mais espaço quando o teclado estiver aberto
+      // Aumentar para 90% para garantir mais espaço para os itens inferiores
+      setSnapPoints(["90%"]);
+
+      // Calcular a posição de rolagem considerando a posição do item na lista
+      // Quanto mais abaixo estiver o item, mais para cima devemos rolar
+      setTimeout(() => {
+        const itemHeight = 80; // Altura aproximada de cada item
+        // Para itens no começo da lista, rolamos menos
+        // Para itens no final da lista, rolamos mais
+        const baseOffset = index * itemHeight;
+
+        // Calculamos um offset progressivo - quanto maior o índice, mais alto rolamos
+        // Esta fórmula aumenta progressivamente o offset com base no índice
+        const progressiveOffset = Math.max(0, index > 2 ? (index - 2) * 50 : 0);
+
+        scrollViewRef.current?.scrollTo({
+          y: baseOffset + progressiveOffset,
+          animated: true,
+        });
+      }, 100);
+
+      // Feedback tátil
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     };
 
@@ -401,6 +434,8 @@ const WorkoutConfigSheet = forwardRef<
         });
       });
 
+      // Restaurar o snapPoint original após salvar
+      setSnapPoints(["70%"]);
       setEditingWorkoutId(null);
       Keyboard.dismiss();
     };
@@ -434,6 +469,8 @@ const WorkoutConfigSheet = forwardRef<
 
     // Cancelar edição do nome
     const cancelWorkoutNameEdit = () => {
+      // Restaurar o snapPoint original ao cancelar
+      setSnapPoints(["70%"]);
       setEditingWorkoutId(null);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     };
@@ -567,6 +604,77 @@ const WorkoutConfigSheet = forwardRef<
       }
     }, []);
 
+    // Função para obter a cor do treino selecionado
+    // Se houver múltiplos treinos selecionados, usamos a cor do último treino selecionado
+    const getSelectedWorkoutColor = useCallback(() => {
+      const selectedWorkouts = availableWorkoutTypes.filter((w) => w.selected);
+
+      if (selectedWorkouts.length === 0) {
+        return undefined;
+      }
+
+      // Retorna a cor do último treino selecionado
+      return selectedWorkouts[selectedWorkouts.length - 1].color;
+    }, [availableWorkoutTypes]);
+
+    // Verifica se há múltiplos treinos selecionados
+    const hasMultipleWorkoutsSelected = useCallback(() => {
+      return availableWorkoutTypes.filter((w) => w.selected).length > 1;
+    }, [availableWorkoutTypes]);
+
+    // Função para obter todas as cores dos treinos selecionados
+    const getSelectedWorkoutColors = useCallback(() => {
+      return availableWorkoutTypes
+        .filter((w) => w.selected)
+        .map((w) => w.color);
+    }, [availableWorkoutTypes]);
+
+    // Função para renderizar os indicadores de cor
+    const renderColorIndicators = () => {
+      const selectedColors = getSelectedWorkoutColors();
+
+      if (selectedColors.length === 0) return null;
+
+      // Limitar o número de indicadores para não sobrecarregar a UI
+      const maxIndicators = 4;
+      const colorsToShow = selectedColors.slice(0, maxIndicators);
+      const hasMore = selectedColors.length > maxIndicators;
+
+      return (
+        <View style={styles.colorIndicatorsContainer}>
+          {colorsToShow.map((color, index) => (
+            <View
+              key={`color-${index}`}
+              style={[
+                styles.colorIndicator,
+                {
+                  backgroundColor: color,
+                  // Um pequeno efeito de escalonamento para os círculos
+                  transform: [{ scale: 1 - index * 0.05 }],
+                  zIndex: colorsToShow.length - index,
+                  marginLeft: index > 0 ? -6 : 0, // Sobreposição parcial
+                },
+              ]}
+            />
+          ))}
+          {hasMore && (
+            <View
+              style={[
+                styles.colorIndicatorMore,
+                { backgroundColor: colors.text + "30" },
+              ]}
+            >
+              <Text
+                style={[styles.colorIndicatorMoreText, { color: colors.text }]}
+              >
+                +{selectedColors.length - maxIndicators}
+              </Text>
+            </View>
+          )}
+        </View>
+      );
+    };
+
     // Função para renderizar o backdrop (fundo escurecido)
     const renderBackdrop = useCallback(
       (props: BottomSheetBackdropProps) => (
@@ -597,13 +705,25 @@ const WorkoutConfigSheet = forwardRef<
             >
               <MotiView
                 style={styles.workoutCardWrapper}
-                from={{ opacity: 0, translateY: 50 }}
-                animate={{ opacity: 1, translateY: 0 }}
+                from={{
+                  opacity: 0,
+                  translateY: 50,
+                  translateX: (index % 2 === 0 ? -1 : 1) * 20,
+                  scale: 0.9,
+                  rotate: `${(index % 2 === 0 ? -1 : 1) * 5}deg`,
+                }}
+                animate={{
+                  opacity: 1,
+                  translateY: 0,
+                  translateX: 0,
+                  scale: 1,
+                  rotate: "0deg",
+                }}
                 transition={{
-                  type: "timing",
-                  duration: 500,
+                  type: "spring",
                   delay: index * 100,
-                  easing: Easing.out(Easing.ease),
+                  damping: 15,
+                  mass: 0.8,
                 }}
               >
                 <TouchableOpacity
@@ -677,6 +797,18 @@ const WorkoutConfigSheet = forwardRef<
                             autoFocus
                             selectTextOnFocus
                             onBlur={() => cancelWorkoutNameEdit()}
+                            onFocus={() => {
+                              // Se o item for um dos últimos da lista, garantir que ele seja bem visível
+                              if (index > 3) {
+                                // Rolar mais para cima para itens mais abaixo na lista
+                                const adjustedOffset =
+                                  index * 80 + (index - 3) * 60;
+                                scrollViewRef.current?.scrollTo({
+                                  y: adjustedOffset,
+                                  animated: true,
+                                });
+                              }
+                            }}
                             onSubmitEditing={() => saveWorkoutNameEdit(item.id)}
                             maxLength={20}
                           />
@@ -735,7 +867,7 @@ const WorkoutConfigSheet = forwardRef<
                     ) : (
                       <TouchableOpacity
                         style={styles.editButton}
-                        onPress={() => startEditingWorkout(item)}
+                        onPress={() => startEditingWorkout(item, index)}
                         hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
                       >
                         <Ionicons
@@ -753,6 +885,11 @@ const WorkoutConfigSheet = forwardRef<
                       <MotiView
                         from={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
+                        transition={{
+                          type: "spring",
+                          damping: 20,
+                          stiffness: 200,
+                        }}
                         style={styles.inlineColorSelector}
                       >
                         <ScrollView
@@ -793,6 +930,11 @@ const WorkoutConfigSheet = forwardRef<
                       <MotiView
                         from={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
+                        transition={{
+                          type: "spring",
+                          damping: 20,
+                          stiffness: 200,
+                        }}
                         style={styles.inlineIconSelector}
                       >
                         <ScrollView
@@ -878,9 +1020,16 @@ const WorkoutConfigSheet = forwardRef<
           </View>
 
           <ScrollView
+            ref={scrollViewRef}
             style={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            contentContainerStyle={[
+              styles.scrollContentContainer,
+              // Adicionar espaço extra no final do conteúdo para garantir
+              // que todos os itens possam ser rolados até a visualização completa
+              { paddingBottom: 200 },
+            ]}
           >
             {renderWorkoutTypesList()}
           </ScrollView>
@@ -888,24 +1037,49 @@ const WorkoutConfigSheet = forwardRef<
           <MotiView
             from={{ opacity: 0, translateY: 20 }}
             animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: "spring", damping: 15 }}
+            transition={{ type: "spring", damping: 15, delay: 300 }}
             style={[styles.footer, { borderTopColor: colors.border }]}
           >
-            <ButtonNew
-              title={t("workouts.configSheet.saveButton")}
-              onPress={handleSaveWorkoutTypes}
-              variant="primary"
-              disabled={
-                !availableWorkoutTypes.some((w) => w.selected) ||
-                editingWorkoutId !== null
-              }
-              style={styles.saveConfigButton}
-              textStyle={styles.saveConfigButtonText}
-              hapticFeedback="notification"
-              size="large"
-              rounded={true}
-              elevation={3}
-            />
+            <MotiView
+              animate={{
+                scale: availableWorkoutTypes.some((w) => w.selected) ? 1 : 0.95,
+                opacity: availableWorkoutTypes.some((w) => w.selected)
+                  ? 1
+                  : 0.7,
+              }}
+              transition={{
+                type: "spring",
+                damping: 15,
+              }}
+            >
+              <ButtonNew
+                title={t("workouts.configSheet.saveButton")}
+                onPress={handleSaveWorkoutTypes}
+                variant="primary"
+                disabled={
+                  !availableWorkoutTypes.some((w) => w.selected) ||
+                  editingWorkoutId !== null
+                }
+                style={
+                  getSelectedWorkoutColor()
+                    ? {
+                        ...styles.saveConfigButton,
+                        backgroundColor: getSelectedWorkoutColor(),
+                      }
+                    : styles.saveConfigButton
+                }
+                textStyle={{
+                  ...styles.saveConfigButtonText,
+                  color: "#FFFFFF",
+                  fontWeight: "700",
+                }}
+                hapticFeedback="notification"
+                size="large"
+                rounded={true}
+                elevation={0}
+                leftComponent={renderColorIndicators()}
+              />
+            </MotiView>
           </MotiView>
         </View>
       </BottomSheetModal>
@@ -955,7 +1129,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   saveConfigButtonText: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "700",
     letterSpacing: -0.3,
@@ -1040,6 +1213,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flex: 1,
+  },
+  scrollContentContainer: {
+    paddingBottom: 120, // Espaço extra no final da lista para permitir rolagem completa
   },
   customWorkoutContainer: {
     backgroundColor: "#fff",
@@ -1363,5 +1539,32 @@ const styles = StyleSheet.create({
   inlineIconList: {
     flexDirection: "row",
     paddingHorizontal: 16,
+  },
+  // Novos estilos para os indicadores de cor
+  colorIndicatorsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  colorIndicator: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: "white",
+  },
+  colorIndicatorMore: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginLeft: -2,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "white",
+  },
+  colorIndicatorMoreText: {
+    fontSize: 9,
+    fontWeight: "bold",
   },
 });

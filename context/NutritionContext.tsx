@@ -15,6 +15,7 @@ import { v4 as uuidv4 } from "uuid";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
 import { SyncService } from "../services/SyncService";
+import { CustomMealDistribution } from "../utils/nutritionDistributionAlgorithm";
 
 // Chaves para armazenamento no AsyncStorage
 const KEYS = {
@@ -27,6 +28,7 @@ const KEYS = {
   PENDING_SYNC: "pumpgym_pending_sync",
   TEMP_NUTRITION_DATA: "@temp_nutrition_data",
   MEALS_KEY: "@meals:",
+  CUSTOM_MEAL_DISTRIBUTION: "pumpgym_custom_meal_distribution",
 };
 
 // Função utilitária para arredondar valores nutricionais
@@ -106,6 +108,7 @@ export interface NutritionInfo {
   _isModifiedLocally?: boolean; // Flag interna para controle
   healthScore?: number;
   weightHistory?: WeightHistoryEntry[]; // Histórico de pesos
+  customMealDistribution?: CustomMealDistribution[]; // Distribuição personalizada de macros por refeição
 }
 
 interface NutritionContextType {
@@ -120,6 +123,13 @@ interface NutritionContextType {
   saveOnboardingStep: (step: string) => Promise<void>;
   getOnboardingStep: () => Promise<string | null>;
   getWeightHistory: () => WeightHistoryEntry[];
+  saveCustomMealDistribution: (
+    distribution: CustomMealDistribution[]
+  ) => Promise<void>;
+  resetCustomMealDistribution: () => Promise<void>;
+  updateCustomMealDistributionWhenMealTypesChange: (
+    currentMealTypeIds: string[]
+  ) => Promise<void>;
 }
 
 const NutritionContext = createContext<NutritionContextType | undefined>(
@@ -202,6 +212,39 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
     }
   }, [user]);
 
+  // Adicionar listener para sincronizar com mudanças nos tipos de refeições
+  useEffect(() => {
+    // Função para lidar com o evento de alteração de tipos de refeições
+    const handleMealTypesChanged = (event: any) => {
+      if (event && event.detail && Array.isArray(event.detail.mealTypeIds)) {
+        // Chamar a função para atualizar a distribuição de refeições
+        updateCustomMealDistributionWhenMealTypesChange(
+          event.detail.mealTypeIds
+        );
+      }
+    };
+
+    // No React Native não temos acesso ao objeto document
+    // Vamos usar uma abordagem diferente, registrando diretamente no MealContext
+    // Em um componente separado ou usando EventEmitter
+
+    // Remover a manipulação de eventos DOM
+    // document.addEventListener("mealTypesChanged", handleMealTypesChanged);
+    // return () => {
+    //   document.removeEventListener("mealTypesChanged", handleMealTypesChanged);
+    // };
+
+    // Em vez disso, vamos exportar a função para ser chamada diretamente
+    (global as any).updateNutritionMealTypes = (mealTypeIds: string[]) => {
+      updateCustomMealDistributionWhenMealTypesChange(mealTypeIds);
+    };
+
+    return () => {
+      // Limpar a função global quando o componente desmontar
+      (global as any).updateNutritionMealTypes = undefined;
+    };
+  }, [nutritionInfo]); // Dependência em nutritionInfo para ter acesso ao valor mais recente
+
   // Função para carregar dados do usuário (do Firestore ou local)
   const loadUserData = async () => {
     if (!user) return;
@@ -271,6 +314,18 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         }
         if (userData.targetDate && typeof userData.targetDate === "string") {
           userData.targetDate = new Date(userData.targetDate);
+        }
+
+        // Tentar carregar distribuição personalizada do AsyncStorage
+        try {
+          const distributionStr = await AsyncStorage.getItem(
+            `${KEYS.CUSTOM_MEAL_DISTRIBUTION}_${user.uid}`
+          );
+          if (distributionStr) {
+            userData.customMealDistribution = JSON.parse(distributionStr);
+          }
+        } catch (error) {
+          // Erro ao carregar distribuição personalizada
         }
 
         setNutritionInfo(userData);
@@ -548,8 +603,9 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         height,
         weight,
         goal,
-        weightChangeRate,
+        weightChangeRate = goal === "maintain" ? 0 : 0.5, // Valor padrão com base no objetivo
         dietType = "classic",
+        targetWeight,
       } = nutritionInfo;
 
       if (
@@ -558,11 +614,13 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         !birthDate ||
         !height ||
         !weight ||
-        !goal ||
-        !weightChangeRate
+        !goal
       ) {
         return;
       }
+
+      // Garantir que temos um peso alvo para cálculos, usar o peso atual para "maintain"
+      const effectiveTargetWeight = targetWeight || weight;
 
       // Calcular idade precisa
       const preciseAge = calculatePreciseAge(birthDate);
@@ -648,11 +706,14 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
 
       // Calcular data alvo
       let targetDate = new Date();
-      if (goal !== "maintain") {
+      if (goal !== "maintain" && effectiveTargetWeight !== weight) {
+        const actualWeightChangeRate = weightChangeRate || 0.5; // Garantir que temos um valor
         const weeksToGoal =
-          Math.abs(weight - (nutritionInfo.targetWeight || weight)) /
-          weightChangeRate;
+          Math.abs(weight - effectiveTargetWeight) / actualWeightChangeRate;
         targetDate.setDate(targetDate.getDate() + Math.round(weeksToGoal * 7));
+      } else {
+        // Para manutenção, definir data alvo como 3 meses a partir de hoje
+        targetDate.setMonth(targetDate.getMonth() + 3);
       }
 
       // Adicionar cálculo de Water Intake
@@ -667,6 +728,10 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         targetDate,
         waterIntake,
         activityLevel: trainingFrequency,
+        // Para "maintain", definir explicitamente targetWeight igual ao peso atual se não definido
+        ...(goal === "maintain" && !targetWeight
+          ? { targetWeight: weight }
+          : {}),
       });
     } catch (error) {
       // Valores padrão em caso de erro
@@ -882,7 +947,195 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
 
   // Função para obter o histórico de peso
   const getWeightHistory = () => {
-    return nutritionInfo.weightHistory || [];
+    // Garantir que sempre retornamos um array válido
+    if (!nutritionInfo || !Array.isArray(nutritionInfo.weightHistory)) {
+      return [];
+    }
+    return nutritionInfo.weightHistory;
+  };
+
+  // Função para salvar a distribuição personalizada de refeições
+  const saveCustomMealDistribution = async (
+    distribution: CustomMealDistribution[]
+  ) => {
+    if (!user) return;
+
+    try {
+      // Atualizar o estado local
+      const updatedInfo = {
+        ...nutritionInfo,
+        customMealDistribution: distribution,
+      };
+      setNutritionInfo(updatedInfo);
+
+      // Salvar no AsyncStorage
+      await AsyncStorage.setItem(
+        `${KEYS.CUSTOM_MEAL_DISTRIBUTION}_${user.uid}`,
+        JSON.stringify(distribution)
+      );
+
+      // Se estiver online, salvar no Firestore
+      const online = await OfflineStorage.isOnline();
+      if (online) {
+        try {
+          await setDoc(
+            doc(db, "nutrition", user.uid),
+            {
+              customMealDistribution: distribution,
+              updatedAt: new Date().toISOString(),
+            },
+            { merge: true }
+          );
+        } catch (firebaseError) {
+          // Erro ao salvar no Firebase
+        }
+      } else {
+        // Adicionar operação pendente
+        const pendingOp: PendingOperation = {
+          id: uuidv4(),
+          type: "update",
+          collection: "nutrition",
+          data: {
+            id: user.uid,
+            customMealDistribution: distribution,
+            updatedAt: new Date().toISOString(),
+          },
+          timestamp: Date.now(),
+        };
+
+        await OfflineStorage.addPendingOperation(pendingOp);
+      }
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  // Função para resetar a distribuição personalizada de refeições
+  const resetCustomMealDistribution = async () => {
+    if (!user) return;
+
+    try {
+      // Atualizar o estado local
+      const updatedInfo = { ...nutritionInfo };
+      delete updatedInfo.customMealDistribution;
+      setNutritionInfo(updatedInfo);
+
+      // Remover do AsyncStorage
+      await AsyncStorage.removeItem(
+        `${KEYS.CUSTOM_MEAL_DISTRIBUTION}_${user.uid}`
+      );
+
+      // Se estiver online, atualizar no Firestore
+      const online = await OfflineStorage.isOnline();
+      if (online) {
+        try {
+          await setDoc(
+            doc(db, "nutrition", user.uid),
+            {
+              customMealDistribution: null,
+              updatedAt: new Date().toISOString(),
+            },
+            { merge: true }
+          );
+        } catch (firebaseError) {
+          // Erro ao salvar no Firebase
+        }
+      } else {
+        // Adicionar operação pendente
+        const pendingOp: PendingOperation = {
+          id: uuidv4(),
+          type: "update",
+          collection: "nutrition",
+          data: {
+            id: user.uid,
+            customMealDistribution: null,
+            updatedAt: new Date().toISOString(),
+          },
+          timestamp: Date.now(),
+        };
+
+        await OfflineStorage.addPendingOperation(pendingOp);
+      }
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  // Nova função para atualizar a distribuição de refeições quando os tipos de refeições mudam
+  const updateCustomMealDistributionWhenMealTypesChange = async (
+    currentMealTypeIds: string[]
+  ) => {
+    if (!user) return;
+
+    try {
+      // Verificar se existe uma distribuição personalizada
+      if (
+        !nutritionInfo.customMealDistribution ||
+        nutritionInfo.customMealDistribution.length === 0
+      ) {
+        return;
+      }
+
+      // Criar um set com os IDs das refeições atuais para busca eficiente
+      const currentMealIds = new Set(currentMealTypeIds);
+
+      // Filtrar apenas as refeições que ainda existem
+      const validCustomDistribution =
+        nutritionInfo.customMealDistribution.filter((dist) =>
+          currentMealIds.has(dist.mealId)
+        );
+
+      // Se após a filtragem a quantidade de refeições mudou, precisamos atualizar
+      if (
+        validCustomDistribution.length !==
+        nutritionInfo.customMealDistribution.length
+      ) {
+        // Verificar se ainda temos distribuições válidas
+        if (validCustomDistribution.length === 0) {
+          // Se não sobrou nenhuma configuração válida, resetar completamente
+          await resetCustomMealDistribution();
+        } else {
+          // Abordagem 1: Redistribuir proporcionalmente para manter a proporção relativa entre as refeições restantes
+
+          // Calcular a soma dos percentuais das refeições válidas
+          const totalValidPercentage = validCustomDistribution.reduce(
+            (sum, dist) => sum + dist.percentage,
+            0
+          );
+
+          // Redistribuir os percentuais para somar 100%
+          const adjustedDistribution = validCustomDistribution.map((dist) => {
+            // Calcular a proporção relativa de cada refeição
+            const proportion = dist.percentage / totalValidPercentage;
+
+            // Aplicar a proporção para reajustar para o total de 100%
+            const adjustedPercentage = Math.round(proportion * 100);
+
+            return {
+              ...dist,
+              percentage: adjustedPercentage,
+            };
+          });
+
+          // Verificar se o total está exatamente em 100% após o arredondamento
+          const adjustedTotal = adjustedDistribution.reduce(
+            (sum, dist) => sum + dist.percentage,
+            0
+          );
+
+          // Ajustar a primeira refeição para garantir que somem exatamente 100%
+          if (adjustedTotal !== 100 && adjustedDistribution.length > 0) {
+            const diff = 100 - adjustedTotal;
+            adjustedDistribution[0].percentage += diff;
+          }
+
+          // Salvar a distribuição ajustada
+          await saveCustomMealDistribution(adjustedDistribution);
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar distribuição de refeições:", error);
+    }
   };
 
   return (
@@ -899,6 +1152,9 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         saveOnboardingStep,
         getOnboardingStep,
         getWeightHistory,
+        saveCustomMealDistribution,
+        resetCustomMealDistribution,
+        updateCustomMealDistributionWhenMealTypesChange,
       }}
     >
       {children}

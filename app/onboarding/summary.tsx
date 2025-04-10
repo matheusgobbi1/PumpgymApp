@@ -36,6 +36,7 @@ export default function SummaryScreen() {
     completeOnboarding,
     calculateMacros,
     resetNutritionInfo,
+    updateNutritionInfo,
   } = useNutrition();
   const { isAnonymous } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -50,8 +51,55 @@ export default function SummaryScreen() {
   }, [theme]);
 
   useEffect(() => {
+    // Log para debug do estado atual
+    console.log(
+      "Estado nutritionInfo na tela summary:",
+      JSON.stringify(
+        {
+          goal: nutritionInfo.goal,
+          weight: nutritionInfo.weight,
+          targetWeight: nutritionInfo.targetWeight,
+          weightChangeRate: nutritionInfo.weightChangeRate,
+        },
+        null,
+        2
+      )
+    );
+
+    // Se a taxa de mudança for 0, o objetivo deve ser "maintain"
+    if (
+      nutritionInfo.weightChangeRate === 0 &&
+      nutritionInfo.goal !== "maintain"
+    ) {
+      console.log("Corrigindo goal para maintain baseado na taxa de mudança 0");
+      updateNutritionInfo({
+        goal: "maintain",
+        targetWeight: nutritionInfo.weight || nutritionInfo.targetWeight,
+      });
+      return; // Evitar cálculos adicionais, pois o efeito será acionado novamente
+    }
+
+    // Se o objetivo for manter o peso, garantir que a taxa de mudança seja 0
+    if (
+      nutritionInfo.goal === "maintain" &&
+      nutritionInfo.weightChangeRate !== 0
+    ) {
+      console.log("Corrigindo taxa de mudança para 0 em objetivo maintain");
+      updateNutritionInfo({
+        weightChangeRate: 0,
+        targetWeight: nutritionInfo.weight || nutritionInfo.targetWeight,
+      });
+      return; // Evitar cálculos adicionais, pois o efeito será acionado novamente
+    }
+
+    // Calcular os macros
     calculateMacros();
-  }, []);
+  }, [
+    nutritionInfo.goal,
+    nutritionInfo.weightChangeRate,
+    nutritionInfo.weight,
+    nutritionInfo.targetWeight,
+  ]);
 
   // Impedir o gesto de voltar no iOS
   useEffect(() => {
@@ -134,6 +182,11 @@ export default function SummaryScreen() {
   };
 
   const getGoalText = () => {
+    // Se a taxa de mudança for 0, independente do que estiver no estado, considerar como "maintain"
+    if (nutritionInfo.weightChangeRate === 0) {
+      return t("common.goals.maintain");
+    }
+
     switch (nutritionInfo.goal) {
       case "lose":
         return t("common.goals.lose");
@@ -147,6 +200,11 @@ export default function SummaryScreen() {
   };
 
   const getGoalIcon = () => {
+    // Se a taxa de mudança for 0, usar o ícone de manutenção
+    if (nutritionInfo.weightChangeRate === 0) {
+      return "reorder-two";
+    }
+
     switch (nutritionInfo.goal) {
       case "lose":
         return "trending-down";
@@ -216,6 +274,11 @@ export default function SummaryScreen() {
   };
 
   const getGoalChipColor = () => {
+    // Se a taxa de mudança for 0, usar a cor de manutenção
+    if (nutritionInfo.weightChangeRate === 0) {
+      return "#06D6A0"; // Verde para manutenção
+    }
+
     switch (nutritionInfo.goal) {
       case "lose":
         return "#EF476F"; // Vermelho para perda de peso
@@ -786,7 +849,9 @@ export default function SummaryScreen() {
                         fontWeight: "600",
                       }}
                     >
-                      {nutritionInfo.goal === "lose"
+                      {nutritionInfo.weightChangeRate === 0
+                        ? t("common.goals.maintain")
+                        : nutritionInfo.goal === "lose"
                         ? t("common.goals.lose")
                         : nutritionInfo.goal === "gain"
                         ? t("common.goals.gain")
@@ -1080,6 +1145,35 @@ export default function SummaryScreen() {
           delay: 700,
         }}
       >
+        {/* Efeito de brilho no modo escuro */}
+        {theme === "dark" && (
+          <MotiView
+            style={{
+              position: "absolute",
+              width: "100%",
+              height: 70,
+              borderRadius: 35,
+              backgroundColor: `${colors.primary}15`,
+              transform: [{ scale: 1.05 }],
+              top: 19,
+              alignSelf: "center",
+              shadowColor: colors.primary,
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: 0.3,
+              shadowRadius: 10,
+              elevation: 10,
+            }}
+            from={{ opacity: 0.3 }}
+            animate={{ opacity: 0.5 }}
+            transition={{
+              type: "timing",
+              duration: 2000,
+              loop: true,
+              repeatReverse: true,
+            }}
+          />
+        )}
+
         <TouchableOpacity
           key={`start-button-${theme}`}
           style={[
@@ -1088,30 +1182,67 @@ export default function SummaryScreen() {
               backgroundColor: colors.primary,
               opacity: loading ? 0.7 : 1,
               shadowColor: colors.primary,
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 10,
-              elevation: 10,
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: theme === "dark" ? 0.4 : 0.3,
+              shadowRadius: theme === "dark" ? 10 : 15,
+              elevation: theme === "dark" ? 10 : 15,
+              // Adicionar um brilho externo no modo escuro com gradiente
+              ...(theme === "dark" && {
+                borderWidth: 1,
+                borderColor: `${colors.primary}40`,
+              }),
             },
           ]}
           onPress={handleStart}
           disabled={loading}
-          activeOpacity={0.8}
+          activeOpacity={0.6}
         >
           {loading ? (
-            <ActivityIndicator color="white" size="small" />
+            <ActivityIndicator
+              color={theme === "dark" ? "black" : "white"}
+              size="small"
+            />
           ) : (
-            <Text
-              style={{
-                color: "white",
-                fontSize: 18,
-                fontWeight: "700",
-                textAlign: "center",
-                letterSpacing: 0.5,
-              }}
-            >
-              {t("summary.startJourney")}
-            </Text>
+            <>
+              {theme === "dark" && (
+                <MotiView
+                  style={{
+                    position: "absolute",
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: 30,
+                    backgroundColor: `${colors.primary}15`,
+                    zIndex: -1,
+                  }}
+                  from={{ opacity: 0.3, scale: 0.95 }}
+                  animate={{ opacity: 0.5, scale: 1 }}
+                  transition={{
+                    type: "timing",
+                    duration: 1500,
+                    loop: true,
+                    repeatReverse: true,
+                  }}
+                />
+              )}
+              <Text
+                style={{
+                  color: theme === "dark" ? "black" : "white",
+                  fontSize: 20,
+                  fontWeight: "800",
+                  textAlign: "center",
+                  letterSpacing: 0.5,
+                  // Adicionar sombra ao texto para melhor contraste
+                  textShadowColor:
+                    theme === "dark"
+                      ? "rgba(255,255,255,0.2)"
+                      : "rgba(0,0,0,0.3)",
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 2,
+                }}
+              >
+                {t("summary.startJourney")}
+              </Text>
+            </>
           )}
         </TouchableOpacity>
       </MotiView>

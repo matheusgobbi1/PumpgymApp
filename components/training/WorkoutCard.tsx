@@ -1,4 +1,10 @@
-import React, { useCallback, useState, useRef, useMemo } from "react";
+import React, {
+  useCallback,
+  useState,
+  useRef,
+  useMemo,
+  useEffect,
+} from "react";
 import {
   View,
   Text,
@@ -8,6 +14,7 @@ import {
   Platform,
   UIManager,
   LayoutAnimation,
+  Pressable,
 } from "react-native";
 import {
   Ionicons,
@@ -25,6 +32,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../../context/AuthContext";
 import ConfirmationModal from "../ui/ConfirmationModal";
 import { useTranslation } from "react-i18next";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { useDateLocale } from "../../hooks/useDateLocale";
+import { formatSmartDate } from "../../utils/dateUtils";
 
 const { width } = Dimensions.get("window");
 
@@ -71,14 +81,20 @@ export default function WorkoutCard({
   const userId = user?.uid || "no-user";
   const { selectedDate, copyWorkoutFromDate } = useWorkoutContext();
   const { t } = useTranslation();
+  const { formatSmartDate } = useDateLocale();
 
   // Usar useRef para armazenar os workouts em vez de extraí-los do contexto
   // e causar rerenderizações em cascata
   const workoutsRef = useRef<any>(null);
   const { workouts } = useWorkoutContext();
 
+  // Referência para os Swipeables
+  const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
+
+  // Estado para rastrear o Swipeable atualmente aberto
+  const [activeSwipeable, setActiveSwipeable] = useState<string | null>(null);
+
   // Atualização direta da referência para reduzir operações
-  // Isso é seguro porque não causa re-renderizações e a ref é atualizada sempre que o componente renderiza
   workoutsRef.current = workouts;
 
   // Estado para controlar quais exercícios estão expandidos
@@ -93,7 +109,6 @@ export default function WorkoutCard({
   // Estados para copiar treino
   const [showCopyWorkoutModal, setShowCopyWorkoutModal] = useState(false);
   const [selectedSourceDate, setSelectedSourceDate] = useState<string>("");
-  const [showCopySuccess, setShowCopySuccess] = useState(false);
 
   // Função para resetar os exercícios expandidos
   const resetExpandedExercises = useCallback(() => {
@@ -156,54 +171,27 @@ export default function WorkoutCard({
     return volume.toString();
   };
 
-  // Função para verificar se uma data é ontem
-  const isYesterday = useCallback((dateString: string) => {
-    // Obter a data atual no fuso horário local
-    const today = new Date();
-
-    // Criar o objeto de data de ontem
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-
-    // Extrair componentes de data de ontem
-    const yesterdayYear = yesterday.getFullYear();
-    const yesterdayMonth = yesterday.getMonth() + 1;
-    const yesterdayDay = yesterday.getDate();
-
-    // Formatar a data de ontem como string no formato YYYY-MM-DD
-    const yesterdayString = `${yesterdayYear}-${String(yesterdayMonth).padStart(
-      2,
-      "0"
-    )}-${String(yesterdayDay).padStart(2, "0")}`;
-
-    // Comparar as strings de data
-    return dateString === yesterdayString;
-  }, []);
-
   // Função para formatar a data para exibição
   const formatDate = (dateString: string) => {
-    // Criar uma data no fuso horário local do Brasil (UTC-3)
-    // Formato da string de data: YYYY-MM-DD
-    const [year, month, day] = dateString.split("-").map(Number);
+    try {
+      // Importar a função getLocalDate para garantir consistência na conversão de datas
+      const { getLocalDate } = require("../../utils/dateUtils");
 
-    // Criar a data com o horário definido como meio-dia para evitar problemas de fuso horário
-    const date = new Date(year, month - 1, day, 12, 0, 0);
+      // Converter a string de data para um objeto Date no fuso horário local
+      const localDate = getLocalDate(dateString);
 
-    // Verificar se é ontem
-    if (isYesterday(dateString)) {
-      return `${t("yesterday")} (${date.toLocaleDateString("pt-BR", {
-        weekday: "long",
-        day: "2-digit",
-        month: "2-digit",
-      })})`;
+      // Validar se a data é válida
+      if (isNaN(localDate.getTime())) {
+        console.warn("Data inválida recebida:", dateString);
+        return "Data inválida";
+      }
+
+      // Usar a função do hook que já trata locales e formatos com a data local
+      return formatSmartDate(localDate);
+    } catch (error) {
+      console.error("Erro ao formatar data:", error, dateString);
+      return "Data inválida";
     }
-
-    // Formatar a data normalmente
-    return date.toLocaleDateString("pt-BR", {
-      weekday: "long",
-      day: "2-digit",
-      month: "2-digit",
-    });
   };
 
   // Função para abrir o modal de cópia
@@ -261,14 +249,6 @@ export default function WorkoutCard({
         setShowCopyWorkoutModal(false);
       }, 50);
 
-      // Mostrar mensagem de sucesso
-      setShowCopySuccess(true);
-
-      // Esconder a mensagem após 3 segundos
-      setTimeout(() => {
-        setShowCopySuccess(false);
-      }, 3000);
-
       // Executar a operação assíncrona em segundo plano
       setTimeout(async () => {
         try {
@@ -309,7 +289,7 @@ export default function WorkoutCard({
       cardioIntensity: exercise.cardioIntensity,
     };
 
-    // Navegar para a tela de detalhes do exercício como um modal
+    // Navegar para a tela de detalhes do exercício como um card (não modal) quando editando
     router.push({
       pathname: "/(add-exercise)/exercise-details",
       params: {
@@ -353,7 +333,45 @@ export default function WorkoutCard({
     </TouchableOpacity>
   );
 
-  // Função para renderizar um exercício
+  // Efeito para limpar as referências quando o componente é desmontado
+  useEffect(() => {
+    return () => {
+      // Fechar todos os swipeables quando o componente for desmontado
+      Array.from(swipeableRefs.current.entries()).forEach(([_, swipeable]) => {
+        if (swipeable) {
+          swipeable.close();
+        }
+      });
+      // Limpar as referências
+      swipeableRefs.current.clear();
+    };
+  }, []);
+
+  // Função para fechar todos os Swipeables exceto o ativo
+  const closeOtherSwipeables = useCallback((currentId: string) => {
+    Array.from(swipeableRefs.current.entries()).forEach(([id, swipeable]) => {
+      if (id !== currentId && swipeable) {
+        swipeable.close();
+      }
+    });
+  }, []);
+
+  // Função para lidar com o swipe aberto
+  const handleSwipeableOpen = useCallback(
+    (exerciseId: string) => {
+      // Fechar itens expandidos se houver algum aberto
+      if (Object.keys(expandedExercises).some((id) => expandedExercises[id])) {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setExpandedExercises({});
+      }
+
+      setActiveSwipeable(exerciseId);
+      closeOtherSwipeables(exerciseId);
+    },
+    [expandedExercises, closeOtherSwipeables]
+  );
+
+  // Função para renderizar um exercício com animação
   const renderExerciseItem = (exercise: Exercise, exerciseIndex: number) => (
     <Swipeable
       key={`exercise-${exercise.id}-${exerciseIndex}`}
@@ -362,8 +380,23 @@ export default function WorkoutCard({
       friction={2}
       overshootRight={false}
       overshootLeft={false}
+      onSwipeableOpen={() => handleSwipeableOpen(exercise.id)}
+      ref={(ref) => {
+        if (ref) {
+          swipeableRefs.current.set(exercise.id, ref);
+        } else {
+          swipeableRefs.current.delete(exercise.id);
+        }
+      }}
     >
-      <View
+      <Animated.View
+        entering={FadeInDown.delay(exerciseIndex * 100)
+          .duration(400)
+          .springify()
+          .withInitialValues({
+            opacity: 0,
+            transform: [{ translateY: 10 }],
+          })}
         style={[
           styles.exerciseItemContainer,
           { backgroundColor: colors.light },
@@ -371,17 +404,25 @@ export default function WorkoutCard({
           exerciseIndex === exercises.length - 1 && styles.lastExerciseItem,
         ]}
       >
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => toggleExerciseExpand(exercise.id)}
+        <Pressable
           style={styles.exerciseItemContent}
+          onPress={() => toggleExerciseExpand(exercise.id)}
+          onPressIn={() => {
+            // Se houver algum swipeable aberto, fechá-lo
+            if (activeSwipeable && swipeableRefs.current.has(activeSwipeable)) {
+              swipeableRefs.current.get(activeSwipeable)?.close();
+              setActiveSwipeable(null);
+            }
+          }}
         >
           <View style={styles.exerciseItemLeft}>
             <View style={styles.exerciseTextContainer}>
               <Text style={[styles.exerciseName, { color: colors.text }]}>
-                {exercise.id &&
-                exercise.id.length <= 6 &&
-                exercise.id.startsWith("ex")
+                {exercise.id.startsWith("exercise-")
+                  ? exercise.name
+                  : exercise.id &&
+                    exercise.id.length <= 6 &&
+                    exercise.id.startsWith("ex")
                   ? t(`exercises.exercises.${exercise.id}`)
                   : exercise.name}
               </Text>
@@ -454,7 +495,7 @@ export default function WorkoutCard({
               color={colors.text + "60"}
             />
           </View>
-        </TouchableOpacity>
+        </Pressable>
 
         {/* Exibir detalhes das séries quando o exercício estiver expandido */}
         {expandedExercises[exercise.id] &&
@@ -589,8 +630,74 @@ export default function WorkoutCard({
             )}
           </View>
         )}
-      </View>
+      </Animated.View>
     </Swipeable>
+  );
+
+  // Funções para os botões das ações do card
+  const renderHeaderActions = () => (
+    <View style={styles.actionButtonsContainer}>
+      {/* Botão de copiar treino */}
+      {getMostRecentWorkoutDate() && (
+        <TouchableOpacity
+          style={[
+            styles.headerActionButton,
+            {
+              borderColor: workout.color,
+              backgroundColor: workout.color + "10",
+            },
+          ]}
+          onPress={openCopyModal}
+        >
+          <Ionicons name="copy-outline" size={20} color={workout.color} />
+        </TouchableOpacity>
+      )}
+
+      {/* Botão de progressão de treino */}
+      {getMostRecentWorkoutDate() && (
+        <TouchableOpacity
+          style={[
+            styles.headerActionButton,
+            {
+              borderColor: workout.color,
+              backgroundColor: workout.color + "10",
+            },
+          ]}
+          onPress={openProgressionModal}
+        >
+          <Ionicons
+            name="trending-up-outline"
+            size={20}
+            color={workout.color}
+          />
+        </TouchableOpacity>
+      )}
+
+      {/* Botão para adicionar exercício */}
+      <TouchableOpacity
+        style={[
+          styles.headerActionButton,
+          {
+            borderColor: workout.color,
+            backgroundColor: workout.color + "10",
+          },
+        ]}
+        onPress={(e) => {
+          e.stopPropagation();
+          handleHapticFeedback();
+          router.push({
+            pathname: "/(add-exercise)",
+            params: {
+              workoutId: workout.id,
+              workoutName: workout.name,
+              workoutColor: workout.color,
+            },
+          });
+        }}
+      >
+        <Ionicons name="add" size={20} color={workout.color} />
+      </TouchableOpacity>
+    </View>
   );
 
   return (
@@ -635,7 +742,6 @@ export default function WorkoutCard({
                       { backgroundColor: workout.color + "30" },
                     ]}
                   >
-                    {/* Determinar qual biblioteca de ícones usar com base no nome */}
                     {workout.icon.includes("material-") ? (
                       <MaterialCommunityIcons
                         name={workout.icon.replace("material-", "") as any}
@@ -675,72 +781,9 @@ export default function WorkoutCard({
                     </Text>
                   </View>
                 </View>
-                <View style={styles.actionButtonsContainer}>
-                  {/* Botão de copiar treino */}
-                  {getMostRecentWorkoutDate() && (
-                    <TouchableOpacity
-                      style={[
-                        styles.headerActionButton,
-                        {
-                          borderColor: workout.color,
-                          backgroundColor: workout.color + "10",
-                        },
-                      ]}
-                      onPress={openCopyModal}
-                    >
-                      <Ionicons
-                        name="copy-outline"
-                        size={20}
-                        color={workout.color}
-                      />
-                    </TouchableOpacity>
-                  )}
 
-                  {/* Botão de progressão de treino */}
-                  {getMostRecentWorkoutDate() && (
-                    <TouchableOpacity
-                      style={[
-                        styles.headerActionButton,
-                        {
-                          borderColor: workout.color,
-                          backgroundColor: workout.color + "10",
-                        },
-                      ]}
-                      onPress={openProgressionModal}
-                    >
-                      <Ionicons
-                        name="trending-up-outline"
-                        size={20}
-                        color={workout.color}
-                      />
-                    </TouchableOpacity>
-                  )}
-
-                  {/* Botão para adicionar exercício */}
-                  <TouchableOpacity
-                    style={[
-                      styles.headerActionButton,
-                      {
-                        borderColor: workout.color,
-                        backgroundColor: workout.color + "10",
-                      },
-                    ]}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      handleHapticFeedback();
-                      router.push({
-                        pathname: "/(add-exercise)",
-                        params: {
-                          workoutId: workout.id,
-                          workoutName: workout.name,
-                          workoutColor: workout.color,
-                        },
-                      });
-                    }}
-                  >
-                    <Ionicons name="add" size={20} color={workout.color} />
-                  </TouchableOpacity>
-                </View>
+                {/* Renderizar ações do cabeçalho */}
+                {renderHeaderActions()}
               </View>
             </TouchableOpacity>
 
@@ -769,30 +812,6 @@ export default function WorkoutCard({
                       {t("training.addFirstExercise")}
                     </Text>
                   </LinearGradient>
-                </View>
-              )}
-
-              {/* Mensagem de sucesso após copiar treino */}
-              {showCopySuccess && (
-                <View
-                  style={[
-                    styles.successMessage,
-                    { backgroundColor: workout.color + "20" },
-                  ]}
-                >
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={16}
-                    color={workout.color}
-                  />
-                  <Text
-                    style={[
-                      styles.successMessageText,
-                      { color: workout.color },
-                    ]}
-                  >
-                    {t("training.workoutCopiedSuccess")}
-                  </Text>
                 </View>
               )}
             </View>
@@ -1131,21 +1150,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: "center",
     opacity: 0.8,
-  },
-  successMessage: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 10,
-    borderRadius: 12,
-    marginTop: 10,
-    marginBottom: 10,
-    alignSelf: "center",
-  },
-  successMessageText: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginLeft: 6,
-    letterSpacing: -0.2,
   },
   swipeAction: {
     justifyContent: "center",
