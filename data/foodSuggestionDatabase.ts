@@ -189,17 +189,27 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
     id: "sugg_arroz",
     name: "Arroz Branco",
     nutrients: {
-      calories: 130,
-      protein: 2.7,
-      fat: 0.3,
-      carbs: 28.2,
-      fiber: 0.4,
+      calories: 128,
+      protein: 2.5,
+      fat: 0.2,
+      carbs: 28.1,
+      fiber: 1.6,
     },
     measures: [
       {
         id: "measure_arroz_100g",
         label: "100g",
         weight: 100,
+      },
+      {
+        id: "measure_arroz_colher",
+        label: "colher de sopa cheia (25g)",
+        weight: 25,
+      },
+      {
+        id: "measure_arroz_xicara",
+        label: "xícara (160g)",
+        weight: 160,
       },
     ],
     alternatives: [
@@ -215,17 +225,27 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
     id: "sugg_arroz_integral",
     name: "Arroz Integral",
     nutrients: {
-      calories: 112,
+      calories: 124,
       protein: 2.6,
-      fat: 0.9,
-      carbs: 23.5,
-      fiber: 1.8,
+      fat: 1.0,
+      carbs: 25.8,
+      fiber: 2.7,
     },
     measures: [
       {
         id: "measure_arroz_integral_100g",
         label: "100g",
         weight: 100,
+      },
+      {
+        id: "measure_arroz_integral_colher",
+        label: "colher de sopa cheia (25g)",
+        weight: 25,
+      },
+      {
+        id: "measure_arroz_integral_xicara",
+        label: "xícara (160g)",
+        weight: 160,
       },
     ],
     alternatives: ["sugg_arroz", "sugg_quinoa", "sugg_batata_doce"],
@@ -366,22 +386,27 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
     id: "sugg_macarrao",
     name: "Macarrão Cozido",
     nutrients: {
-      calories: 157,
-      protein: 5.8,
-      fat: 0.9,
-      carbs: 30.9,
-      fiber: 1.8,
+      calories: 122,
+      protein: 3.9,
+      fat: 1.3,
+      carbs: 24.5,
+      fiber: 1.6,
     },
     measures: [
       {
         id: "measure_macarrao_pegador",
-        label: "pegador cheio (100g)",
-        weight: 100,
+        label: "pegador (110g)",
+        weight: 110,
       },
       {
         id: "measure_macarrao_100g",
         label: "100g",
         weight: 100,
+      },
+      {
+        id: "measure_macarrao_prato",
+        label: "prato raso (220g)",
+        weight: 220,
       },
     ],
     alternatives: [
@@ -585,10 +610,10 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
     id: "sugg_ovo",
     name: "Ovo",
     nutrients: {
-      calories: 136,
-      protein: 12.6,
-      fat: 9.6,
-      carbs: 1.2,
+      calories: 146,
+      protein: 13.3,
+      fat: 9.5,
+      carbs: 0.6,
       fiber: 0,
     },
     measures: [
@@ -615,17 +640,17 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
     id: "sugg_clara_ovo",
     name: "Clara de Ovo",
     nutrients: {
-      calories: 52,
-      protein: 10.9,
-      fat: 0.3,
-      carbs: 0.6,
+      calories: 57,
+      protein: 12.6,
+      fat: 0.0,
+      carbs: 0.0,
       fiber: 0,
     },
     measures: [
       {
         id: "measure_clara_unidade",
-        label: "unidade (33g)",
-        weight: 33,
+        label: "unidade (30g)",
+        weight: 30,
       },
       {
         id: "measure_clara_100g",
@@ -968,11 +993,11 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
     id: "sugg_banana",
     name: "Banana",
     nutrients: {
-      calories: 89,
-      protein: 1.1,
-      fat: 0.3,
-      carbs: 22.8,
-      fiber: 2.6,
+      calories: 98,
+      protein: 1.3,
+      fat: 0.1,
+      carbs: 26.0,
+      fiber: 2.0,
     },
     measures: [
       {
@@ -2205,11 +2230,11 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
     id: "sugg_feijao",
     name: "Feijão",
     nutrients: {
-      calories: 77,
-      protein: 5.1,
+      calories: 76,
+      protein: 4.8,
       fat: 0.5,
       carbs: 13.6,
-      fiber: 6.4,
+      fiber: 8.5,
     },
     measures: [
       {
@@ -2222,6 +2247,11 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
         label: "100g",
         weight: 100,
       },
+      {
+        id: "measure_feijao_xicara",
+        label: "xícara (180g)",
+        weight: 180,
+      },
     ],
     alternatives: ["sugg_lentilha", "sugg_grao_bico", "sugg_feijao_preto"],
     mealTypes: ["lunch", "dinner"],
@@ -2231,10 +2261,10 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
     name: "Feijão Preto",
     nutrients: {
       calories: 77,
-      protein: 5.3,
-      fat: 0.6,
-      carbs: 13.3,
-      fiber: 8.7,
+      protein: 4.5,
+      fat: 0.5,
+      carbs: 14.0,
+      fiber: 8.4,
     },
     measures: [
       {
@@ -2246,6 +2276,11 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
         id: "measure_feijao_preto_100g",
         label: "100g",
         weight: 100,
+      },
+      {
+        id: "measure_feijao_preto_xicara",
+        label: "xícara (180g)",
+        weight: 180,
       },
     ],
     alternatives: ["sugg_feijao", "sugg_lentilha", "sugg_grao_bico"],
@@ -2340,10 +2375,10 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
     id: "sugg_leite",
     name: "Leite Desnatado",
     nutrients: {
-      calories: 42,
-      protein: 3.4,
-      fat: 0.2,
-      carbs: 5.0,
+      calories: 34,
+      protein: 3.1,
+      fat: 0.35,
+      carbs: 4.6,
       fiber: 0,
     },
     measures: [
@@ -2354,7 +2389,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
       {
         id: "measure_leite_100g",
-        label: "100g",
+        label: "100ml",
         weight: 100,
       },
     ],
@@ -2428,23 +2463,6 @@ export const mealSuggestionDatabase: MealSuggestion[] = [
       carbsMax: 70,
       fatMin: 10,
       fatMax: 18,
-    },
-  },
-  {
-    id: "meal_suggestion_breakfast_4",
-    name: "Café da Manhã Proteico",
-    description: "Refeição rica em proteínas para ganho de massa muscular",
-    foods: ["sugg_omelete", "sugg_aveia", "sugg_iogurte_grego", "sugg_mirtilo"],
-    mealType: "breakfast",
-    macrosTarget: {
-      caloriesMin: 450,
-      caloriesMax: 550,
-      proteinMin: 25,
-      proteinMax: 35,
-      carbsMin: 45,
-      carbsMax: 60,
-      fatMin: 15,
-      fatMax: 25,
     },
   },
   {

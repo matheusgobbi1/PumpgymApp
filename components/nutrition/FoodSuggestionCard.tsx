@@ -80,11 +80,25 @@ export default function FoodSuggestionCard({
   }, [food.measures]);
 
   // Definir baseada em unidades ou peso
+  const foodName = food.name.toLowerCase();
+  const isCommonUnitFood =
+    foodName.includes("ovo") ||
+    foodName.includes("cookie") ||
+    foodName.includes("banana") ||
+    foodName.includes("maçã") ||
+    foodName.includes("maca") ||
+    foodName.includes("pão") ||
+    foodName.includes("pera") ||
+    foodName.includes("bolacha") ||
+    foodName.includes("fatia") ||
+    foodName.includes("unidade");
+
   const isUnitBased =
     !!unitBasedMeasure &&
-    food.id.match(
-      /(pao|banana|maca|ovo|pera|laranja|melancia|fatia|bife|file)/i
-    );
+    (food.id.match(
+      /(pao|banana|maca|ovo|pera|laranja|melancia|fatia|bife|file|cookies|bolacha|donut|unidade)/i
+    ) ||
+      isCommonUnitFood);
 
   // Configurações baseadas no tipo de medida
   const measureInfo = useMemo(() => {
@@ -141,6 +155,7 @@ export default function FoodSuggestionCard({
       // Formatar para no máximo 1 casa decimal
       const formattedUnits = Math.round(units * 10) / 10;
 
+      // Melhorar a formatação para ficar mais natural
       return `${formattedUnits} ${measureInfo.unit}${
         formattedUnits !== 1 ? "s" : ""
       }`;
@@ -193,8 +208,14 @@ export default function FoodSuggestionCard({
     }
   }, [portion, measureInfo, selectedPortion]);
 
-  // Atualizar input quando a porção selecionada mudar
+  // Flag para controlar atualizações de input via digitação vs outros métodos
+  const [isUserTyping, setIsUserTyping] = useState(false);
+
+  // Atualizar input quando a porção selecionada mudar, exceto durante digitação
   useEffect(() => {
+    // Pular atualização se o usuário estiver ativamente digitando
+    if (isUserTyping) return;
+
     if (measureInfo.isUnitBased) {
       const units = selectedPortion / measureInfo.baseWeight;
       // Formatar para no máximo 1 casa decimal
@@ -203,7 +224,7 @@ export default function FoodSuggestionCard({
     } else {
       setPortionInputValue(selectedPortion.toString());
     }
-  }, [selectedPortion, measureInfo]);
+  }, [selectedPortion, measureInfo, isUserTyping]);
 
   // Alternativas para este alimento
   const alternatives = getFoodAlternatives(food.id, nutritionInfo.dietType);
@@ -260,6 +281,9 @@ export default function FoodSuggestionCard({
 
   // Função para incrementar a porção (baseada no tipo de medida)
   const incrementPortion = () => {
+    // Não estamos digitando, mas usando botões
+    setIsUserTyping(false);
+
     let newValue;
 
     if (measureInfo.isUnitBased) {
@@ -296,6 +320,9 @@ export default function FoodSuggestionCard({
 
   // Função para decrementar a porção (baseada no tipo de medida)
   const decrementPortion = () => {
+    // Não estamos digitando, mas usando botões
+    setIsUserTyping(false);
+
     let newValue;
 
     if (measureInfo.isUnitBased) {
@@ -331,6 +358,9 @@ export default function FoodSuggestionCard({
   };
 
   const handleSliderChange = (value: number) => {
+    // Não estamos digitando, mas usando o slider
+    setIsUserTyping(false);
+
     let roundedValue;
 
     if (measureInfo.isUnitBased) {
@@ -365,6 +395,9 @@ export default function FoodSuggestionCard({
   };
 
   const handlePortionInputChange = (text: string) => {
+    // Sinalizar que o usuário está digitando
+    setIsUserTyping(true);
+
     // Permitir números e um ponto decimal
     const sanitizedText = text.replace(",", "."); // Substituir vírgula por ponto
 
@@ -398,41 +431,62 @@ export default function FoodSuggestionCard({
   };
 
   const handlePortionInputBlur = () => {
+    // Restaurar a flag quando o usuário terminar de digitar
+    setIsUserTyping(false);
+
     // Ao perder o foco, formatar corretamente o número
     if (portionInputValue === "") {
       if (measureInfo.isUnitBased) {
-        setSelectedPortion(measureInfo.min * measureInfo.baseWeight);
+        const newPortion = measureInfo.min * measureInfo.baseWeight;
+        setSelectedPortion(newPortion);
         setPortionInputValue(measureInfo.min.toString());
+
+        // Notificar o componente pai sobre a mudança na porção
+        if (onPortionChange) {
+          onPortionChange(newPortion);
+          triggerPulseAnimation();
+        }
       } else {
         setSelectedPortion(minPortion);
         setPortionInputValue(minPortion.toString());
+
+        // Notificar o componente pai sobre a mudança na porção
+        if (onPortionChange) {
+          onPortionChange(minPortion);
+          triggerPulseAnimation();
+        }
       }
     } else {
       // Converter para número e aplicar limites
       const numValue = parseFloat(portionInputValue);
+      let finalPortion = selectedPortion; // Valor padrão caso nada mude
 
       if (isNaN(numValue)) {
         if (measureInfo.isUnitBased) {
-          setSelectedPortion(measureInfo.min * measureInfo.baseWeight);
+          finalPortion = measureInfo.min * measureInfo.baseWeight;
+          setSelectedPortion(finalPortion);
           setPortionInputValue(measureInfo.min.toString());
         } else {
-          setSelectedPortion(minPortion);
+          finalPortion = minPortion;
+          setSelectedPortion(finalPortion);
           setPortionInputValue(minPortion.toString());
         }
       } else if (measureInfo.isUnitBased) {
         // Aplicar limites para unidades
         if (numValue < measureInfo.min) {
-          setSelectedPortion(measureInfo.min * measureInfo.baseWeight);
+          finalPortion = measureInfo.min * measureInfo.baseWeight;
+          setSelectedPortion(finalPortion);
           setPortionInputValue(measureInfo.min.toString());
         } else if (numValue > measureInfo.max) {
-          setSelectedPortion(measureInfo.max * measureInfo.baseWeight);
+          finalPortion = measureInfo.max * measureInfo.baseWeight;
+          setSelectedPortion(finalPortion);
           setPortionInputValue(measureInfo.max.toString());
         } else {
           // Arredondar para o valor de passo mais próximo
           const validUnits =
             Math.round(numValue / measureInfo.step) * measureInfo.step;
-          const validValue = Math.round(validUnits * measureInfo.baseWeight);
-          setSelectedPortion(validValue);
+          finalPortion = Math.round(validUnits * measureInfo.baseWeight);
+          setSelectedPortion(finalPortion);
           // Formatar para no máximo 1 casa decimal
           const formattedUnits = Math.round(validUnits * 10) / 10;
           setPortionInputValue(formattedUnits.toString());
@@ -440,23 +494,25 @@ export default function FoodSuggestionCard({
       } else {
         // Aplicar limites para gramas
         if (numValue < minPortion) {
-          setSelectedPortion(minPortion);
+          finalPortion = minPortion;
+          setSelectedPortion(finalPortion);
           setPortionInputValue(minPortion.toString());
         } else if (numValue > maxPortion) {
-          setSelectedPortion(maxPortion);
+          finalPortion = maxPortion;
+          setSelectedPortion(finalPortion);
           setPortionInputValue(maxPortion.toString());
         } else {
-          const validValue = Math.round(numValue);
-          setSelectedPortion(validValue);
-          setPortionInputValue(formatNumber(validValue).toString());
+          finalPortion = Math.round(numValue);
+          setSelectedPortion(finalPortion);
+          setPortionInputValue(formatNumber(finalPortion).toString());
         }
       }
-    }
 
-    // Notificar o componente pai sobre a mudança na porção
-    if (onPortionChange) {
-      onPortionChange(selectedPortion);
-      triggerPulseAnimation();
+      // Notificar o componente pai sobre a mudança na porção usando o valor final calculado
+      if (onPortionChange) {
+        onPortionChange(finalPortion);
+        triggerPulseAnimation();
+      }
     }
   };
 

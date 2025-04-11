@@ -521,7 +521,7 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                   : styles.confirmButton
               }
               textStyle={{
-                color: "#FFFFFF",
+                color: theme === "dark" ? "#000000" : "#FFFFFF",
                 fontWeight: "700",
                 fontSize: 16,
                 letterSpacing: -0.3,
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 40,
   },
   mealTypesContainer: {
     marginBottom: 20,
@@ -571,11 +571,6 @@ const styles = StyleSheet.create({
   mealCard: {
     borderRadius: 16,
     overflow: "hidden",
-  },
-  mealCardSelected: {
-    elevation: 4,
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
   },
   mealCardContent: {
     flexDirection: "row",
@@ -608,6 +603,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "rgba(0, 0, 0, 0.1)",
     backgroundColor: Colors.light.background,
+    paddingBottom: 35,
   },
   confirmButton: {
     height: 56,
@@ -618,14 +614,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
-  },
-  confirmButtonDisabled: {
-    opacity: 0.5,
-  },
-  confirmButtonText: {
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: -0.3,
   },
   loadingContainer: {
     flex: 1,

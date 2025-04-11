@@ -749,7 +749,9 @@ export default function ReminderModal() {
                   <Text style={[styles.daysLabel, { color: colors.text }]}>
                     {selectedDays.length === 0
                       ? t("reminders.tapToSelect")
-                      : t("reminders.reminderScheduled", {
+                      : selectedDays.length === 1
+                      ? t("reminders.reminderScheduled", { count: 1 })
+                      : t("reminders.reminderScheduled_plural", {
                           count: selectedDays.length,
                         })}
                   </Text>
@@ -855,9 +857,11 @@ export default function ReminderModal() {
                           ]}
                         >
                           {selectedDays.length > 0
-                            ? t("reminders.selectedDaysCount", {
-                                count: selectedDays.length,
-                              })
+                            ? selectedDays.length === 1
+                              ? t("reminders.selectedDaysCount", { count: 1 })
+                              : t("reminders.selectedDaysCount_plural", {
+                                  count: selectedDays.length,
+                                })
                             : t("reminders.noDaysSelected")}
                         </Text>
                       </View>

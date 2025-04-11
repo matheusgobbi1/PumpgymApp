@@ -16,7 +16,6 @@ import {
   TextInput,
   Alert,
   Keyboard,
-  Dimensions,
 } from "react-native";
 import {
   BottomSheetModal,
@@ -30,17 +29,15 @@ import {
 } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Swipeable } from "react-native-gesture-handler";
-import { Easing } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
 import { useWorkoutContext } from "../../context/WorkoutContext";
 import Colors from "../../constants/Colors";
-import { v4 as uuidv4 } from "uuid";
+
 import { MotiView } from "moti";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KEYS } from "../../constants/keys";
 import { useAuth } from "../../context/AuthContext";
 import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
-import Input from "../common/Input";
 import ButtonNew from "../common/ButtonNew";
 import { useTranslation } from "react-i18next";
 import { OfflineStorage } from "../../services/OfflineStorage";
@@ -1028,7 +1025,7 @@ const WorkoutConfigSheet = forwardRef<
               styles.scrollContentContainer,
               // Adicionar espaço extra no final do conteúdo para garantir
               // que todos os itens possam ser rolados até a visualização completa
-              { paddingBottom: 200 },
+              { paddingBottom: 240 },
             ]}
           >
             {renderWorkoutTypesList()}
@@ -1070,7 +1067,7 @@ const WorkoutConfigSheet = forwardRef<
                 }
                 textStyle={{
                   ...styles.saveConfigButtonText,
-                  color: "#FFFFFF",
+                  color: theme === "dark" ? "#000000" : "#FFFFFF",
                   fontWeight: "700",
                 }}
                 hapticFeedback="notification"
@@ -1107,13 +1104,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
   },
-  listContent: {
-    paddingHorizontal: 20,
-  },
   footer: {
     paddingHorizontal: 20,
     paddingVertical: 27,
     borderTopWidth: 1,
+    paddingBottom: 35,
   },
   saveConfigButton: {
     height: 56,
@@ -1133,45 +1128,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: -0.3,
   },
-  saveButtonIcon: {
-    marginLeft: 8,
-  },
-  workoutChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    alignSelf: "flex-start",
-  },
-  workoutIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 4,
-  },
   workoutName: {
     fontSize: 16,
     fontWeight: "600",
-  },
-  expandedContent: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0, 0, 0, 0.05)",
-  },
-  workoutBuilder: {
-    padding: 16,
-  },
-  formGroup: {
-    marginBottom: 16,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
   },
   workoutCardWrapper: {},
   workoutItem: {
@@ -1215,68 +1174,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContentContainer: {
-    paddingBottom: 120, // Espaço extra no final da lista para permitir rolagem completa
+    paddingBottom: 240,
   },
-  customWorkoutContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
-    maxWidth: "92%",
-    alignSelf: "center",
-    width: "92%",
+  deleteButton: {
+    padding: 8,
+    borderRadius: 8,
   },
-  customWorkoutHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  customWorkoutTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  headerTitleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  headerIconBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  closeButton: {
-    padding: 4,
-  },
-  sectionDivider: {
-    height: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.14)",
-    marginVertical: 16,
-  },
-  colorSelectorContainer: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 14,
-  },
-  colorSelector: {
-    marginBottom: 16,
-  },
-  colorList: {
-    flexDirection: "row",
-    paddingVertical: 8,
-    flexWrap: "wrap",
+  workoutTypesList: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   colorOption: {
     width: 38,
@@ -1297,33 +1203,6 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  iconSelectorContainer: {
-    marginBottom: 16,
-  },
-  iconSelector: {
-    marginBottom: 16,
-  },
-  iconList: {
-    flexDirection: "row",
-    marginTop: 8,
-    paddingVertical: 4,
-    flexWrap: "wrap",
-  },
-  iconItem: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    marginRight: 12,
-  },
-  colorGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 12,
-  },
   iconOption: {
     width: 48,
     height: 48,
@@ -1333,159 +1212,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
     marginBottom: 12,
   },
-  actionButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
-    flexWrap: "wrap",
-  },
-  button: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-  },
-  cancelButton: {
-    flex: 0.48,
-    marginRight: 10,
-    borderWidth: 1,
-  },
-  saveButton: {
-    flex: 0.48,
-    marginLeft: 0,
-    height: 48,
-    borderRadius: 24,
-  },
-  buttonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  saveButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#fff",
-    textAlign: "center",
-  },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    fontWeight: "500",
-    marginTop: 12,
-    textAlign: "center",
-  },
-  createButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginTop: 16,
-  },
-  createButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  addCustomButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 16,
-  },
-  addCustomText: {
-    fontSize: 16,
-    fontWeight: "500",
-    marginLeft: 8,
-  },
-  confirmButton: {
-    marginBottom: 16,
-  },
-  addCustomWorkoutButton: {
-    padding: 14,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  addCustomWorkoutButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  deleteActionContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    padding: 12,
-  },
-  deleteAction: {
-    padding: 8,
-    borderRadius: 8,
-  },
-  workoutTypesList: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: "500",
-    marginTop: 12,
-    textAlign: "center",
-  },
-  addCustomWorkoutCard: {
-    borderRadius: 20,
-    overflow: "hidden",
-  },
-  addCustomWorkoutContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 18,
-  },
-  addCustomWorkoutIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
-  },
-  addCustomWorkoutInfo: {
-    flex: 1,
-  },
-  addCustomWorkoutTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  addCustomWorkoutSubtitle: {
-    fontSize: 14,
-    opacity: 0.8,
-  },
-  addCustomWorkoutArrow: {
-    marginLeft: 16,
-  },
-  deleteButton: {
-    padding: 8,
-    borderRadius: 8,
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    height: 60,
-    marginTop: 8,
-    fontWeight: "500",
-  },
-  // Novos estilos para edição inline
+  // Estilos para edição inline
   inlineEditContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -1540,7 +1267,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: 16,
   },
-  // Novos estilos para os indicadores de cor
+  // Estilos para os indicadores de cor
   colorIndicatorsContainer: {
     flexDirection: "row",
     alignItems: "center",

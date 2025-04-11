@@ -83,11 +83,6 @@ const MealCardComponent = ({
   // Estado para rastrear o Swipeable atualmente aberto
   const [activeSwipeable, setActiveSwipeable] = useState<string | null>(null);
 
-  // Estado para itens expandidos (para potencial uso futuro similar ao WorkoutCard)
-  const [expandedItems, setExpandedItems] = useState<{
-    [key: string]: boolean;
-  }>({});
-
   // Efeito para limpar as referências quando o componente é desmontado
   useEffect(() => {
     return () => {
@@ -114,16 +109,10 @@ const MealCardComponent = ({
   // Função para lidar com o swipe aberto
   const handleSwipeableOpen = useCallback(
     (foodId: string) => {
-      // Fechar itens expandidos se implementarmos essa feature no futuro
-      if (Object.keys(expandedItems).some((id) => expandedItems[id])) {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setExpandedItems({});
-      }
-
       setActiveSwipeable(foodId);
       closeOtherSwipeables(foodId);
     },
-    [expandedItems, closeOtherSwipeables]
+    [closeOtherSwipeables]
   );
 
   // Função para obter datas anteriores que têm esta refeição

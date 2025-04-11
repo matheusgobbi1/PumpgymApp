@@ -366,6 +366,17 @@ export default function FoodDetailsScreen() {
           // Determinar qual porção usar
           const preferredServing = getPreferredServing(foodItem.servings);
 
+          // Verificar explicitamente por alimentos comuns que devem ser servidos em unidades
+          const isCommonUnitFood =
+            foodItem.food_name.toLowerCase().includes("ovo") ||
+            foodItem.food_name.toLowerCase().includes("cookie") ||
+            foodItem.food_name.toLowerCase().includes("banana") ||
+            foodItem.food_name.toLowerCase().includes("maçã") ||
+            foodItem.food_name.toLowerCase().includes("pão") ||
+            foodItem.food_name.toLowerCase().includes("pera") ||
+            foodItem.food_name.toLowerCase().includes("bolacha") ||
+            foodItem.food_name.toLowerCase().includes("unidade");
+
           // Se temos uma descrição específica como "1 bar" e um peso real, use-o
           if (
             preferredServing.serving_description &&
@@ -402,6 +413,7 @@ export default function FoodDetailsScreen() {
               preferredServing.serving_description
                 .toLowerCase()
                 .includes("fatia") ||
+              isCommonUnitFood || // Verificar alimentos comuns
               !preferredServing.serving_description.toLowerCase().includes("g"))
           ) {
             // Se temos um peso real em gramas, use-o
@@ -714,7 +726,24 @@ export default function FoodDetailsScreen() {
       if (portionsMultiplier === 1) {
         portionDescription = food.servings[0].serving_description;
       } else {
-        portionDescription = `${numberOfPortions}x ${food.servings[0].serving_description}`;
+        // Melhorar a formatação para unidades baseadas em "unidade"
+        if (
+          food.servings[0].serving_description.toLowerCase().includes("unidade")
+        ) {
+          // Extrair o nome da unidade
+          let unitName = "unidade";
+          // Verificar se é um tipo específico de unidade
+          if (food.servings[0].serving_description.includes("unidade de")) {
+            unitName = food.servings[0].serving_description;
+          }
+
+          // Formar descrição mais natural como "X unidades"
+          portionDescription = `${numberOfPortions} ${unitName}${
+            parseFloat(numberOfPortions) > 1 ? "s" : ""
+          }`;
+        } else {
+          portionDescription = `${numberOfPortions}x ${food.servings[0].serving_description}`;
+        }
       }
     } else if (portionsMultiplier !== 1) {
       // Se for apenas uma porção em gramas e temos múltiplas porções

@@ -16,7 +16,7 @@ export default {
     danger: "#FF5252", // Vermelho vibrante
     error: "#FF5252", // Adicionado cor de erro
     warning: "#FFB74D", // Laranja âmbar
-    info: "#40C4FF", // Azul vibrante
+    info: "#FFD54F", // Amarelo suave
     light: "#F8F9FA", // Branco levemente acinzentado
     dark: "#212529", // Preto suave
     border: "#DADADA", // Borda mais visível para o tema claro
@@ -43,7 +43,7 @@ export default {
     danger: "#FF6B6B", // Vermelho coral
     error: "#FF6B6B", // Adicionado cor de erro
     warning: "#FFC857", // Amarelo mais quente
-    info: "#5CDDFF", // Azul néon suave
+    info: "#FFE082", // Amarelo suave néon
     light: "#181818", // Cinza mais escuro para cards
     dark: "#0A0A0A", // Preto profundo
     border: "#444444", // Borda mais visível para o tema escuro

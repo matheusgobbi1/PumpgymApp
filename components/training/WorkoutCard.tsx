@@ -1097,11 +1097,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: -0.3,
   },
-  exerciseCount: {
-    fontSize: 12,
-    marginTop: 2,
-    letterSpacing: -0.1,
-  },
   volumeValue: {
     fontSize: 15,
     fontWeight: "600",

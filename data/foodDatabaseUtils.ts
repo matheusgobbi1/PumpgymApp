@@ -74,28 +74,39 @@ export const convertFoodDataToFoodItem = (food: FoodData): FoodItem => {
   // Reordenar as porções para priorizar embalagens e unidades
   const reorderedServings = [...servings].sort((a, b) => {
     // Verificar se a porção é uma embalagem ou unidade
-    const isPackageA =
-      a.serving_description.toLowerCase().includes("unidade") ||
-      a.serving_description.toLowerCase().includes("pacote") ||
-      a.serving_description.toLowerCase().includes("embalagem") ||
-      a.serving_description.toLowerCase().includes("pote") ||
-      a.serving_description.toLowerCase().includes("garrafa") ||
-      a.serving_description.toLowerCase().includes("lata") ||
-      a.serving_description.toLowerCase().includes("copo");
+    const unitIdentifiers = [
+      "unidade",
+      "pacote",
+      "embalagem",
+      "pote",
+      "garrafa",
+      "lata",
+      "copo",
+      "fatia",
+      "bife",
+      "filé",
+      "gomo",
+      "cookies",
+      "bolacha",
+      "cookie",
+      "pão",
+      "dose",
+      "pedaço",
+      "item",
+    ];
 
-    const isPackageB =
-      b.serving_description.toLowerCase().includes("unidade") ||
-      b.serving_description.toLowerCase().includes("pacote") ||
-      b.serving_description.toLowerCase().includes("embalagem") ||
-      b.serving_description.toLowerCase().includes("pote") ||
-      b.serving_description.toLowerCase().includes("garrafa") ||
-      b.serving_description.toLowerCase().includes("lata") ||
-      b.serving_description.toLowerCase().includes("copo");
+    const isUnitA = unitIdentifiers.some((term) =>
+      a.serving_description.toLowerCase().includes(term)
+    );
 
-    // Se ambos são embalagens ou nenhum é, manter a ordem original
-    if (isPackageA === isPackageB) {
-      // Se nenhum é embalagem, priorizar porções diferentes de 100g
-      if (!isPackageA) {
+    const isUnitB = unitIdentifiers.some((term) =>
+      b.serving_description.toLowerCase().includes(term)
+    );
+
+    // Se ambos são unidades ou nenhum é, manter a ordem original
+    if (isUnitA === isUnitB) {
+      // Se nenhum é unidade, priorizar porções diferentes de 100g
+      if (!isUnitA) {
         const is100gA = a.serving_description.toLowerCase().includes("100g");
         const is100gB = b.serving_description.toLowerCase().includes("100g");
 
@@ -105,8 +116,8 @@ export const convertFoodDataToFoodItem = (food: FoodData): FoodItem => {
       return 0;
     }
 
-    // Priorizar embalagens
-    return isPackageA ? -1 : 1;
+    // Priorizar porções baseadas em unidades
+    return isUnitA ? -1 : 1;
   });
 
   return {

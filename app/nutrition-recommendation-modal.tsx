@@ -44,6 +44,7 @@ interface MealFood {
   portion: number;
   unit: string;
   time: string;
+  portionDescription: string;
 }
 
 // Interface para representar um item de alimento com seu original (para alternativas)
@@ -440,10 +441,14 @@ export default function NutritionRecommendationModal() {
       return currentItems.map((item) => {
         // Se for o item que estamos substituindo
         if (item.food.id === oldFoodId) {
+          // Usar a porção calculada pelo FoodAlternativesModal se disponível
+          // ou manter a porção original do item
+          const newPortion = (newFood as any).selectedPortion || item.portion;
+
           // Criar novo item com o alimento substituto e a porção adequada
           const newItem = {
             food: newFood,
-            portion: item.portion,
+            portion: newPortion,
           };
 
           // Remover da seleção se estiver selecionado
@@ -502,6 +507,80 @@ export default function NutritionRecommendationModal() {
         // Usar a porção mais atualizada (do estado foodPortions ou do selectedFoods)
         const currentPortion = foodPortions[foodId] || foodInfo.portion;
 
+        // Verificar se o alimento deve ser medido em unidades em vez de gramas
+        const measures = foodItem.food.measures || [];
+        let unit = "g"; // Valor padrão em gramas
+        let portionDescription = `${currentPortion}g`;
+
+        // Verificar se há medidas baseadas em unidades
+        const unitBasedMeasure = measures.find(
+          (measure) =>
+            measure.label.includes("unidade") ||
+            measure.label.includes("fatia") ||
+            measure.label.includes("pão") ||
+            measure.label.includes("bife") ||
+            measure.label.includes("filé") ||
+            measure.label.includes("gomo") ||
+            measure.label.includes("pote") ||
+            measure.label.includes("cookies") ||
+            measure.label.includes("bolacha")
+        );
+
+        // Definir se é baseado em unidades pela medida ou pelo tipo de alimento
+        const foodName = foodItem.food.name.toLowerCase();
+        const isCommonUnitFood =
+          foodName.includes("ovo") ||
+          foodName.includes("cookie") ||
+          foodName.includes("banana") ||
+          foodName.includes("maçã") ||
+          foodName.includes("pão") ||
+          foodName.includes("pera") ||
+          foodName.includes("bolacha") ||
+          foodName.includes("fatia") ||
+          foodName.includes("unidade");
+
+        const isUnitBased =
+          unitBasedMeasure &&
+          (foodItem.food.id.match(
+            /(pao|banana|maca|ovo|pera|laranja|melancia|fatia|bife|file|cookies|bolacha|unidade)/i
+          ) ||
+            isCommonUnitFood);
+
+        if (isUnitBased && unitBasedMeasure) {
+          // Extrair a unidade e o peso base da medida
+          const baseWeight = unitBasedMeasure.weight || 100;
+          let unitName = "unidade";
+
+          if (unitBasedMeasure.label.includes("fatia")) {
+            unitName = "fatia";
+          } else if (unitBasedMeasure.label.includes("pote")) {
+            unitName = "pote";
+          } else if (unitBasedMeasure.label.includes("gomo")) {
+            unitName = "gomo";
+          } else if (
+            unitBasedMeasure.label.includes("cookies") ||
+            unitBasedMeasure.label.includes("bolacha")
+          ) {
+            unitName = unitBasedMeasure.label.includes("cookies")
+              ? "cookie"
+              : "bolacha";
+          }
+
+          // Calcular o número de unidades
+          const units = currentPortion / baseWeight;
+          // Arredondar para 1 casa decimal
+          const roundedUnits = Math.round(units * 10) / 10;
+
+          // Se temos uma quantidade razoável de unidades, usar essa unidade em vez de gramas
+          if (units >= 0.5 && units <= 10) {
+            unit = unitName;
+            // Formatar a descrição da porção de forma mais natural: "5 unidades" em vez de "5x unidade"
+            portionDescription = `${roundedUnits} ${unitName}${
+              roundedUnits !== 1 ? "s" : ""
+            }`;
+          }
+        }
+
         // Cálculo de nutrientes com base na porção selecionada
         const ratio = currentPortion / 100;
         const mealFood: MealFood = {
@@ -513,7 +592,8 @@ export default function NutritionRecommendationModal() {
           carbs: Math.round(foodItem.food.nutrients.carbs * ratio * 10) / 10,
           fat: Math.round(foodItem.food.nutrients.fat * ratio * 10) / 10,
           portion: currentPortion,
-          unit: "g",
+          unit: unit,
+          portionDescription: portionDescription,
           time: new Date().toISOString(),
         };
 
@@ -527,17 +607,38 @@ export default function NutritionRecommendationModal() {
             name
               .toLowerCase()
               .replace(/[^a-z0-9]/g, "")
-              .replace(/(grelhado|assado|cozido|frito)/g, "")
+              .replace(
+                /(grelhado|assado|cozido|frito|desnatado|integral|light)/g,
+                ""
+              )
+              .replace(/(pós|pos|em|pó|po|flocos|flocada|farinha|farelo)/g, "")
+              .replace(/(zero|diet|sem|com|lactose|glúten|gluten)/g, "")
+              .replace(
+                /(peito|coxa|asa|sobrecoxa|filé|file|fatia|pedaço|pedaco)/g,
+                ""
+              )
+              .replace(
+                /(unidade|unid|und|grama|porção|porcao|porçao|porçao|g)/g,
+                ""
+              )
               .trim();
 
           const simplifiedNewName = simplifyName(mealFood.name);
 
-          // Procurar por alimento similar
+          // Procurar por alimento similar com uma abordagem mais flexível
           const existingFoodIndex = currentMealFoods.findIndex((food) => {
             const simplifiedExistingName = simplifyName(food.name);
+            // Verifica se há sobreposição de nomes suficiente para considerar o mesmo alimento
+            // Um nome deve conter pelo menos 70% do outro para ser considerado similar
             return (
-              simplifiedNewName.includes(simplifiedExistingName) ||
-              simplifiedExistingName.includes(simplifiedNewName)
+              (simplifiedNewName.includes(simplifiedExistingName) &&
+                simplifiedExistingName.length >=
+                  simplifiedNewName.length * 0.7) ||
+              (simplifiedExistingName.includes(simplifiedNewName) &&
+                simplifiedNewName.length >=
+                  simplifiedExistingName.length * 0.7) ||
+              // Verificar também se é o mesmo ID, caso o nome seja diferente
+              food.id === mealFood.id
             );
           });
 
@@ -591,6 +692,26 @@ export default function NutritionRecommendationModal() {
                     currentPortion * suggestedNutrientsPerGram.fat) *
                     10
                 ) / 10,
+              // Atualizar descrição da porção
+              portionDescription: isUnitBased
+                ? // Para alimentos medidos em unidades, atualizar descrição
+                  `${
+                    Math.round(
+                      (newTotalPortion / (unitBasedMeasure?.weight || 100)) * 10
+                    ) / 10
+                  } ${unit}${
+                    Math.round(
+                      (newTotalPortion / (unitBasedMeasure?.weight || 100)) * 10
+                    ) /
+                      10 !==
+                    1
+                      ? "s"
+                      : ""
+                  }`
+                : // Para alimentos medidos em gramas
+                  `${newTotalPortion}g`,
+              // Atualizar timestamp para o mais recente
+              time: new Date().toISOString(),
             };
 
             // Atualizar no MealContext
@@ -1098,6 +1219,7 @@ export default function NutritionRecommendationModal() {
                     theme={theme}
                     remainingNutrients={remainingNutrients || undefined}
                     onToggleSelection={handleToggleFood}
+                    onReplaceFood={handleReplaceFood}
                     onPortionChange={(portion) =>
                       handleUpdatePortion(foodItem.food.id, portion)
                     }
