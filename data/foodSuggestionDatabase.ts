@@ -2627,7 +2627,7 @@ export const mealSuggestionDatabase: MealSuggestion[] = [
     id: "meal_suggestion_dinner_1",
     name: "Jantar Leve",
     description: "Refeição mais leve para a noite com foco em proteínas magras",
-    foods: ["sugg_tilapia", "sugg_arroz", "sugg_legumes", "sugg_azeite"],
+    foods: ["sugg_frango", "sugg_arroz", "sugg_legumes", "sugg_azeite"],
     mealType: "dinner",
     macrosTarget: {
       caloriesMin: 300,

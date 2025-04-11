@@ -14,7 +14,6 @@ import { useAuth } from "./AuthContext";
 import { WorkoutType } from "../components/training/WorkoutConfigSheet";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { KEYS } from "../constants/keys";
-import { Alert } from "react-native";
 import {
   getFirestore,
   doc,
@@ -23,7 +22,6 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
-import { useTranslation } from "react-i18next";
 
 // Tipo para os ícones do MaterialCommunityIcons
 type MaterialIconNames = React.ComponentProps<
@@ -99,6 +97,7 @@ interface WorkoutContextType {
     exerciseId: string,
     updatedExercise: Exercise
   ) => Promise<void>;
+  removeWorkoutForDate: (workoutId: string, date?: string) => Promise<boolean>;
   saveWorkouts: () => Promise<void>;
   getWorkoutsForDate: (date: string) => { [workoutId: string]: Exercise[] };
   startWorkoutForDate: (workoutId: string) => Promise<string | null>;
@@ -125,7 +124,6 @@ interface WorkoutContextType {
     icon: string,
     color: string
   ) => Promise<void>;
-  resetWorkoutTypes: () => Promise<boolean>;
   updateWorkoutTypes: (newWorkoutTypes: WorkoutType[]) => Promise<boolean>;
   getWorkoutTotals: (workoutId: string) => WorkoutTotals;
   getPreviousWorkoutTotals: (workoutId: string) => {
@@ -148,8 +146,6 @@ interface WorkoutContextType {
     workoutId: string,
     updatedExercises: Exercise[]
   ) => Promise<boolean>;
-  // Nova função para remover um treino inteiro
-  removeWorkoutForDate: (workoutId: string) => Promise<boolean>;
 }
 
 // Criação do contexto
@@ -157,7 +153,6 @@ const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
 
 // Provider do contexto
 export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
-  const { t } = useTranslation();
   const { user } = useAuth();
   const userId = user?.uid || "anonymous";
 
@@ -258,28 +253,106 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
 
-      // Primeiro carregar dados do AsyncStorage
-      const storedWorkouts = await AsyncStorage.getItem(
-        `${KEYS.WORKOUTS}:${userId}`
-      );
-      const storedTypes = await AsyncStorage.getItem(
-        `${KEYS.AVAILABLE_WORKOUT_TYPES}:${userId}`
-      );
+      // Carregar todos os dados do AsyncStorage de forma paralela
+      const [storedWorkouts, storedWorkoutTypes, storedAvailableTypes] =
+        await Promise.all([
+          AsyncStorage.getItem(`${KEYS.WORKOUTS}:${userId}`),
+          AsyncStorage.getItem(`${KEYS.WORKOUT_TYPES}:${userId}`),
+          AsyncStorage.getItem(`${KEYS.AVAILABLE_WORKOUT_TYPES}:${userId}`),
+        ]);
 
+      // Inicializar com valores padrão
       let workoutsData = storedWorkouts ? JSON.parse(storedWorkouts) : {};
-      let workoutTypes = storedTypes ? JSON.parse(storedTypes) : [];
+      let workoutTypesData = storedWorkoutTypes
+        ? JSON.parse(storedWorkoutTypes)
+        : {};
+      let availableTypes = storedAvailableTypes
+        ? JSON.parse(storedAvailableTypes)
+        : [];
 
-      // Atualizar estado com dados locais primeiro
+      // Verificar consistência de dados para evitar a alternância entre treinos
+      let dataChanged = false;
+
+      // Garantir que cada treino tenha um tipo associado
+      for (const date in workoutsData) {
+        if (!workoutTypesData[date]) {
+          workoutTypesData[date] = {};
+          dataChanged = true;
+        }
+
+        for (const workoutId in workoutsData[date]) {
+          // Se não existir um workoutType para este workout
+          if (!workoutTypesData[date][workoutId]) {
+            // Procurar o tipo nos available types
+            const foundType = availableTypes.find(
+              (t: WorkoutType) => t.id === workoutId
+            );
+
+            if (foundType) {
+              // Associar o tipo encontrado ao treino
+              workoutTypesData[date][workoutId] = JSON.parse(
+                JSON.stringify(foundType)
+              );
+              dataChanged = true;
+            } else {
+              // Se não encontrar um tipo, remover o treino para manter consistência
+              delete workoutsData[date][workoutId];
+              dataChanged = true;
+            }
+          }
+        }
+
+        // Se não houver treinos para esta data após a verificação, remover a entrada
+        if (Object.keys(workoutsData[date]).length === 0) {
+          delete workoutsData[date];
+          delete workoutTypesData[date];
+          dataChanged = true;
+        }
+      }
+
+      // Verificar o inverso: workoutTypes sem workouts correspondentes
+      for (const date in workoutTypesData) {
+        if (!workoutsData[date]) {
+          workoutsData[date] = {};
+          dataChanged = true;
+        }
+
+        for (const workoutId in workoutTypesData[date]) {
+          // Se não existir um workout para este tipo, criar um vazio
+          if (!workoutsData[date][workoutId]) {
+            workoutsData[date][workoutId] = [];
+            dataChanged = true;
+          }
+        }
+      }
+
+      // Se houve alterações para manter consistência, salvar de volta no AsyncStorage
+      if (dataChanged) {
+        await Promise.all([
+          AsyncStorage.setItem(
+            `${KEYS.WORKOUTS}:${userId}`,
+            JSON.stringify(workoutsData)
+          ),
+          AsyncStorage.setItem(
+            `${KEYS.WORKOUT_TYPES}:${userId}`,
+            JSON.stringify(workoutTypesData)
+          ),
+        ]);
+      }
+
+      // Atualizar estados com dados consistentes
       setWorkouts(workoutsData);
-      if (Array.isArray(workoutTypes) && workoutTypes.length > 0) {
-        const validatedTypes = workoutTypes.map((type) => ({
+      setWorkoutTypes(workoutTypesData);
+
+      if (Array.isArray(availableTypes) && availableTypes.length > 0) {
+        const validatedTypes = availableTypes.map((type) => ({
           ...type,
           selected: Boolean(type.selected),
         }));
         setAvailableWorkoutTypes(validatedTypes);
       }
 
-      // Tentar sincronizar com Firebase se o usuário estiver autenticado e não for anônimo
+      // Verificar se há dados no Firebase para sincronizar
       if (user && !user.isAnonymous) {
         try {
           const workoutsRef = doc(db, "users", user.uid, "workouts", "data");
@@ -287,331 +360,210 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
           if (workoutsDoc.exists()) {
             const firebaseData = workoutsDoc.data();
+            let firebaseDataChanged = false;
 
-            // Mesclar dados do Firebase com dados locais
-            if (firebaseData.workouts) {
-              const mergedWorkouts = {
-                ...workoutsData,
-                ...firebaseData.workouts,
-              };
-              workoutsData = mergedWorkouts;
-              setWorkouts(mergedWorkouts);
+            // Verificar se os dados do Firebase são mais recentes
+            // baseado no timestamp ou na quantidade de dados
+            if (firebaseData.lastUpdated) {
+              // Priorizar dados do Firebase se forem mais recentes
+              const hasMoreDataInFirebase =
+                firebaseData.workouts &&
+                Object.keys(firebaseData.workouts).length >
+                  Object.keys(workoutsData).length;
 
-              // Atualizar AsyncStorage com dados mesclados
-              await AsyncStorage.setItem(
-                `${KEYS.WORKOUTS}:${userId}`,
-                JSON.stringify(mergedWorkouts)
-              );
-            }
+              if (hasMoreDataInFirebase) {
+                workoutsData = firebaseData.workouts;
+                workoutTypesData = firebaseData.workoutTypes || {};
+                setWorkouts(workoutsData);
+                setWorkoutTypes(workoutTypesData);
+                firebaseDataChanged = true;
+              }
 
-            // Atualizar tipos de treino se existirem no Firebase
-            if (firebaseData.availableWorkoutTypes) {
-              const mergedTypes = [
-                ...workoutTypes,
-                ...firebaseData.availableWorkoutTypes,
-              ];
-              const uniqueTypes = Array.from(
-                new Set(mergedTypes.map((type) => type.id))
-              ).map((id) => mergedTypes.find((type) => type.id === id));
+              // Sincronizar availableWorkoutTypes do Firebase
+              if (firebaseData.availableWorkoutTypes) {
+                const firebaseAvailableTypes =
+                  firebaseData.availableWorkoutTypes;
 
-              workoutTypes = uniqueTypes;
-              setAvailableWorkoutTypes(uniqueTypes);
+                // Usar os tipos do Firebase se forem diferentes
+                if (
+                  JSON.stringify(availableTypes) !==
+                  JSON.stringify(firebaseAvailableTypes)
+                ) {
+                  setAvailableWorkoutTypes(firebaseAvailableTypes);
+                  firebaseDataChanged = true;
+                }
+              }
 
-              // Atualizar AsyncStorage com tipos mesclados
-              await AsyncStorage.setItem(
-                `${KEYS.AVAILABLE_WORKOUT_TYPES}:${userId}`,
-                JSON.stringify(uniqueTypes)
-              );
+              // Se os dados do Firebase foram usados, atualizar o AsyncStorage
+              if (firebaseDataChanged) {
+                await Promise.all([
+                  AsyncStorage.setItem(
+                    `${KEYS.WORKOUTS}:${userId}`,
+                    JSON.stringify(workoutsData)
+                  ),
+                  AsyncStorage.setItem(
+                    `${KEYS.WORKOUT_TYPES}:${userId}`,
+                    JSON.stringify(workoutTypesData)
+                  ),
+                  AsyncStorage.setItem(
+                    `${KEYS.AVAILABLE_WORKOUT_TYPES}:${userId}`,
+                    JSON.stringify(firebaseData.availableWorkoutTypes || [])
+                  ),
+                ]);
+              }
             }
           }
         } catch (firebaseError) {
-          // Erro ao carregar dados do Firebase, usando dados locais
-          return false;
+          console.error("Erro ao sincronizar com Firebase:", firebaseError);
         }
       }
 
       return true;
     } catch (error) {
+      console.error("Erro ao carregar workouts:", error);
       return false;
     } finally {
       setLoading(false);
     }
-  }, [userId, user, setWorkouts, setAvailableWorkoutTypes, setLoading]);
+  }, [
+    userId,
+    user,
+    setWorkouts,
+    setWorkoutTypes,
+    setAvailableWorkoutTypes,
+    setLoading,
+  ]);
 
   // Resetar o estado quando o usuário mudar - Movemos para depois da definição de loadWorkouts
   useEffect(() => {
-    // Limpar dados do usuário anterior antes de carregar os novos
-    resetState();
-    // Carregar dados do novo usuário
-    loadWorkouts();
-  }, [user?.uid]); // Dependência apenas no user.uid para evitar loops
+    // Definir um flag para indicar se este é o primeiro carregamento
+    let isMounted = true;
 
-  // Função para inicializar tipos de treino padrão
-  const initializeDefaultWorkoutTypes = async () => {
-    try {
-      // Definir tipos de treino padrão sem nenhum selecionado
-      const defaultTypes: WorkoutType[] = [
-        {
-          id: "Treino A",
-          name: t("workouts.context.defaultWorkouts.workoutA"),
-          iconType: {
-            type: "material" as const,
-            name: "arm-flex-outline" as MaterialIconNames,
-          },
-          color: "#FF6B6B",
-          selected: false,
-          isDefault: true,
-        },
-        {
-          id: "Treino B",
-          name: t("workouts.context.defaultWorkouts.workoutB"),
-          iconType: {
-            type: "material" as const,
-            name: "arm-flex-outline" as MaterialIconNames,
-          },
-          color: "#448AFF",
-          selected: false,
-          isDefault: true,
-        },
-        {
-          id: "Treino C",
-          name: t("workouts.context.defaultWorkouts.workoutC"),
-          iconType: {
-            type: "material" as const,
-            name: "arm-flex-outline" as MaterialIconNames,
-          },
-          color: "#66BB6A",
-          selected: false,
-          isDefault: true,
-        },
-        {
-          id: "Treino D",
-          name: t("workouts.context.defaultWorkouts.workoutD"),
-          iconType: {
-            type: "material" as const,
-            name: "arm-flex-outline" as MaterialIconNames,
-          },
-          color: "#FFA726",
-          selected: false,
-          isDefault: true,
-        },
-        {
-          id: "Treino E",
-          name: t("workouts.context.defaultWorkouts.workoutE"),
-          iconType: {
-            type: "material" as const,
-            name: "arm-flex-outline" as MaterialIconNames,
-          },
-          color: "#AB47BC",
-          selected: false,
-          isDefault: true,
-        },
-        {
-          id: "Treino F",
-          name: t("workouts.context.defaultWorkouts.workoutF"),
-          iconType: {
-            type: "material" as const,
-            name: "arm-flex-outline" as MaterialIconNames,
-          },
-          color: "#26A69A",
-          selected: false,
-          isDefault: true,
-        },
-        {
-          id: "Treino G",
-          name: t("workouts.context.defaultWorkouts.workoutG"),
-          iconType: {
-            type: "material" as const,
-            name: "arm-flex-outline" as MaterialIconNames,
-          },
-          color: "#EC407A",
-          selected: false,
-          isDefault: true,
-        },
-      ];
+    const initializeData = async () => {
+      try {
+        // Limpar dados do usuário anterior antes de carregar os novos
+        resetState();
 
-      // Atualizar estado local
-      setAvailableWorkoutTypes(defaultTypes);
+        // Aguardar um pequeno delay para garantir que o resetState tenha tempo de ser aplicado
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
-      // Salvar no AsyncStorage
-      await AsyncStorage.setItem(
-        `${KEYS.AVAILABLE_WORKOUT_TYPES}:${userId}`,
-        JSON.stringify(defaultTypes)
-      );
-
-      // Se o usuário estiver autenticado e não for anônimo, sincronizar com Firebase
-      if (user && !user.isAnonymous) {
-        try {
-          const db = getFirestore();
-          const workoutsRef = doc(db, "users", user.uid, "workouts", "data");
-
-          await setDoc(
-            workoutsRef,
-            {
-              availableWorkoutTypes: defaultTypes,
-              lastUpdated: serverTimestamp(),
-            },
-            { merge: true }
-          );
-        } catch (firebaseError) {
-          // Erro ao sincronizar tipos de treino padrão com Firebase:
+        // Carregar dados do novo usuário
+        if (isMounted) {
+          await loadWorkouts();
         }
+      } catch (error) {
+        console.error("Erro ao inicializar dados:", error);
       }
-
-      return true;
-    } catch (error) {
-      return false;
-    }
-  };
-
-  // Carregar tipos de treino do AsyncStorage
-  const loadWorkoutTypes = async () => {
-    try {
-      const storedWorkoutTypes = await AsyncStorage.getItem(
-        `${KEYS.WORKOUT_TYPES}:${userId}`
-      );
-      if (storedWorkoutTypes) {
-        try {
-          const parsedWorkoutTypes = JSON.parse(storedWorkoutTypes);
-
-          // Verificar se os dados têm formato válido
-          if (parsedWorkoutTypes && typeof parsedWorkoutTypes === "object") {
-            setWorkoutTypes(parsedWorkoutTypes);
-            return true;
-          } else {
-            await AsyncStorage.removeItem(`${KEYS.WORKOUT_TYPES}:${userId}`);
-            setWorkoutTypes({});
-            return false;
-          }
-        } catch (parseError) {
-          await AsyncStorage.removeItem(`${KEYS.WORKOUT_TYPES}:${userId}`);
-          setWorkoutTypes({});
-          return false;
-        }
-      }
-      return false;
-    } catch (error) {
-      // Erro ao carregar tipos de treino
-      await AsyncStorage.removeItem(`${KEYS.WORKOUT_TYPES}:${userId}`);
-      setWorkoutTypes({});
-      return false;
-    }
-  };
-
-  // Obter dados do treino de forma segura
-  const getWorkoutDataSafely = () => {
-    return {
-      workouts,
-      workoutTypes,
-      selectedDate,
     };
-  };
+
+    // Inicializar os dados
+    initializeData();
+
+    // Cleanup function para evitar atualizações de estado em componentes desmontados
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.uid, resetState, loadWorkouts]); // Adicionar resetState e loadWorkouts às dependências
 
   // Iniciar um treino para uma data específica
   const startWorkoutForDate = async (workoutId: string) => {
     try {
-      console.log(
-        `[startWorkoutForDate] Iniciando treino ${workoutId} para a data ${selectedDate}`
-      );
+      const date = selectedDate;
+      const workoutType = availableWorkoutTypes.find((w) => w.id === workoutId);
 
-      // Buscar o tipo de treino
-      const workoutType = getWorkoutTypeById(workoutId);
       if (!workoutType) {
-        console.log(
-          `[startWorkoutForDate] Tipo de treino não encontrado: ${workoutId}`
-        );
         return null;
       }
 
-      // Verificar se já existe um treino desse tipo para a data selecionada
-      if (workouts[selectedDate] && workouts[selectedDate][workoutId]) {
-        console.log(
-          `[startWorkoutForDate] Treino ${workoutId} já existe na data ${selectedDate}, removendo primeiro`
-        );
+      // Criar uma cópia limpa do workoutType para evitar problemas de referência
+      const cleanWorkoutType = JSON.parse(JSON.stringify(workoutType));
 
-        // Remover o treino existente primeiro
-        const removed = await removeWorkoutForDate(workoutId);
-        if (!removed) {
-          console.log(
-            `[startWorkoutForDate] Falha ao remover treino existente ${workoutId}`
-          );
-        }
-      }
+      // Criar um novo objeto para a data, contendo apenas o treino selecionado
+      // Isso substitui todos os treinos existentes para aquela data
+      const updatedWorkouts = {
+        ...workouts,
+        [date]: {
+          [workoutId]: [], // Iniciar com array vazio de exercícios
+        },
+      };
 
-      console.log(
-        `[startWorkoutForDate] Estado antes da atualização:`,
-        JSON.stringify({
-          workoutCount: Object.keys(workouts[selectedDate] || {}).length,
-          typesCount: Object.keys(workoutTypes[selectedDate] || {}).length,
-        })
-      );
+      // Atualizar o objeto de tipos de treino para esta data
+      const updatedWorkoutTypes = {
+        ...workoutTypes,
+        [date]: {
+          [workoutId]: cleanWorkoutType,
+        },
+      };
 
-      // Criar cópias imutáveis dos estados atuais
-      const updatedWorkoutTypes = { ...workoutTypes };
-
-      // Inicializar a entrada para a data se não existir
-      if (!updatedWorkoutTypes[selectedDate]) {
-        updatedWorkoutTypes[selectedDate] = {};
-      }
-
-      // Adicionar o tipo de treino
-      updatedWorkoutTypes[selectedDate][workoutId] = workoutType;
-
-      // Atualizar o estado em uma única operação
+      // Atualizar os estados locais
+      setWorkouts(updatedWorkouts);
       setWorkoutTypes(updatedWorkoutTypes);
 
-      // Criar cópia imutável do estado de workouts
-      const updatedWorkouts = { ...workouts };
-
-      // Inicializar workouts se não existir
-      if (!updatedWorkouts[selectedDate]) {
-        updatedWorkouts[selectedDate] = {};
-      }
-
-      // Inicializar o array de exercícios para este treino
-      if (!updatedWorkouts[selectedDate][workoutId]) {
-        updatedWorkouts[selectedDate][workoutId] = [];
-      }
-
-      // Atualizar o estado em uma única operação
-      setWorkouts(updatedWorkouts);
-
-      console.log(
-        `[startWorkoutForDate] Estado após atualização:`,
-        JSON.stringify({
-          workoutIds: Object.keys(updatedWorkouts[selectedDate] || {}),
-          typeIds: Object.keys(updatedWorkoutTypes[selectedDate] || {}),
-        })
+      // Persistir explicitamente no AsyncStorage antes de qualquer outra operação
+      await AsyncStorage.setItem(
+        `${KEYS.WORKOUTS}:${userId}`,
+        JSON.stringify(updatedWorkouts)
       );
 
-      // Salvar os treinos no AsyncStorage e Firebase para persistência
-      try {
-        await Promise.all([saveWorkouts(), saveWorkoutTypes()]);
-        console.log(
-          `[startWorkoutForDate] Treino ${workoutId} salvo com sucesso`
-        );
-      } catch (saveError) {
-        console.error("[startWorkoutForDate] Erro ao salvar:", saveError);
+      await AsyncStorage.setItem(
+        `${KEYS.WORKOUT_TYPES}:${userId}`,
+        JSON.stringify(updatedWorkoutTypes)
+      );
 
-        // Tentar novamente com um pequeno atraso
-        setTimeout(async () => {
-          try {
-            await Promise.all([saveWorkouts(), saveWorkoutTypes()]);
-            console.log(
-              `[startWorkoutForDate] Treino ${workoutId} salvo com sucesso na 2ª tentativa`
+      // Verificar se os dados foram salvos corretamente
+      const [savedWorkouts, savedWorkoutTypes] = await Promise.all([
+        AsyncStorage.getItem(`${KEYS.WORKOUTS}:${userId}`),
+        AsyncStorage.getItem(`${KEYS.WORKOUT_TYPES}:${userId}`),
+      ]);
+
+      if (!savedWorkouts || !savedWorkoutTypes) {
+        // Se houver falha na persistência, tentar novamente
+        console.warn("Falha ao persistir no AsyncStorage, tentando novamente");
+        await AsyncStorage.setItem(
+          `${KEYS.WORKOUTS}:${userId}`,
+          JSON.stringify(updatedWorkouts)
+        );
+
+        await AsyncStorage.setItem(
+          `${KEYS.WORKOUT_TYPES}:${userId}`,
+          JSON.stringify(updatedWorkoutTypes)
+        );
+      }
+
+      // Salvar no Firebase se necessário
+      if (userId && userId !== "anonymous" && userId !== "no-user") {
+        try {
+          const db = getFirestore();
+          // Verificar se o usuário ainda está autenticado
+          const { auth } = require("../firebase/config");
+          if (auth.currentUser) {
+            // Limpar valores undefined antes de salvar
+            const cleanWorkouts = JSON.parse(JSON.stringify(updatedWorkouts));
+            const cleanWorkoutTypes = JSON.parse(
+              JSON.stringify(updatedWorkoutTypes)
             );
-          } catch (retryError) {
-            console.error(
-              "[startWorkoutForDate] Falha na segunda tentativa:",
-              retryError
+
+            // Salvar no Firestore
+            const workoutsRef = doc(db, "users", userId, "workouts", "data");
+            await setDoc(
+              workoutsRef,
+              {
+                workouts: cleanWorkouts,
+                workoutTypes: cleanWorkoutTypes,
+                lastUpdated: serverTimestamp(),
+              },
+              { merge: true }
             );
           }
-        }, 500);
+        } catch (firebaseError) {
+          console.error("Erro ao salvar no Firebase:", firebaseError);
+          // Não tente mais salvar em caso de erro do Firebase
+        }
       }
 
       return workoutId;
     } catch (error) {
-      console.error("[startWorkoutForDate] Erro geral:", error);
+      console.error("Erro ao iniciar treino:", error);
       return null;
     }
   };
@@ -693,91 +645,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       // Erro ao adicionar tipo de treino
       return Promise.reject(error);
-    }
-  };
-
-  // Redefinir tipos de treino
-  const resetWorkoutTypes = async () => {
-    try {
-      // Criar uma promessa para controlar o fluxo assíncrono corretamente
-      return new Promise<boolean>(async (resolve) => {
-        // Primeiro passo: feedback tátil para o usuário
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-        // Iniciar com uma operação leve antes de processar operações pesadas
-        setTimeout(async () => {
-          try {
-            // 1. Limpar os estados em memória um por um de forma assíncrona
-            // A chave aqui é NÃO USAR setState com objetos grandes de uma vez
-
-            // Primeiro limpar workouts da data atual para feedback visual imediato
-            if (workouts[selectedDate]) {
-              setWorkouts((prev) => {
-                const newWorkouts = { ...prev };
-                newWorkouts[selectedDate] = {};
-                return newWorkouts;
-              });
-            }
-
-            // Aguardar um tick para a UI atualizar
-            await new Promise((r) => setTimeout(r, 10));
-
-            // Limpar os tipos de treino da data atual
-            if (workoutTypes[selectedDate]) {
-              setWorkoutTypes((prev) => {
-                const newTypes = { ...prev };
-                newTypes[selectedDate] = {};
-                return newTypes;
-              });
-            }
-
-            // Aguardar outro tick
-            await new Promise((r) => setTimeout(r, 10));
-
-            // Agora limpar os estados completos
-            setWorkouts({});
-            await new Promise((r) => setTimeout(r, 10));
-            setWorkoutTypes({});
-            await new Promise((r) => setTimeout(r, 10));
-            setAvailableWorkoutTypes([]);
-            await new Promise((r) => setTimeout(r, 10));
-
-            // 2. Limpar AsyncStorage de forma assíncrona
-            // Usar Promise.allSettled para continuar mesmo se alguma operação falhar
-            const storagePromises = [
-              AsyncStorage.removeItem(`${KEYS.WORKOUT_TYPES}:${userId}`),
-              AsyncStorage.removeItem(`${KEYS.WORKOUTS}:${userId}`),
-              AsyncStorage.removeItem(
-                `${KEYS.AVAILABLE_WORKOUT_TYPES}:${userId}`
-              ),
-            ];
-
-            await Promise.allSettled(storagePromises);
-
-            // 3. Reinicializar os tipos de treino padrão
-            const success = await initializeDefaultWorkoutTypes();
-
-            // 4. Feedback tátil de sucesso
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-            // 5. Resolver a promessa
-            resolve(true);
-          } catch (error) {
-            // Mesmo em caso de erro, tentamos inicializar os tipos padrão
-            try {
-              await initializeDefaultWorkoutTypes();
-            } catch (initError) {
-              // Ignorar erro na inicialização
-            }
-
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            resolve(false);
-          }
-        }, 50); // Pequeno delay inicial para garantir que a UI responda
-      });
-    } catch (error) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      return false;
     }
   };
 
@@ -1010,23 +877,21 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   // Salvar treinos no AsyncStorage
   const saveWorkouts = async (): Promise<void> => {
     try {
-      // Primeiro salvar localmente para garantir persistência
-      await AsyncStorage.setItem(
-        `${KEYS.WORKOUTS}:${userId}`,
-        JSON.stringify(workouts)
-      );
+      // Fazer uma cópia limpa dos estados para evitar problemas de referência
+      const workoutsCopy = JSON.parse(JSON.stringify(workouts));
+      const workoutTypesCopy = JSON.parse(JSON.stringify(workoutTypes));
 
-      // Verificar se os dados foram salvos localmente
-      const savedData = await AsyncStorage.getItem(
-        `${KEYS.WORKOUTS}:${userId}`
-      );
-      if (!savedData) {
-        // Tentar novamente
-        await AsyncStorage.setItem(
+      // Salvar os dois estados de forma atômica
+      await Promise.all([
+        AsyncStorage.setItem(
           `${KEYS.WORKOUTS}:${userId}`,
-          JSON.stringify(workouts)
-        );
-      }
+          JSON.stringify(workoutsCopy)
+        ),
+        AsyncStorage.setItem(
+          `${KEYS.WORKOUT_TYPES}:${userId}`,
+          JSON.stringify(workoutTypesCopy)
+        ),
+      ]);
 
       // Salvar no Firebase apenas se estiver online e o usuário não for anônimo
       if (userId && userId !== "anonymous" && userId !== "no-user") {
@@ -1039,28 +904,26 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
             return;
           }
 
-          // Limpar valores undefined antes de salvar
-          const cleanWorkouts = JSON.parse(JSON.stringify(workouts));
-          const cleanWorkoutTypes = JSON.parse(
-            JSON.stringify(availableWorkoutTypes)
-          );
-
           // Salvar no Firestore
           const workoutsRef = doc(db, "users", userId, "workouts", "data");
           await setDoc(
             workoutsRef,
             {
-              workouts: cleanWorkouts,
-              availableWorkoutTypes: cleanWorkoutTypes,
+              workouts: workoutsCopy,
+              workoutTypes: workoutTypesCopy,
+              availableWorkoutTypes: JSON.parse(
+                JSON.stringify(availableWorkoutTypes)
+              ),
               lastUpdated: serverTimestamp(),
             },
             { merge: true }
           );
         } catch (firebaseError) {
-          // Erro ao salvar no Firebase, dados mantidos localmente
+          console.error("Erro ao salvar no Firebase:", firebaseError);
         }
       }
     } catch (error) {
+      console.error("Erro ao salvar workouts:", error);
       throw error;
     }
   };
@@ -1908,106 +1771,60 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     [workouts, selectedDate, saveWorkouts]
   );
 
-  // Função para remover um treino inteiro da data selecionada
-  const removeWorkoutForDate = async (workoutId: string): Promise<boolean> => {
+  // Função para remover um treino inteiro para uma data específica
+  const removeWorkoutForDate = async (
+    workoutId: string,
+    date?: string
+  ): Promise<boolean> => {
     try {
-      // Verificar se o treino existe
-      if (!workouts[selectedDate] || !workouts[selectedDate][workoutId]) {
-        console.log(
-          `[removeWorkoutForDate] Treino ${workoutId} não existe na data ${selectedDate}`
-        );
+      const dateToUse = date || selectedDate;
+
+      // Verificar se existe uma entrada para a data e o treino
+      if (!workouts[dateToUse] || !workouts[dateToUse][workoutId]) {
         return false;
       }
 
-      console.log(
-        `[removeWorkoutForDate] Removendo treino ${workoutId} da data ${selectedDate}`
-      );
-
-      // Usar uma única atualização de estado para remover tanto o treino quanto o tipo de treino
-      // Isso reduz o número de renderizações e evita o efeito de piscar
+      // Criar cópias atualizadas dos objetos
       const updatedWorkouts = { ...workouts };
       const updatedWorkoutTypes = { ...workoutTypes };
 
-      // Remover o treino dos workouts
-      if (updatedWorkouts[selectedDate]) {
-        const { [workoutId]: removedWorkout, ...remainingWorkouts } =
-          updatedWorkouts[selectedDate];
-        updatedWorkouts[selectedDate] = remainingWorkouts;
+      // Remover o treino específico da data
+      delete updatedWorkouts[dateToUse][workoutId];
+
+      // Remover também o tipo de treino correspondente
+      if (updatedWorkoutTypes[dateToUse]) {
+        delete updatedWorkoutTypes[dateToUse][workoutId];
       }
 
-      // Remover o tipo de treino
-      if (updatedWorkoutTypes[selectedDate]) {
-        const { [workoutId]: removedType, ...remainingTypes } =
-          updatedWorkoutTypes[selectedDate];
-        updatedWorkoutTypes[selectedDate] = remainingTypes;
+      // Se não houver mais treinos para esta data, remover a entrada da data
+      if (Object.keys(updatedWorkouts[dateToUse]).length === 0) {
+        delete updatedWorkouts[dateToUse];
+        delete updatedWorkoutTypes[dateToUse];
       }
 
-      // Atualizar ambos os estados em batch (se possível)
-      // Usar um setTimeout para dar tempo à thread de UI respirar
-      await new Promise<void>((resolve) => {
-        setTimeout(() => {
-          // Atualizar workouts primeiro para garantir que a UI reflita a mudança
-          setWorkouts(updatedWorkouts);
+      // Atualizar os estados
+      setWorkouts(updatedWorkouts);
+      setWorkoutTypes(updatedWorkoutTypes);
 
-          // Pequeno delay antes de atualizar tipos, para permitir que a UI processe
-          setTimeout(() => {
-            setWorkoutTypes(updatedWorkoutTypes);
-            resolve();
-          }, 10);
-        }, 10);
-      });
+      // Persistir no AsyncStorage
+      await AsyncStorage.setItem(
+        `${KEYS.WORKOUTS}:${userId}`,
+        JSON.stringify(updatedWorkouts)
+      );
 
-      // Fornecer feedback tátil de sucesso antes de salvar
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await AsyncStorage.setItem(
+        `${KEYS.WORKOUT_TYPES}:${userId}`,
+        JSON.stringify(updatedWorkoutTypes)
+      );
 
-      // Salvar os dados atualizados
-      try {
-        await Promise.all([
-          AsyncStorage.setItem(
-            `${KEYS.WORKOUTS}:${userId}`,
-            JSON.stringify(updatedWorkouts)
-          ),
-          AsyncStorage.setItem(
-            `${KEYS.WORKOUT_TYPES}:${userId}`,
-            JSON.stringify(updatedWorkoutTypes)
-          ),
-        ]);
+      // Executar feedback tátil de sucesso
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-        // Fornecer feedback tátil de sucesso após salvar
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        return true;
-      } catch (saveError) {
-        console.error("[removeWorkoutForDate] Erro ao salvar:", saveError);
-
-        // Tentar novamente com um pequeno atraso
-        return new Promise((resolve) => {
-          setTimeout(async () => {
-            try {
-              await Promise.all([
-                AsyncStorage.setItem(
-                  `${KEYS.WORKOUTS}:${userId}`,
-                  JSON.stringify(updatedWorkouts)
-                ),
-                AsyncStorage.setItem(
-                  `${KEYS.WORKOUT_TYPES}:${userId}`,
-                  JSON.stringify(updatedWorkoutTypes)
-                ),
-              ]);
-              resolve(true);
-            } catch (retryError) {
-              console.error(
-                "[removeWorkoutForDate] Erro na segunda tentativa:",
-                retryError
-              );
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              resolve(false);
-            }
-          }, 500);
-        });
-      }
+      return true;
     } catch (error) {
-      console.error("[removeWorkoutForDate] Erro geral:", error);
+      // Executar feedback tátil de erro
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      console.error("Erro ao remover treino:", error);
       return false;
     }
   };
@@ -2023,6 +1840,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       addExerciseToWorkout,
       removeExerciseFromWorkout,
       updateExerciseInWorkout,
+      removeWorkoutForDate,
       saveWorkouts,
       getWorkoutsForDate,
       startWorkoutForDate,
@@ -2035,7 +1853,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       getExercisesForWorkout,
       saveWorkoutTypes,
       addWorkoutType,
-      resetWorkoutTypes,
       updateWorkoutTypes,
       getWorkoutTotals,
       getPreviousWorkoutTotals,
@@ -2048,8 +1865,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       getPreviousWorkoutExercises,
       getMultiplePreviousWorkoutsExercises,
       applyProgressionToWorkout,
-      // Nova função para remover um treino inteiro
-      removeWorkoutForDate,
     }),
     [
       workouts,
@@ -2059,6 +1874,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       addExerciseToWorkout,
       removeExerciseFromWorkout,
       updateExerciseInWorkout,
+      removeWorkoutForDate,
       saveWorkouts,
       getWorkoutsForDate,
       startWorkoutForDate,
@@ -2070,7 +1886,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       getExercisesForWorkout,
       saveWorkoutTypes,
       addWorkoutType,
-      resetWorkoutTypes,
       updateWorkoutTypes,
       getWorkoutTotals,
       getPreviousWorkoutTotals,
@@ -2081,17 +1896,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       getPreviousWorkoutExercises,
       getMultiplePreviousWorkoutsExercises,
       applyProgressionToWorkout,
-      removeWorkoutForDate,
     ]
   );
-
-  // Em WorkoutProvider, remover efeito desnecessário
-  // useEffect com array de dependência vazio - mantido apenas para documentação
-  useEffect(() => {
-    return () => {
-      // Limpeza ao desmontar - se necessário
-    };
-  }, []);
 
   return (
     <WorkoutContext.Provider value={contextValue}>

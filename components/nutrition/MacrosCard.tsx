@@ -69,39 +69,32 @@ export default function MacrosCard({
     isMacro: boolean,
     title?: string
   ) => {
-    // Tolerâncias específicas
-    const calorieBuffer = !isMacro ? 50 : 0; // 50kcal para calorias
-    let macroBuffer = 0;
-
-    if (isMacro) {
-      if (title?.includes(t("common.nutrition.protein"))) {
-        macroBuffer = 0.05; // 5% para proteína
-      } else {
-        macroBuffer = 0.03; // 3% para carboidratos e gorduras
-      }
-    }
-
-    // Verifica se está dentro da tolerância aceitável
-    const isWithinBuffer = isMacro
-      ? consumed <= target * (1 + macroBuffer)
-      : consumed <= target + calorieBuffer;
+    // Tolerâncias
+    const lowerBuffer = 0.03; // 3% - abaixo disso, considerado verde
+    const upperBuffer = 0.05; // 5% - acima disso, considerado vermelho
 
     // Se atingiu exatamente a meta
     if (isExactTarget(consumed, target)) {
       return colors.success || "#4CAF50";
     }
 
-    // Se está acima da meta mas dentro da tolerância
-    if (consumed > target && isWithinBuffer) {
-      return colors.info;
-    }
-
-    // Se está acima da meta e fora da tolerância
+    // Verifica em que faixa está
     if (consumed > target) {
+      // Está até 3% acima da meta - verde
+      if (consumed <= target * (1 + lowerBuffer)) {
+        return colors.success || "#4CAF50";
+      }
+
+      // Está entre 3% e 5% acima da meta - amarelo
+      if (consumed <= target * (1 + upperBuffer)) {
+        return colors.info;
+      }
+
+      // Está acima de 5% da meta - vermelho
       return colors.danger || "#FF3B30";
     }
 
-    // Se está abaixo da meta
+    // Se está abaixo da meta mas perto (90% ou mais)
     if (percentage >= 90) {
       return colors.success || "#4CAF50";
     }
@@ -132,15 +125,14 @@ export default function MacrosCard({
     // Usar a mesma lógica de cor do progresso para o ícone
     const iconColor = progressColor;
 
-    // Se atingiu a meta ou está dentro da tolerância, mostra 100%
-    const macroBuffer = title.includes(t("common.nutrition.protein"))
-      ? 0.05
-      : 0.03;
-    const isWithinBuffer = isMacro
-      ? consumed <= target * (1 + macroBuffer)
-      : consumed <= target + 50; // 50kcal para calorias
+    // Verificação para exibição do progresso visual
+    const lowerBuffer = 0.03; // 3%
+    const upperBuffer = 0.05; // 5%
+
+    // Se atingiu a meta ou está dentro da tolerância (até 5%), mostra 100%
     const displayProgress =
-      isExactTarget(consumed, target) || (consumed > target && isWithinBuffer)
+      isExactTarget(consumed, target) ||
+      (consumed > target && consumed <= target * (1 + upperBuffer))
         ? 100
         : Math.min(progress, 100);
 
@@ -199,13 +191,9 @@ export default function MacrosCard({
                         styles.remainingValue,
                         {
                           color:
-                            consumed <=
-                            (isMacro
-                              ? target *
-                                (title.includes(t("common.nutrition.protein"))
-                                  ? 1.05
-                                  : 1.03)
-                              : target + 50)
+                            consumed <= target * (1 + 0.03)
+                              ? colors.success || "#4CAF50"
+                              : consumed <= target * (1 + 0.05)
                               ? colors.info
                               : colors.danger || "#FF3B30",
                         },

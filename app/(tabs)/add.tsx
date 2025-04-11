@@ -14,63 +14,82 @@ export default function AddScreen() {
 
   return (
     <SafeAreaView
-      style={[
-        styles.container,
-        { backgroundColor: colors.background },
-      ]}
+      style={[styles.container, { backgroundColor: colors.background }]}
     >
       <View style={styles.content}>
-        <Text style={[styles.title, { color: colors.text }]}>
-          Adicionar
-        </Text>
+        <Text style={[styles.title, { color: colors.text }]}>Adicionar</Text>
 
         <View style={styles.optionsContainer}>
           <TouchableOpacity
-            style={[
-              styles.option,
-              { backgroundColor: colors.light },
-            ]}
+            style={[styles.option, { backgroundColor: colors.light }]}
             onPress={() => {
               // Navegar para adicionar treino
               router.push("/training/new");
             }}
           >
-            <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
-              <Ionicons name="barbell-outline" size={24} color={colors.primary} />
+            <View
+              style={[
+                styles.iconContainer,
+                { backgroundColor: colors.primary + "20" },
+              ]}
+            >
+              <Ionicons
+                name="barbell-outline"
+                size={24}
+                color={colors.primary}
+              />
             </View>
-            <Text style={[styles.optionText, { color: colors.text }]}>Novo Treino</Text>
+            <Text style={[styles.optionText, { color: colors.text }]}>
+              Novo Treino
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.option,
-              { backgroundColor: colors.light },
-            ]}
+            style={[styles.option, { backgroundColor: colors.light }]}
             onPress={() => {
               // Navegar para adicionar refeição
               router.push("/nutrition/new");
             }}
           >
-            <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
-              <Ionicons name="nutrition-outline" size={24} color={colors.primary} />
+            <View
+              style={[
+                styles.iconContainer,
+                { backgroundColor: colors.primary + "20" },
+              ]}
+            >
+              <Ionicons
+                name="nutrition-outline"
+                size={24}
+                color={colors.primary}
+              />
             </View>
-            <Text style={[styles.optionText, { color: colors.text }]}>Nova Refeição</Text>
+            <Text style={[styles.optionText, { color: colors.text }]}>
+              Nova Refeição
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.option,
-              { backgroundColor: colors.light },
-            ]}
+            style={[styles.option, { backgroundColor: colors.light }]}
             onPress={() => {
               // Navegar para adicionar progresso
               router.push("/progress/new");
             }}
           >
-            <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
-              <Ionicons name="trending-up-outline" size={24} color={colors.primary} />
+            <View
+              style={[
+                styles.iconContainer,
+                { backgroundColor: colors.primary + "20" },
+              ]}
+            >
+              <Ionicons
+                name="trending-up-outline"
+                size={24}
+                color={colors.primary}
+              />
             </View>
-            <Text style={[styles.optionText, { color: colors.text }]}>Registrar Progresso</Text>
+            <Text style={[styles.optionText, { color: colors.text }]}>
+              Registrar Progresso
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -81,12 +100,7 @@ export default function AddScreen() {
             router.back();
           }}
         >
-          <Text
-            style={[
-              styles.closeButtonText,
-              { color: colors.text },
-            ]}
-          >
+          <Text style={[styles.closeButtonText, { color: colors.text }]}>
             Fechar
           </Text>
         </TouchableOpacity>
@@ -134,8 +148,8 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 15,
   },
   optionText: {

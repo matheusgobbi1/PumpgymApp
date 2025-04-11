@@ -1,14 +1,4 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  Alert,
-  Dimensions,
-  Platform,
-} from "react-native";
+import { StyleSheet, View, ScrollView, Alert, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
@@ -18,7 +8,6 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
-  Suspense,
 } from "react";
 import Calendar from "../../components/shared/Calendar";
 import { getLocalDate } from "../../utils/dateUtils";
@@ -34,10 +23,7 @@ import WorkoutCard from "../../components/training/WorkoutCard";
 import TrainingStatsCard from "../../components/training/TrainingStatsCard";
 import { useRouter } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import ConfirmationModal from "../../components/ui/ConfirmationModal";
-import ContextMenu, { MenuAction } from "../../components/shared/ContextMenu";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { MenuAction } from "../../components/shared/ContextMenu";
 import HomeHeader from "../../components/home/HomeHeader";
 import { useTranslation } from "react-i18next";
 import { useTabPreloader } from "../../hooks/useTabPreloader";
@@ -57,7 +43,6 @@ interface WorkoutGroupProps {
   previousExercises: Exercise[];
   onNavigate: (id: string) => void;
   onDeleteExercise: (workoutId: string, exerciseId: string) => Promise<void>;
-  notificationsEnabled: boolean;
 }
 
 // Função para comparar props do MemoizedWorkoutGroup
@@ -68,8 +53,7 @@ const arePropsEqual = (
   // Verificar se as props primitivas são iguais
   if (
     prevProps.workoutId !== nextProps.workoutId ||
-    prevProps.index !== nextProps.index ||
-    prevProps.notificationsEnabled !== nextProps.notificationsEnabled
+    prevProps.index !== nextProps.index
   ) {
     return false;
   }
@@ -121,9 +105,8 @@ const MemoizedWorkoutGroup = React.memo(
     index,
     previousWorkoutData,
     previousExercises,
-    onNavigate,
+
     onDeleteExercise,
-    notificationsEnabled,
   }: WorkoutGroupProps) => {
     return (
       <View key={`workout-group-${workoutId}-${index}`}>
@@ -135,7 +118,6 @@ const MemoizedWorkoutGroup = React.memo(
           workoutColor={workoutType.color}
           currentExercises={exercises}
           previousExercises={previousExercises}
-          notificationsEnabled={notificationsEnabled}
         />
 
         {/* Card do treino */}
@@ -155,11 +137,9 @@ const MemoizedWorkoutGroup = React.memo(
           exercises={exercises}
           workoutTotals={workoutTotals}
           index={index}
-          onPress={() => onNavigate(workoutId)}
           onDeleteExercise={(exerciseId) =>
             onDeleteExercise(workoutId, exerciseId)
           }
-          notificationsEnabled={notificationsEnabled}
         />
       </View>
     );
@@ -184,21 +164,9 @@ export default function TrainingScreen() {
 
   // Estado para forçar a recriação do WorkoutConfigSheet
   const [workoutConfigKey, setWorkoutConfigKey] = useState(Date.now());
-  // Estado para controlar a visibilidade do modal de confirmação
-  const [resetModalVisible, setResetModalVisible] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-
-  // Novo estado para controlar transições de UI
-  const [isRemoving, setIsRemoving] = useState(false);
-  const [removedWorkoutId, setRemovedWorkoutId] = useState<string | null>(null);
 
   // Estado para contar dias de treino
   const [trainingDays, setTrainingDays] = useState(0);
-
-  // Novo estado para controlar modal de remoção de treino
-  const [deleteWorkoutModalVisible, setDeleteWorkoutModalVisible] =
-    useState(false);
-  const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
 
   // Usar o contexto de treinos - desestruturar apenas o que é necessário para este componente
   // Usar os valores memoizados do contexto em vez de calcular novamente
@@ -209,13 +177,11 @@ export default function TrainingScreen() {
     getWorkoutTotals,
     getExercisesForWorkout,
     removeExerciseFromWorkout,
+    removeWorkoutForDate,
     getWorkoutTypeById,
     saveWorkouts,
     getPreviousWorkoutTotals,
     startWorkoutForDate,
-    resetWorkoutTypes,
-    // Novo! Adicionar removeWorkoutForDate do contexto
-    removeWorkoutForDate,
     // Usar valores memoizados do contexto
     workoutsForSelectedDate,
     hasConfiguredWorkouts,
@@ -278,33 +244,6 @@ export default function TrainingScreen() {
     () => Object.keys(workoutsForSelectedDate).length > 0,
     [workoutsForSelectedDate]
   );
-
-  // Carregar o estado de notificações do AsyncStorage no montagem
-  useEffect(() => {
-    const loadNotificationPreference = async () => {
-      try {
-        const preference = await AsyncStorage.getItem("notificationsEnabled");
-        // Se o usuário já definiu uma preferência, use-a. Caso contrário, mantenha o padrão (true)
-        if (preference !== null) {
-          setNotificationsEnabled(preference === "true");
-        }
-      } catch (error) {}
-    };
-
-    if (isUIReady) {
-      loadNotificationPreference();
-    }
-  }, [isUIReady]);
-
-  // Função para alternar o estado de notificações
-  const toggleNotifications = useCallback(async () => {
-    try {
-      const newState = !notificationsEnabled;
-      setNotificationsEnabled(newState);
-      await AsyncStorage.setItem("notificationsEnabled", newState.toString());
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (error) {}
-  }, [notificationsEnabled]);
 
   // Detectar quando o usuário completa um treino (adicionando exercícios)
   const checkForCompletedWorkout = useCallback(
@@ -488,160 +427,53 @@ export default function TrainingScreen() {
     [updateWorkoutTypes]
   );
 
-  // Função para redefinir os tipos de treino
-  const handleResetWorkoutTypes = useCallback(() => {
-    // Fornecer feedback tátil imediatamente
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  // Função para excluir um treino
+  const handleDeleteWorkout = useCallback(async () => {
+    // Verificar se há treinos para a data selecionada
+    const workoutIds = Object.keys(workoutsForSelectedDate);
+    if (workoutIds.length === 0) return;
 
-    // Mostrar o modal de confirmação imediatamente
-    setResetModalVisible(true);
-  }, []);
+    // Pegar o primeiro workoutId (como mostrado nos comentários, só temos um tipo de treino por dia)
+    const workoutId = workoutIds[0];
 
-  // Função para confirmar a redefinição dos tipos de treino
-  const confirmResetWorkoutTypes = useCallback(() => {
-    try {
-      // 1. Fechar o modal imediatamente para feedback visual
-      setResetModalVisible(false);
-
-      // 2. Feedback tátil para começar
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-      // 3. Desativar interação com a UI durante o processamento pesado
-      InteractionManager.runAfterInteractions(async () => {
-        try {
-          // 4. Mostrar um indicador visual sutil sem bloquear a interface
-          // Nota: Não modificamos o estado diretamente, pois não temos acesso a setWorkouts
-          // Apenas chamaremos resetWorkoutTypes que já foi otimizado
-
-          // 5. Chamar a função resetWorkoutTypes que agora está otimizada
-          const success = await resetWorkoutTypes();
-
-          // 6. Garantir a atualização da interface após completar
-          if (success) {
-            // Forçar a recriação do WorkoutConfigSheet
-            setWorkoutConfigKey(Date.now());
-
-            // Forçar atualizações através da função disponível
-            saveWorkouts();
-
-            // 7. Fornecer feedback tátil de sucesso
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          } else {
-            // 8. Fornecer feedback tátil de erro
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          }
-        } catch (error) {
-          // 9. Lidar com erros
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        }
-      });
-    } catch (error) {
-      // 10. Garantir que o modal é fechado mesmo em caso de erro
-      setResetModalVisible(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    }
-  }, [resetWorkoutTypes, saveWorkouts]);
-
-  // Nova função para solicitar a remoção de um treino específico
-  const handleRequestDeleteWorkout = useCallback(
-    (workoutId: string) => {
-      console.log(
-        `[TrainingScreen] Solicitando remoção do treino: ${workoutId}`
-      );
-
-      // Verificar se o workout existe
-      const workoutType = getWorkoutTypeById(workoutId);
-      if (!workoutType) {
-        console.log(
-          `[TrainingScreen] Tipo de treino não encontrado: ${workoutId}`
-        );
-        return;
-      }
-
-      // Armazenar o ID do treino a ser excluído
-      setWorkoutToDelete(workoutId);
-
-      // Mostrar modal de confirmação
-      setDeleteWorkoutModalVisible(true);
-
-      // Feedback tátil
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    },
-    [getWorkoutTypeById]
-  );
-
-  // Nova função para confirmar a exclusão do treino
-  const confirmDeleteWorkout = useCallback(async () => {
-    if (!workoutToDelete) return;
-
-    console.log(
-      `[TrainingScreen] Confirmando remoção do treino: ${workoutToDelete}`
+    // Solicitar confirmação antes de excluir
+    Alert.alert(
+      t("training.deleteWorkoutModal.title"),
+      t("training.deleteWorkoutModal.message"),
+      [
+        {
+          text: t("training.deleteWorkoutModal.cancel"),
+          style: "cancel",
+        },
+        {
+          text: t("training.deleteWorkoutModal.confirm"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const success = await removeWorkoutForDate(workoutId);
+              if (success) {
+                Haptics.notificationAsync(
+                  Haptics.NotificationFeedbackType.Success
+                );
+              } else {
+                Alert.alert(
+                  t("common.error"),
+                  t("training.errors.deleteError") ||
+                    "Não foi possível excluir o treino. Tente novamente."
+                );
+              }
+            } catch (error) {
+              Alert.alert(
+                t("common.error"),
+                t("training.errors.deleteError") ||
+                  "Não foi possível excluir o treino. Tente novamente."
+              );
+            }
+          },
+        },
+      ]
     );
-
-    try {
-      // Fechar o modal imediatamente
-      setDeleteWorkoutModalVisible(false);
-
-      // Iniciar estado de transição
-      setIsRemoving(true);
-      setRemovedWorkoutId(workoutToDelete);
-
-      // Fornecer feedback tátil inicial
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-      // Tentar remover o treino com uma breve pausa para feedback visual
-      setTimeout(async () => {
-        // Tentar remover o treino
-        const success = await removeWorkoutForDate(workoutToDelete);
-
-        console.log(
-          `[TrainingScreen] Resultado da remoção: ${
-            success ? "sucesso" : "falha"
-          }`
-        );
-
-        // Forçar a atualização dos workouts para a data selecionada
-        if (success) {
-          // Feedback de sucesso
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-          // Forçar atualização da interface
-          const forceUpdate = async () => {
-            // Recarregar os dados dos treinos
-            await saveWorkouts();
-
-            // Finalizar estado de transição após um breve delay para animação
-            setTimeout(() => {
-              setIsRemoving(false);
-              setRemovedWorkoutId(null);
-            }, 300);
-          };
-
-          // Executar a atualização após um breve atraso
-          forceUpdate();
-        } else {
-          // Feedback de erro
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          setIsRemoving(false);
-          setRemovedWorkoutId(null);
-        }
-
-        // Limpar o ID do treino
-        setWorkoutToDelete(null);
-      }, 100);
-    } catch (error) {
-      console.error("[TrainingScreen] Erro ao excluir treino:", error);
-
-      // Fechar o modal em caso de erro
-      setDeleteWorkoutModalVisible(false);
-      setWorkoutToDelete(null);
-      setIsRemoving(false);
-      setRemovedWorkoutId(null);
-
-      // Feedback de erro
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    }
-  }, [workoutToDelete, removeWorkoutForDate, saveWorkouts]);
+  }, [workoutsForSelectedDate, removeWorkoutForDate, t]);
 
   // Renderizar os cards de treino
   const renderWorkoutCards = useCallback(() => {
@@ -651,46 +483,40 @@ export default function TrainingScreen() {
     )
       return null;
 
+    // Como agora só temos um tipo de treino por dia, pegamos o primeiro ID
     const workoutIds = Object.keys(workoutsForSelectedDate);
+    const workoutId = workoutIds[0]; // Usar apenas o primeiro treino
 
-    return workoutIds.map((workoutId, index) => {
-      // Não renderizar se este treino está sendo removido
-      if (isRemoving && removedWorkoutId === workoutId) {
-        return null;
-      }
+    const workoutType = getWorkoutTypeById(workoutId);
+    if (!workoutType) return null;
 
-      const workoutType = getWorkoutTypeById(workoutId);
-      if (!workoutType) return null;
+    const exercises = getExercisesForWorkout(workoutId);
+    const workoutTotals = getWorkoutTotals(workoutId);
 
-      const exercises = getExercisesForWorkout(workoutId);
-      const workoutTotals = getWorkoutTotals(workoutId);
+    // Buscar dados do treino anterior
+    const previousWorkoutData = getPreviousWorkoutTotals(workoutId);
 
-      // Buscar dados do treino anterior
-      const previousWorkoutData = getPreviousWorkoutTotals(workoutId);
+    // Buscar exercícios do treino anterior
+    let previousExercises: Exercise[] = [];
+    if (previousWorkoutData.date && previousWorkoutData.totals) {
+      const previousWorkouts = getWorkoutsForDate(previousWorkoutData.date);
+      previousExercises = previousWorkouts[workoutId] || [];
+    }
 
-      // Buscar exercícios do treino anterior
-      let previousExercises: Exercise[] = [];
-      if (previousWorkoutData.date && previousWorkoutData.totals) {
-        const previousWorkouts = getWorkoutsForDate(previousWorkoutData.date);
-        previousExercises = previousWorkouts[workoutId] || [];
-      }
-
-      return (
-        <MemoizedWorkoutGroup
-          key={`workout-group-${workoutId}-${index}`}
-          workoutId={workoutId}
-          workoutType={workoutType}
-          exercises={exercises}
-          workoutTotals={workoutTotals}
-          index={index}
-          previousWorkoutData={previousWorkoutData}
-          previousExercises={previousExercises}
-          onNavigate={navigateToWorkoutDetails}
-          onDeleteExercise={handleDeleteExercise}
-          notificationsEnabled={notificationsEnabled}
-        />
-      );
-    });
+    return (
+      <MemoizedWorkoutGroup
+        key={`workout-group-${workoutId}-0`}
+        workoutId={workoutId}
+        workoutType={workoutType}
+        exercises={exercises}
+        workoutTotals={workoutTotals}
+        index={0}
+        previousWorkoutData={previousWorkoutData}
+        previousExercises={previousExercises}
+        onNavigate={navigateToWorkoutDetails}
+        onDeleteExercise={handleDeleteExercise}
+      />
+    );
   }, [
     workoutsForSelectedDate,
     getWorkoutTypeById,
@@ -700,9 +526,6 @@ export default function TrainingScreen() {
     getWorkoutsForDate,
     navigateToWorkoutDetails,
     handleDeleteExercise,
-    notificationsEnabled,
-    isRemoving,
-    removedWorkoutId,
   ]);
 
   // Memoizar o componente de estado vazio para evitar re-renderizações
@@ -730,7 +553,7 @@ export default function TrainingScreen() {
     [selectedDate, handleDateSelect, workoutsForSelectedDate, hasWorkoutContent]
   );
 
-  // Atualizar as ações do menu contextual para incluir a opção de silenciar notificações
+  // Atualizar as ações do menu contextual
   const menuActions = useMemo<MenuAction[]>(() => {
     // Ações base sempre presentes
     const baseActions: MenuAction[] = [
@@ -742,68 +565,46 @@ export default function TrainingScreen() {
         onPress: openWorkoutConfigSheet,
       },
       {
-        id: "notifications",
-        label: notificationsEnabled
-          ? t("training.menu.muteNotifications")
-          : t("training.menu.enableNotifications"),
-        icon: notificationsEnabled
-          ? "notifications-off-outline"
-          : "notifications-outline",
+        id: "export",
+        label: t("training.menu.exportWorkout") || "Exportar Treino",
+        icon: "share-outline",
         type: "default",
-        onPress: toggleNotifications,
+        onPress: () => {
+          // Verificar se há treinos para exportar
+          if (Object.keys(workoutsForSelectedDate).length === 0) {
+            Alert.alert(
+              t("common.warning") || "Atenção",
+              t("training.export.noWorkoutsToExport") ||
+                "Não há treinos para exportar nesta data.",
+              [{ text: t("common.ok") || "OK" }]
+            );
+            return;
+          }
+
+          // Navegar para o modal de exportação
+          router.push("/workout-export-modal");
+        },
       },
     ];
 
-    // Adicionar opção de excluir treino sempre que houver treinos
-    const workoutIds = Object.keys(workoutsForSelectedDate);
-    if (workoutIds.length > 0) {
-      // Se houver mais de um treino, adicionar uma opção para cada treino
-      if (workoutIds.length > 1) {
-        workoutIds.forEach((workoutId) => {
-          const workoutType = getWorkoutTypeById(workoutId);
-          if (workoutType) {
-            baseActions.push({
-              id: `delete-workout-${workoutId}`,
-              label: t("training.menu.deleteWorkoutWithName", {
-                name: workoutType.name,
-              }),
-              icon: "trash-outline",
-              type: "danger" as "danger",
-              onPress: () => handleRequestDeleteWorkout(workoutId),
-            });
-          }
-        });
-      } else {
-        // Se houver apenas um treino, adicionar uma opção simples
-        baseActions.push({
-          id: "delete-workout",
-          label: t("training.menu.deleteWorkout"),
-          icon: "trash-outline",
-          type: "danger" as "danger",
-          onPress: () => handleRequestDeleteWorkout(workoutIds[0]),
-        });
-      }
+    // Adicionar opção de excluir apenas se houver treinos para a data selecionada
+    if (Object.keys(workoutsForSelectedDate).length > 0) {
+      baseActions.push({
+        id: "delete",
+        label: t("training.menu.deleteWorkout"),
+        icon: "trash-outline",
+        type: "danger",
+        onPress: handleDeleteWorkout,
+      });
     }
-
-    // Sempre adicionar a opção de resetar todos os treinos por último
-    baseActions.push({
-      id: "reset",
-      label: t("training.menu.resetWorkouts"),
-      icon: "refresh-outline",
-      type: "danger" as "danger",
-      onPress: handleResetWorkoutTypes,
-    });
 
     return baseActions;
   }, [
     openWorkoutConfigSheet,
-    handleResetWorkoutTypes,
-    notificationsEnabled,
-    toggleNotifications,
     t,
     workoutsForSelectedDate,
-    handleRequestDeleteWorkout,
-    getWorkoutTypeById,
+    handleDeleteWorkout,
+    router,
   ]);
 
   // Função para verificar se o menu deve ser visível
@@ -819,11 +620,7 @@ export default function TrainingScreen() {
       return <TabPreloader message={t("common.loading")} />;
     }
 
-    const shouldShowEmptyState =
-      !hasWorkoutsForSelectedDate ||
-      (isRemoving &&
-        Object.keys(workoutsForSelectedDate).length === 1 &&
-        workoutsForSelectedDate[removedWorkoutId || ""] !== undefined);
+    const shouldShowEmptyState = !hasWorkoutsForSelectedDate;
 
     return (
       <>
@@ -867,32 +664,6 @@ export default function TrainingScreen() {
         onWorkoutConfigured={handleWorkoutConfigured}
         selectedDate={getLocalDate(selectedDate)}
         key={`workout-config-${workoutConfigKey}-${theme}`}
-      />
-
-      {/* Modal de confirmação para redefinir treinos */}
-      <ConfirmationModal
-        visible={resetModalVisible}
-        title={t("training.resetModal.title")}
-        message={t("training.resetModal.message")}
-        confirmText={t("training.resetModal.confirm")}
-        cancelText={t("training.resetModal.cancel")}
-        confirmType="danger"
-        icon="refresh-outline"
-        onConfirm={confirmResetWorkoutTypes}
-        onCancel={() => setResetModalVisible(false)}
-      />
-
-      {/* Novo Modal para confirmação de exclusão de um treino específico */}
-      <ConfirmationModal
-        visible={deleteWorkoutModalVisible}
-        title={t("training.deleteWorkoutModal.title")}
-        message={t("training.deleteWorkoutModal.message")}
-        confirmText={t("training.deleteWorkoutModal.confirm")}
-        cancelText={t("training.deleteWorkoutModal.cancel")}
-        confirmType="danger"
-        icon="trash-outline"
-        onConfirm={confirmDeleteWorkout}
-        onCancel={() => setDeleteWorkoutModalVisible(false)}
       />
     </SafeAreaView>
   );

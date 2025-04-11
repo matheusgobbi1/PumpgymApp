@@ -1013,6 +1013,178 @@ export const brandedFoods: (FoodData & { alternatives?: string[] })[] = [
     ],
   },
 
+  // Proteínas Vegetais
+  {
+    id: "brand_soy_protein_growth_chocolate",
+    name: "Soy Protein Growth Chocolate",
+    category: "Suplementos",
+    nutrients: {
+      calories: 125,
+      protein: 24.0,
+      fat: 0.0,
+      carbs: 2.1,
+      fiber: 0.1,
+    },
+    measures: [
+      {
+        id: "measure_soy_protein_growth_chocolate_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_soy_protein_growth_chocolate_scoop",
+        label: "scoop (30g)",
+        weight: 30,
+      },
+      {
+        id: "measure_soy_protein_growth_chocolate_porcao",
+        label: "porção (30g - 2 dosadores)",
+        weight: 30,
+      },
+    ],
+    alternatives: [
+      "brand_soy_protein_growth_morango",
+      "brand_whey_growth_chocolate",
+      "brand_whey_integralmedica_baunilha",
+    ],
+  },
+  {
+    id: "brand_soy_protein_growth_morango",
+    name: "Soy Protein Growth Morango",
+    category: "Suplementos",
+    nutrients: {
+      calories: 125,
+      protein: 24.0,
+      fat: 0.0,
+      carbs: 2.1,
+      fiber: 0.1,
+    },
+    measures: [
+      {
+        id: "measure_soy_protein_growth_morango_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_soy_protein_growth_morango_scoop",
+        label: "scoop (30g)",
+        weight: 30,
+      },
+      {
+        id: "measure_soy_protein_growth_morango_porcao",
+        label: "porção (30g - 2 dosadores)",
+        weight: 30,
+      },
+    ],
+    alternatives: [
+      "brand_soy_protein_growth_chocolate",
+      "brand_whey_growth_chocolate",
+      "brand_whey_maxTitanium_morango",
+    ],
+  },
+  {
+    id: "brand_rice_protein_chocolate",
+    name: "Rice Protein Chocolate",
+    category: "Suplementos",
+    nutrients: {
+      calories: 102,
+      protein: 22.0,
+      fat: 1.0,
+      carbs: 1.2,
+      fiber: 1.1,
+    },
+    measures: [
+      {
+        id: "measure_rice_protein_chocolate_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_rice_protein_chocolate_scoop",
+        label: "scoop (30g)",
+        weight: 30,
+      },
+      {
+        id: "measure_rice_protein_chocolate_porcao",
+        label: "porção (30g - 2 dosadores)",
+        weight: 30,
+      },
+    ],
+    alternatives: [
+      "brand_soy_protein_growth_chocolate",
+      "brand_pea_protein_chocolate",
+      "brand_whey_growth_chocolate",
+    ],
+  },
+  {
+    id: "brand_pea_protein_chocolate",
+    name: "Pea Protein Chocolate",
+    category: "Suplementos",
+    nutrients: {
+      calories: 119,
+      protein: 22.0,
+      fat: 2.5,
+      carbs: 2.0,
+      fiber: 1.4,
+    },
+    measures: [
+      {
+        id: "measure_pea_protein_chocolate_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_pea_protein_chocolate_scoop",
+        label: "scoop (30g)",
+        weight: 30,
+      },
+      {
+        id: "measure_pea_protein_chocolate_porcao",
+        label: "porção (30g - 2 dosadores)",
+        weight: 30,
+      },
+    ],
+    alternatives: [
+      "brand_pea_protein_morango",
+      "brand_rice_protein_chocolate",
+      "brand_soy_protein_growth_chocolate",
+    ],
+  },
+  {
+    id: "brand_pea_protein_morango",
+    name: "Pea Protein Morango",
+    category: "Suplementos",
+    nutrients: {
+      calories: 115,
+      protein: 22.0,
+      fat: 2.4,
+      carbs: 1.4,
+      fiber: 0.6,
+    },
+    measures: [
+      {
+        id: "measure_pea_protein_morango_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_pea_protein_morango_scoop",
+        label: "scoop (30g)",
+        weight: 30,
+      },
+      {
+        id: "measure_pea_protein_morango_porcao",
+        label: "porção (30g - 2 dosadores)",
+        weight: 30,
+      },
+    ],
+    alternatives: [
+      "brand_pea_protein_chocolate",
+      "brand_soy_protein_growth_morango",
+      "brand_whey_maxTitanium_morango",
+    ],
+  },
+
   // Hipercalóricos
   {
     id: "brand_hipercalorico_mass_titanium",
@@ -3091,7 +3263,6 @@ export const brandedFoods: (FoodData & { alternatives?: string[] })[] = [
   },
 
   // Temperos e Condimentos
- 
 
   // Bebidas Vegetais
   {
@@ -5712,6 +5883,129 @@ export const brandedFoods: (FoodData & { alternatives?: string[] })[] = [
       "brand_manteiga_batavo_light",
       "brand_manteiga_vigor_com_sal",
       "brand_manteiga_vigor_sem_sal",
+    ],
+  },
+
+  // Batavo Pense Zero
+  {
+    id: "brand_iogurte_batavo_pense_zero_tradicional",
+    name: "Iogurte Batavo Pense Zero Tradicional",
+    category: "Laticínios",
+    nutrients: {
+      calories: 28,
+      protein: 2.9,
+      fat: 0,
+      carbs: 4.0,
+      fiber: 0.0,
+    },
+    measures: [
+      {
+        id: "measure_iogurte_batavo_pense_zero_tradicional_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_iogurte_batavo_pense_zero_tradicional_pote",
+        label: "pote (170g)",
+        weight: 170,
+      },
+    ],
+    alternatives: [
+      "brand_iogurte_batavo_pense_zero_morango",
+      "brand_iogurte_batavo_pense_zero_mamao",
+      "brand_iogurte_batavo_proteina_baunilha",
+    ],
+  },
+  {
+    id: "brand_iogurte_batavo_pense_zero_morango",
+    name: "Iogurte Batavo Pense Zero Morango",
+    category: "Laticínios",
+    nutrients: {
+      calories: 34,
+      protein: 3.7,
+      fat: 0,
+      carbs: 4.8,
+      fiber: 0.0,
+    },
+    measures: [
+      {
+        id: "measure_iogurte_batavo_pense_zero_morango_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_iogurte_batavo_pense_zero_morango_pote",
+        label: "pote (170g)",
+        weight: 170,
+      },
+    ],
+    alternatives: [
+      "brand_iogurte_batavo_pense_zero_tradicional",
+      "brand_iogurte_batavo_pense_zero_mamao",
+      "brand_iogurte_yopro_morango",
+    ],
+  },
+  {
+    id: "brand_iogurte_batavo_pense_zero_mamao",
+    name: "Iogurte Batavo Pense Zero Mamão",
+    category: "Laticínios",
+    nutrients: {
+      calories: 27,
+      protein: 2.8,
+      fat: 0,
+      carbs: 4.0,
+      fiber: 0.0,
+    },
+    measures: [
+      {
+        id: "measure_iogurte_batavo_pense_zero_mamao_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_iogurte_batavo_pense_zero_mamao_pote",
+        label: "pote (170g)",
+        weight: 170,
+      },
+    ],
+    alternatives: [
+      "brand_iogurte_batavo_pense_zero_tradicional",
+      "brand_iogurte_batavo_pense_zero_morango",
+      "brand_iogurte_batavo_proteina_morango",
+    ],
+  },
+  {
+    id: "brand_pao_frances_mini_swift",
+    name: "Mini Pão Francês Swift",
+    category: "Pães",
+    nutrients: {
+      calories: 248,
+      protein: 7.1,
+      fat: 1.1,
+      carbs: 51.0,
+      fiber: 2.3,
+    },
+    measures: [
+      {
+        id: "measure_pao_frances_mini_swift_100g",
+        label: "100g",
+        weight: 100,
+      },
+      {
+        id: "measure_pao_frances_mini_swift_unidade",
+        label: "unidade (50g)",
+        weight: 50,
+      },
+      {
+        id: "measure_pao_frances_mini_swift_pacote",
+        label: "pacote (300g - 6 unidades)",
+        weight: 300,
+      },
+    ],
+    alternatives: [
+      "brand_pao_frances_congelado_forno_minas",
+      "brand_pao_wickbold_tradicional",
+      "brand_pao_pullman_tradicional",
     ],
   },
 ];

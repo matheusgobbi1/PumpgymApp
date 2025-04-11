@@ -264,6 +264,13 @@ function AppContent() {
             animation: "slide_from_bottom",
           }}
         />
+        <Stack.Screen
+          name="diet-export-modal"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+          }}
+        />
       </Stack>
     </View>
   );

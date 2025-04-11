@@ -5,22 +5,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  Image,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-// Importar o tipo para os ícones do Ionicons
-import type { Icon } from "@expo/vector-icons/build/createIconSet";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Animated, {
   FadeIn,
   FadeInDown,
   Layout,
-  SlideInDown,
-  withSpring,
-  withTiming,
-  withSequence,
-  withDelay,
   FadeOut,
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
@@ -40,29 +33,6 @@ interface EmptyWorkoutStateProps {
 
 // Tipo para os ícones do Ionicons
 type IoniconsNames = React.ComponentProps<typeof Ionicons>["name"];
-
-// Componentes memoizados para evitar re-renderizações desnecessárias
-const TipItem = memo(
-  ({
-    icon,
-    text,
-    color,
-    index,
-  }: {
-    icon: IoniconsNames;
-    text: string;
-    color: string;
-    index: number;
-  }) => (
-    <Animated.View
-      entering={FadeInDown.delay(index * 200).springify()}
-      style={styles.tipItem}
-    >
-      <Ionicons name={icon} size={20} color={color} />
-      <Text style={[styles.tipText, { color: color + "70" }]}>{text}</Text>
-    </Animated.View>
-  )
-);
 
 // Componente para o card de tipo de treino
 const WorkoutTypeCard = memo(
@@ -151,7 +121,6 @@ function EmptyWorkoutState({
   const colors = Colors[theme];
   const { t } = useTranslation();
   const workoutContext = useWorkoutContext();
-  const { selectedDate } = workoutContext;
   const availableWorkoutTypes = workoutContext.availableWorkoutTypes || [];
   const { startWorkoutForDate } = workoutContext;
 
@@ -180,7 +149,7 @@ function EmptyWorkoutState({
       try {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-        // Iniciar o treino para a data atual apenas com o ID do workoutType
+        // Iniciar o treino para a data atual
         const workoutId = await startWorkoutForDate(workoutType.id);
 
         if (!workoutId) {

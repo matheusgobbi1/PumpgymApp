@@ -7,24 +7,19 @@ import React, {
 } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
-  Dimensions,
-  TouchableOpacity,
   Alert,
   InteractionManager,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
-import { Ionicons } from "@expo/vector-icons";
 import Calendar from "../../components/shared/Calendar";
 import { useNutrition } from "../../context/NutritionContext";
 import {
   useMeals,
   MealType as MealTypeContext,
 } from "../../context/MealContext";
-import { MotiView } from "moti";
 import { format } from "date-fns";
 import MealCard from "../../components/nutrition/MealCard";
 import MacrosCard from "../../components/nutrition/MacrosCard";
@@ -37,15 +32,12 @@ import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import ConfirmationModal from "../../components/ui/ConfirmationModal";
-import ContextMenu, { MenuAction } from "../../components/shared/ContextMenu";
+import { MenuAction } from "../../components/shared/ContextMenu";
 import HomeHeader from "../../components/home/HomeHeader";
 import { useTranslation } from "react-i18next";
 import { useTabPreloader } from "../../hooks/useTabPreloader";
 import TabPreloader from "../../components/TabPreloader";
-import { formatDateWithWeekday } from "../../utils/dateUtils";
 import { useDateLocale } from "../../hooks/useDateLocale";
-
-const { width } = Dimensions.get("window");
 
 // Interface local para os tipos de refeição com a propriedade foods
 interface MealType extends MealTypeContext {
@@ -65,37 +57,6 @@ const DEFAULT_MEAL_COLORS: { [key: string]: string } = {
   other: "#FFCC00", // Amarelo
 };
 
-const MEAL_TYPES: MealType[] = [
-  {
-    id: "breakfast",
-    name: "Café da Manhã",
-    icon: "sunny-outline",
-    foods: [],
-    color: DEFAULT_MEAL_COLORS["breakfast"],
-  },
-  {
-    id: "lunch",
-    name: "Almoço",
-    icon: "restaurant-outline",
-    foods: [],
-    color: DEFAULT_MEAL_COLORS["lunch"],
-  },
-  {
-    id: "snack",
-    name: "Lanche",
-    icon: "cafe-outline",
-    foods: [],
-    color: DEFAULT_MEAL_COLORS["snack"],
-  },
-  {
-    id: "dinner",
-    name: "Jantar",
-    icon: "moon-outline",
-    foods: [],
-    color: DEFAULT_MEAL_COLORS["dinner"],
-  },
-];
-
 export default function NutritionScreen() {
   const { theme } = useTheme();
   const colors = Colors[theme];
@@ -110,7 +71,7 @@ export default function NutritionScreen() {
   const [isUIReady, setIsUIReady] = useState(false);
 
   // Hook de precarregamento de tabs
-  const { isReady, withPreloadDelay } = useTabPreloader({
+  const { isReady } = useTabPreloader({
     delayMs: 150, // Pequeno delay para permitir animações fluidas
   });
 
@@ -122,7 +83,6 @@ export default function NutritionScreen() {
     getMealTotals,
     getFoodsForMeal,
     removeFoodFromMeal,
-    addMealType,
     mealTypes,
     hasMealTypesConfigured,
     updateMealTypes,
@@ -142,7 +102,7 @@ export default function NutritionScreen() {
   }, [isUIReady]);
 
   // Estado para forçar a recriação do MealConfigSheet
-  const [mealConfigKey, setMealConfigKey] = useState(Date.now());
+  const [mealConfigKey] = useState(Date.now());
 
   // Novo estado para gerenciar modais
   const [modalInfo, setModalInfo] = useState({
@@ -175,13 +135,6 @@ export default function NutritionScreen() {
     setTotalMeals(daysWithMeals.length);
   }, [meals, isUIReady]);
 
-  // Efeito para forçar atualização quando o status de configuração de refeições mudar
-  useEffect(() => {
-    if (hasMealTypesConfigured) {
-      // As refeições foram configuradas, não precisamos mais do triggerRefresh
-    }
-  }, [hasMealTypesConfigured]);
-
   const handleDateSelect = (date: Date) => {
     setSelectedDate(format(date, "yyyy-MM-dd"));
   };
@@ -199,15 +152,6 @@ export default function NutritionScreen() {
     },
     [removeFoodFromMeal, modalInfo.mealId]
   );
-
-  const handleDeleteMeal = useCallback(async (mealId: string) => {
-    try {
-      // Implementar função para deletar refeição se necessário
-    } catch (error) {
-    } finally {
-      setModalInfo((prev) => ({ ...prev, visible: false }));
-    }
-  }, []);
 
   const handleCopyMeal = useCallback(async () => {
     if (!modalInfo.sourceDate || !modalInfo.mealId) return;
@@ -247,17 +191,14 @@ export default function NutritionScreen() {
       if (params?.openMealConfig === "true") {
         router.replace("/nutrition");
       }
-    } else {
+    } else if (params?.openMealConfig === "true") {
       // Tentar novamente após um pequeno atraso
-      if (params?.openMealConfig === "true") {
-        setTimeout(() => {
-          if (mealConfigSheetRef.current) {
-            mealConfigSheetRef.current.present();
-            router.replace("/nutrition");
-          } else {
-          }
-        }, 500);
-      }
+      setTimeout(() => {
+        if (mealConfigSheetRef.current) {
+          mealConfigSheetRef.current.present();
+          router.replace("/nutrition");
+        }
+      }, 500);
     }
   }, [mealConfigSheetRef, params, router]);
 
@@ -341,7 +282,7 @@ export default function NutritionScreen() {
         foods: validFoods,
       };
     });
-  }, [mealTypes, getFoodsForMeal]); // Removemos refreshKey para evitar renderização desnecessária
+  }, [mealTypes, getFoodsForMeal]);
 
   // Memoizar o componente EmptyNutritionState para evitar re-renderizações desnecessárias
   const emptyStateComponent = useMemo(
@@ -401,6 +342,16 @@ export default function NutritionScreen() {
           router.push("/meal-distribution-config");
         },
       },
+      {
+        id: "exportDiet",
+        label: t("nutrition.export.menuOption", "Exportar Dieta"),
+        icon: "share-social-outline",
+        type: "default",
+        onPress: () => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push("/diet-export-modal");
+        },
+      },
     ],
     [openMealConfigSheet, router, t]
   );
@@ -409,11 +360,6 @@ export default function NutritionScreen() {
   const isMenuVisible = useMemo(() => {
     return hasMealTypesConfigured && configuredMealTypes.length > 0;
   }, [hasMealTypesConfigured, configuredMealTypes]);
-
-  // Navegar para o perfil
-  const navigateToProfile = useCallback(() => {
-    router.push("/profile");
-  }, [router]);
 
   // Renderizar os modais baseados no modalInfo
   const renderModals = () => {
@@ -450,7 +396,9 @@ export default function NutritionScreen() {
             cancelText={t("common.cancel")}
             confirmType="danger"
             icon="trash-outline"
-            onConfirm={() => handleDeleteMeal(modalInfo.mealId)}
+            onConfirm={() =>
+              setModalInfo((prev) => ({ ...prev, visible: false }))
+            }
             onCancel={() =>
               setModalInfo((prev) => ({ ...prev, visible: false }))
             }
@@ -589,14 +537,5 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 16,
     paddingBottom: 100,
-  },
-  emptyText: {
-    textAlign: "center",
-    marginTop: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 16,
   },
 });

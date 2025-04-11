@@ -10,11 +10,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
   Platform,
   UIManager,
   LayoutAnimation,
   Pressable,
+  Dimensions,
 } from "react-native";
 import {
   Ionicons,
@@ -34,7 +34,6 @@ import ConfirmationModal from "../ui/ConfirmationModal";
 import { useTranslation } from "react-i18next";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useDateLocale } from "../../hooks/useDateLocale";
-import { formatSmartDate } from "../../utils/dateUtils";
 
 const { width } = Dimensions.get("window");
 
@@ -60,9 +59,7 @@ interface WorkoutCardProps {
     totalVolume: number;
   };
   index: number;
-  onPress: () => void;
   onDeleteExercise: (exerciseId: string) => Promise<void>;
-  notificationsEnabled?: boolean;
 }
 
 export default function WorkoutCard({
@@ -70,16 +67,14 @@ export default function WorkoutCard({
   exercises,
   workoutTotals,
   index,
-  onPress,
   onDeleteExercise,
-  notificationsEnabled = true,
 }: WorkoutCardProps) {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { user } = useAuth();
-  const userId = user?.uid || "no-user";
-  const { selectedDate, copyWorkoutFromDate } = useWorkoutContext();
+  const { selectedDate, copyWorkoutFromDate, startWorkoutForDate } =
+    useWorkoutContext();
   const { t } = useTranslation();
   const { formatSmartDate } = useDateLocale();
 
@@ -109,11 +104,6 @@ export default function WorkoutCard({
   // Estados para copiar treino
   const [showCopyWorkoutModal, setShowCopyWorkoutModal] = useState(false);
   const [selectedSourceDate, setSelectedSourceDate] = useState<string>("");
-
-  // Função para resetar os exercícios expandidos
-  const resetExpandedExercises = useCallback(() => {
-    setExpandedExercises({});
-  }, []);
 
   // Função para obter as datas anteriores com este treino - memoizada
   const getPreviousDatesWithWorkout = useCallback(() => {
@@ -263,9 +253,13 @@ export default function WorkoutCard({
           setTimeout(() => {
             router.push("/training");
           }, 500);
-        } catch (error) {}
+        } catch (error) {
+          console.error("Erro ao copiar treino:", error);
+        }
       }, 100);
-    } catch (error) {}
+    } catch (error) {
+      console.error("Erro ao processar cópia de treino:", error);
+    }
   }, [
     selectedSourceDate,
     selectedDate,
@@ -846,7 +840,9 @@ export default function WorkoutCard({
             if (exerciseIdToDelete) {
               try {
                 await onDeleteExercise(exerciseIdToDelete);
-              } catch (error) {}
+              } catch (error) {
+                console.error("Erro ao excluir exercício:", error);
+              }
             }
           }, 100);
         }}
@@ -1037,11 +1033,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     letterSpacing: -0.1,
-  },
-  separator: {
-    height: 1,
-    opacity: 0.3,
-    marginHorizontal: 16,
   },
 
   // Estilos para o Swipeable

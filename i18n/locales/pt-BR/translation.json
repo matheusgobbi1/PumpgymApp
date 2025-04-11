@@ -176,6 +176,8 @@
     "subtitle": "Registre seus treinos",
     "noTraining": "Nenhum treino registrado",
     "workoutsToday": "Treinos de hoje",
+    "selectWorkout": "Mudar treino",
+    "selectWorkoutDescription": "Selecione um novo tipo de treino para este dia",
     "emptyState": {
       "title": "Configure seus treinos",
       "subtitle": "Personalize seus treinos para facilitar o acompanhamento do seu progresso",
@@ -185,8 +187,10 @@
       "editWorkouts": "Editar tipos de treino",
       "muteNotifications": "Silenciar notificações",
       "enableNotifications": "Ativar notificações",
-      "resetWorkouts": "Redefinir todos os treinos",
-      "deleteWorkout": "Excluir este treino"
+      "resetWorkouts": "Resetar todos os treinos",
+      "deleteWorkout": "Excluir este treino",
+      "newWorkout": "Novo Treino",
+      "exportWorkout": "Exportar Treino"
     },
     "resetModal": {
       "title": "Redefinir treinos",
@@ -274,12 +278,49 @@
     },
     "errors": {
       "resetFailed": "Não foi possível redefinir os treinos. Tente novamente.",
-      "resetError": "Ocorreu um erro ao redefinir treinos. Tente reiniciar o aplicativo."
+      "resetError": "Ocorreu um erro ao redefinir treinos. Tente reiniciar o aplicativo.",
+      "deleteError": "Não foi possível excluir o treino. Tente novamente."
     },
     "workout": {
       "exercises": "exercícios",
       "sets": "séries",
       "viewDetails": "Ver Detalhes"
+    },
+    "export": {
+      "title": "Exportar Treino",
+      "share": "Compartilhar",
+      "view": "Visualizar",
+      "createdWith": "Criado com",
+      "dayTitle": "Treino do Dia",
+      "weekTitle": "Treinos da Semana",
+      "noWorkoutsDay": "Não há treinos registrados para este dia.",
+      "noWorkoutsWeek": "Não há treinos registrados para esta semana.",
+      "exercisesList": "Lista de Exercícios",
+      "summary": "Resumo do Treino",
+      "noSets": "Nenhuma série registrada",
+      "viewSuccess": "Visualização concluída",
+      "shareSuccess": "Treino compartilhado com sucesso!",
+      "shareError": "Não foi possível compartilhar o treino. Tente novamente.",
+      "viewError": "Não foi possível visualizar o documento",
+      "chooseFormat": "Escolha o formato",
+      "formatDescription": "Escolha o formato para exportar seu treino.",
+      "imageFormat": "Imagem (PNG)",
+      "pdfFormat": "Documento (PDF)",
+      "shareTitle": "Meu treino FitFolio",
+      "choosePeriod": "Escolher período",
+      "periodDescription": "Escolha o período que deseja exportar.",
+      "dayOption": "Apenas este dia",
+      "weekOption": "Semana inteira",
+      "noWorkouts": "Não há treinos registrados para esta data"
+    },
+    "shortSets": "séries",
+    "set": "Série",
+    "weight": "Peso",
+    "reps": "Reps",
+    "volume": "Volume",
+    "notes": "Notas",
+    "units": {
+      "kg": "kg"
     }
   },
   "onboarding": {
@@ -715,7 +756,8 @@
     "title": "Suas refeições",
     "menu": {
       "editMeals": "Editar Refeições",
-      "resetMeals": "Redefinir Refeições"
+      "resetMeals": "Redefinir Refeições",
+      "newMeal": "Nova Refeição"
     },
     "resetModal": {
       "title": "Redefinir Refeições",
@@ -934,9 +976,28 @@
     "loading": "Carregando...",
     "excess": "Excesso",
     "remaining": "Restam",
-    "targetReached": "Meta atingida"
+    "targetReached": "Meta atingida",
+    "export": {
+      "menuOption": "Exportar Dieta",
+      "title": "Compartilhar Dieta",
+      "share": "Compartilhar",
+      "dietPlan": "Plano Alimentar",
+      "dailySummary": "Resumo Diário",
+      "createdWith": "Criado com",
+      "noFoods": "Nenhum alimento adicionado",
+      "shareSuccess": "Dieta compartilhada com sucesso!",
+      "shareError": "Não foi possível compartilhar a dieta. Tente novamente.",
+      "sharingNotAvailable": "Compartilhamento não disponível neste dispositivo.",
+      "shareTitle": "Meu plano alimentar do FitFolio",
+      "chooseFormat": "Escolher formato",
+      "formatDescription": "Escolha o formato para exportar seu plano alimentar.",
+      "imageFormat": "Imagem (PNG)",
+      "pdfFormat": "Documento (PDF)",
+      "viewSuccess": "Visualização concluída com sucesso!"
+    }
   },
   "home": {
+    "title": "Início",
     "greeting": {
       "morning": "Bom dia",
       "afternoon": "Boa tarde",
@@ -1482,7 +1543,7 @@
       "ex119": "Crunch na Bola",
       "ex120": "Abdominal na Máquina",
       "ex121": "Abdominal com Roda",
-      "ex200": "Supin",
+      "ex200": "Supino com Halteres",
       "ex201": "Supino Inclinado com Halteres",
       "ex202": "Supino Declinado com Halteres",
       "ex203": "Pullover com Cabo",
@@ -1621,7 +1682,7 @@
     "cancel": "Cancelar"
   },
   "waterIntake": {
-    "title": "Consumo de Água",
+    "title": "Registrar Água",
     "goal": "Meta",
     "today": "Hoje",
     "weekDays": {

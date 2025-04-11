@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  LayoutAnimation,
   Platform,
   UIManager,
 } from "react-native";
@@ -74,7 +73,6 @@ export default function TrainingStatsCard({
   workoutColor,
   currentExercises,
   previousExercises,
-  notificationsEnabled = true,
   workoutId,
 }: TrainingStatsCardProps) {
   const router = useRouter();
@@ -103,15 +101,6 @@ export default function TrainingStatsCard({
       return `${(volume / 1000).toFixed(1)}k`;
     }
     return volume.toString();
-  }, []);
-
-  const formatDuration = useCallback((minutes: number) => {
-    if (minutes >= 60) {
-      const hours = Math.floor(minutes / 60);
-      const mins = minutes % 60;
-      return `${hours}h${mins > 0 ? ` ${mins}m` : ""}`;
-    }
-    return `${minutes}m`;
   }, []);
 
   const calculateProgress = useCallback((current: number, previous: number) => {
@@ -162,8 +151,7 @@ export default function TrainingStatsCard({
       current: number,
       previous: number | null,
       avgWeightProgress: number | null,
-      maxWeightProgress: number | null,
-      trainingDensityProgress: number | null
+      maxWeightProgress: number | null
     ) => {
       if (!previous)
         return { progress: 0, isPositiveContext: false, message: "" };
@@ -273,8 +261,7 @@ export default function TrainingStatsCard({
       index: number = 0
     ) => {
       const hasPrevious = previous !== null && previous > 0;
-      const { avgWeightProgress, maxWeightProgress, densityProgress } =
-        progressValues;
+      const { avgWeightProgress, maxWeightProgress } = progressValues;
 
       // Analisa o contexto do progresso considerando outras métricas
       const { progress, isPositiveContext, message } = hasPrevious
@@ -283,8 +270,7 @@ export default function TrainingStatsCard({
             current,
             previous,
             avgWeightProgress,
-            maxWeightProgress,
-            densityProgress
+            maxWeightProgress
           )
         : { progress: 0, isPositiveContext: false, message: "" };
 
@@ -448,16 +434,6 @@ export default function TrainingStatsCard({
     ]
   );
 
-  // Formatar tempo de descanso para exibição (segundos para texto)
-  const formatRestTime = useCallback((seconds: number) => {
-    return `${seconds}`;
-  }, []);
-
-  // Formatar densidade de treino para exibição (relação trabalho/descanso)
-  const formatDensity = useCallback((density: number) => {
-    return density.toFixed(2);
-  }, []);
-
   // Adicionar métricas importantes para a visualização de progresso
   const statsContainer = useMemo(() => {
     if (isLoading) return <View style={styles.statsContainer} />;
@@ -530,8 +506,6 @@ export default function TrainingStatsCard({
     previousWorkoutTotals?.totals?.totalReps,
     formatVolume,
   ]);
-
-  const hasPreviousWorkout = previousExercises && previousExercises.length > 0;
 
   return (
     <TouchableOpacity

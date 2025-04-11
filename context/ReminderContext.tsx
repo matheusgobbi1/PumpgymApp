@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { isToday } from "date-fns";
 import { AppState } from "react-native";
-import { useAuth } from "./AuthContext";
 import { useTranslation } from "react-i18next";
 import NotificationService from "../services/NotificationService";
 import * as Notifications from "expo-notifications";

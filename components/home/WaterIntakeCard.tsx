@@ -55,6 +55,21 @@ export const waterDataManager = {
   },
 };
 
+// Criar um gerenciador para controlar o modal do componente WaterIntakeCard
+export const waterIntakeModalManager = {
+  // Referência para a função que abre o modal (será definida no componente)
+  openModal: null as (() => void) | null,
+
+  // Método para abrir o modal (se estiver disponível)
+  openWaterIntakeModal: () => {
+    if (waterIntakeModalManager.openModal) {
+      waterIntakeModalManager.openModal();
+      return true;
+    }
+    return false;
+  },
+};
+
 export default function WaterIntakeCard() {
   const { theme } = useTheme();
   const colors = Colors[theme];
@@ -270,6 +285,21 @@ export default function WaterIntakeCard() {
 
   const handleCloseModal = useCallback(() => {
     setModalVisible(false);
+  }, []);
+
+  // Registrar o método para abrir o modal
+  useEffect(() => {
+    // Definir a função que abre o modal no gerenciador global
+    waterIntakeModalManager.openModal = () => {
+      setModalVisible(true);
+    };
+
+    // Limpar a referência quando o componente for desmontado
+    return () => {
+      if (waterIntakeModalManager.openModal === setModalVisible) {
+        waterIntakeModalManager.openModal = null;
+      }
+    };
   }, []);
 
   const handleAddWater = useCallback(() => {

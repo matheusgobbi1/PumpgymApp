@@ -2,20 +2,11 @@ import React, {
   createContext,
   useState,
   useContext,
-  ReactNode,
   useEffect,
   useCallback,
   useMemo,
 } from "react";
-import {
-  doc,
-  setDoc,
-  getDoc,
-  collection,
-  query,
-  getDocs,
-  writeBatch,
-} from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "./AuthContext";
 import { OfflineStorage } from "../services/OfflineStorage";
@@ -23,7 +14,6 @@ import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KEYS } from "../constants/keys";
-import * as Haptics from "expo-haptics";
 
 // Tipos
 export interface Food {
@@ -36,13 +26,6 @@ export interface Food {
   carbs: number;
   fat: number;
   fiber?: number; // Adicionando fibra como propriedade opcional
-}
-
-export interface Meal {
-  id: string;
-  name: string;
-  icon: string;
-  foods: Food[];
 }
 
 export interface MealType {
@@ -128,7 +111,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
           const history = await OfflineStorage.loadSearchHistory(user.uid);
           setSearchHistory(history);
         } catch (error) {
-          // Erro ao carregar histórico de busca
+          console.error("Erro ao carregar histórico de busca:", error);
         }
       }
     };
@@ -269,7 +252,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (localError) {
-        // Erro ao carregar refeições locais
+        console.error("Erro ao carregar refeições locais:", localError);
       }
 
       if (isOnline) {
@@ -381,7 +364,10 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (localError) {
-        // Erro ao carregar tipos de refeição do AsyncStorage
+        console.error(
+          "Erro ao carregar tipos de refeição do AsyncStorage:",
+          localError
+        );
       }
 
       // Verificar conexão com a internet antes de tentar acessar o Firebase
@@ -411,7 +397,10 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
                 JSON.stringify(mealTypesData)
               );
             } catch (saveError) {
-              // Erro ao salvar tipos de refeição no AsyncStorage
+              console.error(
+                "Erro ao salvar tipos de refeição no AsyncStorage:",
+                saveError
+              );
             }
           } else {
             setHasMealTypesConfigured(false);
@@ -490,7 +479,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
             JSON.stringify(newMealTypes)
           );
         } catch (storageError) {
-          // Erro ao salvar tipos de refeição no AsyncStorage
+          // Ignorar erro de armazenamento local
         }
 
         // Depois tentar salvar no Firebase
@@ -501,29 +490,18 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
             { merge: true }
           );
         } catch (firebaseError) {
-          // Erro ao salvar no Firebase, dados mantidos localmente
+          // Ignorar erro de Firebase, dados mantidos localmente
         }
-
-        // Em vez de chamar diretamente, disparar um evento customizado
-        // para sincronizar os contextos sem causar dependência circular
-        const mealTypeIds = newMealTypes.map((mealType) => mealType.id);
-
-        // MODIFICAÇÃO: Remover referência ao objeto document
-        // e usar a função global que adicionamos no NutritionContext
-        // const event = new CustomEvent("mealTypesChanged", {
-        //   detail: { mealTypeIds },
-        // });
-        // document.dispatchEvent(event);
 
         // Usar a função global se estiver disponível
         if ((global as any).updateNutritionMealTypes) {
+          const mealTypeIds = newMealTypes.map((mealType) => mealType.id);
           (global as any).updateNutritionMealTypes(mealTypeIds);
         }
       }
 
       return true; // Retornar true para indicar sucesso
     } catch (error) {
-      // Erro ao atualizar tipos de refeições
       return false; // Retornar false para indicar falha
     }
   };
@@ -566,8 +544,8 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     // Salvar as alterações imediatamente com um pequeno delay
     // para garantir que o estado foi atualizado
     setTimeout(() => {
-      saveMeals().catch((error) => {
-        // Erro ao salvar após adicionar alimento
+      saveMeals().catch(() => {
+        // Ignorar erro ao salvar
       });
     }, 100);
   };
@@ -588,12 +566,12 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       setTimeout(async () => {
         try {
           await saveMeals();
-        } catch (saveError) {
-          // Erro ao salvar após remover alimento
+        } catch {
+          // Ignorar erro ao salvar
         }
       }, 100);
     } catch (error) {
-      // Erro ao remover alimento
+      // Propagar o erro para quem chamou a função
       throw error;
     }
   };
@@ -603,7 +581,6 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       if (!user) return;
 
       // Primeiro salvar localmente para garantir persistência
-      const key = `${KEYS.MEALS_KEY}${user.uid}:${selectedDate}`;
       await OfflineStorage.saveMealsData(
         user.uid,
         selectedDate,
@@ -621,12 +598,12 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
             doc(db, "users", user.uid, "meals", selectedDate),
             meals[selectedDate] || {}
           );
-        } catch (firebaseError) {
-          // Erro ao salvar no Firebase, dados mantidos localmente
+        } catch {
+          // Ignorar erro do Firebase, dados mantidos localmente
         }
       }
-    } catch (error) {
-      // Erro ao salvar refeições
+    } catch {
+      // Ignorar erro geral ao salvar refeições
     }
   };
 
@@ -791,8 +768,8 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
 
       // Persistir o histórico entre sessões
       await OfflineStorage.saveSearchHistory(user.uid, updatedHistory);
-    } catch (error) {
-      // Erro ao adicionar ao histórico de busca
+    } catch {
+      // Ignorar erro ao adicionar ao histórico
     }
   };
 
@@ -802,8 +779,8 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
     try {
       setSearchHistory([]);
       await OfflineStorage.clearSearchHistory(user.uid);
-    } catch (error) {
-      // Erro ao limpar histórico de busca
+    } catch {
+      // Ignorar erro ao limpar histórico
     }
   };
 
@@ -894,23 +871,9 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       // Usar setTimeout para garantir que o estado foi atualizado antes de salvar
       setTimeout(async () => {
         try {
-          // Salvar diretamente no Firestore para garantir que os dados estejam atualizados
-          if (!user) return;
-
-          // Obter os dados atualizados do estado
-          const updatedMeals = { ...meals };
-
-          // Verificar se a estrutura existe e se o alimento foi atualizado
-          if (updatedMeals[selectedDate]?.[mealId]) {
-            // Salvar no Firestore
-            await setDoc(
-              doc(db, "users", user.uid, "meals", selectedDate),
-              updatedMeals[selectedDate],
-              { merge: true }
-            );
-          }
-        } catch (error) {
-          // Erro ao salvar após atualizar alimento
+          await saveMeals();
+        } catch {
+          // Ignorar erro ao salvar
         }
       }, 100);
     },
@@ -973,6 +936,5 @@ export function useMeals() {
   return context;
 }
 
-export function useMealContext() {
-  return useMeals();
-}
+// Mantido por compatibilidade com código existente
+export const useMealContext = useMeals;

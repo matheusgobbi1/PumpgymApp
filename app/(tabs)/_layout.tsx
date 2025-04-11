@@ -16,6 +16,8 @@ import React, { useRef, useState } from "react";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "../../context/ThemeContext";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
+import { waterIntakeModalManager } from "../../components/home/WaterIntakeCard";
 
 const { width, height } = Dimensions.get("window");
 
@@ -39,6 +41,7 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
+  const { t } = useTranslation();
 
   // Animações para o menu flutuante
   const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -52,7 +55,7 @@ export default function TabLayout() {
   const menuOptions = [
     {
       icon: "barbell-outline" as const,
-      label: "Novo Treino",
+      label: t("training.menu.newWorkout", "Novo Treino"),
       onPress: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         closeMenu();
@@ -62,7 +65,7 @@ export default function TabLayout() {
     },
     {
       icon: "nutrition-outline" as const,
-      label: "Nova Refeição",
+      label: t("nutrition.menu.newMeal", "Nova Refeição"),
       onPress: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         closeMenu();
@@ -72,7 +75,7 @@ export default function TabLayout() {
     },
     {
       icon: "restaurant-outline" as const,
-      label: "Configuração de Dieta",
+      label: t("profile.nutritionCard.customize", "Configuração de Dieta"),
       onPress: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         closeMenu();
@@ -82,12 +85,18 @@ export default function TabLayout() {
     },
     {
       icon: "water-outline" as const,
-      label: "Registrar Água",
+      label: t("waterIntake.title", "Registrar Água"),
       onPress: () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         closeMenu();
-        // Navegar para a tela de nutrição com parâmetro na URL para abrir o WaterIntakeSheet
-        router.push("/nutrition?openWaterIntake=true");
+
+        // Tentar abrir o modal do WaterIntakeCard diretamente
+        const modalOpened = waterIntakeModalManager.openWaterIntakeModal();
+
+        // Se não for possível abrir o modal (componente não está montado), navegue para a página
+        if (!modalOpened) {
+          router.push("/nutrition?openWaterIntake=true");
+        }
       },
     },
   ];
@@ -201,7 +210,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: "Início",
+            title: t("home.title", "Início"),
             tabBarIcon: ({ color, focused }) => (
               <View style={styles.iconContainer}>
                 <TabBarIcon name="home" color={color} />
@@ -217,7 +226,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="nutrition"
           options={{
-            title: "Nutrição",
+            title: t("nutrition.title", "Nutrição"),
             tabBarIcon: ({ color, focused }) => (
               <View style={styles.iconContainer}>
                 <TabBarIcon5 name="apple-alt" color={color} />
@@ -233,7 +242,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="add"
           options={{
-            title: "Adicionar",
+            title: t("common.add", "Adicionar"),
             tabBarIcon: ({ color }) => (
               <View style={styles.fabContainer}>
                 <View style={styles.fabShadow}>
@@ -271,7 +280,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="training"
           options={{
-            title: "Treino",
+            title: t("training.title", "Treino"),
             tabBarIcon: ({ color, focused }) => (
               <View style={styles.iconContainer}>
                 <TabBarIcon5 name="dumbbell" color={color} />
@@ -287,7 +296,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="profile"
           options={{
-            title: "Perfil",
+            title: t("profile.title", "Perfil"),
             tabBarIcon: ({ color, focused }) => (
               <View style={styles.iconContainer}>
                 <TabBarIcon name="user" color={color} />

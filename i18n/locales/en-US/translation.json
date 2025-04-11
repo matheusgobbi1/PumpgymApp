@@ -173,12 +173,14 @@
   },
   "training": {
     "title": "Your workouts",
-    "subtitle": "Track your workouts",
-    "noTraining": "No workouts recorded",
+    "subtitle": "Record your workouts",
+    "noTraining": "No training recorded",
     "workoutsToday": "Today's workouts",
+    "selectWorkout": "Change workout",
+    "selectWorkoutDescription": "Select a new workout type for this day",
     "emptyState": {
       "title": "Configure your workouts",
-      "subtitle": "Customize your workouts to easily track your progress",
+      "subtitle": "Customize your workouts to make it easier to track your progress",
       "configButton": "Configure Workouts"
     },
     "menu": {
@@ -186,7 +188,9 @@
       "muteNotifications": "Mute notifications",
       "enableNotifications": "Enable notifications",
       "resetWorkouts": "Reset all workouts",
-      "deleteWorkout": "Delete this workout"
+      "deleteWorkout": "Delete this workout",
+      "newWorkout": "New Workout",
+      "exportWorkout": "Export Workout"
     },
     "resetModal": {
       "title": "Reset workouts",
@@ -244,7 +248,8 @@
     },
     "errors": {
       "resetFailed": "Could not reset workouts. Please try again.",
-      "resetError": "An error occurred while resetting workouts. Try restarting the app."
+      "resetError": "An error occurred while resetting workouts. Try restarting the app.",
+      "deleteError": "Could not delete the workout. Please try again."
     },
     "workout": {
       "exercises": "exercises",
@@ -256,7 +261,43 @@
     "deleteExercise": "Delete Exercise",
     "deleteExerciseConfirm": "Are you sure you want to delete this exercise? This action cannot be undone.",
     "copyWorkout": "Copy workout {{name}}",
-    "copyWorkoutFrom": "Do you want to copy the workout from {{date}}?"
+    "copyWorkoutFrom": "Do you want to copy the workout from {{date}}?",
+    "export": {
+      "title": "Export Workout",
+      "share": "Share",
+      "view": "View",
+      "createdWith": "Created with",
+      "dayTitle": "Daily Workout",
+      "weekTitle": "Weekly Workouts",
+      "noWorkoutsDay": "No workouts recorded for this day.",
+      "noWorkoutsWeek": "No workouts recorded for this week.",
+      "exercisesList": "Exercise List",
+      "summary": "Workout Summary",
+      "noSets": "No sets recorded",
+      "viewSuccess": "Preview completed",
+      "shareSuccess": "Workout shared successfully!",
+      "shareError": "Could not share workout. Please try again.",
+      "viewError": "Could not preview document",
+      "chooseFormat": "Choose format",
+      "formatDescription": "Choose the format to export your workout.",
+      "imageFormat": "Image (PNG)",
+      "pdfFormat": "Document (PDF)",
+      "shareTitle": "My FitFolio workout",
+      "choosePeriod": "Choose period",
+      "periodDescription": "Choose the period you want to export.",
+      "dayOption": "Only this day",
+      "weekOption": "Entire week",
+      "noWorkouts": "No workouts recorded for this date"
+    },
+    "shortSets": "sets",
+    "set": "Set",
+    "weight": "Weight",
+    "reps": "Reps",
+    "volume": "Volume",
+    "notes": "Notes",
+    "units": {
+      "kg": "kg"
+    }
   },
   "onboarding": {
     "common": {
@@ -628,7 +669,8 @@
     "title": "Your meals",
     "menu": {
       "editMeals": "Edit Meals",
-      "resetMeals": "Reset Meals"
+      "resetMeals": "Reset Meals",
+      "newMeal": "New Meal"
     },
     "resetModal": {
       "title": "Reset Meals",
@@ -840,9 +882,28 @@
         "title": "Healthy Eating Tips",
         "description": "Remember that quality is as important as quantity. Focus on nutritious and varied foods, not just the total calories consumed."
       }
+    },
+    "export": {
+      "menuOption": "Export Diet",
+      "title": "Share Diet",
+      "share": "Share",
+      "dietPlan": "Diet Plan",
+      "dailySummary": "Daily Summary",
+      "createdWith": "Created with",
+      "noFoods": "No foods added",
+      "shareSuccess": "Diet shared successfully!",
+      "shareError": "Could not share diet. Try again.",
+      "sharingNotAvailable": "Sharing not available on this device.",
+      "shareTitle": "My FitFolio diet plan",
+      "chooseFormat": "Choose format",
+      "formatDescription": "Choose the format to export your diet plan.",
+      "imageFormat": "Image (PNG)",
+      "pdfFormat": "Document (PDF)",
+      "viewSuccess": "Preview completed successfully!"
     }
   },
   "home": {
+    "title": "Home",
     "greeting": {
       "morning": "Good morning",
       "afternoon": "Good afternoon",

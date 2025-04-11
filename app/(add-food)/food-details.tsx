@@ -1120,9 +1120,9 @@ export default function FoodDetailsScreen() {
                               return; // Ignorar entradas que não são números
                             }
 
-                            // Converter para número e verificar se está entre 1 e 9999
+                            // Converter para número e verificar se está entre 1 e 1000
                             const numValue = parseFloat(sanitizedText);
-                            if (!isNaN(numValue) && numValue <= 9999) {
+                            if (!isNaN(numValue) && numValue <= 1000) {
                               // Não formatar enquanto o usuário está digitando
                               setPortion(sanitizedText);
                             }
@@ -1154,10 +1154,10 @@ export default function FoodDetailsScreen() {
                   <View style={styles.sliderContainer}>
                     <Slider
                       style={styles.slider}
-                      minimumValue={10}
-                      maximumValue={500}
+                      minimumValue={1}
+                      maximumValue={1000}
                       step={5}
-                      value={Math.min(Math.max(Number(portion), 10), 500)}
+                      value={Math.min(Math.max(Number(portion), 1), 1000)}
                       onValueChange={handleSliderChange}
                       minimumTrackTintColor={mealColor}
                       maximumTrackTintColor={colors.border + "60"}
@@ -1170,7 +1170,7 @@ export default function FoodDetailsScreen() {
                           { color: colors.text + "80" },
                         ]}
                       >
-                        10g
+                        1g
                       </Text>
                       <Text
                         style={[
@@ -1178,7 +1178,7 @@ export default function FoodDetailsScreen() {
                           { color: colors.text + "80" },
                         ]}
                       >
-                        500g
+                        1000g
                       </Text>
                     </View>
                   </View>
