@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Dimensions,
+  KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
@@ -32,6 +34,9 @@ import {
   MealSuggestion,
   adjustPortionsForNutrientNeeds,
 } from "../data/foodSuggestionDatabase";
+import { StatusBar } from "expo-status-bar";
+import { LinearGradient } from "expo-linear-gradient";
+import { MotiView } from "moti";
 import { Food } from "../context/MealContext";
 
 // Interface para meal food
@@ -59,6 +64,12 @@ interface SelectedFoodInfo {
   portion: number;
 }
 
+// Constantes para animação do header
+const { width } = Dimensions.get("window");
+const HEADER_MAX_HEIGHT = 180;
+const HEADER_MIN_HEIGHT = 55;
+const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
+
 export default function NutritionRecommendationModal() {
   const router = useRouter();
   const { theme } = useTheme();
@@ -80,6 +91,9 @@ export default function NutritionRecommendationModal() {
     removeFoodFromMeal,
   } = useMeals();
 
+  // Referência e estado para animação do scroll
+  const scrollY = useRef(new Animated.Value(0)).current;
+
   const [loading, setLoading] = useState(true);
   const [loadingMealSuggestions, setLoadingMealSuggestions] = useState(false);
   const [applying, setApplying] = useState(false);
@@ -99,6 +113,43 @@ export default function NutritionRecommendationModal() {
   const [addedFoods, setAddedFoods] = useState<Food[]>([]);
   // Estado para controlar a porção atualizada de cada alimento
   const [foodPortions, setFoodPortions] = useState<Record<string, number>>({});
+
+  // Calculando os valores de animação
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
+    extrapolate: "clamp",
+  });
+
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE * 0.5, HEADER_SCROLL_DISTANCE * 0.7],
+    outputRange: [0, 0, 1],
+    extrapolate: "clamp",
+  });
+
+  const heroContentOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE * 0.3, HEADER_SCROLL_DISTANCE * 0.5],
+    outputRange: [1, 0.3, 0],
+    extrapolate: "clamp",
+  });
+
+  const heroContentTranslate = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE * 0.5],
+    outputRange: [0, -20],
+    extrapolate: "clamp",
+  });
+
+  const titleScale = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [1, 0.85],
+    extrapolate: "clamp",
+  });
+
+  const titleTranslateY = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [0, -3],
+    extrapolate: "clamp",
+  });
 
   // Obter os totais atuais da refeição (incluindo alimentos já adicionados)
   const getCurrentMealTotals = () => {
@@ -749,7 +800,7 @@ export default function NutritionRecommendationModal() {
     }
   };
 
-  // Formatar nome da refeição traduzido
+  // Função para exibir o nome da refeição traduzido
   const getMealName = () => {
     return t(`nutrition.mealTypes.${mealId}`, {
       defaultValue: mealName as string,
@@ -1046,76 +1097,208 @@ export default function NutritionRecommendationModal() {
 
   return (
     <SafeAreaView
-      style={[
-        styles.container,
-        {
-          backgroundColor: colors.background,
-        },
-      ]}
+      style={[styles.container, { backgroundColor: colors.background }]}
       edges={["bottom"]}
     >
-      {/* Header simplificado */}
-      <View
-        style={[
-          styles.header,
-          {
-            backgroundColor: colors.background,
-          },
-        ]}
+      <StatusBar style="light" />
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 70 : 0}
       >
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={handleClose}
-          disabled={loading || applying}
+        {/* Cabeçalho com gradiente colapsável */}
+        <Animated.View
+          style={[styles.gradientHeaderContainer, { height: headerHeight }]}
         >
-          <Ionicons name="chevron-down" size={24} color={colors.text} />
-        </TouchableOpacity>
+          <LinearGradient
+            colors={[
+              mealColor as string,
+              (mealColor + "90") as string,
+              (mealColor + "40") as string,
+            ]}
+            style={[styles.headerGradient, { flex: 1 }]}
+          >
+            {/* Cabeçalho de navegação */}
+            <View style={styles.header}>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={handleClose}
+                disabled={loading || applying}
+              >
+                <Ionicons name="chevron-down" size={24} color="#FFF" />
+              </TouchableOpacity>
 
-        <View style={styles.headerTitleContainer}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {getMealName()}
-          </Text>
-        </View>
+              <Animated.Text
+                style={[
+                  styles.headerTitle,
+                  {
+                    opacity: headerTitleOpacity,
+                    transform: [
+                      { scale: titleScale },
+                      { translateY: titleTranslateY },
+                    ],
+                  },
+                ]}
+              >
+                {getMealName()}
+              </Animated.Text>
 
-        <View style={{ width: 40 }} />
-      </View>
+              {!loading && selectedMealRecommendation && (
+                <TouchableOpacity
+                  style={styles.configButton}
+                  onPress={() => router.push("/meal-distribution-config")}
+                  accessibilityLabel={t(
+                    "nutrition.recommendation.configButtonAccessibility",
+                    "Configurar distribuição de refeições"
+                  )}
+                >
+                  <Ionicons name="settings-outline" size={22} color="#FFF" />
+                </TouchableOpacity>
+              )}
+            </View>
 
-      {/* Card de recomendação fixo no topo */}
-      {!loading && selectedMealRecommendation && (
-        <View style={styles.fixedCardContainer}>
-          <NutritionRecommendationCard
-            recommendation={selectedMealRecommendation}
-            mealColor={mealColor as string}
-            theme={theme}
-            mealTotals={
-              Object.keys(selectedFoods).length > 0
-                ? combinedTotals
-                : mealTotals
-            }
-            isPreview={Object.keys(selectedFoods).length > 0}
-          />
-        </View>
-      )}
+            {/* Conteúdo do cabeçalho - desaparece ao rolar */}
+            <Animated.View
+              style={[
+                styles.gradientContent,
+                {
+                  opacity: heroContentOpacity,
+                  transform: [{ translateY: heroContentTranslate }],
+                },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="food-fork-drink"
+                size={32}
+                color="#fff"
+                style={styles.headerIcon}
+              />
+              <Text style={styles.headerGradientTitle}>{getMealName()}</Text>
+              {selectedMealRecommendation && (
+                <Text style={styles.headerGradientSubtitle}>
+                  {Math.round(selectedMealRecommendation.percentageOfDaily)}%{" "}
+                  {t(
+                    "nutrition.recommendation.ofDailyNeeds",
+                    "do seu plano diário"
+                  )}
+                </Text>
+              )}
+            </Animated.View>
+          </LinearGradient>
+        </Animated.View>
 
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={[
-          styles.contentContainer,
-          !loading && selectedMealRecommendation && { paddingTop: 0 },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={mealColor as string} />
-            <Text style={[styles.loadingText, { color: colors.text }]}>
-              {t("nutrition.recommendation.calculating")}
-            </Text>
+        {/* Card de recomendação fixo no topo */}
+        {!loading && selectedMealRecommendation && (
+          <View style={styles.fixedCardContainer}>
+            <NutritionRecommendationCard
+              recommendation={selectedMealRecommendation}
+              mealColor={mealColor as string}
+              theme={theme}
+              mealTotals={
+                Object.keys(selectedFoods).length > 0
+                  ? combinedTotals
+                  : mealTotals
+              }
+              isPreview={Object.keys(selectedFoods).length > 0}
+              onConfigPress={() => router.push("/meal-distribution-config")}
+            />
           </View>
-        ) : selectedMealRecommendation ? (
-          <>
-            {/* Seção de alimentos já adicionados */}
-            {addedFoods.length > 0 && (
+        )}
+
+        <Animated.ScrollView
+          style={styles.content}
+          contentContainerStyle={[
+            styles.contentContainer,
+            !loading && selectedMealRecommendation && { paddingTop: 0 },
+          ]}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
+          )}
+          showsVerticalScrollIndicator={false}
+        >
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={mealColor as string} />
+              <Text style={[styles.loadingText, { color: colors.text }]}>
+                {t("nutrition.recommendation.calculating")}
+              </Text>
+            </View>
+          ) : selectedMealRecommendation ? (
+            <>
+              {/* Seção de alimentos já adicionados */}
+              {addedFoods.length > 0 && (
+                <View style={styles.suggestionsSection}>
+                  <View style={styles.sectionHeaderContainer}>
+                    <View style={styles.sectionTitleContainer}>
+                      <View style={styles.titleSubtitleContainer}>
+                        <Text
+                          style={[styles.sectionTitle, { color: colors.text }]}
+                        >
+                          {t(
+                            "nutrition.recommendation.addedFoods",
+                            "Alimentos Adicionados"
+                          )}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.sectionSubtitle,
+                            { color: colors.secondary },
+                          ]}
+                        >
+                          {t("nutrition.recommendation.addedFoodsCount", {
+                            count: addedFoods.length,
+                            defaultValue: "{{count}} alimentos",
+                          })}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {addedFoods.map((food, index) => (
+                    <FoodSuggestionCard
+                      key={`added-${food.id}`}
+                      food={{
+                        id: food.id.startsWith("sugg_")
+                          ? food.id
+                          : `sugg_${food.id}`,
+                        name: food.name,
+                        nutrients: {
+                          calories: food.calories,
+                          protein: food.protein,
+                          carbs: food.carbs,
+                          fat: food.fat,
+                        },
+                        measures: [
+                          {
+                            id: "current",
+                            label: `${food.portion}g`,
+                            weight: food.portion,
+                          },
+                        ],
+                        alternatives: [],
+                        mealTypes: [mealId as string],
+                      }}
+                      index={index}
+                      mealColor={mealColor as string}
+                      theme={theme}
+                      isSelected={false}
+                      portion={food.portion}
+                      remainingNutrients={remainingNutrients || undefined}
+                      onToggleSelection={() => handleRemoveAddedFood(food.id)}
+                      onPortionChange={(portion) =>
+                        handleUpdateAddedFood(food.id, portion)
+                      }
+                      isAddedFood={true}
+                      mealId={mealId as string}
+                    />
+                  ))}
+                </View>
+              )}
+
+              {/* Seção de alimentos sugeridos do template */}
               <View style={styles.suggestionsSection}>
                 <View style={styles.sectionHeaderContainer}>
                   <View style={styles.sectionTitleContainer}>
@@ -1123,236 +1306,178 @@ export default function NutritionRecommendationModal() {
                       <Text
                         style={[styles.sectionTitle, { color: colors.text }]}
                       >
-                        {t(
-                          "nutrition.recommendation.addedFoods",
-                          "Alimentos Adicionados"
-                        )}
+                        {t("nutrition.recommendation.suggestedFoods")}
                       </Text>
-                      <Text
-                        style={[
-                          styles.sectionSubtitle,
-                          { color: colors.secondary },
-                        ]}
-                      >
-                        {t("nutrition.recommendation.addedFoodsCount", {
-                          count: addedFoods.length,
-                          defaultValue: "{{count}} alimentos",
-                        })}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
 
-                {addedFoods.map((food, index) => (
-                  <FoodSuggestionCard
-                    key={`added-${food.id}`}
-                    food={{
-                      id: food.id.startsWith("sugg_")
-                        ? food.id
-                        : `sugg_${food.id}`,
-                      name: food.name,
-                      nutrients: {
-                        calories: food.calories,
-                        protein: food.protein,
-                        carbs: food.carbs,
-                        fat: food.fat,
-                      },
-                      measures: [
-                        {
-                          id: "current",
-                          label: `${food.portion}g`,
-                          weight: food.portion,
-                        },
-                      ],
-                      alternatives: [],
-                      mealTypes: [mealId as string],
-                    }}
-                    index={index}
-                    mealColor={mealColor as string}
-                    theme={theme}
-                    isSelected={false}
-                    portion={food.portion}
-                    remainingNutrients={remainingNutrients || undefined}
-                    onToggleSelection={() => handleRemoveAddedFood(food.id)}
-                    onPortionChange={(portion) =>
-                      handleUpdateAddedFood(food.id, portion)
-                    }
-                    isAddedFood={true}
-                    mealId={mealId as string}
-                  />
-                ))}
-              </View>
-            )}
-
-            {/* Seção de alimentos sugeridos do template */}
-            <View style={styles.suggestionsSection}>
-              <View style={styles.sectionHeaderContainer}>
-                <View style={styles.sectionTitleContainer}>
-                  <View style={styles.titleSubtitleContainer}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                      {t("nutrition.recommendation.suggestedFoods")}
-                    </Text>
-
-                    {remainingNutrients && (
-                      <Text
-                        style={[
-                          styles.sectionSubtitle,
-                          { color: colors.secondary },
-                        ]}
-                      >
-                        {t("nutrition.recommendation.remainingLabel", {
-                          calories: formatNumber(remainingNutrients.calories),
-                        })}
-                      </Text>
-                    )}
-                  </View>
-
-                  {selectedMealRecommendation && foodItems.length > 0 && (
-                    <View style={styles.optimizeButtonContainer}>
-                      <TouchableOpacity
-                        style={[
-                          styles.optimizeIconButton,
-                          { backgroundColor: `${mealColor}10` },
-                        ]}
-                        onPress={optimizeFoodPortions}
-                        onLongPress={showTooltipAnimation}
-                        onPressOut={hideTooltipAnimation}
-                        activeOpacity={0.6}
-                        accessibilityLabel={t(
-                          "nutrition.recommendation.optimizePortionsAccessibility",
-                          "Otimizar porções dos alimentos automaticamente"
-                        )}
-                      >
-                        <MaterialCommunityIcons
-                          name="auto-fix"
-                          size={22}
-                          color={mealColor as string}
-                        />
-                      </TouchableOpacity>
-
-                      {showTooltip && (
-                        <Animated.View
+                      {remainingNutrients && (
+                        <Text
                           style={[
-                            styles.tooltip,
-                            {
-                              backgroundColor: colors.card,
-                              borderColor: colors.border,
-                              opacity: tooltipOpacity,
-                            },
+                            styles.sectionSubtitle,
+                            { color: colors.secondary },
                           ]}
                         >
-                          <Text
-                            style={[styles.tooltipText, { color: colors.text }]}
-                          >
-                            {t(
-                              "nutrition.recommendation.optimizePortions",
-                              "Otimizar porções automaticamente"
-                            )}
-                          </Text>
-                        </Animated.View>
+                          {t("nutrition.recommendation.remainingLabel", {
+                            calories: formatNumber(remainingNutrients.calories),
+                          })}
+                        </Text>
                       )}
                     </View>
-                  )}
+
+                    {selectedMealRecommendation && foodItems.length > 0 && (
+                      <View style={styles.optimizeButtonContainer}>
+                        <TouchableOpacity
+                          style={[
+                            styles.optimizeIconButton,
+                            { backgroundColor: `${mealColor}10` },
+                          ]}
+                          onPress={optimizeFoodPortions}
+                          onLongPress={showTooltipAnimation}
+                          onPressOut={hideTooltipAnimation}
+                          activeOpacity={0.6}
+                          accessibilityLabel={t(
+                            "nutrition.recommendation.optimizePortionsAccessibility",
+                            "Otimizar porções dos alimentos automaticamente"
+                          )}
+                        >
+                          <MaterialCommunityIcons
+                            name="auto-fix"
+                            size={22}
+                            color={mealColor as string}
+                          />
+                        </TouchableOpacity>
+
+                        {showTooltip && (
+                          <Animated.View
+                            style={[
+                              styles.tooltip,
+                              {
+                                backgroundColor: colors.card,
+                                borderColor: colors.border,
+                                opacity: tooltipOpacity,
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.tooltipText,
+                                { color: colors.text },
+                              ]}
+                            >
+                              {t(
+                                "nutrition.recommendation.optimizePortions",
+                                "Otimizar porções automaticamente"
+                              )}
+                            </Text>
+                          </Animated.View>
+                        )}
+                      </View>
+                    )}
+                  </View>
                 </View>
-              </View>
 
-              {loadingMealSuggestions ? (
-                <ActivityIndicator
-                  size="small"
-                  color={mealColor as string}
-                  style={styles.loadingFoods}
-                />
-              ) : foodItems.length > 0 ? (
-                foodItems.map((foodItem, index) => (
-                  <FoodSuggestionCard
-                    key={foodItem.food.id}
-                    food={foodItem.food}
-                    isSelected={!!selectedFoods[foodItem.food.id]}
-                    portion={foodPortions[foodItem.food.id] || foodItem.portion}
-                    index={index}
-                    mealColor={mealColor as string}
-                    theme={theme}
-                    remainingNutrients={remainingNutrients || undefined}
-                    onToggleSelection={handleToggleFood}
-                    onReplaceFood={handleReplaceFood}
-                    onPortionChange={(portion) =>
-                      handleUpdatePortion(foodItem.food.id, portion)
-                    }
+                {loadingMealSuggestions ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={mealColor as string}
+                    style={styles.loadingFoods}
                   />
-                ))
-              ) : (
-                <Text style={[styles.emptyText, { color: colors.secondary }]}>
-                  {t("nutrition.recommendation.noFoodsFound")}
-                </Text>
-              )}
+                ) : foodItems.length > 0 ? (
+                  foodItems.map((foodItem, index) => (
+                    <FoodSuggestionCard
+                      key={foodItem.food.id}
+                      food={foodItem.food}
+                      isSelected={!!selectedFoods[foodItem.food.id]}
+                      portion={
+                        foodPortions[foodItem.food.id] || foodItem.portion
+                      }
+                      index={index}
+                      mealColor={mealColor as string}
+                      theme={theme}
+                      remainingNutrients={remainingNutrients || undefined}
+                      onToggleSelection={handleToggleFood}
+                      onReplaceFood={handleReplaceFood}
+                      onPortionChange={(portion) =>
+                        handleUpdatePortion(foodItem.food.id, portion)
+                      }
+                    />
+                  ))
+                ) : (
+                  <Text style={[styles.emptyText, { color: colors.secondary }]}>
+                    {t("nutrition.recommendation.noFoodsFound")}
+                  </Text>
+                )}
+              </View>
+            </>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Ionicons
+                name="restaurant-outline"
+                size={40}
+                color={colors.secondary}
+              />
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                {t("nutrition.recommendation.noDataTitle")}
+              </Text>
+              <Text style={[styles.emptyText, { color: colors.secondary }]}>
+                {t("nutrition.recommendation.noDataDescription")}
+              </Text>
             </View>
-          </>
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Ionicons
-              name="restaurant-outline"
-              size={40}
-              color={colors.secondary}
-            />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>
-              {t("nutrition.recommendation.noDataTitle")}
-            </Text>
-            <Text style={[styles.emptyText, { color: colors.secondary }]}>
-              {t("nutrition.recommendation.noDataDescription")}
-            </Text>
-          </View>
-        )}
-      </ScrollView>
+          )}
+        </Animated.ScrollView>
 
-      {/* Botão de ação - escolher entre fechar ou adicionar alimentos */}
-      <View
-        style={[
-          styles.footer,
-          { backgroundColor: colors.background, borderTopColor: colors.border },
-        ]}
-      >
-        {Object.keys(selectedFoods).length > 0 ? (
-          <TouchableOpacity
-            style={[
-              styles.applyButton,
-              {
-                backgroundColor: mealColor as string,
-                opacity: applying ? 0.6 : 1,
-              },
-            ]}
-            onPress={handleApplySelectedFoods}
-            disabled={applying}
-          >
-            {applying ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <>
-                <Text style={styles.applyButtonText}>
-                  {t("nutrition.recommendation.addSelectedFoods", {
-                    count: Object.keys(selectedFoods).length,
-                  })}
-                </Text>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={20}
-                  color="#FFFFFF"
-                  style={styles.applyButtonIcon}
-                />
-              </>
-            )}
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[
-              styles.closeFullButton,
-              { backgroundColor: mealColor as string },
-            ]}
-            onPress={handleClose}
-          >
-            <Text style={styles.closeButtonText}>{t("common.close")}</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+        {/* Botão de ação - escolher entre fechar ou adicionar alimentos */}
+        <View
+          style={[
+            styles.footer,
+            {
+              backgroundColor: colors.background,
+              borderTopColor: colors.border,
+            },
+          ]}
+        >
+          {Object.keys(selectedFoods).length > 0 ? (
+            <TouchableOpacity
+              style={[
+                styles.applyButton,
+                {
+                  backgroundColor: mealColor as string,
+                  opacity: applying ? 0.6 : 1,
+                },
+              ]}
+              onPress={handleApplySelectedFoods}
+              disabled={applying}
+            >
+              {applying ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <Text style={styles.applyButtonText}>
+                    {t("nutrition.recommendation.addSelectedFoods", {
+                      count: Object.keys(selectedFoods).length,
+                    })}
+                  </Text>
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={20}
+                    color="#FFFFFF"
+                    style={styles.applyButtonIcon}
+                  />
+                </>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[
+                styles.closeFullButton,
+                { backgroundColor: mealColor as string },
+              ]}
+              onPress={handleClose}
+            >
+              <Text style={styles.closeButtonText}>{t("common.close")}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -1361,31 +1486,86 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === "ios" ? 8 : 16,
-  },
-  headerTitleContainer: {
-    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
+    minHeight: 50,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 20,
+    fontWeight: "600",
+    letterSpacing: -0.5,
+    color: "#FFF",
+    position: "absolute",
+    left: 0,
+    right: 0,
+    textAlign: "center",
   },
   closeButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  configButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  gradientHeaderContainer: {
+    overflow: "hidden",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    marginBottom: 0,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+    zIndex: 10,
+  },
+  headerGradient: {
+    paddingHorizontal: 20,
+  },
+  gradientContent: {
+    alignItems: "center",
+    paddingTop: 5,
+    paddingBottom: 25,
+  },
+  headerIcon: {
+    marginBottom: 12,
+  },
+  headerGradientTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#FFF",
+    marginBottom: 4,
+  },
+  headerGradientSubtitle: {
+    fontSize: 16,
+    color: "#FFF",
+    opacity: 0.9,
   },
   fixedCardContainer: {
     zIndex: 10,
+    marginTop: -5,
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 100,
+    paddingBottom: 140,
+    minHeight: Dimensions.get("window").height * 1.1,
   },
   loadingContainer: {
     padding: 40,
@@ -1418,12 +1598,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderTopWidth: 1,
   },
   closeFullButton: {
     height: 56,
-    marginBottom: 20,
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
@@ -1435,7 +1615,7 @@ const styles = StyleSheet.create({
   },
   suggestionsSection: {
     paddingHorizontal: 16,
-    marginTop: 6,
+    marginTop: 16,
   },
   sectionHeaderContainer: {
     marginBottom: 12,
@@ -1464,7 +1644,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     height: 56,
-    marginBottom: 20,
+    marginBottom: 0,
     borderRadius: 28,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },

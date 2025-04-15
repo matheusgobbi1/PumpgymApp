@@ -584,7 +584,7 @@ export default function NutritionSummaryCard({
           ]}
         >
           <MaterialCommunityIcons
-            name="fire"
+            name="nutrition"
             size={18}
             color={colors.primary}
           />

@@ -25,6 +25,7 @@ interface NutritionRecommendationCardProps {
     fat: number;
   };
   isPreview?: boolean;
+  onConfigPress?: () => void;
 }
 
 export default function NutritionRecommendationCard({
@@ -33,6 +34,7 @@ export default function NutritionRecommendationCard({
   theme,
   mealTotals,
   isPreview = false,
+  onConfigPress,
 }: NutritionRecommendationCardProps) {
   const colors = Colors[theme];
   const { t } = useTranslation();
@@ -57,7 +59,11 @@ export default function NutritionRecommendationCard({
   // Função para navegar para a tela de configuração de distribuição
   const handleConfigPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push("/meal-distribution-config");
+    if (onConfigPress) {
+      onConfigPress();
+    } else {
+      router.push("/meal-distribution-config");
+    }
   };
 
   // Funções para controlar o tooltip
@@ -80,79 +86,11 @@ export default function NutritionRecommendationCard({
 
   return (
     <MotiView
-      from={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      from={{ opacity: 0, translateY: 5 }}
+      animate={{ opacity: 1, translateY: 0 }}
       transition={{ type: "timing", duration: 300 }}
       style={styles.container}
     >
-      <View style={styles.contentRow}>
-        <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: colors.text }]}>
-            {isPreview
-              ? t(
-                  "nutrition.recommendation.previewValues",
-                  "Prévia dos Valores"
-                )
-              : t(
-                  "nutrition.recommendation.suggestedValues",
-                  "Valores Recomendados"
-                )}
-          </Text>
-          <Text style={[styles.subtitle, { color: colors.text + "80" }]}>
-            {isPreview
-              ? t(
-                  "nutrition.recommendation.withSelectedFoods",
-                  "Com alimentos selecionados"
-                )
-              : `${Math.round(recommendation.percentageOfDaily)}% ${t(
-                  "nutrition.recommendation.ofDailyNeeds",
-                  "do seu plano diário"
-                )}`}
-          </Text>
-        </View>
-
-        {!isPreview && (
-          <View style={styles.configButtonContainer}>
-            <TouchableOpacity
-              style={[styles.configButton, { backgroundColor: colors.card }]}
-              onPress={handleConfigPress}
-              onLongPress={showTooltipAnimation}
-              onPressOut={hideTooltipAnimation}
-              accessibilityLabel={t(
-                "nutrition.recommendation.configButtonAccessibility",
-                "Configurar distribuição de refeições"
-              )}
-            >
-              <Ionicons
-                name="settings-outline"
-                size={22}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
-
-            {showTooltip && (
-              <Animated.View
-                style={[
-                  styles.tooltip,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                    opacity: tooltipOpacity,
-                  },
-                ]}
-              >
-                <Text style={[styles.tooltipText, { color: colors.text }]}>
-                  {t(
-                    "nutrition.recommendation.configMealDistribution",
-                    "Configurar distribuição de refeições"
-                  )}
-                </Text>
-              </Animated.View>
-            )}
-          </View>
-        )}
-      </View>
-
       <View style={styles.macroContainer}>
         {/* Calorias */}
         <View style={styles.macroItem}>
@@ -160,7 +98,7 @@ export default function NutritionRecommendationCard({
             <MaterialCommunityIcons
               name="fire"
               size={18}
-              color="#FF1F02"
+              color="#FFFFFF"
               style={styles.macroIcon}
             />
             <Text
@@ -190,7 +128,7 @@ export default function NutritionRecommendationCard({
             <MaterialCommunityIcons
               name="food-steak"
               size={18}
-              color="#EF476F"
+              color="#FFFFFF"
               style={styles.macroIcon}
             />
             <Text
@@ -218,7 +156,7 @@ export default function NutritionRecommendationCard({
             <MaterialCommunityIcons
               name="bread-slice"
               size={18}
-              color="#118AB2"
+              color="#FFFFFF"
               style={styles.macroIcon}
             />
             <Text
@@ -246,7 +184,7 @@ export default function NutritionRecommendationCard({
             <MaterialCommunityIcons
               name="oil"
               size={18}
-              color="#FFD166"
+              color="#FFFFFF"
               style={styles.macroIcon}
             />
             <Text
@@ -272,59 +210,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: "transparent",
-  },
-  contentRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  titleContainer: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  subtitle: {
-    fontSize: 14,
-    marginTop: 2,
-  },
-  configButtonContainer: {
-    position: "relative",
-    marginLeft: 10,
-  },
-  configButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  tooltip: {
-    position: "absolute",
-    top: 40,
-    right: 0,
-    width: 220,
-    padding: 8,
-    borderWidth: 1,
-    borderRadius: 8,
-    zIndex: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  tooltipText: {
-    fontSize: 12,
-    fontWeight: "500",
-    textAlign: "center",
   },
   macroContainer: {
     flexDirection: "row",

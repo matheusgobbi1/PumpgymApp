@@ -60,7 +60,9 @@ export async function registerForPushNotificationsAsync() {
 }
 
 // Função para salvar o token no Firestore associado ao usuário
-export async function saveTokenToDatabase(token) {
+export async function saveTokenToDatabase(
+  token: string | undefined
+): Promise<boolean> {
   try {
     const auth = getAuth();
     const user = auth.currentUser;
@@ -97,8 +99,10 @@ export async function saveTokenToDatabase(token) {
 
 // Função para configurar e gerenciar ouvintes de notificação
 export function setupNotificationListeners(
-  onNotificationReceived,
-  onNotificationResponse
+  onNotificationReceived?: (notification: Notifications.Notification) => void,
+  onNotificationResponse?: (
+    response: Notifications.NotificationResponse
+  ) => void
 ) {
   // Ouvinte para notificações recebidas com o app em primeiro plano
   const receivedSubscription = Notifications.addNotificationReceivedListener(

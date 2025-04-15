@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -8,20 +8,14 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Animated,
+  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import Colors from "../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  FadeInUp,
-  Layout,
-  withTiming,
-  Easing,
-} from "react-native-reanimated";
 import {
   useWorkoutContext,
   Exercise,
@@ -35,6 +29,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import ProgressionCard from "../components/training/ProgressionCard";
 import InfoModal from "../components/common/InfoModal";
 import { useTranslation } from "react-i18next";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+
+// Constantes para animação do header
+const { width } = Dimensions.get("window");
+const HEADER_MAX_HEIGHT = 180;
+const HEADER_MIN_HEIGHT = 55;
+const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 export default function ProgressionModal() {
   const router = useRouter();
@@ -43,6 +45,9 @@ export default function ProgressionModal() {
   const { getMultiplePreviousWorkoutsExercises, applyProgressionToWorkout } =
     useWorkoutContext();
   const { t } = useTranslation();
+
+  // Referência e estado para animação do scroll
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   // Obter parâmetros da URL
   const { workoutId, workoutName, workoutColor } = useLocalSearchParams();
@@ -58,6 +63,43 @@ export default function ProgressionModal() {
   const [applying, setApplying] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [historyCount, setHistoryCount] = useState(0);
+
+  // Calculando os valores de animação
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
+    extrapolate: "clamp",
+  });
+
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE * 0.5, HEADER_SCROLL_DISTANCE * 0.7],
+    outputRange: [0, 0, 1],
+    extrapolate: "clamp",
+  });
+
+  const heroContentOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE * 0.3, HEADER_SCROLL_DISTANCE * 0.5],
+    outputRange: [1, 0.3, 0],
+    extrapolate: "clamp",
+  });
+
+  const heroContentTranslate = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE * 0.5],
+    outputRange: [0, -20],
+    extrapolate: "clamp",
+  });
+
+  const titleScale = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [1, 0.85],
+    extrapolate: "clamp",
+  });
+
+  const titleTranslateY = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [0, -3],
+    extrapolate: "clamp",
+  });
 
   // Carregar exercícios e gerar sugestões
   useEffect(() => {
@@ -238,119 +280,114 @@ export default function ProgressionModal() {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={["bottom"]}
     >
+      <StatusBar style="light" />
+
+      {/* Cabeçalho com gradiente colapsável */}
       <Animated.View
-        entering={FadeIn.duration(300).easing(Easing.ease)}
-        style={[
-          styles.header,
-          {
-            backgroundColor: colors.background,
-          },
-        ]}
+        style={[styles.gradientHeaderContainer, { height: headerHeight }]}
       >
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={handleClose}
-          disabled={applying}
+        <LinearGradient
+          colors={[
+            workoutColor as string,
+            (workoutColor + "90") as string,
+            (workoutColor + "40") as string,
+          ]}
+          style={[styles.headerGradient, { flex: 1 }]}
         >
-          <Ionicons name="chevron-down" size={24} color={colors.text} />
-        </TouchableOpacity>
+          {/* Cabeçalho de navegação */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={handleClose}
+              disabled={loading || applying}
+            >
+              <Ionicons name="chevron-down" size={24} color="#FFF" />
+            </TouchableOpacity>
 
-        <Animated.View
-          entering={FadeIn.delay(150).duration(300)}
-          style={styles.headerTitleContainer}
-        >
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {t("progression.modal.title")}
-          </Text>
-        </Animated.View>
+            <Animated.Text
+              style={[
+                styles.headerTitle,
+                {
+                  opacity: headerTitleOpacity,
+                  transform: [
+                    { scale: titleScale },
+                    { translateY: titleTranslateY },
+                  ],
+                },
+              ]}
+            >
+              {workoutName as string}
+            </Animated.Text>
 
-        <View style={{ width: 40 }} />
-      </Animated.View>
+            <TouchableOpacity
+              style={styles.infoButton}
+              onPress={handleShowInfo}
+              disabled={loading || applying}
+            >
+              <Ionicons
+                name="information-circle-outline"
+                size={24}
+                color="#FFF"
+              />
+            </TouchableOpacity>
+          </View>
 
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        <Animated.View
-          entering={FadeIn.delay(200).duration(400)}
-          style={styles.workoutInfoContainer}
-        >
-          <View
+          {/* Conteúdo do cabeçalho - desaparece ao rolar */}
+          <Animated.View
             style={[
-              styles.workoutInfo,
+              styles.gradientContent,
               {
-                backgroundColor: colors.light,
-                borderWidth: 1,
-                borderColor: colors.border,
+                opacity: heroContentOpacity,
+                transform: [{ translateY: heroContentTranslate }],
               },
             ]}
           >
-            <Animated.View
-              entering={FadeIn.delay(300).duration(400)}
-              style={styles.workoutInfoRow}
-            >
-              <Ionicons
-                name="barbell-outline"
-                size={22}
-                color={workoutColor as string}
-                style={styles.workoutIcon}
-              />
-              <Text
-                style={[styles.workoutName, { color: workoutColor as string }]}
-              >
-                {workoutName as string}
-              </Text>
-            </Animated.View>
-
+            <Ionicons
+              name="barbell"
+              size={32}
+              color="#fff"
+              style={styles.headerIcon}
+            />
+            <Text style={styles.headerGradientTitle}>
+              {workoutName as string}
+            </Text>
             {previousDate && (
-              <Animated.View
-                entering={FadeIn.delay(400).duration(300)}
-                style={[
-                  styles.dateContainer,
-                  { borderTopColor: colors.border },
-                ]}
-              >
-                <Ionicons
-                  name="calendar-outline"
-                  size={16}
-                  color={colors.secondary}
-                  style={styles.dateIcon}
-                />
-                <Text
-                  style={[styles.previousDate, { color: colors.secondary }]}
-                >
-                  {historyCount > 1
-                    ? t("progression.modal.basedOn", {
-                        count: historyCount,
-                        date: formatDate(previousDate),
-                      })
-                    : t("progression.modal.basedOn_singular", {
-                        date: formatDate(previousDate),
-                      })}
-                </Text>
-              </Animated.View>
+              <Text style={styles.headerGradientSubtitle}>
+                {historyCount > 1
+                  ? t("progression.modal.basedOn", {
+                      count: historyCount,
+                      date: formatDate(previousDate),
+                    })
+                  : t("progression.modal.basedOn_singular", {
+                      date: formatDate(previousDate),
+                    })}
+              </Text>
             )}
-          </View>
-        </Animated.View>
+          </Animated.View>
+        </LinearGradient>
+      </Animated.View>
 
+      <Animated.ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        showsVerticalScrollIndicator={false}
+      >
         {loading ? (
-          <Animated.View
-            entering={FadeIn.duration(400)}
-            style={styles.loadingContainer}
-          >
+          <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={workoutColor as string} />
             <Text style={[styles.loadingText, { color: colors.text }]}>
               {t("progression.modal.calculating")}
             </Text>
-          </Animated.View>
+          </View>
         ) : (
           <>
             {suggestions.length === 0 ? (
-              <Animated.View
-                entering={FadeIn.delay(300).duration(400)}
-                style={styles.emptyContainer}
-              >
+              <View style={styles.emptyContainer}>
                 <Ionicons
                   name="fitness-outline"
                   size={40}
@@ -362,66 +399,44 @@ export default function ProgressionModal() {
                 <Text style={[styles.emptyText, { color: colors.secondary }]}>
                   {t("progression.modal.noWorkoutsDescription")}
                 </Text>
-              </Animated.View>
+              </View>
             ) : (
               <>
-                <Animated.View
-                  entering={FadeIn.delay(400).duration(300)}
-                  style={styles.sectionTitleContainer}
-                >
+                <View style={styles.sectionTitleContainer}>
                   <Text style={[styles.sectionTitle, { color: colors.text }]}>
                     {t("progression.modal.suggestionsTitle")}
                   </Text>
-                  <TouchableOpacity
-                    onPress={handleShowInfo}
-                    hitSlop={{ top: 30, right: 30, bottom: 30, left: 30 }}
-                  >
-                    <Ionicons
-                      name="information-circle"
-                      size={22}
-                      color="tomato"
-                      style={styles.infoIcon}
-                    />
-                  </TouchableOpacity>
-                </Animated.View>
+                </View>
 
-                <Animated.Text
-                  entering={FadeIn.delay(450).duration(300)}
+                <Text
                   style={[
                     styles.sectionDescription,
                     { color: colors.secondary },
                   ]}
                 >
                   {t("progression.modal.selectExercisesDescription")}
-                </Animated.Text>
+                </Text>
 
-                <Animated.View
-                  entering={FadeIn.delay(500).duration(400)}
-                  style={styles.suggestionsContainer}
-                >
+                <View style={styles.suggestionsContainer}>
                   {suggestions.map((suggestion, index) => (
-                    <Animated.View
+                    <ProgressionCard
                       key={suggestion.exerciseId}
-                      entering={FadeIn.delay(600 + index * 50).duration(400)}
-                    >
-                      <ProgressionCard
-                        suggestion={suggestion}
-                        index={index}
-                        isSelected={selectedExercises.includes(
-                          suggestion.exerciseId
-                        )}
-                        workoutColor={workoutColor as string}
-                        theme={theme}
-                        onToggleSelection={toggleSuggestionSelection}
-                      />
-                    </Animated.View>
+                      suggestion={suggestion}
+                      index={index}
+                      isSelected={selectedExercises.includes(
+                        suggestion.exerciseId
+                      )}
+                      workoutColor={workoutColor as string}
+                      theme={theme}
+                      onToggleSelection={toggleSuggestionSelection}
+                    />
                   ))}
-                </Animated.View>
+                </View>
               </>
             )}
           </>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Botão de aplicar */}
       {suggestions.length > 0 && (
@@ -513,61 +528,79 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  gradientHeaderContainer: {
+    overflow: "hidden",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    marginBottom: 0,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+    zIndex: 10,
+  },
+  headerGradient: {
+    paddingHorizontal: 20,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === "ios" ? 8 : 16,
-    paddingBottom: 12,
-  },
-  headerTitleContainer: {
-    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
+    minHeight: 50,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 20,
+    fontWeight: "600",
+    letterSpacing: -0.5,
+    color: "#FFF",
+    position: "absolute",
+    left: 0,
+    right: 0,
+    textAlign: "center",
   },
   closeButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  infoButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  gradientContent: {
+    alignItems: "center",
+    paddingTop: 5,
+    paddingBottom: 25,
+  },
+  headerIcon: {
+    marginBottom: 12,
+  },
+  headerGradientTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#FFF",
+    marginBottom: 4,
+  },
+  headerGradientSubtitle: {
+    fontSize: 16,
+    color: "#FFF",
+    opacity: 0.9,
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 100,
-  },
-  workoutInfoContainer: {
-    padding: 16,
-  },
-  workoutInfo: {
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  workoutInfoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-  },
-  workoutIcon: {
-    marginRight: 10,
-  },
-  workoutName: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  dateContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderTopWidth: 1,
-  },
-  dateIcon: {
-    marginRight: 8,
-  },
-  previousDate: {
-    fontSize: 14,
+    paddingBottom: 140,
+    minHeight: Dimensions.get("window").height * 1.1,
   },
   loadingContainer: {
     padding: 40,
@@ -599,7 +632,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginHorizontal: 16,
-    marginTop: 8,
+    marginTop: 20,
     marginBottom: 8,
   },
   sectionTitle: {
@@ -647,5 +680,37 @@ const styles = StyleSheet.create({
   },
   applyButtonIcon: {
     marginLeft: 8,
+  },
+  workoutInfoContainer: {
+    padding: 16,
+  },
+  workoutInfo: {
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  workoutInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+  },
+  workoutIcon: {
+    marginRight: 10,
+  },
+  workoutName: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  dateContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+  },
+  dateIcon: {
+    marginRight: 8,
+  },
+  previousDate: {
+    fontSize: 14,
   },
 });
