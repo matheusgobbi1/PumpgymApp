@@ -555,7 +555,7 @@ export default function WorkoutExportModal() {
                     </div>
                     <div style="font-size: 12px; color: ${secondaryTextColor}; margin-top: 2px;">
                       ${exercise.sets.length} ${
-                t("training.stats.sets") || "Séries"
+                t("training.set") || "Séries"
               } • ${formatNumber(
                 exercise.sets.reduce(
                   (total, set) => total + set.weight * set.reps,
@@ -701,7 +701,7 @@ export default function WorkoutExportModal() {
                 workout.type.color
               };">
                 ${exercise.sets ? exercise.sets.length : 0} ${
-                    t("training.shortSets") || "séries"
+                    t("training.shortSets") || "Séries"
                   }
               </div>
             </div>
@@ -1250,7 +1250,7 @@ export default function WorkoutExportModal() {
                                         { color: colors.secondary },
                                       ]}
                                     >
-                                      {t("training.sets") || "Séries"}
+                                      {t("training.shortSets") || "Séries"}
                                     </Text>
                                   </View>
                                 )}
@@ -1654,7 +1654,7 @@ export default function WorkoutExportModal() {
                                         {exercise.sets
                                           ? exercise.sets.length
                                           : 0}{" "}
-                                        {t("training.shortSets") || "séries"}
+                                        {t("training.shortSets") || "Séries"}
                                       </Text>
                                     </View>
                                   )

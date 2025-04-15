@@ -15,6 +15,7 @@ import { ThemeProvider, useTheme } from "../context/ThemeContext";
 import { ReminderProvider } from "../context/ReminderContext";
 import { LanguageProvider } from "../context/LanguageContext";
 import { MealProvider } from "../context/MealContext";
+import { NotificationProvider } from "../context/NotificationContext";
 import "../i18n"; // Importando a configuração i18n
 import i18n, { getLanguageStatus } from "../i18n"; // Importar getLanguageStatus para depuração
 import "../firebase/config";
@@ -138,16 +139,18 @@ export default function RootLayout() {
             <LanguageProvider>
               <LanguageInitializer />
               <BottomSheetModalProvider>
-                <NutritionProvider>
-                  <MealProvider>
-                    <WorkoutProvider>
-                      <ReminderProvider>
-                        <OfflineNotice />
-                        <AppContent />
-                      </ReminderProvider>
-                    </WorkoutProvider>
-                  </MealProvider>
-                </NutritionProvider>
+                <NotificationProvider>
+                  <NutritionProvider>
+                    <MealProvider>
+                      <WorkoutProvider>
+                        <ReminderProvider>
+                          <OfflineNotice />
+                          <AppContent />
+                        </ReminderProvider>
+                      </WorkoutProvider>
+                    </MealProvider>
+                  </NutritionProvider>
+                </NotificationProvider>
               </BottomSheetModalProvider>
             </LanguageProvider>
           </AuthProvider>
@@ -266,6 +269,13 @@ function AppContent() {
         />
         <Stack.Screen
           name="diet-export-modal"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+          }}
+        />
+        <Stack.Screen
+          name="workout-export-modal"
           options={{
             presentation: "modal",
             animation: "slide_from_bottom",

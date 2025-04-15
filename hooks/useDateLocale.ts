@@ -86,7 +86,7 @@ export function useDateLocale() {
       }
 
       try {
-        // Usar API nativa para formatação de data
+        // Usar API nativa para formatação de data com o idioma selecionado pelo usuário
         return dateObj.toLocaleDateString(
           i18n.language,
           getLocaleDateOptions(formatStr)
@@ -104,6 +104,7 @@ export function useDateLocale() {
       const dateObj = typeof date === "string" ? new Date(date) : date;
 
       try {
+        // Usar o idioma selecionado pelo usuário
         if (i18n.language.startsWith("pt")) {
           // Para português, use formato "8 de abril"
           return dateObj.toLocaleDateString(i18n.language, {
@@ -112,11 +113,11 @@ export function useDateLocale() {
             month: "long",
           });
         } else {
-          // Para outros idiomas, manter o padrão existente
+          // Para outros idiomas, usar formato apropriado
           return dateObj.toLocaleDateString(i18n.language, {
             weekday: "long",
             day: "numeric",
-            month: "short",
+            month: "long",
           });
         }
       } catch (error) {
@@ -153,8 +154,10 @@ export function useDateLocale() {
           typeof dateString === "string" ? new Date(dateString) : dateString;
 
         if (isToday(date)) {
+          // Usar a tradução conforme o idioma do app
           return t("dates.today", "Today");
         } else if (isYesterday(date)) {
+          // Usar a tradução conforme o idioma do app
           return t("dates.yesterday", "Yesterday");
         } else {
           return formatDateWithWeekday(date);
@@ -174,7 +177,7 @@ export function useDateLocale() {
         return date.toLocaleTimeString(i18n.language, {
           hour: "2-digit",
           minute: "2-digit",
-          hour12: !i18n.language.startsWith("pt"),
+          hour12: !i18n.language.startsWith("pt"), // Formato 12h para inglês, 24h para português
         });
       } catch (error) {
         return date.toLocaleTimeString();

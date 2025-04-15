@@ -131,17 +131,9 @@ export default function ProgressionConfirmDialog({
 
         {/* Controle de RIR (Repetições em Reserva) */}
         <View style={styles.controlRow}>
-          <View style={styles.controlLabelContainer}>
-            <Ionicons
-              name="fitness-outline"
-              size={18}
-              color={workoutColor}
-              style={styles.controlIcon}
-            />
-            <Text style={[styles.controlLabel, { color: colors.text }]}>
-              {t("progression.confirmDialog.repsInReserve")}
-            </Text>
-          </View>
+          <Text style={[styles.controlLabel, { color: colors.text }]}>
+            {t("progression.confirmDialog.repsInReserve")}
+          </Text>
 
           <View style={styles.intensityButtonsRow}>
             {[0, 1, 2, 3, 4, 5].map((value) => (
@@ -189,17 +181,9 @@ export default function ProgressionConfirmDialog({
 
         {/* Controle de Percepção de Esforço */}
         <View style={styles.controlRow}>
-          <View style={styles.controlLabelContainer}>
-            <Ionicons
-              name="pulse-outline"
-              size={18}
-              color={workoutColor}
-              style={styles.controlIcon}
-            />
-            <Text style={[styles.controlLabel, { color: colors.text }]}>
-              {t("progression.confirmDialog.perceivedEffort")}
-            </Text>
-          </View>
+          <Text style={[styles.controlLabel, { color: colors.text }]}>
+            {t("progression.confirmDialog.perceivedEffort")}
+          </Text>
 
           <View style={styles.intensityButtonsRow}>
             {[1, 2, 3, 4, 5].map((value) => (
@@ -247,11 +231,17 @@ export default function ProgressionConfirmDialog({
       animationType="fade"
       onRequestClose={handleClose}
     >
-      <BlurView
-        intensity={20}
+      <TouchableOpacity
         style={StyleSheet.absoluteFill}
-        tint={theme === "dark" ? "dark" : "light"}
-      />
+        activeOpacity={1}
+        onPress={handleClose}
+      >
+        <BlurView
+          intensity={20}
+          style={StyleSheet.absoluteFill}
+          tint={theme === "dark" ? "dark" : "light"}
+        />
+      </TouchableOpacity>
 
       <View style={styles.modalContainer}>
         <MotiView
@@ -263,42 +253,20 @@ export default function ProgressionConfirmDialog({
             { backgroundColor: colors.background, borderColor: colors.border },
           ]}
         >
-          <View
-            style={[
-              styles.headerContainer,
-              { borderBottomColor: colors.border },
-            ]}
-          >
+          <View style={styles.headerContainer}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={handleClose}
+              hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+            >
+              <Ionicons name="close" size={24} color={colors.text} />
+            </TouchableOpacity>
+
             <Text style={[styles.title, { color: colors.text }]}>
               {t("progression.confirmDialog.title")}
             </Text>
             <Text style={[styles.subtitle, { color: colors.text + "80" }]}>
               {getTranslatedExerciseName()}
-            </Text>
-          </View>
-
-          <View
-            style={[
-              styles.instructionContainer,
-              { borderBottomColor: colors.border },
-            ]}
-          >
-            <View
-              style={[
-                styles.infoIconContainer,
-                { backgroundColor: workoutColor + "20" },
-              ]}
-            >
-              <Ionicons
-                name="information-circle"
-                size={18}
-                color={workoutColor}
-              />
-            </View>
-            <Text
-              style={[styles.instructionText, { color: colors.text + "99" }]}
-            >
-              {t("progression.confirmDialog.instruction")}
             </Text>
           </View>
 
@@ -310,22 +278,7 @@ export default function ProgressionConfirmDialog({
             {editedSets.map((set, index) => renderSetControls(set, index))}
           </ScrollView>
 
-          <View
-            style={[styles.buttonContainer, { borderTopColor: colors.border }]}
-          >
-            <TouchableOpacity
-              style={[
-                styles.cancelButton,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-              onPress={handleClose}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.cancelButtonText, { color: colors.text }]}>
-                {t("progression.confirmDialog.cancel")}
-              </Text>
-            </TouchableOpacity>
-
+          <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={[styles.confirmButton, { backgroundColor: workoutColor }]}
               onPress={handleConfirm}
@@ -339,12 +292,6 @@ export default function ProgressionConfirmDialog({
               >
                 {t("progression.confirmDialog.confirm")}
               </Text>
-              <Ionicons
-                name="checkmark-circle"
-                size={18}
-                color={theme === "dark" ? "#000000" : "#FFFFFF"}
-                style={styles.confirmIcon}
-              />
             </TouchableOpacity>
           </View>
         </MotiView>
@@ -370,9 +317,15 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     alignItems: "center",
-    paddingTop: 16,
+    paddingTop: 20,
     paddingBottom: 16,
-    borderBottomWidth: 1,
+    position: "relative",
+  },
+  closeButton: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    zIndex: 10,
   },
   title: {
     fontSize: 18,
@@ -381,25 +334,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-  },
-  instructionContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderBottomWidth: 1,
-  },
-  infoIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  instructionText: {
-    fontSize: 14,
-    lineHeight: 20,
-    flex: 1,
   },
   scrollView: {
     maxHeight: 400,
@@ -413,6 +347,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: "hidden",
     padding: 16,
+    marginBottom: 8,
   },
   setHeader: {
     flexDirection: "row",
@@ -439,25 +374,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 1,
     gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.3)",
-  },
-  controlLabelContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 4,
   },
   controlLabel: {
     fontSize: 15,
     fontWeight: "600",
-  },
-  controlIcon: {
-    marginRight: 12,
+    marginBottom: 8,
   },
   intensityButtonsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 8,
     paddingHorizontal: 4,
     gap: 8,
   },
@@ -473,37 +398,18 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   buttonContainer: {
-    flexDirection: "row",
     padding: 16,
-    gap: 12,
-    borderTopWidth: 1,
-  },
-  cancelButton: {
-    flex: 1,
-    height: 50,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-  },
-  cancelButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
+    paddingBottom: 20,
   },
   confirmButton: {
-    flex: 2,
     height: 50,
-    borderRadius: 12,
-    flexDirection: "row",
+    borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
   },
   confirmButtonText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "600",
     color: "#FFFFFF",
-  },
-  confirmIcon: {
-    marginLeft: 8,
   },
 });

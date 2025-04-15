@@ -463,6 +463,35 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   // Função para atualizar todos os tipos de refeições de uma vez
   const updateMealTypes = async (newMealTypes: MealType[]) => {
     try {
+      // Identificar quais tipos de refeição foram removidos
+      const currentMealTypeIds = mealTypes.map((type) => type.id);
+      const newMealTypeIds = newMealTypes.map((type) => type.id);
+      const removedMealTypeIds = currentMealTypeIds.filter(
+        (id) => !newMealTypeIds.includes(id)
+      );
+
+      // Limpar os alimentos das refeições removidas
+      if (removedMealTypeIds.length > 0) {
+        setMeals((prevMeals) => {
+          const updatedMeals = { ...prevMeals };
+
+          // Percorrer todas as datas e remover as refeições que não existem mais
+          Object.keys(updatedMeals).forEach((date) => {
+            if (updatedMeals[date]) {
+              // Para cada refeição removida, remover seus alimentos
+              removedMealTypeIds.forEach((mealId) => {
+                if (updatedMeals[date][mealId]) {
+                  delete updatedMeals[date][mealId];
+                }
+              });
+            }
+          });
+
+          return updatedMeals;
+        });
+      }
+
+      // Atualizar os tipos de refeições
       setMealTypes(newMealTypes);
 
       if (newMealTypes.length > 0) {
@@ -489,6 +518,9 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
             { types: newMealTypes },
             { merge: true }
           );
+
+          // Salvar as alterações nas refeições após atualizar os tipos
+          await saveMeals();
         } catch (firebaseError) {
           // Ignorar erro de Firebase, dados mantidos localmente
         }
@@ -614,6 +646,12 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
         return { calories: 0, protein: 0, carbs: 0, fat: 0 };
       }
 
+      // Verificar se o mealId corresponde a um tipo de refeição configurado
+      const isMealTypeConfigured = mealTypes.some((type) => type.id === mealId);
+      if (!isMealTypeConfigured) {
+        return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+      }
+
       // Verificar se a data selecionada existe nos dados de refeições
       if (!meals || !meals[selectedDate]) {
         return { calories: 0, protein: 0, carbs: 0, fat: 0 };
@@ -664,6 +702,12 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
         return [];
       }
 
+      // Verificar se o mealId corresponde a um tipo de refeição configurado
+      const isMealTypeConfigured = mealTypes.some((type) => type.id === mealId);
+      if (!isMealTypeConfigured) {
+        return [];
+      }
+
       // Verificar se a data selecionada existe nos dados de refeições
       if (!meals || !meals[selectedDate]) {
         return [];
@@ -707,6 +751,9 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
 
       if (Object.keys(currentDayMeals).length > 0) {
         // Filtramos as chaves para garantir que não estamos processando metadados
+        // e que apenas consideramos refeições que existem na configuração atual
+        const validMealTypeIds = mealTypes.map((type) => type.id);
+
         mealIds = Object.keys(currentDayMeals).filter((id) => {
           const knownMetadata = [
             "data",
@@ -716,7 +763,8 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
             "userId",
             "user_id",
           ];
-          return !knownMetadata.includes(id);
+          // Somente incluir o ID se não for metadado E se for um tipo de refeição atual
+          return !knownMetadata.includes(id) && validMealTypeIds.includes(id);
         });
       } else if (Array.isArray(mealTypes) && mealTypes.length > 0) {
         // Se não temos refeições, mas temos tipos configurados, usar esses IDs

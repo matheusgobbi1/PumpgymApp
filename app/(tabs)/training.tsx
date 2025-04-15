@@ -204,26 +204,6 @@ export default function TrainingScreen() {
     });
   }, [isUIReady]);
 
-  // Calcular o número de dias com treino registrado
-  useEffect(() => {
-    let workoutDaysCount = 0;
-
-    // Contar dias únicos com treinos
-    Object.keys(workouts).forEach((date) => {
-      if (Object.keys(workouts[date]).length > 0) {
-        // Verificar se há exercícios registrados nesse dia
-        const hasExercisesForDay = Object.values(workouts[date]).some(
-          (exercises) => exercises.length > 0
-        );
-
-        if (hasExercisesForDay) {
-          workoutDaysCount++;
-        }
-      }
-    });
-
-    setTrainingDays(workoutDaysCount);
-  }, [workouts]);
 
   // Navegar para o perfil
   const navigateToProfile = useCallback(() => {
@@ -564,31 +544,20 @@ export default function TrainingScreen() {
         type: "default",
         onPress: openWorkoutConfigSheet,
       },
-      {
+    ];
+
+    // Adicionar opção de exportar e excluir apenas se houver treinos para a data selecionada
+    if (Object.keys(workoutsForSelectedDate).length > 0) {
+      baseActions.push({
         id: "export",
         label: t("training.menu.exportWorkout") || "Exportar Treino",
         icon: "share-outline",
         type: "default",
         onPress: () => {
-          // Verificar se há treinos para exportar
-          if (Object.keys(workoutsForSelectedDate).length === 0) {
-            Alert.alert(
-              t("common.warning") || "Atenção",
-              t("training.export.noWorkoutsToExport") ||
-                "Não há treinos para exportar nesta data.",
-              [{ text: t("common.ok") || "OK" }]
-            );
-            return;
-          }
-
-          // Navegar para o modal de exportação
           router.push("/workout-export-modal");
         },
-      },
-    ];
+      });
 
-    // Adicionar opção de excluir apenas se houver treinos para a data selecionada
-    if (Object.keys(workoutsForSelectedDate).length > 0) {
       baseActions.push({
         id: "delete",
         label: t("training.menu.deleteWorkout"),
@@ -646,11 +615,6 @@ export default function TrainingScreen() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <HomeHeader
           title={t("training.title")}
-          count={trainingDays}
-          iconName="dumbbell"
-          iconType="material"
-          iconColor={colors.primary}
-          iconBackgroundColor={colors.primary + "15"}
           showContextMenu={true}
           menuActions={menuActions}
           menuVisible={isMenuVisible}

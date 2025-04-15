@@ -117,24 +117,6 @@ export default function NutritionScreen() {
   // Referência para o bottom sheet de configuração de refeições
   const mealConfigSheetRef = useRef<BottomSheetModal>(null);
 
-  // Estado para armazenar o total de refeições
-  const [totalMeals, setTotalMeals] = useState(0);
-
-  // Calcular o total de dias com refeições registradas - executado somente quando os dados são carregados
-  useEffect(() => {
-    if (!isUIReady) return;
-
-    // Conta apenas o número de dias diferentes que têm pelo menos uma refeição registrada
-    const daysWithMeals = Object.keys(meals).filter((date) => {
-      // Verificar se há pelo menos uma refeição com alimentos nesta data
-      return Object.values(meals[date]).some(
-        (mealFoods) => Array.isArray(mealFoods) && mealFoods.length > 0
-      );
-    });
-
-    setTotalMeals(daysWithMeals.length);
-  }, [meals, isUIReady]);
-
   const handleDateSelect = (date: Date) => {
     setSelectedDate(format(date, "yyyy-MM-dd"));
   };
@@ -505,11 +487,6 @@ export default function NutritionScreen() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <HomeHeader
           title={t("nutrition.title")}
-          count={totalMeals}
-          iconName="silverware-fork-knife"
-          iconType="material"
-          iconColor={colors.primary}
-          iconBackgroundColor={colors.primary + "15"}
           showContextMenu={true}
           menuActions={menuActions}
           menuVisible={isMenuVisible}

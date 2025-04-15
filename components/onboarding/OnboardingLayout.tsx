@@ -1,4 +1,4 @@
-import React, { ReactNode, useState, useEffect } from "react";
+import React, { ReactNode, useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -65,6 +65,7 @@ export default function OnboardingLayout({
   const { t } = useTranslation();
 
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [footerHeight] = useState(
     new Animated.Value(
       Platform.OS === "ios" ? Math.max(insets.bottom + 24, 40) : 48
@@ -142,6 +143,32 @@ export default function OnboardingLayout({
   // Altura fixa para o cabeçalho, com base em ter ou não subtítulo
   const headerHeight = subtitle ? 100 : 70;
 
+  // Função para evitar múltiplos cliques no botão de próximo
+  const handleNext = () => {
+    if (isProcessing) return;
+
+    setIsProcessing(true);
+    onNext();
+
+    // Resetar o estado após um pequeno delay
+    setTimeout(() => {
+      setIsProcessing(false);
+    }, 500);
+  };
+
+  // Função para evitar múltiplos cliques no botão de voltar
+  const handleBack = () => {
+    if (isProcessing) return;
+
+    setIsProcessing(true);
+    onBack();
+
+    // Resetar o estado após um pequeno delay
+    setTimeout(() => {
+      setIsProcessing(false);
+    }, 500);
+  };
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -156,7 +183,7 @@ export default function OnboardingLayout({
       <OnboardingHeader
         currentStep={currentStep}
         totalSteps={totalSteps}
-        onBack={onBack}
+        onBack={handleBack}
       />
 
       <View style={{ flex: 1 }}>
@@ -213,8 +240,9 @@ export default function OnboardingLayout({
         >
           <Button
             title={buttonTitle}
-            onPress={onNext}
-            disabled={nextButtonDisabled}
+            onPress={handleNext}
+            disabled={nextButtonDisabled || isProcessing}
+            loading={isProcessing}
             hapticFeedback={
               currentStep === totalSteps ? "notification" : "impact"
             }

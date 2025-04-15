@@ -1,10 +1,18 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+} from "react-native";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { MotiView } from "moti";
 import Colors from "../../constants/Colors";
 import { MealNutritionRecommendation } from "../../utils/nutritionDistributionAlgorithm";
 import { useTranslation } from "react-i18next";
+import { useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
 
 interface NutritionRecommendationCardProps {
   recommendation: MealNutritionRecommendation;
@@ -28,6 +36,9 @@ export default function NutritionRecommendationCard({
 }: NutritionRecommendationCardProps) {
   const colors = Colors[theme];
   const { t } = useTranslation();
+  const router = useRouter();
+  const [showTooltip, setShowTooltip] = useState(false);
+  const tooltipOpacity = useState(new Animated.Value(0))[0];
 
   // Verificar se há dados de consumo
   const hasConsumptionData = mealTotals !== undefined;
@@ -41,6 +52,30 @@ export default function NutritionRecommendationCard({
       // Para macros, uma casa decimal
       return Math.round(value * 10) / 10;
     }
+  };
+
+  // Função para navegar para a tela de configuração de distribuição
+  const handleConfigPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push("/meal-distribution-config");
+  };
+
+  // Funções para controlar o tooltip
+  const showTooltipAnimation = () => {
+    setShowTooltip(true);
+    Animated.timing(tooltipOpacity, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const hideTooltipAnimation = () => {
+    Animated.timing(tooltipOpacity, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => setShowTooltip(false));
   };
 
   return (
@@ -75,6 +110,47 @@ export default function NutritionRecommendationCard({
                 )}`}
           </Text>
         </View>
+
+        {!isPreview && (
+          <View style={styles.configButtonContainer}>
+            <TouchableOpacity
+              style={[styles.configButton, { backgroundColor: colors.card }]}
+              onPress={handleConfigPress}
+              onLongPress={showTooltipAnimation}
+              onPressOut={hideTooltipAnimation}
+              accessibilityLabel={t(
+                "nutrition.recommendation.configButtonAccessibility",
+                "Configurar distribuição de refeições"
+              )}
+            >
+              <Ionicons
+                name="settings-outline"
+                size={22}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+
+            {showTooltip && (
+              <Animated.View
+                style={[
+                  styles.tooltip,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    opacity: tooltipOpacity,
+                  },
+                ]}
+              >
+                <Text style={[styles.tooltipText, { color: colors.text }]}>
+                  {t(
+                    "nutrition.recommendation.configMealDistribution",
+                    "Configurar distribuição de refeições"
+                  )}
+                </Text>
+              </Animated.View>
+            )}
+          </View>
+        )}
       </View>
 
       <View style={styles.macroContainer}>
@@ -214,13 +290,48 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 2,
   },
+  configButtonContainer: {
+    position: "relative",
+    marginLeft: 10,
+  },
+  configButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  tooltip: {
+    position: "absolute",
+    top: 40,
+    right: 0,
+    width: 220,
+    padding: 8,
+    borderWidth: 1,
+    borderRadius: 8,
+    zIndex: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  tooltipText: {
+    fontSize: 12,
+    fontWeight: "500",
+    textAlign: "center",
+  },
   macroContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginHorizontal: 0,
     marginVertical: 0,
-
     paddingHorizontal: 0,
     borderRadius: 8,
   },

@@ -757,7 +757,7 @@ const MealDistributionCard: React.FC<MealDistributionCardProps> = ({
 const styles = StyleSheet.create({
   cardContainer: {
     marginBottom: 16,
-    borderRadius: 20,
+    borderRadius: 14,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: {

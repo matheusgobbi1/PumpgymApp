@@ -782,39 +782,6 @@ export default function FoodSuggestionCard({
             </View>
           </View>
 
-          {/* Informações nutricionais compactas (visíveis mesmo quando não expandido) */}
-          <View style={styles.compactNutritionInfo}>
-            <View style={styles.caloriesContainer}>
-              <Text style={[styles.caloriesValue, { color: mealColor }]}>
-                {formatNumber(nutrients.calories, true)}
-              </Text>
-              <Text
-                style={[styles.caloriesUnit, { color: colors.text + "70" }]}
-              >
-                {t("nutrition.units.kcal")}
-              </Text>
-            </View>
-
-            <View style={styles.macroSimpleRow}>
-              <Text style={[styles.macroText, { color: colors.text + "80" }]}>
-                {t("nutrition.macros.protein_short")}{" "}
-                <Text style={[styles.macroNumber, { color: colors.text }]}>
-                  {formatNumber(nutrients.protein)}
-                </Text>
-                {"   "}
-                {t("nutrition.macros.carbs_short")}{" "}
-                <Text style={[styles.macroNumber, { color: colors.text }]}>
-                  {formatNumber(nutrients.carbs)}
-                </Text>
-                {"   "}
-                {t("nutrition.macros.fat_short")}{" "}
-                <Text style={[styles.macroNumber, { color: colors.text }]}>
-                  {formatNumber(nutrients.fat)}
-                </Text>
-              </Text>
-            </View>
-          </View>
-
           {/* Conteúdo expandido */}
           {expanded && (
             <View style={styles.expandedContent}>
@@ -822,6 +789,41 @@ export default function FoodSuggestionCard({
               <View
                 style={[styles.separator, { backgroundColor: colors.border }]}
               />
+
+              {/* Informações nutricionais */}
+              <View style={styles.nutritionInfoExpanded}>
+                <View style={styles.caloriesContainer}>
+                  <Text style={[styles.caloriesValue, { color: mealColor }]}>
+                    {formatNumber(nutrients.calories, true)}
+                  </Text>
+                  <Text
+                    style={[styles.caloriesUnit, { color: colors.text + "70" }]}
+                  >
+                    {t("nutrition.units.kcal")}
+                  </Text>
+                </View>
+
+                <View style={styles.macroSimpleRow}>
+                  <Text
+                    style={[styles.macroText, { color: colors.text + "80" }]}
+                  >
+                    {t("nutrition.macros.protein_short")}{" "}
+                    <Text style={[styles.macroNumber, { color: colors.text }]}>
+                      {formatNumber(nutrients.protein)}
+                    </Text>
+                    {"   "}
+                    {t("nutrition.macros.carbs_short")}{" "}
+                    <Text style={[styles.macroNumber, { color: colors.text }]}>
+                      {formatNumber(nutrients.carbs)}
+                    </Text>
+                    {"   "}
+                    {t("nutrition.macros.fat_short")}{" "}
+                    <Text style={[styles.macroNumber, { color: colors.text }]}>
+                      {formatNumber(nutrients.fat)}
+                    </Text>
+                  </Text>
+                </View>
+              </View>
 
               {/* Controles de porção (novo estilo com botões) */}
               <View style={styles.portionControlSection}>
@@ -968,8 +970,8 @@ export default function FoodSuggestionCard({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 12,
-    borderRadius: 16,
+    marginBottom: 16,
+    borderRadius: 14,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -984,8 +986,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 14,
-    paddingBottom: 6,
+    padding: 16,
   },
   leftContent: {
     flexDirection: "row",
@@ -1011,12 +1012,12 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   title: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "700",
     flexShrink: 1,
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 14,
     marginTop: 2,
     flexShrink: 1,
   },
@@ -1038,21 +1039,22 @@ const styles = StyleSheet.create({
     minWidth: 36,
     flexShrink: 0,
   },
-  // Estilo para a seção de informações nutricionais compactas
-  compactNutritionInfo: {
+  expandedContent: {
+    paddingTop: 0,
+  },
+  nutritionInfoExpanded: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 14,
-    paddingBottom: 12,
-    paddingTop: 10,
+    paddingVertical: 12,
   },
   caloriesContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
   },
   caloriesValue: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "600",
   },
   caloriesUnit: {
@@ -1072,19 +1074,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
   },
-  expandedContent: {
-    paddingTop: 0,
-  },
   separator: {
     height: 1,
-    marginVertical: 8,
     marginHorizontal: 14,
   },
   // Novos estilos baseados no food-details.tsx
   portionControlSection: {
     paddingHorizontal: 14,
     paddingBottom: 14,
-    paddingTop: 6,
+    paddingTop: 8,
   },
   controlLabel: {
     fontSize: 14,

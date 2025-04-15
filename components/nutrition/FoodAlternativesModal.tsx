@@ -9,6 +9,7 @@ import {
   Dimensions,
 } from "react-native";
 import { MotiView } from "moti";
+import { BlurView } from "expo-blur";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { FoodSuggestion } from "../../data/foodSuggestionDatabase";
 import Colors from "../../constants/Colors";
@@ -247,17 +248,32 @@ export default function FoodAlternativesModal({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <View style={styles.modalOverlay}>
+      <TouchableOpacity
+        style={StyleSheet.absoluteFill}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <BlurView
+          intensity={20}
+          style={StyleSheet.absoluteFill}
+          tint={theme === "dark" ? "dark" : "light"}
+        />
+      </TouchableOpacity>
+
+      <View style={styles.modalContainer}>
         <MotiView
           from={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: "timing", duration: 300 }}
           style={[
-            styles.modalContainer,
-            { backgroundColor: theme === "dark" ? colors.light : "#FFFFFF" },
+            styles.modalContent,
+            {
+              backgroundColor: theme === "dark" ? colors.light : "#FFFFFF",
+              borderColor: colors.border,
+            },
           ]}
         >
-          <View style={styles.modalContent}>
+          <View style={styles.modalContentInner}>
             <View style={styles.modalHeader}>
               <View>
                 <Text style={[styles.modalTitle, { color: colors.text }]}>
@@ -278,6 +294,7 @@ export default function FoodAlternativesModal({
               <TouchableOpacity
                 style={styles.closeModalButton}
                 onPress={onClose}
+                hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
               >
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
@@ -355,24 +372,25 @@ export default function FoodAlternativesModal({
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
+  modalContainer: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
-  modalContainer: {
+  modalContent: {
     width: "100%",
     maxHeight: SCREEN_HEIGHT * 0.55,
     borderRadius: 20,
+    borderWidth: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
+    overflow: "hidden",
   },
-  modalContent: {
+  modalContentInner: {
     padding: 16,
     flexDirection: "column",
     height: "100%",

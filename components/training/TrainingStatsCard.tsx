@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useReducer, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -61,6 +61,26 @@ interface TrainingStatsCardProps {
   workoutId?: string;
 }
 
+// Definição do estado inicial e tipos para o reducer
+type TrainingStatsState = {
+  isLoading: boolean;
+};
+
+type TrainingStatsAction = { type: "SET_LOADING_STATE"; payload: boolean };
+
+// Reducer para gerenciar o estado de carregamento
+const trainingStatsReducer = (
+  state: TrainingStatsState,
+  action: TrainingStatsAction
+): TrainingStatsState => {
+  switch (action.type) {
+    case "SET_LOADING_STATE":
+      return { ...state, isLoading: action.payload };
+    default:
+      return state;
+  }
+};
+
 // Função auxiliar para substituir parseISO
 const parseISODate = (dateString: string) => {
   return new Date(dateString);
@@ -76,25 +96,27 @@ export default function TrainingStatsCard({
   workoutId,
 }: TrainingStatsCardProps) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(!workoutTotals);
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { t } = useTranslation();
 
-  // Atualiza o estado de carregamento se a prop workoutTotals mudar
-  if (workoutTotals && isLoading) {
-    setIsLoading(false);
-  }
+  // Substituindo useState por useReducer
+  const [state, dispatch] = useReducer(trainingStatsReducer, {
+    isLoading: !workoutTotals,
+  });
 
-  // Garantir que a análise de progresso seja atualizada corretamente
-  useEffect(() => {
-    // Recalcular estatísticas quando o componente montar ou quando as props mudarem
-    if (!isLoading && workoutTotals && previousWorkoutTotals?.totals) {
-      // A simples existência deste efeito garante que o componente será re-renderizado
-      // quando as props mudarem, forçando a reanálise dos dados de progresso
-      setIsLoading(false);
+  // Atualiza o estado de carregamento usando useMemo
+  useMemo(() => {
+    if (workoutTotals && state.isLoading) {
+      dispatch({ type: "SET_LOADING_STATE", payload: false });
     }
-  }, [isLoading, workoutTotals, previousWorkoutTotals]);
+
+    // Recalcular estatísticas quando as props mudarem
+    if (!state.isLoading && workoutTotals && previousWorkoutTotals?.totals) {
+      // A lógica aqui garante que o estado seja atualizado quando as props mudarem
+      dispatch({ type: "SET_LOADING_STATE", payload: false });
+    }
+  }, [workoutTotals, previousWorkoutTotals, state.isLoading]);
 
   const formatVolume = useCallback((volume: number) => {
     if (volume >= 1000) {
@@ -249,13 +271,13 @@ export default function TrainingStatsCard({
     previousWorkoutTotals,
   ]);
 
-  const renderStatRow = useCallback(
-    (
+  // Componente de linha de estatística memoizado
+  const StatRowComponent = useMemo(() => {
+    return (
       title: string,
       icon: string,
       current: number,
       previous: number | null,
-      unit: string,
       formatter: (value: number) => string = (value) => value.toString(),
       inverseProgress: boolean = false,
       index: number = 0
@@ -328,7 +350,7 @@ export default function TrainingStatsCard({
                   {title}
                 </Text>
                 <Text style={[styles.comparison, { color: colors.text }]}>
-                  {isLoading ? (
+                  {state.isLoading ? (
                     "Carregando..."
                   ) : hasPrevious ? (
                     isMaintained ? (
@@ -396,7 +418,7 @@ export default function TrainingStatsCard({
                 },
               ]}
             >
-              {!isLoading && hasPrevious && (
+              {!state.isLoading && hasPrevious && (
                 <Animated.View
                   entering={FadeIn.delay(index * 100 + 300).duration(400)}
                   style={[
@@ -410,33 +432,31 @@ export default function TrainingStatsCard({
               )}
             </View>
             <Text style={[styles.progressText, { color: colors.text }]}>
-              {isLoading
+              {state.isLoading
                 ? "..."
-                : `${formatter(current)}${unit}${
-                    hasPrevious ? ` / ${formatter(previous)}${unit}` : ""
+                : `${formatter(current)}${
+                    hasPrevious ? `/${formatter(previous)}` : ""
                   }`}
             </Text>
           </View>
         </Animated.View>
       );
-    },
-    [
-      calculateProgress,
-      analyzeProgressContext,
-      getProgressColor,
-      colors.border,
-      colors.primary,
-      colors.text,
-      isLoading,
-      t,
-      theme,
-      progressValues,
-    ]
-  );
+    };
+  }, [
+    analyzeProgressContext,
+    getProgressColor,
+    colors.border,
+    colors.primary,
+    colors.text,
+    state.isLoading,
+    t,
+    theme,
+    progressValues,
+  ]);
 
   // Adicionar métricas importantes para a visualização de progresso
   const statsContainer = useMemo(() => {
-    if (isLoading) return <View style={styles.statsContainer} />;
+    if (state.isLoading) return <View style={styles.statsContainer} />;
 
     const stats = [
       {
@@ -444,7 +464,6 @@ export default function TrainingStatsCard({
         icon: "flame-outline",
         current: workoutTotals.caloriesBurned,
         previous: previousWorkoutTotals?.totals?.caloriesBurned || null,
-        unit: " kcal",
         formatter: (value: number) => value.toString(),
       },
       {
@@ -452,7 +471,6 @@ export default function TrainingStatsCard({
         icon: "speedometer-outline",
         current: workoutTotals.avgWeight,
         previous: previousWorkoutTotals?.totals?.avgWeight || null,
-        unit: " kg",
         formatter: (value: number) => value.toString(),
       },
       {
@@ -460,7 +478,6 @@ export default function TrainingStatsCard({
         icon: "barbell-outline",
         current: workoutTotals.totalVolume,
         previous: previousWorkoutTotals?.totals?.totalVolume || null,
-        unit: " kg",
         formatter: formatVolume,
       },
       {
@@ -468,7 +485,6 @@ export default function TrainingStatsCard({
         icon: "repeat-outline",
         current: workoutTotals.totalReps,
         previous: previousWorkoutTotals?.totals?.totalReps || null,
-        unit: "",
         formatter: (value: number) => value.toString(),
       },
     ];
@@ -479,12 +495,11 @@ export default function TrainingStatsCard({
         style={styles.statsContainer}
       >
         {stats.map((stat, index) =>
-          renderStatRow(
+          StatRowComponent(
             stat.title,
             stat.icon,
             stat.current,
             stat.previous,
-            stat.unit,
             stat.formatter,
             false,
             index
@@ -493,8 +508,8 @@ export default function TrainingStatsCard({
       </Animated.View>
     );
   }, [
-    renderStatRow,
-    isLoading,
+    StatRowComponent,
+    state.isLoading,
     t,
     workoutTotals?.caloriesBurned,
     workoutTotals?.avgWeight,

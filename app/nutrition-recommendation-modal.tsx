@@ -8,6 +8,7 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
@@ -82,6 +83,8 @@ export default function NutritionRecommendationModal() {
   const [loading, setLoading] = useState(true);
   const [loadingMealSuggestions, setLoadingMealSuggestions] = useState(false);
   const [applying, setApplying] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const tooltipOpacity = useState(new Animated.Value(0))[0];
   const [recommendations, setRecommendations] = useState<
     MealNutritionRecommendation[]
   >([]);
@@ -1023,6 +1026,24 @@ export default function NutritionRecommendationModal() {
     }
   };
 
+  // Funções para controlar o tooltip
+  const showTooltipAnimation = () => {
+    setShowTooltip(true);
+    Animated.timing(tooltipOpacity, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const hideTooltipAnimation = () => {
+    Animated.timing(tooltipOpacity, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => setShowTooltip(false));
+  };
+
   return (
     <SafeAreaView
       style={[
@@ -1098,23 +1119,27 @@ export default function NutritionRecommendationModal() {
               <View style={styles.suggestionsSection}>
                 <View style={styles.sectionHeaderContainer}>
                   <View style={styles.sectionTitleContainer}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                      {t(
-                        "nutrition.recommendation.addedFoods",
-                        "Alimentos Adicionados"
-                      )}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.sectionSubtitle,
-                        { color: colors.secondary },
-                      ]}
-                    >
-                      {t("nutrition.recommendation.addedFoodsCount", {
-                        count: addedFoods.length,
-                        defaultValue: "{{count}} alimentos",
-                      })}
-                    </Text>
+                    <View style={styles.titleSubtitleContainer}>
+                      <Text
+                        style={[styles.sectionTitle, { color: colors.text }]}
+                      >
+                        {t(
+                          "nutrition.recommendation.addedFoods",
+                          "Alimentos Adicionados"
+                        )}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.sectionSubtitle,
+                          { color: colors.secondary },
+                        ]}
+                      >
+                        {t("nutrition.recommendation.addedFoodsCount", {
+                          count: addedFoods.length,
+                          defaultValue: "{{count}} alimentos",
+                        })}
+                      </Text>
+                    </View>
                   </View>
                 </View>
 
@@ -1163,42 +1188,72 @@ export default function NutritionRecommendationModal() {
             <View style={styles.suggestionsSection}>
               <View style={styles.sectionHeaderContainer}>
                 <View style={styles.sectionTitleContainer}>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                    {t("nutrition.recommendation.suggestedFoods")}
-                  </Text>
+                  <View style={styles.titleSubtitleContainer}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                      {t("nutrition.recommendation.suggestedFoods")}
+                    </Text>
+
+                    {remainingNutrients && (
+                      <Text
+                        style={[
+                          styles.sectionSubtitle,
+                          { color: colors.secondary },
+                        ]}
+                      >
+                        {t("nutrition.recommendation.remainingLabel", {
+                          calories: formatNumber(remainingNutrients.calories),
+                        })}
+                      </Text>
+                    )}
+                  </View>
 
                   {selectedMealRecommendation && foodItems.length > 0 && (
-                    <TouchableOpacity
-                      style={[
-                        styles.optimizeIconButton,
-                        { backgroundColor: `${mealColor}10` },
-                      ]}
-                      onPress={optimizeFoodPortions}
-                      activeOpacity={0.6}
-                    >
-                      <View>
+                    <View style={styles.optimizeButtonContainer}>
+                      <TouchableOpacity
+                        style={[
+                          styles.optimizeIconButton,
+                          { backgroundColor: `${mealColor}10` },
+                        ]}
+                        onPress={optimizeFoodPortions}
+                        onLongPress={showTooltipAnimation}
+                        onPressOut={hideTooltipAnimation}
+                        activeOpacity={0.6}
+                        accessibilityLabel={t(
+                          "nutrition.recommendation.optimizePortionsAccessibility",
+                          "Otimizar porções dos alimentos automaticamente"
+                        )}
+                      >
                         <MaterialCommunityIcons
                           name="auto-fix"
                           size={22}
                           color={mealColor as string}
                         />
-                      </View>
-                    </TouchableOpacity>
+                      </TouchableOpacity>
+
+                      {showTooltip && (
+                        <Animated.View
+                          style={[
+                            styles.tooltip,
+                            {
+                              backgroundColor: colors.card,
+                              borderColor: colors.border,
+                              opacity: tooltipOpacity,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[styles.tooltipText, { color: colors.text }]}
+                          >
+                            {t(
+                              "nutrition.recommendation.optimizePortions",
+                              "Otimizar porções automaticamente"
+                            )}
+                          </Text>
+                        </Animated.View>
+                      )}
+                    </View>
                   )}
                 </View>
-
-                {remainingNutrients && (
-                  <Text
-                    style={[
-                      styles.sectionSubtitle,
-                      { color: colors.secondary },
-                    ]}
-                  >
-                    {t("nutrition.recommendation.remainingLabel", {
-                      calories: formatNumber(remainingNutrients.calories),
-                    })}
-                  </Text>
-                )}
               </View>
 
               {loadingMealSuggestions ? (
@@ -1396,6 +1451,10 @@ const styles = StyleSheet.create({
   },
   sectionSubtitle: {
     fontSize: 14,
+    marginTop: 2,
+  },
+  titleSubtitleContainer: {
+    flex: 1,
   },
   loadingFoods: {
     marginVertical: 20,
@@ -1421,6 +1480,9 @@ const styles = StyleSheet.create({
   applyButtonIcon: {
     marginLeft: 8,
   },
+  optimizeButtonContainer: {
+    position: "relative",
+  },
   optimizeIconButton: {
     width: 38,
     height: 38,
@@ -1428,5 +1490,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 19,
     marginLeft: 10,
+  },
+  tooltip: {
+    position: "absolute",
+    top: 40,
+    right: 0,
+    width: 220,
+    padding: 8,
+    borderWidth: 1,
+    borderRadius: 8,
+    zIndex: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  tooltipText: {
+    fontSize: 12,
+    fontWeight: "500",
+    textAlign: "center",
   },
 });

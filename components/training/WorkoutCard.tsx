@@ -1,6 +1,6 @@
 import React, {
   useCallback,
-  useState,
+  useReducer,
   useRef,
   useMemo,
   useEffect,
@@ -62,6 +62,56 @@ interface WorkoutCardProps {
   onDeleteExercise: (exerciseId: string) => Promise<void>;
 }
 
+// Definição do estado inicial e tipos para o reducer
+type WorkoutCardState = {
+  activeSwipeable: string | null;
+  expandedExercises: { [key: string]: boolean };
+  showDeleteExerciseModal: boolean;
+  selectedExerciseId: string;
+  showCopyWorkoutModal: boolean;
+  selectedSourceDate: string;
+};
+
+type WorkoutCardAction =
+  | { type: "SET_ACTIVE_SWIPEABLE"; payload: string | null }
+  | { type: "TOGGLE_EXERCISE_EXPAND"; payload: string }
+  | { type: "SET_SHOW_DELETE_MODAL"; payload: boolean }
+  | { type: "SET_SELECTED_EXERCISE_ID"; payload: string }
+  | { type: "SET_SHOW_COPY_MODAL"; payload: boolean }
+  | { type: "SET_SELECTED_SOURCE_DATE"; payload: string }
+  | { type: "RESET_EXPANDED_EXERCISES" };
+
+// Reducer para gerenciar o estado do card
+const workoutCardReducer = (
+  state: WorkoutCardState,
+  action: WorkoutCardAction
+): WorkoutCardState => {
+  switch (action.type) {
+    case "SET_ACTIVE_SWIPEABLE":
+      return { ...state, activeSwipeable: action.payload };
+    case "TOGGLE_EXERCISE_EXPAND":
+      return {
+        ...state,
+        expandedExercises: {
+          ...state.expandedExercises,
+          [action.payload]: !state.expandedExercises[action.payload],
+        },
+      };
+    case "RESET_EXPANDED_EXERCISES":
+      return { ...state, expandedExercises: {} };
+    case "SET_SHOW_DELETE_MODAL":
+      return { ...state, showDeleteExerciseModal: action.payload };
+    case "SET_SELECTED_EXERCISE_ID":
+      return { ...state, selectedExerciseId: action.payload };
+    case "SET_SHOW_COPY_MODAL":
+      return { ...state, showCopyWorkoutModal: action.payload };
+    case "SET_SELECTED_SOURCE_DATE":
+      return { ...state, selectedSourceDate: action.payload };
+    default:
+      return state;
+  }
+};
+
 export default function WorkoutCard({
   workout,
   exercises,
@@ -86,24 +136,18 @@ export default function WorkoutCard({
   // Referência para os Swipeables
   const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
 
-  // Estado para rastrear o Swipeable atualmente aberto
-  const [activeSwipeable, setActiveSwipeable] = useState<string | null>(null);
+  // Substituir useState por useReducer
+  const [state, dispatch] = useReducer(workoutCardReducer, {
+    activeSwipeable: null,
+    expandedExercises: {},
+    showDeleteExerciseModal: false,
+    selectedExerciseId: "",
+    showCopyWorkoutModal: false,
+    selectedSourceDate: "",
+  });
 
   // Atualização direta da referência para reduzir operações
   workoutsRef.current = workouts;
-
-  // Estado para controlar quais exercícios estão expandidos
-  const [expandedExercises, setExpandedExercises] = useState<{
-    [key: string]: boolean;
-  }>({});
-
-  // Estado para controlar o modal de confirmação
-  const [showDeleteExerciseModal, setShowDeleteExerciseModal] = useState(false);
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string>("");
-
-  // Estados para copiar treino
-  const [showCopyWorkoutModal, setShowCopyWorkoutModal] = useState(false);
-  const [selectedSourceDate, setSelectedSourceDate] = useState<string>("");
 
   // Função para obter as datas anteriores com este treino - memoizada
   const getPreviousDatesWithWorkout = useCallback(() => {
@@ -145,44 +189,44 @@ export default function WorkoutCard({
     (exerciseId: string) => {
       handleHapticFeedback();
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setExpandedExercises((prev) => ({
-        ...prev,
-        [exerciseId]: !prev[exerciseId],
-      }));
+      dispatch({ type: "TOGGLE_EXERCISE_EXPAND", payload: exerciseId });
     },
     [handleHapticFeedback]
   );
 
   // Função para formatar o volume total
-  const formatVolume = (volume: number) => {
+  const formatVolume = useCallback((volume: number) => {
     if (volume >= 1000) {
       return `${(volume / 1000).toFixed(1)}k`;
     }
     return volume.toString();
-  };
+  }, []);
 
   // Função para formatar a data para exibição
-  const formatDate = (dateString: string) => {
-    try {
-      // Importar a função getLocalDate para garantir consistência na conversão de datas
-      const { getLocalDate } = require("../../utils/dateUtils");
+  const formatDate = useCallback(
+    (dateString: string) => {
+      try {
+        // Importar a função getLocalDate para garantir consistência na conversão de datas
+        const { getLocalDate } = require("../../utils/dateUtils");
 
-      // Converter a string de data para um objeto Date no fuso horário local
-      const localDate = getLocalDate(dateString);
+        // Converter a string de data para um objeto Date no fuso horário local
+        const localDate = getLocalDate(dateString);
 
-      // Validar se a data é válida
-      if (isNaN(localDate.getTime())) {
-        console.warn("Data inválida recebida:", dateString);
+        // Validar se a data é válida
+        if (isNaN(localDate.getTime())) {
+          console.warn("Data inválida recebida:", dateString);
+          return "Data inválida";
+        }
+
+        // Usar a função do hook que já trata locales e formatos com a data local
+        return formatSmartDate(localDate);
+      } catch (error) {
+        console.error("Erro ao formatar data:", error, dateString);
         return "Data inválida";
       }
-
-      // Usar a função do hook que já trata locales e formatos com a data local
-      return formatSmartDate(localDate);
-    } catch (error) {
-      console.error("Erro ao formatar data:", error, dateString);
-      return "Data inválida";
-    }
-  };
+    },
+    [formatSmartDate]
+  );
 
   // Função para abrir o modal de cópia
   const openCopyModal = useCallback(() => {
@@ -193,8 +237,8 @@ export default function WorkoutCard({
 
     // Se houver uma data disponível, selecionar e abrir o modal
     if (mostRecentDate) {
-      setSelectedSourceDate(mostRecentDate);
-      setShowCopyWorkoutModal(true);
+      dispatch({ type: "SET_SELECTED_SOURCE_DATE", payload: mostRecentDate });
+      dispatch({ type: "SET_SHOW_COPY_MODAL", payload: true });
     } else {
       // Se não houver data disponível, mostrar mensagem de erro
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -226,7 +270,7 @@ export default function WorkoutCard({
 
   // Função para copiar treino de uma data anterior
   const handleCopyWorkout = useCallback(async () => {
-    if (!selectedSourceDate) {
+    if (!state.selectedSourceDate) {
       return;
     }
 
@@ -236,14 +280,14 @@ export default function WorkoutCard({
 
       // Fechar o modal com um pequeno atraso para garantir que o feedback seja percebido
       setTimeout(() => {
-        setShowCopyWorkoutModal(false);
+        dispatch({ type: "SET_SHOW_COPY_MODAL", payload: false });
       }, 50);
 
       // Executar a operação assíncrona em segundo plano
       setTimeout(async () => {
         try {
           await copyWorkoutFromDate(
-            selectedSourceDate,
+            state.selectedSourceDate,
             selectedDate,
             workout.id,
             workout.id
@@ -261,7 +305,7 @@ export default function WorkoutCard({
       console.error("Erro ao processar cópia de treino:", error);
     }
   }, [
-    selectedSourceDate,
+    state.selectedSourceDate,
     selectedDate,
     workout.id,
     copyWorkoutFromDate,
@@ -269,33 +313,36 @@ export default function WorkoutCard({
   ]);
 
   // Função para navegar para os detalhes do exercício
-  const navigateToExerciseDetails = (exercise: Exercise) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const navigateToExerciseDetails = useCallback(
+    (exercise: Exercise) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    // Preparar os dados do exercício para passar como parâmetro
-    const exerciseData = {
-      id: exercise.id,
-      name: exercise.name,
-      notes: exercise.notes,
-      sets: exercise.sets,
-      category: exercise.category,
-      cardioDuration: exercise.cardioDuration,
-      cardioIntensity: exercise.cardioIntensity,
-    };
+      // Preparar os dados do exercício para passar como parâmetro
+      const exerciseData = {
+        id: exercise.id,
+        name: exercise.name,
+        notes: exercise.notes,
+        sets: exercise.sets,
+        category: exercise.category,
+        cardioDuration: exercise.cardioDuration,
+        cardioIntensity: exercise.cardioIntensity,
+      };
 
-    // Navegar para a tela de detalhes do exercício como um card (não modal) quando editando
-    router.push({
-      pathname: "/(add-exercise)/exercise-details",
-      params: {
-        exerciseId: exercise.id,
-        workoutId: workout.id,
-        workoutName: workout.name,
-        workoutColor: workout.color,
-        mode: "edit",
-        exerciseData: JSON.stringify(exerciseData),
-      },
-    });
-  };
+      // Navegar para a tela de detalhes do exercício como um card (não modal) quando editando
+      router.push({
+        pathname: "/(add-exercise)/exercise-details",
+        params: {
+          exerciseId: exercise.id,
+          workoutId: workout.id,
+          workoutName: workout.name,
+          workoutColor: workout.color,
+          mode: "edit",
+          exerciseData: JSON.stringify(exerciseData),
+        },
+      });
+    },
+    [router, workout.id, workout.name, workout.color]
+  );
 
   // Função para renderizar as ações de deslize à esquerda (editar)
   const renderLeftActions = useCallback(
@@ -311,20 +358,23 @@ export default function WorkoutCard({
   );
 
   // Renderizar as ações de deslizar para a direita (excluir)
-  const renderRightActions = (exerciseId: string) => (
-    <TouchableOpacity
-      style={[
-        styles.deleteAction,
-        { backgroundColor: colors.danger || "#FF3B30" },
-      ]}
-      onPress={() => {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        setSelectedExerciseId(exerciseId);
-        setShowDeleteExerciseModal(true);
-      }}
-    >
-      <Ionicons name="trash-outline" size={24} color="white" />
-    </TouchableOpacity>
+  const renderRightActions = useCallback(
+    (exerciseId: string) => (
+      <TouchableOpacity
+        style={[
+          styles.deleteAction,
+          { backgroundColor: colors.danger || "#FF3B30" },
+        ]}
+        onPress={() => {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          dispatch({ type: "SET_SELECTED_EXERCISE_ID", payload: exerciseId });
+          dispatch({ type: "SET_SHOW_DELETE_MODAL", payload: true });
+        }}
+      >
+        <Ionicons name="trash-outline" size={24} color="white" />
+      </TouchableOpacity>
+    ),
+    [colors.danger]
   );
 
   // Efeito para limpar as referências quando o componente é desmontado
@@ -354,344 +404,418 @@ export default function WorkoutCard({
   const handleSwipeableOpen = useCallback(
     (exerciseId: string) => {
       // Fechar itens expandidos se houver algum aberto
-      if (Object.keys(expandedExercises).some((id) => expandedExercises[id])) {
+      if (
+        Object.keys(state.expandedExercises).some(
+          (id) => state.expandedExercises[id]
+        )
+      ) {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setExpandedExercises({});
+        dispatch({ type: "RESET_EXPANDED_EXERCISES" });
       }
 
-      setActiveSwipeable(exerciseId);
+      dispatch({ type: "SET_ACTIVE_SWIPEABLE", payload: exerciseId });
       closeOtherSwipeables(exerciseId);
     },
-    [expandedExercises, closeOtherSwipeables]
+    [state.expandedExercises, closeOtherSwipeables]
   );
 
   // Função para renderizar um exercício com animação
-  const renderExerciseItem = (exercise: Exercise, exerciseIndex: number) => (
-    <Swipeable
-      key={`exercise-${exercise.id}-${exerciseIndex}`}
-      renderRightActions={() => renderRightActions(exercise.id)}
-      renderLeftActions={() => renderLeftActions(exercise)}
-      friction={2}
-      overshootRight={false}
-      overshootLeft={false}
-      onSwipeableOpen={() => handleSwipeableOpen(exercise.id)}
-      ref={(ref) => {
-        if (ref) {
-          swipeableRefs.current.set(exercise.id, ref);
-        } else {
-          swipeableRefs.current.delete(exercise.id);
-        }
-      }}
-    >
-      <Animated.View
-        entering={FadeInDown.delay(exerciseIndex * 100)
-          .duration(400)
-          .springify()
-          .withInitialValues({
-            opacity: 0,
-            transform: [{ translateY: 10 }],
-          })}
-        style={[
-          styles.exerciseItemContainer,
-          { backgroundColor: colors.light },
-          exerciseIndex === 0 && styles.firstExerciseItem,
-          exerciseIndex === exercises.length - 1 && styles.lastExerciseItem,
-        ]}
-      >
-        <Pressable
-          style={styles.exerciseItemContent}
-          onPress={() => toggleExerciseExpand(exercise.id)}
-          onPressIn={() => {
-            // Se houver algum swipeable aberto, fechá-lo
-            if (activeSwipeable && swipeableRefs.current.has(activeSwipeable)) {
-              swipeableRefs.current.get(activeSwipeable)?.close();
-              setActiveSwipeable(null);
+  const renderExerciseItem = useMemo(
+    () => (exercise: Exercise, exerciseIndex: number) =>
+      (
+        <Swipeable
+          key={`exercise-${exercise.id}-${exerciseIndex}`}
+          renderRightActions={() => renderRightActions(exercise.id)}
+          renderLeftActions={() => renderLeftActions(exercise)}
+          friction={2}
+          overshootRight={false}
+          overshootLeft={false}
+          onSwipeableOpen={() => handleSwipeableOpen(exercise.id)}
+          ref={(ref) => {
+            if (ref) {
+              swipeableRefs.current.set(exercise.id, ref);
+            } else {
+              swipeableRefs.current.delete(exercise.id);
             }
           }}
         >
-          <View style={styles.exerciseItemLeft}>
-            <View style={styles.exerciseTextContainer}>
-              <Text style={[styles.exerciseName, { color: colors.text }]}>
-                {exercise.id.startsWith("exercise-")
-                  ? exercise.name
-                  : exercise.id &&
-                    exercise.id.length <= 6 &&
-                    exercise.id.startsWith("ex")
-                  ? t(`exercises.exercises.${exercise.id}`)
-                  : exercise.name}
-              </Text>
-              <View style={styles.exerciseDetailsContainer}>
-                <Text
-                  style={[
-                    styles.exerciseDetails,
-                    { color: colors.text + "80" },
-                  ]}
-                >
-                  {exercise.category === "cardio"
-                    ? `${exercise.cardioDuration} min • ${t(
-                        "exercise.intensityLevels.medium"
-                      )} ${exercise.cardioIntensity}/10`
-                    : exercise.sets && exercise.sets.length > 0
-                    ? `${exercise.sets.length} ${
-                        exercise.sets.length === 1
-                          ? t("exercise.series", { count: 1 })
-                          : t("exercise.series", { count: 2 })
-                      }`
-                    : t("exercise.noSets")}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.exerciseRightContainer}>
-            {exercise.category !== "cardio" &&
-            exercise.sets &&
-            exercise.sets.length > 0 ? (
-              <View style={styles.macroValues}>
-                <Text style={[styles.macroText, { color: colors.text + "80" }]}>
-                  W{" "}
-                  <Text style={[styles.macroNumber, { color: colors.text }]}>
-                    {exercise.sets[0].weight}
-                  </Text>
-                  {"   "}R{" "}
-                  <Text style={[styles.macroNumber, { color: colors.text }]}>
-                    {exercise.sets[0].reps}
-                  </Text>
-                  {"   "}
-                  <Text
-                    style={[styles.macroText, { color: colors.text + "80" }]}
-                  >
-                    T{" "}
-                  </Text>
-                  <Text style={[styles.macroNumber, { color: colors.text }]}>
-                    {exercise.sets[0].restTime || 60}s
-                  </Text>
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.cardioContainer}>
-                <Text
-                  style={[styles.cardioText, { color: colors.text + "80" }]}
-                >
-                  T{" "}
-                </Text>
-                <Text style={[styles.cardioText, { color: colors.text }]}>
-                  {exercise.cardioDuration} min
-                </Text>
-              </View>
-            )}
-
-            <Ionicons
-              name={
-                expandedExercises[exercise.id] ? "chevron-up" : "chevron-down"
-              }
-              size={16}
-              color={colors.text + "60"}
-            />
-          </View>
-        </Pressable>
-
-        {/* Exibir detalhes das séries quando o exercício estiver expandido */}
-        {expandedExercises[exercise.id] &&
-          exercise.sets &&
-          exercise.category !== "cardio" &&
-          exercise.sets.length > 0 && (
-            <View
-              style={[
-                styles.setsDetailsContainer,
-                { backgroundColor: colors.light },
-              ]}
-            >
-              <View style={styles.setsHeader}>
-                <Text style={[styles.setsHeaderText, { color: colors.text }]}>
-                  {t("exercise.setsDetails")}
-                </Text>
-              </View>
-              <View style={styles.setsGrid}>
-                <View style={styles.setsGridHeader}>
-                  <Text
-                    style={[
-                      styles.setsGridHeaderText,
-                      { color: colors.text + "99" },
-                    ]}
-                  >
-                    {t("exercise.setNumber")}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.setsGridHeaderText,
-                      { color: colors.text + "99" },
-                    ]}
-                  >
-                    {t("exercise.weight")}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.setsGridHeaderText,
-                      { color: colors.text + "99" },
-                    ]}
-                  >
-                    {t("exercise.reps")}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.setsGridHeaderText,
-                      { color: colors.text + "99" },
-                    ]}
-                  >
-                    {t("exercise.restTime", { defaultValue: "Descanso" })}
-                  </Text>
-                </View>
-                {exercise.sets.map((set, setIndex) => (
-                  <View key={`set-${set.id}`} style={styles.setRow}>
-                    <Text style={[styles.setNumber, { color: colors.text }]}>
-                      {setIndex + 1}
-                    </Text>
-                    <Text style={[styles.setWeight, { color: colors.text }]}>
-                      {set.weight}kg
-                    </Text>
-                    <Text style={[styles.setReps, { color: colors.text }]}>
-                      {set.reps}
-                    </Text>
-                    <Text style={[styles.setRest, { color: colors.text }]}>
-                      {set.restTime || 60}s
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-        {/* Exibir notas do exercício quando expandido */}
-        {expandedExercises[exercise.id] && exercise.notes && (
-          <View
-            style={[styles.notesContainer, { backgroundColor: colors.light }]}
-          >
-            <Text style={[styles.notesTitle, { color: colors.text }]}>
-              {t("exercise.notes")}:
-            </Text>
-            <Text style={[styles.notesText, { color: colors.text + "99" }]}>
-              {exercise.notes}
-            </Text>
-          </View>
-        )}
-
-        {/* Exibir detalhes do cardio quando expandido */}
-        {expandedExercises[exercise.id] && exercise.category === "cardio" && (
-          <View
+          <Animated.View
+            entering={FadeInDown.delay(exerciseIndex * 100)
+              .duration(400)
+              .springify()
+              .withInitialValues({
+                opacity: 0,
+                transform: [{ translateY: 10 }],
+              })}
             style={[
-              styles.cardioDetailsContainer,
+              styles.exerciseItemContainer,
               { backgroundColor: colors.light },
+              exerciseIndex === 0 && styles.firstExerciseItem,
+              exerciseIndex === exercises.length - 1 && styles.lastExerciseItem,
             ]}
           >
-            <View style={styles.cardioDetailRow}>
-              <Text
+            <Pressable
+              style={styles.exerciseItemContent}
+              onPress={() => toggleExerciseExpand(exercise.id)}
+              onPressIn={() => {
+                // Se houver algum swipeable aberto, fechá-lo
+                if (
+                  state.activeSwipeable &&
+                  swipeableRefs.current.has(state.activeSwipeable)
+                ) {
+                  swipeableRefs.current.get(state.activeSwipeable)?.close();
+                  dispatch({ type: "SET_ACTIVE_SWIPEABLE", payload: null });
+                }
+              }}
+            >
+              <View style={styles.exerciseItemLeft}>
+                <View style={styles.exerciseTextContainer}>
+                  <Text style={[styles.exerciseName, { color: colors.text }]}>
+                    {exercise.id.startsWith("exercise-")
+                      ? exercise.name
+                      : exercise.id &&
+                        exercise.id.length <= 6 &&
+                        exercise.id.startsWith("ex")
+                      ? t(`exercises.exercises.${exercise.id}`)
+                      : exercise.name}
+                  </Text>
+                  <View style={styles.exerciseDetailsContainer}>
+                    <Text
+                      style={[
+                        styles.exerciseDetails,
+                        { color: colors.text + "80" },
+                      ]}
+                    >
+                      {exercise.category === "cardio"
+                        ? `${exercise.cardioDuration} min • ${t(
+                            "exercise.intensityLevels.medium"
+                          )} ${exercise.cardioIntensity}/10`
+                        : exercise.sets && exercise.sets.length > 0
+                        ? `${exercise.sets.length} ${
+                            exercise.sets.length === 1
+                              ? t("exercise.series", { count: 1 })
+                              : t("exercise.series", { count: 2 })
+                          }`
+                        : t("exercise.noSets")}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.exerciseRightContainer}>
+                {exercise.category !== "cardio" &&
+                exercise.sets &&
+                exercise.sets.length > 0 ? (
+                  <View style={styles.macroValues}>
+                    <Text
+                      style={[styles.macroText, { color: colors.text + "80" }]}
+                    >
+                      W{" "}
+                      <Text
+                        style={[styles.macroNumber, { color: colors.text }]}
+                      >
+                        {exercise.sets[0].weight}
+                      </Text>
+                      {"   "}R{" "}
+                      <Text
+                        style={[styles.macroNumber, { color: colors.text }]}
+                      >
+                        {exercise.sets[0].reps}
+                      </Text>
+                      {"   "}
+                      <Text
+                        style={[
+                          styles.macroText,
+                          { color: colors.text + "80" },
+                        ]}
+                      >
+                        T{" "}
+                      </Text>
+                      <Text
+                        style={[styles.macroNumber, { color: colors.text }]}
+                      >
+                        {exercise.sets[0].restTime || 60}s
+                      </Text>
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.cardioContainer}>
+                    <Text
+                      style={[styles.cardioText, { color: colors.text + "80" }]}
+                    >
+                      T{" "}
+                    </Text>
+                    <Text style={[styles.cardioText, { color: colors.text }]}>
+                      {exercise.cardioDuration} min
+                    </Text>
+                  </View>
+                )}
+
+                <Ionicons
+                  name={
+                    state.expandedExercises[exercise.id]
+                      ? "chevron-up"
+                      : "chevron-down"
+                  }
+                  size={16}
+                  color={colors.text + "60"}
+                />
+              </View>
+            </Pressable>
+
+            {/* Exibir detalhes das séries quando o exercício estiver expandido */}
+            {state.expandedExercises[exercise.id] &&
+              exercise.sets &&
+              exercise.category !== "cardio" &&
+              exercise.sets.length > 0 && (
+                <View
+                  style={[
+                    styles.setsDetailsContainer,
+                    { backgroundColor: colors.light },
+                  ]}
+                >
+                  <View style={styles.setsHeader}>
+                    <Text
+                      style={[styles.setsHeaderText, { color: colors.text }]}
+                    >
+                      {t("exercise.setsDetails")}
+                    </Text>
+                  </View>
+                  <View style={styles.setsGrid}>
+                    <View style={styles.setsGridHeader}>
+                      <Text
+                        style={[
+                          styles.setsGridHeaderText,
+                          { color: colors.text + "99" },
+                        ]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {t("exercise.setNumber", { defaultValue: "Série" })}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.setsGridHeaderText,
+                          { color: colors.text + "99" },
+                        ]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {t("exercise.weight", { defaultValue: "Peso" })}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.setsGridHeaderText,
+                          { color: colors.text + "99" },
+                        ]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {t("exercise.reps", { defaultValue: "Reps" })}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.setsGridHeaderText,
+                          { color: colors.text + "99" },
+                        ]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {t("exercise.restTime", { defaultValue: "Tempo" })}
+                      </Text>
+                    </View>
+                    {exercise.sets.map((set, setIndex) => (
+                      <View key={`set-${set.id}`} style={styles.setRow}>
+                        <Text
+                          style={[styles.setNumber, { color: colors.text }]}
+                        >
+                          {setIndex + 1}
+                        </Text>
+                        <Text
+                          style={[styles.setWeight, { color: colors.text }]}
+                        >
+                          {set.weight}
+                        </Text>
+                        <Text style={[styles.setReps, { color: colors.text }]}>
+                          {set.reps}
+                        </Text>
+                        <Text style={[styles.setRest, { color: colors.text }]}>
+                          {set.restTime || 60}s
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+            {/* Exibir notas do exercício quando expandido */}
+            {state.expandedExercises[exercise.id] && exercise.notes && (
+              <View
                 style={[
-                  styles.cardioDetailLabel,
-                  { color: colors.text + "99" },
+                  styles.notesContainer,
+                  { backgroundColor: colors.light },
                 ]}
               >
-                {t("exercise.duration")}:
-              </Text>
-              <Text style={[styles.cardioDetailValue, { color: colors.text }]}>
-                {exercise.cardioDuration} {t("minutes")}
-              </Text>
-            </View>
-
-            <View style={styles.cardioDetailRow}>
-              <Text
-                style={[
-                  styles.cardioDetailLabel,
-                  { color: colors.text + "99" },
-                ]}
-              >
-                {t("exercise.intensity")}:
-              </Text>
-              <Text style={[styles.cardioDetailValue, { color: colors.text }]}>
-                {exercise.cardioIntensity}/10
-              </Text>
-            </View>
-
-            {exercise.notes && (
-              <>
                 <Text style={[styles.notesTitle, { color: colors.text }]}>
                   {t("exercise.notes")}:
                 </Text>
                 <Text style={[styles.notesText, { color: colors.text + "99" }]}>
                   {exercise.notes}
                 </Text>
-              </>
+              </View>
             )}
-          </View>
-        )}
-      </Animated.View>
-    </Swipeable>
+
+            {/* Exibir detalhes do cardio quando expandido */}
+            {state.expandedExercises[exercise.id] &&
+              exercise.category === "cardio" && (
+                <View
+                  style={[
+                    styles.cardioDetailsContainer,
+                    { backgroundColor: colors.light },
+                  ]}
+                >
+                  <View style={styles.cardioDetailRow}>
+                    <Text
+                      style={[
+                        styles.cardioDetailLabel,
+                        { color: colors.text + "99" },
+                      ]}
+                    >
+                      {t("exercise.duration")}:
+                    </Text>
+                    <Text
+                      style={[styles.cardioDetailValue, { color: colors.text }]}
+                    >
+                      {exercise.cardioDuration} {t("minutes")}
+                    </Text>
+                  </View>
+
+                  <View style={styles.cardioDetailRow}>
+                    <Text
+                      style={[
+                        styles.cardioDetailLabel,
+                        { color: colors.text + "99" },
+                      ]}
+                    >
+                      {t("exercise.intensity")}:
+                    </Text>
+                    <Text
+                      style={[styles.cardioDetailValue, { color: colors.text }]}
+                    >
+                      {exercise.cardioIntensity}/10
+                    </Text>
+                  </View>
+
+                  {exercise.notes && (
+                    <>
+                      <Text style={[styles.notesTitle, { color: colors.text }]}>
+                        {t("exercise.notes")}:
+                      </Text>
+                      <Text
+                        style={[
+                          styles.notesText,
+                          { color: colors.text + "99" },
+                        ]}
+                      >
+                        {exercise.notes}
+                      </Text>
+                    </>
+                  )}
+                </View>
+              )}
+          </Animated.View>
+        </Swipeable>
+      ),
+    [
+      colors.light,
+      colors.text,
+      renderLeftActions,
+      renderRightActions,
+      handleSwipeableOpen,
+      toggleExerciseExpand,
+      state.activeSwipeable,
+      state.expandedExercises,
+      t,
+    ]
   );
 
   // Funções para os botões das ações do card
-  const renderHeaderActions = () => (
-    <View style={styles.actionButtonsContainer}>
-      {/* Botão de copiar treino */}
-      {getMostRecentWorkoutDate() && (
-        <TouchableOpacity
-          style={[
-            styles.headerActionButton,
-            {
-              borderColor: workout.color,
-              backgroundColor: workout.color + "10",
-            },
-          ]}
-          onPress={openCopyModal}
-        >
-          <Ionicons name="copy-outline" size={20} color={workout.color} />
-        </TouchableOpacity>
-      )}
+  const renderHeaderActions = useMemo(
+    () => () =>
+      (
+        <View style={styles.actionButtonsContainer}>
+          {/* Botão de copiar treino */}
+          {getMostRecentWorkoutDate() && (
+            <TouchableOpacity
+              style={[
+                styles.headerActionButton,
+                {
+                  borderColor: workout.color,
+                  backgroundColor: workout.color + "10",
+                },
+              ]}
+              onPress={openCopyModal}
+            >
+              <Ionicons name="copy-outline" size={20} color={workout.color} />
+            </TouchableOpacity>
+          )}
 
-      {/* Botão de progressão de treino */}
-      {getMostRecentWorkoutDate() && (
-        <TouchableOpacity
-          style={[
-            styles.headerActionButton,
-            {
-              borderColor: workout.color,
-              backgroundColor: workout.color + "10",
-            },
-          ]}
-          onPress={openProgressionModal}
-        >
-          <Ionicons
-            name="trending-up-outline"
-            size={20}
-            color={workout.color}
-          />
-        </TouchableOpacity>
-      )}
+          {/* Botão de progressão de treino */}
+          {getMostRecentWorkoutDate() && (
+            <TouchableOpacity
+              style={[
+                styles.headerActionButton,
+                {
+                  borderColor: workout.color,
+                  backgroundColor: workout.color + "10",
+                },
+              ]}
+              onPress={openProgressionModal}
+            >
+              <Ionicons
+                name="trending-up-outline"
+                size={20}
+                color={workout.color}
+              />
+            </TouchableOpacity>
+          )}
 
-      {/* Botão para adicionar exercício */}
-      <TouchableOpacity
-        style={[
-          styles.headerActionButton,
-          {
-            borderColor: workout.color,
-            backgroundColor: workout.color + "10",
-          },
-        ]}
-        onPress={(e) => {
-          e.stopPropagation();
-          handleHapticFeedback();
-          router.push({
-            pathname: "/(add-exercise)",
-            params: {
-              workoutId: workout.id,
-              workoutName: workout.name,
-              workoutColor: workout.color,
-            },
-          });
-        }}
-      >
-        <Ionicons name="add" size={20} color={workout.color} />
-      </TouchableOpacity>
-    </View>
+          {/* Botão para adicionar exercício */}
+          <TouchableOpacity
+            style={[
+              styles.headerActionButton,
+              {
+                borderColor: workout.color,
+                backgroundColor: workout.color + "10",
+              },
+            ]}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleHapticFeedback();
+              router.push({
+                pathname: "/(add-exercise)",
+                params: {
+                  workoutId: workout.id,
+                  workoutName: workout.name,
+                  workoutColor: workout.color,
+                },
+              });
+            }}
+          >
+            <Ionicons name="add" size={20} color={workout.color} />
+          </TouchableOpacity>
+        </View>
+      ),
+    [
+      getMostRecentWorkoutDate,
+      openCopyModal,
+      openProgressionModal,
+      workout.color,
+      workout.id,
+      workout.name,
+      router,
+      handleHapticFeedback,
+    ]
   );
 
   return (
@@ -815,7 +939,7 @@ export default function WorkoutCard({
 
       {/* Modal de confirmação para excluir exercício */}
       <ConfirmationModal
-        visible={showDeleteExerciseModal}
+        visible={state.showDeleteExerciseModal}
         title={t("training.deleteExercise")}
         message={t("training.deleteExerciseConfirm")}
         confirmText={t("common.delete")}
@@ -827,12 +951,12 @@ export default function WorkoutCard({
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
 
           // Armazenar o ID do exercício para uso após fechar o modal
-          const exerciseIdToDelete = selectedExerciseId;
+          const exerciseIdToDelete = state.selectedExerciseId;
 
           // Fechar o modal com um pequeno atraso para garantir que o feedback seja percebido
           setTimeout(() => {
-            setShowDeleteExerciseModal(false);
-            setSelectedExerciseId("");
+            dispatch({ type: "SET_SHOW_DELETE_MODAL", payload: false });
+            dispatch({ type: "SET_SELECTED_EXERCISE_ID", payload: "" });
           }, 50);
 
           // Executar a operação assíncrona em segundo plano após o modal fechar
@@ -847,24 +971,26 @@ export default function WorkoutCard({
           }, 100);
         }}
         onCancel={() => {
-          setShowDeleteExerciseModal(false);
-          setSelectedExerciseId("");
+          dispatch({ type: "SET_SHOW_DELETE_MODAL", payload: false });
+          dispatch({ type: "SET_SELECTED_EXERCISE_ID", payload: "" });
         }}
       />
 
       {/* Modal para copiar treino de data anterior */}
       <ConfirmationModal
-        visible={showCopyWorkoutModal}
+        visible={state.showCopyWorkoutModal}
         title={t("training.copyWorkout", { name: workout.name })}
         message={t("training.copyWorkoutFrom", {
-          date: formatDate(selectedSourceDate),
+          date: formatDate(state.selectedSourceDate),
         })}
         confirmText={t("common.copy")}
         cancelText={t("common.cancel")}
         confirmType="primary"
         icon="copy-outline"
         onConfirm={handleCopyWorkout}
-        onCancel={() => setShowCopyWorkoutModal(false)}
+        onCancel={() =>
+          dispatch({ type: "SET_SHOW_COPY_MODAL", payload: false })
+        }
       />
     </>
   );
@@ -965,6 +1091,7 @@ const styles = StyleSheet.create({
     width: 50,
     textAlign: "center",
     letterSpacing: -0.1,
+    flexShrink: 1,
   },
   setRow: {
     flexDirection: "row",

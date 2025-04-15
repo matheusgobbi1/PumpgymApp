@@ -102,7 +102,8 @@
     "pleaseWait": "Aguarde",
     "success": "Sucesso",
     "ok": "OK",
-    "add": "Adicionar"
+    "add": "Adicionar",
+    "confirm": "Confirmar"
   },
   "reminders": {
     "newReminder": "Novo Lembrete",
@@ -233,7 +234,7 @@
       "strengthProgress": "Força",
       "intensityIncrease": "Intensidade",
       "trainingDensity": "Densidade do Treino",
-      "restTime": "Tempo de Descanso",
+      "restTime": "Descanso",
       "summary": "Resumo",
       "firstWorkoutNoComparison": "Este é o primeiro treino registrado. Faça mais treinos para ver a evolução ao longo do tempo."
     },
@@ -690,7 +691,7 @@
     "collapseSet": "Recolher série",
     "expandSet": "Expandir série",
     "notes": "Anotações",
-    "restTime": "Tempo de descanso",
+    "restTime": "Descanso",
     "addToWorkout": "Adicionar ao",
     "exerciseNamePlaceholder": "Nome do exercício",
     "notesPlaceholder": "Adicione anotações sobre o exercício...",
@@ -795,7 +796,9 @@
     "configSheet": {
       "title": "Configure suas Refeições",
       "subtitle": "Selecione as refeições que deseja acompanhar",
-      "confirm": "Confirmar"
+      "confirm": "Confirmar",
+      "removeMealsTitle": "Remover Refeições",
+      "removeMealsMessage": "As refeições: {{meals}} serão removidas junto com todos os alimentos associados a elas. Deseja continuar?"
     },
     "mealTypes": {
       "breakfast": "Café da Manhã",

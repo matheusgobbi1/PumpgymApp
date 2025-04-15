@@ -425,8 +425,7 @@ export default function ProgressionModal() {
 
       {/* Botão de aplicar */}
       {suggestions.length > 0 && (
-        <Animated.View
-          entering={FadeIn.delay(700).duration(400)}
+        <View
           style={[
             styles.bottomBar,
             {
@@ -464,7 +463,7 @@ export default function ProgressionModal() {
               </>
             )}
           </TouchableOpacity>
-        </Animated.View>
+        </View>
       )}
 
       {/* Modal de informações */}
