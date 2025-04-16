@@ -36,6 +36,7 @@ import Svg, {
   Rect,
 } from "react-native-svg";
 import { MotiView } from "moti";
+import { useAchievements } from "../../context/AchievementContext";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 48) / 2; // Metade da largura da tela menos o padding
@@ -78,6 +79,7 @@ export default function WaterIntakeCard() {
   const { t } = useTranslation();
   const lastCheckDateRef = useRef(new Date());
   const progressAnimationValue = useRef(new Animated.Value(0)).current;
+  const { updateAchievementProgress } = useAchievements();
 
   // Estados para gerenciar a ingestão de água
   const [waterIntake, setWaterIntake] = useState(0);
@@ -85,6 +87,8 @@ export default function WaterIntakeCard() {
   const [waterHistory, setWaterHistory] = useState<{ [date: string]: number }>(
     {}
   );
+  // Estado para controlar se a meta foi atingida hoje (evitar múltiplas notificações)
+  const [goalMetToday, setGoalMetToday] = useState(false);
 
   // Meta diária de água (em mL) do contexto de nutrição ou valor padrão
   const dailyGoal = nutritionInfo.waterIntake || 2000;
@@ -134,10 +138,61 @@ export default function WaterIntakeCard() {
 
         // Atualizar o gerenciador global de dados de água
         waterDataManager.setWaterDataForDate(today, intake);
+
+        // Verificar se atingiu a meta de água e atualizar conquistas
+        if (intake >= dailyGoal && !goalMetToday) {
+          setGoalMetToday(true);
+          checkWaterAchievement();
+        }
       } catch (error) {}
     },
-    [storageKey]
+    [storageKey, dailyGoal, goalMetToday]
   );
+
+  // Função para verificar conquistas de água
+  const checkWaterAchievement = useCallback(async () => {
+    try {
+      // Obter a data atual
+      const today = format(new Date(), "yyyy-MM-dd");
+
+      // Carregar contador de dias com meta atingida (se existir)
+      const waterGoalDaysKey = `${KEYS.WATER_GOAL_DAYS}_${user?.uid}`;
+      const storedWaterGoalDays = await AsyncStorage.getItem(waterGoalDaysKey);
+
+      // Obter o último dia em que a meta foi atingida
+      const lastWaterGoalDayKey = `${KEYS.LAST_WATER_GOAL_DAY}_${user?.uid}`;
+      const lastWaterGoalDay = await AsyncStorage.getItem(lastWaterGoalDayKey);
+
+      // Se já atingimos a meta hoje, não contar novamente
+      if (lastWaterGoalDay === today) return;
+
+      // Salvar o dia atual como último dia em que a meta foi atingida
+      await AsyncStorage.setItem(lastWaterGoalDayKey, today);
+
+      // Calcular novo valor para dias totais com meta atingida
+      const currentWaterGoalDays = storedWaterGoalDays
+        ? parseInt(storedWaterGoalDays)
+        : 0;
+      const newWaterGoalDays = currentWaterGoalDays + 1;
+
+      // Salvar o novo valor
+      await AsyncStorage.setItem(waterGoalDaysKey, newWaterGoalDays.toString());
+
+      // Atualizar a conquista com o novo valor
+      if (user && updateAchievementProgress) {
+        // Se o updateAchievementProgress retornar um valor, significa que uma conquista foi desbloqueada
+        const achievement = await updateAchievementProgress(
+          "water_intake",
+          newWaterGoalDays,
+          true
+        );
+
+        // O sistema de notificação já cuida de exibir o toast quando uma conquista é desbloqueada
+      }
+    } catch (error) {
+      console.error("Erro ao verificar conquista de água:", error);
+    }
+  }, [user, updateAchievementProgress]);
 
   // Carregar o histórico de consumo de água dos últimos 14 dias
   const loadWaterHistory = useCallback(async () => {
@@ -187,12 +242,27 @@ export default function WaterIntakeCard() {
           // Atualizar o gerenciador global
           const today = format(new Date(), "yyyy-MM-dd");
           waterDataManager.setWaterDataForDate(today, savedIntake);
+
+          // Verificar se o objetivo já foi atingido hoje
+          if (savedIntake >= dailyGoal) {
+            setGoalMetToday(true);
+          }
         } else {
           setWaterIntake(0);
         }
 
         setIsInitialized(true);
         lastCheckDateRef.current = new Date();
+
+        // Verificar a última data em que a meta foi atingida
+        const lastWaterGoalDayKey = `${KEYS.LAST_WATER_GOAL_DAY}_${user?.uid}`;
+        const lastWaterGoalDay = await AsyncStorage.getItem(
+          lastWaterGoalDayKey
+        );
+        const today = format(new Date(), "yyyy-MM-dd");
+
+        // Se o último dia registrado é hoje, então a meta já foi atingida hoje
+        setGoalMetToday(lastWaterGoalDay === today);
 
         // Configurar verificação periódica para novo dia
         const intervalId = setInterval(checkNewDay, 60000); // Verificar a cada minuto
@@ -207,7 +277,23 @@ export default function WaterIntakeCard() {
 
     // Carregar histórico de água
     loadWaterHistory();
-  }, [storageKey, checkNewDay, loadWaterHistory]);
+  }, [storageKey, checkNewDay, loadWaterHistory, dailyGoal, user]);
+
+  // Resetar o flag goalMetToday no início de um novo dia
+  useEffect(() => {
+    const resetGoalMet = () => {
+      const now = new Date();
+      const lastCheck = lastCheckDateRef.current;
+
+      if (!isToday(lastCheck)) {
+        setGoalMetToday(false);
+      }
+    };
+
+    // Verificar a cada minuto se é um novo dia
+    const intervalId = setInterval(resetGoalMet, 60000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   // Função para adicionar um copo de água
   const addWater = useCallback(() => {
@@ -240,7 +326,13 @@ export default function WaterIntakeCard() {
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
-  }, [progress, progressAnimationValue]);
+
+    // Verificar se atingiu 100% da meta pela primeira vez
+    if (progress === 100 && !goalMetToday) {
+      setGoalMetToday(true);
+      checkWaterAchievement();
+    }
+  }, [progress, progressAnimationValue, goalMetToday, checkWaterAchievement]);
 
   // Formatar o volume de água para exibição
   const formattedWater = useMemo(() => {

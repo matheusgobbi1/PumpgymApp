@@ -130,7 +130,10 @@ export default function Profile() {
       edges={["top"]}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <HomeHeader title={user?.email || t("common.user")} count={0} />
+        <HomeHeader
+          title={user?.email || t("common.user")}
+          onFitLevelPress={() => router.push("/achievements-modal")}
+        />
 
         {renderScreenContent()}
       </View>

@@ -16,7 +16,8 @@ import WorkoutProgressChart from "../../components/home/WorkoutProgressChart";
 import WeightProgressChart from "../../components/home/WeightProgressChart";
 import HealthStepsCard from "../../components/home/HealthStepsCard";
 import WaterIntakeCard from "../../components/home/WaterIntakeCard";
-import ConsistencyScoreCard from "../../components/home/ConsistencyScoreCard";
+import AchievementsCard from "../../components/achievements/AchievementsCard";
+import AchievementBadge from "../../components/achievements/AchievementBadge";
 import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
 import { useRouter } from "expo-router";
@@ -29,6 +30,8 @@ import { KEYS } from "../../constants/keys";
 import { useAuth } from "../../context/AuthContext";
 import { useTabPreloader } from "../../hooks/useTabPreloader";
 import TabPreloader from "../../components/TabPreloader";
+import { useAchievements } from "../../context/AchievementContext";
+import FitLevelBadge from "../../components/home/FitLevelBadge";
 
 const { width } = Dimensions.get("window");
 
@@ -36,7 +39,7 @@ const { width } = Dimensions.get("window");
 const MemoizedDailyReminders = React.memo(DailyReminders);
 const MemoizedHealthStepsCard = React.memo(HealthStepsCard);
 const MemoizedWaterIntakeCard = React.memo(WaterIntakeCard);
-const MemoizedConsistencyScoreCard = React.memo(ConsistencyScoreCard);
+const MemoizedAchievementsCard = React.memo(AchievementsCard);
 
 // Definir tipos para as props do componente memorizado
 interface ProgressChartsProps {
@@ -86,6 +89,7 @@ export default function HomeScreen() {
     useState(false);
   const { workouts } = useWorkoutContext();
   const { user } = useAuth();
+  const { updateAchievementProgress, checkAchievements } = useAchievements();
   const [currentSteps, setCurrentSteps] = useState<number | null>(null);
 
   // Inicializar a UI após a renderização inicial
@@ -162,6 +166,13 @@ export default function HomeScreen() {
     return currentStreak;
   }, [workouts]);
 
+  // Atualizar o streak no context de conquistas quando for calculado
+  useEffect(() => {
+    if (streak > 0) {
+      updateAchievementProgress("streak_days", streak);
+    }
+  }, [streak, updateAchievementProgress]);
+
   // Calcular consistência de água (últimos 14 dias)
   const waterConsistency = useMemo(() => {
     if (!user) return 0;
@@ -217,6 +228,18 @@ export default function HomeScreen() {
     return 75; // Valor estimado para demonstração
   }, []);
 
+  // Verificar conquistas quando a tela é carregada
+  useEffect(() => {
+    if (isUIReady && isReady) {
+      // Pequeno delay para evitar congestionamento na inicialização
+      const timer = setTimeout(() => {
+        checkAchievements();
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isUIReady, isReady, checkAchievements]);
+
   // Lidar com a mudança de aba e carregar progresso sob demanda
   const handleTabChange = useCallback(
     (tab: "lembretes" | "progresso") => {
@@ -230,11 +253,6 @@ export default function HomeScreen() {
     },
     [isProgressTabInitialized]
   );
-
-  const handleProfilePress = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push("/(tabs)/profile");
-  }, [router]);
 
   const handleNutritionChartPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -252,11 +270,15 @@ export default function HomeScreen() {
     // Não é mais necessário navegar, pois abrimos o modal diretamente no componente
   }, []);
 
-  const handleConsistencyPress = useCallback(() => {
+  const handleAchievementsPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Navegar para uma tela detalhada ou exibir modal
-    // Por enquanto, apenas navegamos para o perfil
-    router.push("/(tabs)/profile");
+    // Navegar para a tela de conquistas
+    router.push("/achievements-modal");
+  }, [router]);
+
+  const handleFitLevelPress = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push("/achievements-modal");
   }, [router]);
 
   // Renderização condicional e lazy loading dos componentes de progresso
@@ -293,12 +315,9 @@ export default function HomeScreen() {
           { display: activeTab === "lembretes" ? "flex" : "none" },
         ]}
       >
-        {/* Card de consistência - adicionado abaixo dos cards de grid */}
+        {/* Cartão de conquistas - substitui o ConsistencyScoreCard */}
         <View style={styles.cardContainer}>
-          <MemoizedConsistencyScoreCard
-            onPress={handleConsistencyPress}
-            steps={currentSteps}
-          />
+          <MemoizedAchievementsCard onPress={handleAchievementsPress} />
         </View>
         <MemoizedDailyReminders />
 
@@ -312,7 +331,7 @@ export default function HomeScreen() {
         </View>
       </View>
     );
-  }, [activeTab, currentSteps, handleConsistencyPress, isUIReady]);
+  }, [activeTab, handleAchievementsPress, isUIReady]);
 
   // Renderização da tela de carregamento e do conteúdo principal
   const renderScreenContent = () => {
@@ -399,14 +418,7 @@ export default function HomeScreen() {
       edges={["top"]}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <HomeHeader
-          onProfilePress={handleProfilePress}
-          count={streak}
-          iconName="fire"
-          iconType="material"
-          iconColor="#FF1F02"
-          iconBackgroundColor="#FF6B6B15"
-        />
+        <HomeHeader onFitLevelPress={handleFitLevelPress} />
 
         {renderScreenContent()}
       </View>
@@ -417,6 +429,15 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    justifyContent: "space-between",
+  },
+  badgeContainer: {
+    marginRight: 10,
   },
   scrollView: {
     flex: 1,

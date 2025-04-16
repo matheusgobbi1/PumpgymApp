@@ -1697,5 +1697,34 @@
       "friday": "S",
       "saturday": "S"
     }
+  },
+  "achievements": {
+    "title": "Conquistas",
+    "subtitle": "{{completed}} conquistas",
+    "completed": "{{completed}} de {{total}}",
+    "stats": {
+      "unlocked": "Desbloqueadas",
+      "points": "Pontos",
+      "completion": "Conclusão"
+    },
+    "secret": "Conquista secreta. Continue sua jornada para descobri-la.",
+    "locked": "Bloqueada",
+    "nextLevel": "Próximo nível",
+    "viewAll": "Ver todas",
+    "points": "pontos",
+    "categories": {
+      "all": "Todas",
+      "workout": "Treino",
+      "nutrition": "Nutrição",
+      "consistency": "Consistência",
+      "social": "Social",
+      "weight": "Peso",
+      "water": "Água",
+      "account": "Conta"
+    },
+    "unlocked": "CONQUISTA DESBLOQUEADA",
+    "viewAllAchievements": "Ver todas as conquistas",
+    "recentAchievements": "Conquistas Recentes",
+    "emptyState": "Complete atividades para desbloquear conquistas"
   }
 } 

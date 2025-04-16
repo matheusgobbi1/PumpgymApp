@@ -1620,5 +1620,34 @@
       "friday": "F",
       "saturday": "S"
     }
+  },
+  "achievements": {
+    "title": "Achievements",
+    "subtitle": "{{completed}} achievements",
+    "completed": "{{completed}} of {{total}}",
+    "stats": {
+      "unlocked": "Unlocked",
+      "points": "Points",
+      "completion": "Completion"
+    },
+    "secret": "Secret achievement. Continue your journey to discover it.",
+    "locked": "Locked",
+    "nextLevel": "Next level",
+    "viewAll": "View all",
+    "points": "points",
+    "categories": {
+      "all": "All",
+      "workout": "Workout",
+      "nutrition": "Nutrition",
+      "consistency": "Consistency",
+      "social": "Social",
+      "weight": "Weight",
+      "water": "Water",
+      "account": "Account"
+    },
+    "unlocked": "ACHIEVEMENT UNLOCKED",
+    "viewAllAchievements": "View all achievements",
+    "recentAchievements": "Recent Achievements",
+    "emptyState": "Complete activities to unlock achievements"
   }
 } 

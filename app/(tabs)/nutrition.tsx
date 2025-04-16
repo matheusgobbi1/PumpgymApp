@@ -490,6 +490,7 @@ export default function NutritionScreen() {
           showContextMenu={true}
           menuActions={menuActions}
           menuVisible={isMenuVisible}
+          onFitLevelPress={() => router.push("/achievements-modal")}
         />
 
         {renderScreenContent()}

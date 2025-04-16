@@ -204,7 +204,6 @@ export default function TrainingScreen() {
     });
   }, [isUIReady]);
 
-
   // Navegar para o perfil
   const navigateToProfile = useCallback(() => {
     router.push("/profile");
@@ -618,6 +617,7 @@ export default function TrainingScreen() {
           showContextMenu={true}
           menuActions={menuActions}
           menuVisible={isMenuVisible}
+          onFitLevelPress={() => router.push("/achievements-modal")}
         />
 
         {renderScreenContent()}

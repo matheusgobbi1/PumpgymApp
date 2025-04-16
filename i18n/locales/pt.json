@@ -1,0 +1,49 @@
+{
+  "common": {
+    "loading": "Carregando...",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "add": "Adicionar",
+    "done": "Concluído",
+    "yes": "Sim",
+    "no": "Não",
+    "confirm": "Confirmar",
+    "user": "Usuário",
+    "today": "Hoje",
+    "yesterday": "Ontem",
+    "tomorrow": "Amanhã",
+    "minutes": "minutos",
+    "seeAll": "Ver todos",
+    "total": "Total",
+    "average": "Média",
+    "max": "Máx",
+    "success": "Sucesso",
+    "error": "Erro",
+    "warning": "Aviso",
+    "info": "Informação"
+  },
+  "achievements": {
+    "title": "Conquistas",
+    "subtitle": "{{completed}} de {{total}}",
+    "points": "pontos",
+    "unlocked": "Conquistas",
+    "completion": "Concluído",
+    "viewAll": "Ver todas",
+    "locked": "Bloqueado",
+    "nextLevel": "Próximo nível",
+    "secret": "Esta conquista é secreta. Continue treinando para desbloqueá-la!",
+    "unlocked": "Conquista desbloqueada!",
+    "categories": {
+      "all": "Todas",
+      "workout": "Treinos",
+      "nutrition": "Nutrição",
+      "consistency": "Consistência",
+      "social": "Social",
+      "weight": "Peso",
+      "water": "Água",
+      "account": "Conta"
+    }
+  }
+} 

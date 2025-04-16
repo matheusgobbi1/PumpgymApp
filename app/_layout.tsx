@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { Platform, View, StatusBar as RNStatusBar } from "react-native";
 import {
@@ -16,6 +16,10 @@ import { ReminderProvider } from "../context/ReminderContext";
 import { LanguageProvider } from "../context/LanguageContext";
 import { MealProvider } from "../context/MealContext";
 import { NotificationProvider } from "../context/NotificationContext";
+import {
+  AchievementProvider,
+  useAchievements,
+} from "../context/AchievementContext";
 import "../i18n"; // Importando a configuração i18n
 import i18n, { getLanguageStatus } from "../i18n"; // Importar getLanguageStatus para depuração
 import "../firebase/config";
@@ -27,6 +31,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 import NotificationService from "../services/NotificationService";
+import AchievementUnlockedToast from "../components/achievements/AchievementUnlockedToast";
 
 // Configurar como as notificações serão tratadas quando o app estiver em segundo plano
 Notifications.setNotificationHandler({
@@ -143,10 +148,12 @@ export default function RootLayout() {
                   <NutritionProvider>
                     <MealProvider>
                       <WorkoutProvider>
-                        <ReminderProvider>
-                          <OfflineNotice />
-                          <AppContent />
-                        </ReminderProvider>
+                        <AchievementProvider>
+                          <ReminderProvider>
+                            <OfflineNotice />
+                            <AppContent />
+                          </ReminderProvider>
+                        </AchievementProvider>
                       </WorkoutProvider>
                     </MealProvider>
                   </NutritionProvider>
@@ -158,6 +165,82 @@ export default function RootLayout() {
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
+}
+
+// Componente para gerenciar notificações de conquistas
+function AchievementNotificationManager() {
+  const { recentlyUnlocked, achievements, markUnlockedAsViewed } =
+    useAchievements();
+  const router = useRouter();
+  const [currentNotification, setCurrentNotification] = useState<any>(null);
+  const [shownNotifications, setShownNotifications] = useState<Set<string>>(
+    new Set()
+  );
+
+  // Mostrar toast para a primeira conquista não visualizada
+  useEffect(() => {
+    if (recentlyUnlocked.length === 0 || currentNotification) return;
+
+    // Encontrar a primeira conquista não visualizada que ainda não foi mostrada nesta sessão
+    const unviewed = recentlyUnlocked.find(
+      (item) => !item.viewed && !shownNotifications.has(item.id)
+    );
+
+    if (!unviewed) return;
+
+    // Buscar os detalhes da conquista
+    const achievement = achievements.find((a) => a.id === unviewed.id);
+    if (!achievement) return;
+
+    // Marcar este ID como já mostrado nesta sessão
+    setShownNotifications((prev) => new Set(prev).add(unviewed.id));
+
+    // Configurar a notificação
+    setCurrentNotification({
+      id: unviewed.id,
+      title: achievement.name,
+      description: achievement.description,
+      icon: achievement.icon,
+      color: achievement.badgeColor,
+      points: achievement.fitPoints,
+      uniqueKey: `${unviewed.id}-${Date.now()}`, // Garantir chave única
+    });
+  }, [recentlyUnlocked, currentNotification, achievements, shownNotifications]);
+
+  // Funções para lidar com interações do usuário
+  const handleToastPress = () => {
+    // Navegar para a tela de conquistas
+    router.push("/achievements-modal");
+
+    // Marcar como visualizada e fechar o toast
+    if (currentNotification) {
+      markUnlockedAsViewed(currentNotification.id);
+      setCurrentNotification(null);
+    }
+  };
+
+  const handleToastDismiss = () => {
+    // Marcar como visualizada mesmo ao dispensar o toast
+    if (currentNotification) {
+      markUnlockedAsViewed(currentNotification.id);
+    }
+    // Fechar o toast
+    setCurrentNotification(null);
+  };
+
+  // Renderizar o toast se houver uma notificação
+  return currentNotification ? (
+    <AchievementUnlockedToast
+      key={currentNotification.uniqueKey}
+      title={currentNotification.title}
+      description={currentNotification.description}
+      icon={currentNotification.icon}
+      color={currentNotification.color}
+      points={currentNotification.points}
+      onPress={handleToastPress}
+      onDismiss={handleToastDismiss}
+    />
+  ) : null;
 }
 
 function AppContent() {
@@ -192,6 +275,9 @@ function AppContent() {
       {/* Configuração da StatusBar para Android e iOS */}
       <StatusBar style={theme === "dark" ? "light" : "dark"} />
       <RNStatusBar backgroundColor={colors.background} translucent={true} />
+
+      {/* Componente para mostrar notificações de conquistas */}
+      <AchievementNotificationManager />
 
       <Stack
         screenOptions={{
@@ -240,6 +326,13 @@ function AppContent() {
         />
         <Stack.Screen
           name="progression-modal"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+          }}
+        />
+        <Stack.Screen
+          name="achievements-modal"
           options={{
             presentation: "modal",
             animation: "slide_from_bottom",
