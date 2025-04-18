@@ -364,13 +364,13 @@ export default function DailyReminders() {
             <View
               style={[
                 styles.iconContainer,
-                { backgroundColor: colors.primary + "20" },
+                { backgroundColor: colors.accentGray + "20" },
               ]}
             >
               <MaterialCommunityIcons
                 name="bell-outline"
                 size={18}
-                color={colors.primary}
+                color={colors.accentGray}
               />
             </View>
             <View>
@@ -387,25 +387,25 @@ export default function DailyReminders() {
             <TouchableOpacity
               style={[
                 styles.addButton,
-                { backgroundColor: colors.primary + "20" },
+                { backgroundColor: colors.accentGray + "20" },
               ]}
               onPress={openNewReminder}
             >
-              <Ionicons name="add" size={20} color={colors.primary} />
+              <Ionicons name="add" size={20} color={colors.accentGray} />
             </TouchableOpacity>
 
             {shouldShowExpandButton() && (
               <TouchableOpacity
                 style={[
                   styles.expandButton,
-                  { backgroundColor: colors.text + "10" },
+                  { backgroundColor: colors.accentGray + "20" },
                 ]}
                 onPress={toggleExpand}
               >
                 <Ionicons
                   name={isExpanded ? "chevron-up" : "chevron-down"}
                   size={20}
-                  color={colors.text + "80"}
+                  color={colors.accentGray}
                 />
               </TouchableOpacity>
             )}
@@ -426,7 +426,7 @@ export default function DailyReminders() {
               <MaterialCommunityIcons
                 name="bell-outline"
                 size={20}
-                color={colors.text + "30"}
+                color={colors.accentGray}
                 style={{ marginBottom: 6 }}
               />
               <Text style={[styles.emptyText, { color: colors.text + "50" }]}>

@@ -930,7 +930,7 @@ export default function FoodDetailsScreen() {
                         ]}
                       >
                         <MaterialCommunityIcons
-                          name="bread-slice"
+                          name="baguette"
                           size={18}
                           color="#4ECDC4"
                         />

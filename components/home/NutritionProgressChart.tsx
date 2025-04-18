@@ -340,13 +340,13 @@ export default function NutritionProgressChart({
             <View
               style={[
                 styles.iconContainer,
-                { backgroundColor: colors.primary + "20" },
+                { backgroundColor: colors.accentGray + "20" },
               ]}
             >
               <MaterialCommunityIcons
                 name="fire"
                 size={18}
-                color={colors.primary}
+                color={colors.accentGray}
               />
             </View>
             <View>
@@ -367,14 +367,14 @@ export default function NutritionProgressChart({
             <TouchableOpacity
               style={[
                 styles.infoButton,
-                { backgroundColor: colors.primary + "20" },
+                { backgroundColor: colors.accentGray + "20" },
               ]}
               onPress={openInfoModal}
             >
               <Ionicons
                 name="information-circle-outline"
                 size={20}
-                color={colors.primary}
+                color={colors.accentGray}
               />
             </TouchableOpacity>
 
@@ -382,14 +382,14 @@ export default function NutritionProgressChart({
               <TouchableOpacity
                 style={[
                   styles.expandButton,
-                  { backgroundColor: colors.text + "10" },
+                  { backgroundColor: colors.accentGray + "20" },
                 ]}
                 onPress={toggleExpand}
               >
                 <Ionicons
                   name={isExpanded ? "chevron-up" : "chevron-down"}
                   size={20}
-                  color={colors.text + "80"}
+                  color={colors.accentGray}
                 />
               </TouchableOpacity>
             )}
@@ -404,7 +404,7 @@ export default function NutritionProgressChart({
                   styles.periodButton,
                   selectedPeriod === "7d" && [
                     styles.selectedPeriod,
-                    { backgroundColor: colors.primary + "20" },
+                    { backgroundColor: colors.accentGray + "20" },
                   ],
                 ]}
                 onPress={() => handlePeriodChange("7d")}
@@ -412,9 +412,9 @@ export default function NutritionProgressChart({
                 <Text
                   style={[
                     styles.periodText,
-                    { color: colors.text + "80" },
+                    { color: colors.accentGray },
                     selectedPeriod === "7d" && {
-                      color: colors.primary,
+                      color: colors.accentGray,
                       fontWeight: "600",
                     },
                   ]}
@@ -428,7 +428,7 @@ export default function NutritionProgressChart({
                   styles.periodButton,
                   selectedPeriod === "14d" && [
                     styles.selectedPeriod,
-                    { backgroundColor: colors.primary + "20" },
+                    { backgroundColor: colors.accentGray + "20" },
                   ],
                 ]}
                 onPress={() => handlePeriodChange("14d")}
@@ -436,9 +436,9 @@ export default function NutritionProgressChart({
                 <Text
                   style={[
                     styles.periodText,
-                    { color: colors.text + "80" },
+                    { color: colors.accentGray },
                     selectedPeriod === "14d" && {
-                      color: colors.primary,
+                      color: colors.accentGray,
                       fontWeight: "600",
                     },
                   ]}
@@ -452,7 +452,7 @@ export default function NutritionProgressChart({
                   styles.periodButton,
                   selectedPeriod === "30d" && [
                     styles.selectedPeriod,
-                    { backgroundColor: colors.primary + "20" },
+                    { backgroundColor: colors.accentGray + "20" },
                   ],
                 ]}
                 onPress={() => handlePeriodChange("30d")}
@@ -460,9 +460,9 @@ export default function NutritionProgressChart({
                 <Text
                   style={[
                     styles.periodText,
-                    { color: colors.text + "80" },
+                    { color: colors.accentGray },
                     selectedPeriod === "30d" && {
-                      color: colors.primary,
+                      color: colors.accentGray,
                       fontWeight: "600",
                     },
                   ]}
@@ -477,7 +477,12 @@ export default function NutritionProgressChart({
             </View>
 
             <View style={styles.statsContainer}>
-              <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+              <View
+                style={[
+                  styles.statCard,
+                  { backgroundColor: colors.accentGray + "20" },
+                ]}
+              >
                 <Text
                   style={[styles.statLabel, { color: colors.text }]}
                   numberOfLines={1}
@@ -494,7 +499,12 @@ export default function NutritionProgressChart({
                 </Text>
               </View>
 
-              <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+              <View
+                style={[
+                  styles.statCard,
+                  { backgroundColor: colors.accentGray + "20" },
+                ]}
+              >
                 <Text
                   style={[styles.statLabel, { color: colors.text }]}
                   numberOfLines={1}
@@ -511,7 +521,12 @@ export default function NutritionProgressChart({
                 </Text>
               </View>
 
-              <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+              <View
+                style={[
+                  styles.statCard,
+                  { backgroundColor: colors.accentGray + "20" },
+                ]}
+              >
                 <Text
                   style={[styles.statLabel, { color: colors.text }]}
                   numberOfLines={1}

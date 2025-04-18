@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import AchievementBadge from "./AchievementBadge";
 import { Achievement } from "../../constants/achievementsDatabase";
 import { LinearGradient } from "expo-linear-gradient";
 import RarityEffects from "./RarityEffects";
+import { useTranslation } from "react-i18next";
+import { useAchievements } from "../../context/AchievementContext";
 
 const { width } = Dimensions.get("window");
 const BADGE_SIZE = (width - 80) / 4; // 4 badges por linha com margens
@@ -33,6 +35,8 @@ const AchievementCard: React.FC<AchievementCardProps> = ({
 }) => {
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const { t } = useTranslation();
+  const { markUnlockedAsViewed } = useAchievements();
 
   // Se a conquista é secreta e não está desbloqueada, mostrar uma versão oculta
   const isSecret = achievement.hidden && !isUnlocked;
@@ -75,10 +79,30 @@ const AchievementCard: React.FC<AchievementCardProps> = ({
 
   const rarityStyles = getRarityStyles();
 
+  // Obter o nome traduzido da conquista
+  const getAchievementName = () => {
+    if (isSecret) return "???";
+    return t(
+      `achievements.database.achievements.${achievement.id}.name`,
+      achievement.name
+    );
+  };
+
+  // Função para lidar com o clique na conquista
+  const handlePress = useCallback(() => {
+    // Se for uma conquista nova e desbloqueada, marcá-la como visualizada
+    if (isNew && isUnlocked) {
+      markUnlockedAsViewed(achievement.id);
+    }
+
+    // Chamar o manipulador de clique passado como propriedade
+    onPress(achievement);
+  }, [achievement, isNew, isUnlocked, markUnlockedAsViewed, onPress]);
+
   return (
     <TouchableOpacity
       style={[styles.badgeContainer, rarityStyles.containerStyle]}
-      onPress={() => onPress(achievement)}
+      onPress={handlePress}
       activeOpacity={0.7}
     >
       <View
@@ -112,11 +136,12 @@ const AchievementCard: React.FC<AchievementCardProps> = ({
           { color: colors.text },
           isSecret && styles.secretText,
           isUnlocked && rarityStyles.titleStyle,
+          isNew && styles.newTitle,
         ]}
         numberOfLines={2}
         ellipsizeMode="tail"
       >
-        {isSecret ? "???" : achievement.name}
+        {getAchievementName()}
       </Text>
     </TouchableOpacity>
   );
@@ -150,6 +175,10 @@ const styles = StyleSheet.create({
     width: "100%",
     lineHeight: 11,
   },
+  newTitle: {
+    fontWeight: "bold",
+    color: "#FFD700",
+  },
   secretText: {
     fontStyle: "italic",
   },
@@ -178,6 +207,10 @@ const styles = StyleSheet.create({
     borderRadius: BADGE_SIZE / 2,
     borderStyle: "dotted",
     elevation: 3,
+    shadowColor: "#A759D8",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 4,
   },
   legendaryBadgeWrapper: {
     padding: 4,

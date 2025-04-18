@@ -12,6 +12,7 @@ export default {
     black: "#000000",
     secondary: "#4A4A4A", // Cinza escuro
     accent: "#6C63FF", // Mantendo roxo como cor de destaque
+    accentGray: "#1A1A1A", // Cinza Azulado Médio (mais escuro para light theme)
     success: "#2ECE8D", // Verde mais vibrante
     danger: "#FF5252", // Vermelho vibrante
     error: "#FF5252", // Adicionado cor de erro
@@ -39,6 +40,7 @@ export default {
     black: "#000000",
     secondary: "#8A8A8A", // Cinza médio para melhor contraste
     accent: "#8B7FFF", // Roxo mais suave
+    accentGray: "#B0BEC5", // Cinza Azulado Claro
     success: "#4AE3A8", // Verde néon suave
     danger: "#FF6B6B", // Vermelho coral
     error: "#FF6B6B", // Adicionado cor de erro

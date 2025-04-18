@@ -1,5 +1,5 @@
-import React from "react";
-import { View, StyleSheet } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { View, StyleSheet, Animated } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
@@ -16,6 +16,41 @@ const RarityEffects: React.FC<RarityEffectsProps> = ({
 }) => {
   if (!isUnlocked) return null;
 
+  // --- Epic Effect Animation ---
+  const epicPulseAnim = useRef(new Animated.Value(0.7)).current; // Initial opacity
+
+  useEffect(() => {
+    let animation: Animated.CompositeAnimation | null = null;
+    if (rarity === "epic" && isUnlocked) {
+      animation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(epicPulseAnim, {
+            toValue: 0.9, // Fade in slightly more
+            duration: 1200,
+            useNativeDriver: true, // Use native driver for opacity
+          }),
+          Animated.timing(epicPulseAnim, {
+            toValue: 0.6, // Fade out slightly more
+            duration: 1200,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      animation.start();
+    } else {
+      // Reset animation if component updates and is no longer epic/unlocked
+      epicPulseAnim.stopAnimation(); // Stop previous animation if running
+      epicPulseAnim.setValue(0.7); // Reset to initial value
+    }
+    // Cleanup function to stop animation on unmount or when effect changes
+    return () => {
+      if (animation) {
+        animation.stop();
+      }
+    };
+  }, [rarity, isUnlocked, epicPulseAnim]);
+  // --- End Epic Effect Animation ---
+
   const renderRareEffect = () => {
     return (
       <View
@@ -31,16 +66,27 @@ const RarityEffects: React.FC<RarityEffectsProps> = ({
 
   const renderEpicEffect = () => {
     return (
-      <LinearGradient
-        colors={[
-          "rgba(167, 89, 216, 0.15)",
-          "rgba(167, 89, 216, 0)",
-          "rgba(167, 89, 216, 0.08)",
-        ]}
-        style={[styles.epicAura, { width: size + 10, height: size + 10 }]}
-        start={{ x: 0.5, y: 0.5 }}
-        end={{ x: 1, y: 1 }}
-      />
+      <Animated.View // Wrap LinearGradient in Animated.View
+        style={{
+          position: "absolute", // Required for Animated wrapper
+          opacity: epicPulseAnim, // Apply animated opacity
+          width: size + 10,
+          height: size + 10,
+          alignItems: "center", // Center the gradient inside
+          justifyContent: "center",
+        }}
+      >
+        <LinearGradient
+          colors={[
+            "rgba(167, 89, 216, 0.35)", // Slightly stronger start color
+            "rgba(167, 89, 216, 0)",
+            "rgba(167, 89, 216, 0.18)", // Slightly stronger end color
+          ]}
+          style={styles.epicAura} // Use style without size/position
+          start={{ x: 0.5, y: 0.5 }}
+          end={{ x: 1, y: 1 }}
+        />
+      </Animated.View>
     );
   };
 
@@ -86,7 +132,7 @@ const RarityEffects: React.FC<RarityEffectsProps> = ({
             <MaterialCommunityIcons
               name="star-four-points"
               size={10}
-              color="#FFDF00"
+              color="#FFFFFF"
             />
           </View>
 
@@ -94,7 +140,7 @@ const RarityEffects: React.FC<RarityEffectsProps> = ({
             <MaterialCommunityIcons
               name="star-four-points"
               size={10}
-              color="#FFDF00"
+              color="#FFFFFF"
             />
           </View>
 
@@ -102,7 +148,7 @@ const RarityEffects: React.FC<RarityEffectsProps> = ({
             <MaterialCommunityIcons
               name="star-four-points"
               size={10}
-              color="#FFDF00"
+              color="#FFFFFF"
             />
           </View>
 
@@ -110,7 +156,7 @@ const RarityEffects: React.FC<RarityEffectsProps> = ({
             <MaterialCommunityIcons
               name="star-four-points"
               size={10}
-              color="#FFDF00"
+              color="#FFFFFF"
             />
           </View>
         </View>
@@ -143,9 +189,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(83, 135, 223, 0.4)",
   },
   epicAura: {
-    position: "absolute",
+    width: "100%", // Take full size of the Animated.View wrapper
+    height: "100%",
     borderRadius: 100,
-    opacity: 0.7,
   },
   legendaryAura: {
     position: "absolute",

@@ -6,20 +6,55 @@ import {
   Animated,
   Text,
   Dimensions,
+  Pressable,
+  ScrollView,
+  Alert,
+  Platform,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useCallback, useMemo } from "react";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "../../context/ThemeContext";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { waterIntakeModalManager } from "../../components/home/WaterIntakeCard";
+import { useMeals, MealType } from "../../context/MealContext";
+import { useNutrition } from "../../context/NutritionContext";
+import { useWorkoutContext, WorkoutType } from "../../context/WorkoutContext";
+import { validateWeight } from "../../utils/validations";
+import FloatingActionButton from "../../components/shared/FloatingActionButton";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
+const FAB_SIZE = 65;
+const TABBAR_WIDTH = width * 0.8;
+const TABBAR_HEIGHT = 70;
+const TABBAR_BORDER_RADIUS = 40;
+const TABBAR_HORIZONTAL_MARGIN = width * 0.1;
+const BOTTOM_POSITION_INITIAL = 10;
+
+// Função para reduzir uso do Haptics em alguns dispositivos
+const safeHaptics = {
+  impactAsync: (style: Haptics.ImpactFeedbackStyle) => {
+    if (Platform.OS === "ios") {
+      // Reduzir frequência de haptics no iOS
+      setTimeout(() => Haptics.impactAsync(style), 0);
+    }
+  },
+  selectionAsync: () => {
+    if (Platform.OS === "ios") {
+      // Reduzir frequência de haptics no iOS
+      setTimeout(() => Haptics.selectionAsync(), 0);
+    } else {
+      Haptics.selectionAsync();
+    }
+  },
+  notificationAsync: (type: Haptics.NotificationFeedbackType) => {
+    Haptics.notificationAsync(type);
+  },
+};
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>["name"];
@@ -35,169 +70,109 @@ function TabBarIcon5(props: {
   return <FontAwesome5 size={24} style={{ marginBottom: -3 }} {...props} />;
 }
 
+const WorkoutIcon = ({
+  iconType,
+  size,
+  color,
+}: {
+  iconType?: { type: string; name: string };
+  size: number;
+  color: string;
+}) => {
+  if (!iconType || !iconType.type || !iconType.name) {
+    return <Ionicons name="barbell-outline" size={size} color={color} />;
+  }
+
+  if (iconType.type === "material") {
+    return (
+      <MaterialCommunityIcons
+        name={iconType.name as any}
+        size={size}
+        color={color}
+      />
+    );
+  } else if (iconType.type === "fontawesome") {
+    return (
+      <FontAwesome5 name={iconType.name as any} size={size} color={color} />
+    );
+  } else {
+    return <Ionicons name={iconType.name as any} size={size} color={color} />;
+  }
+};
+
 export default function TabLayout() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const insets = useSafeAreaInsets();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
   const { t } = useTranslation();
+  const { mealTypes } = useMeals();
+  const {
+    currentWaterIntake,
+    addWater,
+    removeWater,
+    dailyWaterGoal,
+    updateNutritionInfo,
+    saveNutritionInfo,
+    nutritionInfo,
+  } = useNutrition();
+  const { selectedWorkoutTypes, startWorkoutForDate } = useWorkoutContext();
 
-  // Animações para o menu flutuante
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const menuAnimations = useRef(
-    Array(4)
-      .fill(0)
-      .map(() => new Animated.Value(0))
-  ).current;
+  const dynamicBottom =
+    insets.bottom > 0 ? insets.bottom : BOTTOM_POSITION_INITIAL;
 
-  // Opções do menu
-  const menuOptions = [
-    {
-      icon: "barbell-outline" as const,
-      label: t("training.menu.newWorkout", "Novo Treino"),
-      onPress: () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        closeMenu();
-        // Navegar para a tela de treino com parâmetro na URL
-        router.push("/training?openWorkoutConfig=true");
-      },
+  const navigateToAddFood = useCallback(
+    (meal: MealType) => {
+      router.push({
+        pathname: "/(add-food)",
+        params: {
+          mealId: meal.id,
+          mealName: meal.name,
+          mealColor: meal.color || colors.primary,
+        },
+      });
     },
-    {
-      icon: "nutrition-outline" as const,
-      label: t("nutrition.menu.newMeal", "Nova Refeição"),
-      onPress: () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        closeMenu();
-        // Navegar para a tela de nutrição com parâmetro na URL
-        router.push("/nutrition?openMealConfig=true");
-      },
+    [router, colors.primary]
+  );
+
+  const handleStartWorkout = useCallback(
+    async (workoutType: WorkoutType) => {
+      await startWorkoutForDate(workoutType.id);
+      router.push({
+        pathname: "/(add-exercise)",
+        params: {
+          workoutId: workoutType.id,
+          workoutName: workoutType.name,
+          workoutColor: workoutType.color,
+        },
+      });
     },
-    {
-      icon: "restaurant-outline" as const,
-      label: t("profile.nutritionCard.customize", "Configuração de Dieta"),
-      onPress: () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        closeMenu();
-        // Navegar para a tela de perfil com parâmetro na URL
-        router.push("/profile?openDietSettings=true");
-      },
-    },
-    {
-      icon: "water-outline" as const,
-      label: t("waterIntake.title", "Registrar Água"),
-      onPress: () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        closeMenu();
-
-        // Tentar abrir o modal do WaterIntakeCard diretamente
-        const modalOpened = waterIntakeModalManager.openWaterIntakeModal();
-
-        // Se não for possível abrir o modal (componente não está montado), navegue para a página
-        if (!modalOpened) {
-          router.push("/nutrition?openWaterIntake=true");
-        }
-      },
-    },
-  ];
-
-  const openMenu = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    setIsMenuOpen(true);
-
-    // Animar o backdrop
-    Animated.timing(backdropOpacity, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-
-    // Animar cada item do menu em sequência
-    menuAnimations.forEach((anim, index) => {
-      Animated.sequence([
-        Animated.delay(index * 80), // Atraso em cascata
-        Animated.spring(anim, {
-          toValue: 1,
-          tension: 50,
-          friction: 7,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    });
-  };
-
-  const closeMenu = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Animar o fechamento em ordem reversa
-    [...menuAnimations].reverse().forEach((anim, index) => {
-      Animated.timing(anim, {
-        toValue: 0,
-        duration: 200,
-        delay: index * 50,
-        useNativeDriver: true,
-      }).start();
-    });
-
-    // Fechar o backdrop
-    Animated.timing(backdropOpacity, {
-      toValue: 0,
-      duration: 300,
-      delay: 100,
-      useNativeDriver: true,
-    }).start(() => {
-      setIsMenuOpen(false);
-    });
-  };
-
-  // Obter o estilo para cada item do menu - voltando à posição original
-  const getMenuItemStyle = (index: number) => {
-    const translateY = menuAnimations[index].interpolate({
-      inputRange: [0, 1],
-      outputRange: [50, 0],
-    });
-
-    const scale = menuAnimations[index].interpolate({
-      inputRange: [0, 0.7, 1],
-      outputRange: [0.7, 1.1, 1],
-    });
-
-    const opacity = menuAnimations[index].interpolate({
-      inputRange: [0, 0.4, 1],
-      outputRange: [0, 0.8, 1],
-    });
-
-    return {
-      opacity,
-      transform: [{ translateY }, { scale }],
-    };
-  };
+    [startWorkoutForDate, router]
+  );
 
   return (
     <>
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: colors.tint,
+          tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.tabIconDefault,
           headerShown: false,
           tabBarStyle: {
             position: "absolute",
-            bottom: insets.bottom > 0 ? insets.bottom : 10,
-            marginHorizontal: width * 0.1,
-            width: width * 0.8,
+            bottom: dynamicBottom,
+            marginHorizontal: TABBAR_HORIZONTAL_MARGIN,
+            width: TABBAR_WIDTH,
             alignSelf: "center",
             elevation: 8,
-            backgroundColor: colors.background,
-            borderRadius: 40,
-            height: 70,
+            backgroundColor: colors.background + "E6",
+            borderRadius: TABBAR_BORDER_RADIUS,
+            height: TABBAR_HEIGHT,
             shadowColor: "#000",
-            shadowOffset: {
-              width: 0,
-              height: 8,
-            },
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
-            paddingBottom: 10,
-            paddingTop: 10,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 4,
+            paddingBottom: 0,
+            paddingTop: 14,
             borderTopWidth: 0,
           },
           tabBarShowLabel: false,
@@ -211,196 +186,54 @@ export default function TabLayout() {
           name="index"
           options={{
             title: t("home.title", "Início"),
-            tabBarIcon: ({ color, focused }) => (
+            tabBarIcon: ({ color }) => (
               <View style={styles.iconContainer}>
                 <TabBarIcon name="home" color={color} />
               </View>
             ),
           }}
-          listeners={({ navigation }) => ({
-            tabPress: () => {
-              Haptics.selectionAsync();
-            },
-          })}
+          listeners={{ tabPress: () => safeHaptics.selectionAsync() }}
         />
         <Tabs.Screen
           name="nutrition"
           options={{
             title: t("nutrition.title", "Nutrição"),
-            tabBarIcon: ({ color, focused }) => (
+            tabBarIcon: ({ color }) => (
               <View style={styles.iconContainer}>
                 <TabBarIcon5 name="apple-alt" color={color} />
               </View>
             ),
           }}
-          listeners={({ navigation }) => ({
-            tabPress: () => {
-              Haptics.selectionAsync();
-            },
-          })}
+          listeners={{ tabPress: () => safeHaptics.selectionAsync() }}
         />
-        <Tabs.Screen
-          name="add"
-          options={{
-            title: t("common.add", "Adicionar"),
-            tabBarIcon: ({ color }) => (
-              <View style={styles.fabContainer}>
-                <View style={styles.fabShadow}>
-                  <View
-                    style={[
-                      styles.fabBackground,
-                      { backgroundColor: colors.primary },
-                    ]}
-                  >
-                    <TouchableOpacity
-                      style={styles.fab}
-                      activeOpacity={0.8}
-                      onPress={openMenu}
-                    >
-                      <Ionicons
-                        name={isMenuOpen ? "close" : "add"}
-                        size={35}
-                        color={colors.background}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                <View style={styles.fabRing} />
-              </View>
-            ),
-          }}
-          listeners={({ navigation }) => ({
-            tabPress: (e) => {
-              e.preventDefault();
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-              openMenu();
-            },
-          })}
-        />
+        <Tabs.Screen name="add" options={{ tabBarButton: () => null }} />
         <Tabs.Screen
           name="training"
           options={{
             title: t("training.title", "Treino"),
-            tabBarIcon: ({ color, focused }) => (
+            tabBarIcon: ({ color }) => (
               <View style={styles.iconContainer}>
                 <TabBarIcon5 name="dumbbell" color={color} />
               </View>
             ),
           }}
-          listeners={({ navigation }) => ({
-            tabPress: () => {
-              Haptics.selectionAsync();
-            },
-          })}
+          listeners={{ tabPress: () => safeHaptics.selectionAsync() }}
         />
         <Tabs.Screen
           name="profile"
           options={{
             title: t("profile.title", "Perfil"),
-            tabBarIcon: ({ color, focused }) => (
+            tabBarIcon: ({ color }) => (
               <View style={styles.iconContainer}>
                 <TabBarIcon name="user" color={color} />
               </View>
             ),
           }}
-          listeners={({ navigation }) => ({
-            tabPress: () => {
-              Haptics.selectionAsync();
-            },
-          })}
+          listeners={{ tabPress: () => safeHaptics.selectionAsync() }}
         />
       </Tabs>
 
-      {/* Menu Grid */}
-      {isMenuOpen && (
-        <Animated.View
-          style={[styles.menuBackdrop, { opacity: backdropOpacity }]}
-          pointerEvents={isMenuOpen ? "auto" : "none"}
-        >
-          <TouchableOpacity
-            style={styles.backdropTouchable}
-            activeOpacity={1}
-            onPress={closeMenu}
-          />
-
-          <View style={styles.gridMenuContainer}>
-            <View style={styles.gridRow}>
-              {menuOptions.slice(0, 2).map((option, index) => (
-                <Animated.View
-                  key={index}
-                  style={[styles.gridCard, getMenuItemStyle(index)]}
-                >
-                  <TouchableOpacity
-                    style={[
-                      styles.gridCardTouchable,
-                      { backgroundColor: colors.light },
-                    ]}
-                    activeOpacity={0.9}
-                    onPress={option.onPress}
-                  >
-                    <View style={styles.gridCardContent}>
-                      <View
-                        style={[
-                          styles.gridIconContainer,
-                          { backgroundColor: colors.primary + "20" },
-                        ]}
-                      >
-                        <Ionicons
-                          name={option.icon}
-                          size={32}
-                          color={colors.primary}
-                        />
-                      </View>
-                      <Text
-                        style={[styles.gridCardText, { color: colors.text }]}
-                      >
-                        {option.label}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                </Animated.View>
-              ))}
-            </View>
-            <View style={styles.gridRow}>
-              {menuOptions.slice(2, 4).map((option, index) => (
-                <Animated.View
-                  key={index + 2}
-                  style={[styles.gridCard, getMenuItemStyle(index + 2)]}
-                >
-                  <TouchableOpacity
-                    style={[
-                      styles.gridCardTouchable,
-                      { backgroundColor: colors.light },
-                    ]}
-                    activeOpacity={0.9}
-                    onPress={option.onPress}
-                  >
-                    <View style={styles.gridCardContent}>
-                      <View
-                        style={[
-                          styles.gridIconContainer,
-                          { backgroundColor: colors.primary + "20" },
-                        ]}
-                      >
-                        <Ionicons
-                          name={option.icon}
-                          size={32}
-                          color={colors.primary}
-                        />
-                      </View>
-                      <Text
-                        style={[styles.gridCardText, { color: colors.text }]}
-                      >
-                        {option.label}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                </Animated.View>
-              ))}
-            </View>
-          </View>
-        </Animated.View>
-      )}
+      <FloatingActionButton />
     </>
   );
 }
@@ -412,121 +245,106 @@ const styles = StyleSheet.create({
   iconContainer: {
     alignItems: "center",
     justifyContent: "center",
-    width: 40,
-    height: 40,
   },
-  fabContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-    top: 5,
-    width: 70,
-    height: 70,
-    zIndex: 10,
-  },
-  fabShadow: {
-    width: 65,
-    height: 65,
-    borderRadius: 35,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.44,
-    shadowRadius: 10.32,
-    elevation: 16,
-  },
-  fabBackground: {
-    width: 65,
-    height: 65,
-    borderRadius: 35,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  fab: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "transparent",
-  },
-  fabRing: {
+  animatedContainer: {
     position: "absolute",
-    width: 75,
-    height: 75,
-    borderRadius: 40,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.2)",
-    zIndex: -1,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 20,
+    overflow: "hidden",
   },
-  menuBackdrop: {
+  fabTouchable: {
+    width: FAB_SIZE,
+    height: FAB_SIZE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  optionsRow: {
+    position: "absolute",
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    height: "100%",
+    paddingHorizontal: 15,
+  },
+  contentWrapper: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 15,
+  },
+  optionButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 10,
+    minWidth: 60,
+  },
+  optionLabel: {
+    fontSize: 10,
+    marginTop: 4,
+    fontWeight: "500",
+  },
+  mealTypesScrollContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    minWidth: "100%",
+    flexGrow: 1,
+  },
+  workoutTypesScrollContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    minWidth: "100%",
+    flexGrow: 1,
+  },
+  transparentBackdrop: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    zIndex: 5,
+    zIndex: 15,
   },
   backdropTouchable: {
     width: "100%",
     height: "100%",
   },
-  gridMenuContainer: {
-    position: "absolute",
-    bottom: 150,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    paddingHorizontal: 20,
-    zIndex: 10,
-  },
-  gridRow: {
+  updateWeightContainer: {
+    flex: 1,
     flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-    marginBottom: 15,
-  },
-  gridCard: {
-    width: width * 0.42,
-    height: width * 0.42,
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 3,
-    overflow: "hidden",
-  },
-  gridCardTouchable: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 16,
-    overflow: "hidden",
-    padding: 15,
-  },
-  gridCardContent: {
+    justifyContent: "space-around",
     alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-    height: "100%",
+    paddingHorizontal: 15,
   },
-  gridIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  adjustButton: {
+    padding: 10,
+    borderRadius: 25,
+    width: 50,
+    height: 50,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 15,
   },
-  gridCardText: {
-    fontSize: 16,
-    fontWeight: "600",
+  weightDisplayContainer: {
+    alignItems: "center",
+    minWidth: 80,
+  },
+  weightDisplayText: {
+    fontSize: 28,
+    fontWeight: "bold",
     textAlign: "center",
+  },
+  weightUnitText: {
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
+  },
+  saveWeightButtonV2: {
+    padding: 12,
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

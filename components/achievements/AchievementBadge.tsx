@@ -1,5 +1,12 @@
-import React, { useMemo } from "react";
-import { View, Text, StyleSheet, ViewStyle, TextStyle } from "react-native";
+import React, { useMemo, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ViewStyle,
+  TextStyle,
+  Animated,
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
@@ -29,6 +36,34 @@ const AchievementBadge: React.FC<AchievementBadgeProps> = ({
 }) => {
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const pulseAnim = React.useRef(new Animated.Value(0.6)).current;
+
+  // Iniciar animação de pulso para conquistas novas
+  useEffect(() => {
+    if (isNew || withPulse) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 0.6,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      // Resetar animação
+      pulseAnim.setValue(0);
+    }
+
+    return () => {
+      pulseAnim.stopAnimation();
+    };
+  }, [isNew, withPulse, pulseAnim]);
 
   // Definir tamanhos com base no parâmetro size
   const dimensions = useMemo(() => {
@@ -93,7 +128,7 @@ const AchievementBadge: React.FC<AchievementBadgeProps> = ({
       width: dimensions.badge + 10,
       height: dimensions.badge + 10,
       borderRadius: (dimensions.badge + 10) / 2,
-      backgroundColor: color,
+      backgroundColor: isNew ? "#FFD700" : color,
       opacity: 0.3,
     };
   }, [withPulse, isNew, dimensions.badge, color]);
@@ -104,14 +139,27 @@ const AchievementBadge: React.FC<AchievementBadgeProps> = ({
 
     return (
       <View style={styles.newIndicator}>
-        <Text style={styles.newText}>New</Text>
+        <Text style={styles.newText}>Novo</Text>
       </View>
     );
   };
 
   return (
     <View style={{ alignItems: "center", justifyContent: "center" }}>
-      {(withPulse || isNew) && <View style={pulseStyle} />}
+      {(withPulse || isNew) && (
+        <Animated.View
+          style={[
+            pulseStyle,
+            {
+              transform: [{ scale: pulseAnim }],
+              opacity: pulseAnim.interpolate({
+                inputRange: [0.6, 1],
+                outputRange: [0.3, 0.7],
+              }),
+            },
+          ]}
+        />
+      )}
       <View style={containerStyle}>
         <MaterialCommunityIcons
           name={locked ? "lock" : icon}
@@ -141,6 +189,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     zIndex: 1,
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
   },
   newText: {
     color: "#FFFFFF",

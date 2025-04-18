@@ -21,10 +21,6 @@ import Colors from "../../constants/Colors";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useNutrition } from "../../context/NutritionContext";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { format, isToday, subDays } from "date-fns";
-import { useAuth } from "../../context/AuthContext";
-import { KEYS } from "../../constants/keys";
 import { useTranslation } from "react-i18next";
 import { ptBR } from "date-fns/locale";
 import Svg, {
@@ -36,289 +32,45 @@ import Svg, {
   Rect,
 } from "react-native-svg";
 import { MotiView } from "moti";
-import { useAchievements } from "../../context/AchievementContext";
+import { format, subDays, isToday } from "date-fns";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 48) / 2; // Metade da largura da tela menos o padding
 
-// Criar um objeto para armazenar os dados de água globalmente (para compartilhar entre componentes)
-export const waterDataManager = {
-  waterData: {} as { [date: string]: number },
+// Gerenciador de dados de água para uso em outros componentes
+class WaterDataManager {
+  private waterData: any = {};
 
-  // Método para obter os dados de água
-  getWaterData: () => {
-    return { ...waterDataManager.waterData };
-  },
+  setWaterData(data: any) {
+    this.waterData = data;
+  }
 
-  // Método para definir dados de água para uma data específica
-  setWaterDataForDate: (date: string, amount: number) => {
-    waterDataManager.waterData[date] = amount;
-  },
-};
+  getWaterData() {
+    return this.waterData;
+  }
+}
 
-// Criar um gerenciador para controlar o modal do componente WaterIntakeCard
-export const waterIntakeModalManager = {
-  // Referência para a função que abre o modal (será definida no componente)
-  openModal: null as (() => void) | null,
-
-  // Método para abrir o modal (se estiver disponível)
-  openWaterIntakeModal: () => {
-    if (waterIntakeModalManager.openModal) {
-      waterIntakeModalManager.openModal();
-      return true;
-    }
-    return false;
-  },
-};
+// Exportar uma instância única do gerenciador
+export const waterDataManager = new WaterDataManager();
 
 export default function WaterIntakeCard() {
   const { theme } = useTheme();
   const colors = Colors[theme];
-  const { nutritionInfo } = useNutrition();
-  const { user } = useAuth();
+  const {
+    currentWaterIntake,
+    dailyWaterGoal,
+    addWater,
+    removeWater,
+    waterHistory,
+  } = useNutrition();
   const { t } = useTranslation();
-  const lastCheckDateRef = useRef(new Date());
   const progressAnimationValue = useRef(new Animated.Value(0)).current;
-  const { updateAchievementProgress } = useAchievements();
 
-  // Estados para gerenciar a ingestão de água
-  const [waterIntake, setWaterIntake] = useState(0);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [waterHistory, setWaterHistory] = useState<{ [date: string]: number }>(
-    {}
-  );
-  // Estado para controlar se a meta foi atingida hoje (evitar múltiplas notificações)
-  const [goalMetToday, setGoalMetToday] = useState(false);
-
-  // Meta diária de água (em mL) do contexto de nutrição ou valor padrão
-  const dailyGoal = nutritionInfo.waterIntake || 2000;
-  const cupSize = 250; // Tamanho do copo em mL
-
-  // Chave de armazenamento para o usuário atual
-  const storageKey = useMemo(() => {
-    if (!user) return null;
-    const today = format(new Date(), "yyyy-MM-dd");
-    return `${KEYS.WATER_INTAKE}_${user.uid}_${today}`;
-  }, [user]);
-
-  // Função para gerar a chave de armazenamento para uma data específica
-  const getStorageKeyForDate = useCallback(
-    (date: string) => {
-      if (!user) return null;
-      return `${KEYS.WATER_INTAKE}_${user.uid}_${date}`;
-    },
-    [user]
-  );
-
-  // Função para verificar se é um novo dia
-  const checkNewDay = useCallback(() => {
-    const now = new Date();
-    const lastCheck = lastCheckDateRef.current;
-
-    if (!isToday(lastCheck)) {
-      setWaterIntake(0);
-      lastCheckDateRef.current = now;
-    }
-  }, []);
-
-  // Função para salvar o consumo de água
-  const saveWaterIntake = useCallback(
-    async (intake: number) => {
-      if (!storageKey) return;
-
-      try {
-        await AsyncStorage.setItem(storageKey, JSON.stringify(intake));
-
-        // Atualizar o histórico local
-        const today = format(new Date(), "yyyy-MM-dd");
-        setWaterHistory((prev) => ({
-          ...prev,
-          [today]: intake,
-        }));
-
-        // Atualizar o gerenciador global de dados de água
-        waterDataManager.setWaterDataForDate(today, intake);
-
-        // Verificar se atingiu a meta de água e atualizar conquistas
-        if (intake >= dailyGoal && !goalMetToday) {
-          setGoalMetToday(true);
-          checkWaterAchievement();
-        }
-      } catch (error) {}
-    },
-    [storageKey, dailyGoal, goalMetToday]
-  );
-
-  // Função para verificar conquistas de água
-  const checkWaterAchievement = useCallback(async () => {
-    try {
-      // Obter a data atual
-      const today = format(new Date(), "yyyy-MM-dd");
-
-      // Carregar contador de dias com meta atingida (se existir)
-      const waterGoalDaysKey = `${KEYS.WATER_GOAL_DAYS}_${user?.uid}`;
-      const storedWaterGoalDays = await AsyncStorage.getItem(waterGoalDaysKey);
-
-      // Obter o último dia em que a meta foi atingida
-      const lastWaterGoalDayKey = `${KEYS.LAST_WATER_GOAL_DAY}_${user?.uid}`;
-      const lastWaterGoalDay = await AsyncStorage.getItem(lastWaterGoalDayKey);
-
-      // Se já atingimos a meta hoje, não contar novamente
-      if (lastWaterGoalDay === today) return;
-
-      // Salvar o dia atual como último dia em que a meta foi atingida
-      await AsyncStorage.setItem(lastWaterGoalDayKey, today);
-
-      // Calcular novo valor para dias totais com meta atingida
-      const currentWaterGoalDays = storedWaterGoalDays
-        ? parseInt(storedWaterGoalDays)
-        : 0;
-      const newWaterGoalDays = currentWaterGoalDays + 1;
-
-      // Salvar o novo valor
-      await AsyncStorage.setItem(waterGoalDaysKey, newWaterGoalDays.toString());
-
-      // Atualizar a conquista com o novo valor
-      if (user && updateAchievementProgress) {
-        // Se o updateAchievementProgress retornar um valor, significa que uma conquista foi desbloqueada
-        const achievement = await updateAchievementProgress(
-          "water_intake",
-          newWaterGoalDays,
-          true
-        );
-
-        // O sistema de notificação já cuida de exibir o toast quando uma conquista é desbloqueada
-      }
-    } catch (error) {
-      console.error("Erro ao verificar conquista de água:", error);
-    }
-  }, [user, updateAchievementProgress]);
-
-  // Carregar o histórico de consumo de água dos últimos 14 dias
-  const loadWaterHistory = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      const today = new Date();
-      const waterData: { [date: string]: number } = {};
-
-      // Carregar dados dos últimos 14 dias
-      for (let i = 0; i < 14; i++) {
-        const checkDate = subDays(today, i);
-        const dateStr = format(checkDate, "yyyy-MM-dd");
-        const storageKey = getStorageKeyForDate(dateStr);
-
-        if (storageKey) {
-          const data = await AsyncStorage.getItem(storageKey);
-          if (data) {
-            const intake = JSON.parse(data);
-            waterData[dateStr] = intake;
-
-            // Atualizar o gerenciador global
-            waterDataManager.setWaterDataForDate(dateStr, intake);
-          }
-        }
-      }
-
-      setWaterHistory(waterData);
-      return waterData;
-    } catch (error) {
-      return {};
-    }
-  }, [user, getStorageKeyForDate]);
-
-  // Função para carregar o consumo de água - usando apenas um useEffect
-  useEffect(() => {
-    const loadWaterIntake = async () => {
-      if (!storageKey) return;
-
-      try {
-        const data = await AsyncStorage.getItem(storageKey);
-
-        if (data) {
-          const savedIntake = JSON.parse(data);
-          setWaterIntake(savedIntake);
-
-          // Atualizar o gerenciador global
-          const today = format(new Date(), "yyyy-MM-dd");
-          waterDataManager.setWaterDataForDate(today, savedIntake);
-
-          // Verificar se o objetivo já foi atingido hoje
-          if (savedIntake >= dailyGoal) {
-            setGoalMetToday(true);
-          }
-        } else {
-          setWaterIntake(0);
-        }
-
-        setIsInitialized(true);
-        lastCheckDateRef.current = new Date();
-
-        // Verificar a última data em que a meta foi atingida
-        const lastWaterGoalDayKey = `${KEYS.LAST_WATER_GOAL_DAY}_${user?.uid}`;
-        const lastWaterGoalDay = await AsyncStorage.getItem(
-          lastWaterGoalDayKey
-        );
-        const today = format(new Date(), "yyyy-MM-dd");
-
-        // Se o último dia registrado é hoje, então a meta já foi atingida hoje
-        setGoalMetToday(lastWaterGoalDay === today);
-
-        // Configurar verificação periódica para novo dia
-        const intervalId = setInterval(checkNewDay, 60000); // Verificar a cada minuto
-
-        return () => clearInterval(intervalId);
-      } catch (error) {
-        setIsInitialized(true);
-      }
-    };
-
-    loadWaterIntake();
-
-    // Carregar histórico de água
-    loadWaterHistory();
-  }, [storageKey, checkNewDay, loadWaterHistory, dailyGoal, user]);
-
-  // Resetar o flag goalMetToday no início de um novo dia
-  useEffect(() => {
-    const resetGoalMet = () => {
-      const now = new Date();
-      const lastCheck = lastCheckDateRef.current;
-
-      if (!isToday(lastCheck)) {
-        setGoalMetToday(false);
-      }
-    };
-
-    // Verificar a cada minuto se é um novo dia
-    const intervalId = setInterval(resetGoalMet, 60000);
-    return () => clearInterval(intervalId);
-  }, []);
-
-  // Função para adicionar um copo de água
-  const addWater = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const newIntake = Math.min(waterIntake + cupSize, dailyGoal);
-    setWaterIntake(newIntake);
-    saveWaterIntake(newIntake);
-  }, [waterIntake, dailyGoal, cupSize, saveWaterIntake]);
-
-  // Função para remover um copo de água
-  const removeWater = useCallback(() => {
-    if (waterIntake >= cupSize) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const newIntake = waterIntake - cupSize;
-      setWaterIntake(newIntake);
-      saveWaterIntake(newIntake);
-    }
-  }, [waterIntake, cupSize, saveWaterIntake]);
-
-  // Calcular a porcentagem de progresso
   const progress = useMemo(() => {
-    return Math.min((waterIntake / dailyGoal) * 100, 100);
-  }, [waterIntake, dailyGoal]);
+    const goal = dailyWaterGoal || 1;
+    return Math.min((currentWaterIntake / goal) * 100, 100);
+  }, [currentWaterIntake, dailyWaterGoal]);
 
-  // Animar o progresso ao mudar
   useEffect(() => {
     Animated.timing(progressAnimationValue, {
       toValue: progress,
@@ -326,20 +78,12 @@ export default function WaterIntakeCard() {
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
+  }, [progress, progressAnimationValue]);
 
-    // Verificar se atingiu 100% da meta pela primeira vez
-    if (progress === 100 && !goalMetToday) {
-      setGoalMetToday(true);
-      checkWaterAchievement();
-    }
-  }, [progress, progressAnimationValue, goalMetToday, checkWaterAchievement]);
-
-  // Formatar o volume de água para exibição
   const formattedWater = useMemo(() => {
-    return `${(waterIntake / 1000).toFixed(1)}`;
-  }, [waterIntake]);
+    return `${(currentWaterIntake / 1000).toFixed(1)}`;
+  }, [currentWaterIntake]);
 
-  // Função para gerar dados do gráfico semanal
   const weeklyData = useMemo(() => {
     const days = [
       t("waterIntake.weekDays.sunday"),
@@ -352,21 +96,22 @@ export default function WaterIntakeCard() {
     ];
     const today = new Date();
 
-    // Criar array com 7 dias: os 6 dias anteriores + hoje
     return Array.from({ length: 7 }).map((_, index) => {
-      // Calcular quantos dias precisamos voltar
       const daysBack = 6 - index;
-      const date = format(subDays(today, daysBack), "yyyy-MM-dd");
-      const dateObj = subDays(today, daysBack);
-      const dayOfWeek = dateObj.getDay(); // 0-6
+      const checkDate = subDays(today, daysBack);
+      const dateStr = format(checkDate, "yyyy-MM-dd");
+      const dayOfWeek = checkDate.getDay();
+
+      const intakeForDay = waterHistory[dateStr] || 0;
+      const goalForDay = dailyWaterGoal || 1;
 
       return {
-        day: days[dayOfWeek], // Dia da semana correspondente
-        value: (waterHistory[date] || 0) / dailyGoal,
-        isToday: daysBack === 0, // É hoje quando daysBack = 0
+        day: days[dayOfWeek],
+        value: Math.min(intakeForDay / goalForDay, 1),
+        isToday: isToday(checkDate),
       };
     });
-  }, [waterHistory, dailyGoal, t]);
+  }, [waterHistory, dailyWaterGoal, t]);
 
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -379,21 +124,6 @@ export default function WaterIntakeCard() {
     setModalVisible(false);
   }, []);
 
-  // Registrar o método para abrir o modal
-  useEffect(() => {
-    // Definir a função que abre o modal no gerenciador global
-    waterIntakeModalManager.openModal = () => {
-      setModalVisible(true);
-    };
-
-    // Limpar a referência quando o componente for desmontado
-    return () => {
-      if (waterIntakeModalManager.openModal === setModalVisible) {
-        waterIntakeModalManager.openModal = null;
-      }
-    };
-  }, []);
-
   const handleAddWater = useCallback(() => {
     addWater();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -404,7 +134,6 @@ export default function WaterIntakeCard() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [removeWater]);
 
-  // Determinar a cor do progresso baseado no valor
   const getProgressColor = useCallback(() => {
     if (progress < 25) return "#FF4B4B";
     if (progress < 50) return "#FFB932";
@@ -440,11 +169,8 @@ export default function WaterIntakeCard() {
           onPress={handleCardPress}
           activeOpacity={0.7}
         >
-          {/* Cabeçalho com consumo atual */}
           <View style={styles.header}>
-            {/* Círculo de progresso agora está à esquerda */}
             <View style={styles.progressCircle}>
-              {/* Círculo de progresso com SVG */}
               <Svg width={42} height={42} viewBox="0 0 42 42">
                 <Defs>
                   <LinearGradient
@@ -458,7 +184,6 @@ export default function WaterIntakeCard() {
                     <Stop offset="100%" stopColor={gradientColors[1]} />
                   </LinearGradient>
                 </Defs>
-                {/* Círculo de fundo */}
                 <Circle
                   cx="21"
                   cy="21"
@@ -467,7 +192,6 @@ export default function WaterIntakeCard() {
                   strokeWidth="3"
                   fill="none"
                 />
-                {/* Círculo de progresso */}
                 <Circle
                   cx="21"
                   cy="21"
@@ -481,7 +205,6 @@ export default function WaterIntakeCard() {
                   transform="rotate(-90, 21, 21)"
                 />
               </Svg>
-              {/* Ícone de água no centro */}
               <View style={styles.iconContainer}>
                 <MaterialCommunityIcons
                   name="water"
@@ -490,7 +213,6 @@ export default function WaterIntakeCard() {
                 />
               </View>
 
-              {/* Cintilação para finalização */}
               {progress >= 100 && (
                 <MotiView
                   style={styles.completionRing}
@@ -505,18 +227,16 @@ export default function WaterIntakeCard() {
               )}
             </View>
 
-            {/* Valores de texto agora estão à direita */}
             <View style={styles.valueContainer}>
               <Text style={[styles.todayValue, { color: colors.text }]}>
                 {formattedWater}L
               </Text>
               <Text style={[styles.goalText, { color: colors.text + "80" }]}>
-                {t("waterIntake.goal")}: {(dailyGoal / 1000).toFixed(1)}L
+                {t("waterIntake.goal")}: {(dailyWaterGoal / 1000).toFixed(1)}L
               </Text>
             </View>
           </View>
 
-          {/* Gráfico semanal */}
           <View style={styles.weeklyChart}>
             {weeklyData.map((data, index) => (
               <View key={index} style={styles.barContainer}>
@@ -561,7 +281,6 @@ export default function WaterIntakeCard() {
         </TouchableOpacity>
       </MotiView>
 
-      {/* Modal para adicionar/remover água */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -596,7 +315,6 @@ export default function WaterIntakeCard() {
                     <Stop offset="100%" stopColor={gradientColors[0]} />
                   </LinearGradient>
                 </Defs>
-                {/* Garrafa de água */}
                 <Circle
                   cx="60"
                   cy="60"
@@ -605,7 +323,6 @@ export default function WaterIntakeCard() {
                   stroke={theme === "dark" ? "#3A3A3A" : "#E0E0E0"}
                   strokeWidth="2"
                 />
-                {/* Água na garrafa - altura baseada no progresso */}
                 <Circle
                   cx="60"
                   cy="60"
@@ -614,7 +331,6 @@ export default function WaterIntakeCard() {
                   clipPath="url(#waterClip)"
                   opacity={0.9}
                 />
-                {/* Mascará para a água - corta baseado no progresso */}
                 <Defs>
                   <ClipPath id="waterClip">
                     <Rect
@@ -634,7 +350,7 @@ export default function WaterIntakeCard() {
                   {formattedWater}L
                 </Text>
                 <Text style={[styles.modalGoal, { color: colors.text + "80" }]}>
-                  / {(dailyGoal / 1000).toFixed(1)}L
+                  / {(dailyWaterGoal / 1000).toFixed(1)}L
                 </Text>
               </View>
             </View>
@@ -646,7 +362,7 @@ export default function WaterIntakeCard() {
                   { backgroundColor: colors.text + "10" },
                 ]}
                 onPress={handleRemoveWater}
-                disabled={waterIntake === 0}
+                disabled={currentWaterIntake === 0}
               >
                 <MaterialCommunityIcons
                   name="minus"
@@ -664,7 +380,7 @@ export default function WaterIntakeCard() {
                   { backgroundColor: getProgressColor() + "20" },
                 ]}
                 onPress={handleAddWater}
-                disabled={waterIntake >= dailyGoal}
+                disabled={currentWaterIntake >= dailyWaterGoal}
               >
                 <MaterialCommunityIcons
                   name="plus"
@@ -749,37 +465,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#4CAF50",
   },
-  weeklyChart: {
-    flex: 1,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingTop: 12,
-  },
-  barContainer: {
-    flex: 1,
-    alignItems: "center",
-    paddingBottom: 8,
-  },
-  barWrapper: {
-    height: "80%",
-    width: 5,
-    justifyContent: "flex-end",
-    marginBottom: 6,
-    borderRadius: 3,
-    backgroundColor: "rgba(0,0,0,0.05)",
-    overflow: "hidden",
-  },
-  bar: {
-    width: "100%",
-    borderRadius: 3,
-    minHeight: 2,
-    bottom: 0,
-    position: "absolute",
-  },
-  dayLabel: {
-    fontSize: 10,
-    fontWeight: "600",
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.6)",
@@ -839,6 +524,37 @@ const styles = StyleSheet.create({
   },
   modalButtonText: {
     fontSize: 16,
+    fontWeight: "600",
+  },
+  weeklyChart: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingTop: 12,
+  },
+  barContainer: {
+    flex: 1,
+    alignItems: "center",
+    paddingBottom: 8,
+  },
+  barWrapper: {
+    height: "80%",
+    width: 5,
+    justifyContent: "flex-end",
+    marginBottom: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(0,0,0,0.05)",
+    overflow: "hidden",
+  },
+  bar: {
+    width: "100%",
+    borderRadius: 3,
+    minHeight: 2,
+    bottom: 0,
+    position: "absolute",
+  },
+  dayLabel: {
+    fontSize: 10,
     fontWeight: "600",
   },
 });

@@ -16,6 +16,8 @@ import AchievementBadge from "./AchievementBadge";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
+import AchievementDetailsModal from "./AchievementDetailsModal";
+import { Achievement } from "../../constants/achievementsDatabase";
 
 const { width } = Dimensions.get("window");
 
@@ -25,17 +27,7 @@ interface AchievementsCardProps {
 
 // Interfaces para tipos de itens de conquista
 interface AchievementItem {
-  achievement:
-    | {
-        id: string;
-        name: string;
-        description: string;
-        category: string;
-        icon: string;
-        badgeColor: string;
-        rarity: string;
-      }
-    | undefined;
+  achievement: Achievement | undefined;
   isNew?: boolean;
   locked?: boolean;
 }
@@ -50,8 +42,12 @@ const AchievementsCard: React.FC<AchievementsCardProps> = ({ onPress }) => {
     recentlyUnlocked,
     isAchievementUnlocked,
     isRecentlyUnlocked,
+    markUnlockedAsViewed,
   } = useAchievements();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedAchievement, setSelectedAchievement] =
+    useState<Achievement | null>(null);
 
   // Buscar conquistas recentes não visualizadas
   const newAchievements = React.useMemo(() => {
@@ -148,7 +144,12 @@ const AchievementsCard: React.FC<AchievementsCardProps> = ({ onPress }) => {
           icon: "lock",
           badgeColor: "#999999",
           rarity: "common",
-        },
+          threshold: 0,
+          fitPoints: 0,
+          fitPointsIcon: "help-circle",
+          trackedValue: "",
+          hidden: false,
+        } as Achievement,
         isNew: false,
         locked: true,
       });
@@ -177,125 +178,117 @@ const AchievementsCard: React.FC<AchievementsCardProps> = ({ onPress }) => {
     onPress();
   }, [onPress]);
 
-  // Renderizar um badge para uma conquista
-  const renderAchievementBadge = (item: AchievementItem, index: number) => {
-    if (!item.achievement) return null;
+  // Função para abrir o modal com a conquista selecionada
+  const handleAchievementPress = useCallback(
+    (achievement: Achievement | undefined) => {
+      if (achievement) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        setSelectedAchievement(achievement);
+        setIsModalVisible(true);
+        // Opcional: Marcar como vista se for nova ao ser aberta aqui
+        if (
+          isRecentlyUnlocked(achievement.id) &&
+          !recentlyUnlocked.find((a) => a.id === achievement.id)?.viewed
+        ) {
+          markUnlockedAsViewed(achievement.id);
+        }
+      }
+    },
+    [isRecentlyUnlocked, markUnlockedAsViewed, recentlyUnlocked]
+  );
 
-    // Criar uma chave realmente única
-    const uniqueKey = `${item.achievement.id}-${index}`;
-
-    return (
-      <Animated.View
-        key={uniqueKey}
-        entering={FadeInDown.delay(index * 100).duration(300)}
-        style={[styles.badgeContainer, { marginLeft: index > 0 ? 12 : 0 }]}
-      >
-        <AchievementBadge
-          icon={item.achievement.icon as any}
-          color={item.achievement.badgeColor}
-          size="medium"
-          locked={!!item.locked}
-          new={!!item.isNew}
-        />
-        {!item.locked && (
-          <Text
-            style={[
-              styles.badgeTitle,
-              { color: colors.text, opacity: 0.8 },
-              item.isNew && {
-                color: item.achievement.badgeColor,
-                fontWeight: "bold",
-              },
-            ]}
-            numberOfLines={1}
-          >
-            {item.achievement.name}
-          </Text>
-        )}
-      </Animated.View>
-    );
-  };
+  // Função para fechar o modal
+  const handleCloseModal = useCallback(() => {
+    setIsModalVisible(false);
+    // Pequeno delay para a animação de saída antes de limpar
+    setTimeout(() => {
+      setSelectedAchievement(null);
+    }, 300); // Ajuste o tempo se necessário
+  }, []);
 
   const hasAchievements = stats.unlockedAchievements > 0;
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: colors.light,
-          borderWidth: 1,
-          borderColor: colors.border,
-        },
-      ]}
-    >
-      <Pressable
-        style={styles.pressableArea}
-        onPress={hasAchievements ? toggleExpand : onPress}
-        android_ripple={{ color: colors.text + "10", borderless: true }}
+    <>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.light,
+            borderWidth: 1,
+            borderColor: colors.border,
+          },
+        ]}
       >
-        <View style={styles.header}>
-          <View style={styles.titleContainer}>
-            <View
-              style={[
-                styles.iconContainer,
-                { backgroundColor: stats.currentFitLevel.color + "20" },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name={stats.currentFitLevel.icon}
-                size={18}
-                color={stats.currentFitLevel.color}
-              />
-            </View>
-            <View>
-              <Text style={[styles.title, { color: colors.text }]}>
-                {t("achievements.title")}
-              </Text>
-              <Text
-                style={[styles.subtitle, { color: colors.text + "80" }]}
-                numberOfLines={1}
+        <Pressable
+          style={styles.pressableArea}
+          onPress={hasAchievements ? toggleExpand : onPress}
+          android_ripple={{ color: colors.text + "10", borderless: true }}
+        >
+          <View style={styles.header}>
+            <View style={styles.titleContainer}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: colors.accentGray + "20" },
+                ]}
               >
-                Nível {stats.currentFitLevel.level}:{" "}
-                {stats.currentFitLevel.title}
-              </Text>
+                <MaterialCommunityIcons
+                  name={stats.currentFitLevel.icon}
+                  size={18}
+                  color={stats.currentFitLevel.color}
+                />
+              </View>
+              <View>
+                <Text style={[styles.title, { color: colors.text }]}>
+                  {t("achievements.title")}
+                </Text>
+                <Text
+                  style={[styles.subtitle, { color: colors.text + "80" }]}
+                  numberOfLines={1}
+                >
+                  {t("achievements.level")} {stats.currentFitLevel.level}:{" "}
+                  {t(
+                    `achievements.fitLevel.levels.${stats.currentFitLevel.level}.title`
+                  )}
+                </Text>
+              </View>
             </View>
-          </View>
 
-          <View style={styles.headerRight}>
-            <TouchableOpacity
-              style={[
-                styles.infoButton,
-                { backgroundColor: colors.primary + "20" },
-              ]}
-              onPress={openInfo}
-            >
-              <Ionicons
-                name="information-circle-outline"
-                size={20}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
-
-            {hasAchievements && (
+            <View style={styles.headerRight}>
               <TouchableOpacity
                 style={[
-                  styles.expandButton,
-                  { backgroundColor: colors.text + "10" },
+                  styles.infoButton,
+                  { backgroundColor: colors.accentGray + "20" },
                 ]}
-                onPress={toggleExpand}
+                onPress={openInfo}
               >
-                <Ionicons
-                  name={isExpanded ? "chevron-up" : "chevron-down"}
+                <MaterialCommunityIcons
+                  name="torch"
                   size={20}
-                  color={colors.text + "80"}
+                  color={colors.accentGray}
                 />
               </TouchableOpacity>
-            )}
-          </View>
-        </View>
 
-        {!isExpanded && (
+              {hasAchievements && (
+                <TouchableOpacity
+                  style={[
+                    styles.expandButton,
+                    { backgroundColor: colors.accentGray + "20" },
+                  ]}
+                  onPress={toggleExpand}
+                >
+                  <Ionicons
+                    name={isExpanded ? "chevron-up" : "chevron-down"}
+                    size={20}
+                    color={colors.accentGray}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* Barra de progresso sempre visível */}
           <View style={styles.progressContainer}>
             <View
               style={[
@@ -317,117 +310,191 @@ const AchievementsCard: React.FC<AchievementsCardProps> = ({ onPress }) => {
               <Text
                 style={[styles.progressText, { color: colors.text + "70" }]}
               >
-                {stats.fitLevelProgress}% • {stats.fitPointsToNextLevel} pts
-                para nível {stats.nextFitLevel.level}
+                {stats.fitLevelProgress}% • {stats.fitPointsToNextLevel}{" "}
+                FitPoints {t("achievements.forLevel")}{" "}
+                {stats.nextFitLevel.level}
               </Text>
             )}
           </View>
-        )}
-      </Pressable>
+        </Pressable>
 
-      {/* Conteúdo expandido */}
-      {isExpanded && (
-        <View style={styles.expandedContent}>
-          <View style={styles.statsGrid}>
-            {/* FitPoints */}
-            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <View style={styles.statIconContainer}>
-                <MaterialCommunityIcons
-                  name="star"
-                  size={20}
-                  color={stats.currentFitLevel.color}
-                />
-              </View>
-              <Text style={[styles.statValue, { color: colors.text }]}>
-                {stats.totalFitPoints}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.text + "70" }]}>
-                FitPoints
-              </Text>
-            </View>
-
-            {/* Conquistas */}
-            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <View style={styles.statIconContainer}>
-                <MaterialCommunityIcons
-                  name="trophy-outline"
-                  size={20}
-                  color={colors.primary}
-                />
-              </View>
-              <Text style={[styles.statValue, { color: colors.text }]}>
-                {stats.unlockedAchievements}/{stats.totalAchievements}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.text + "70" }]}>
-                Conquistas
-              </Text>
-            </View>
-
-            {/* Progresso */}
-            <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-              <View style={styles.statIconContainer}>
-                <MaterialCommunityIcons
-                  name="percent"
-                  size={20}
-                  color="#FF9F1C"
-                />
-              </View>
-              <Text style={[styles.statValue, { color: colors.text }]}>
-                {stats.completionPercentage}%
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.text + "70" }]}>
-                Concluído
-              </Text>
-            </View>
-          </View>
-
-          {/* Progresso detalhado */}
-          {stats.nextFitLevel && (
-            <View style={styles.levelProgressContainer}>
-              <View style={styles.levelProgressHeader}>
-                <Text
-                  style={[styles.levelProgressTitle, { color: colors.text }]}
-                >
-                  Próximo Nível: {stats.nextFitLevel.title}
-                </Text>
-                <Text
+        {/* Conteúdo expandido */}
+        {isExpanded && (
+          <View style={styles.expandedContent}>
+            <View style={styles.statsGrid}>
+              {/* Linha 1 */}
+              <View style={styles.statsRow}>
+                {/* FitPoints */}
+                <Animated.View
+                  entering={FadeInDown.delay(0 * 100).duration(300)}
                   style={[
-                    styles.levelProgressPoints,
-                    { color: colors.text + "70" },
-                  ]}
-                >
-                  {stats.totalFitPoints}/{stats.nextFitLevel.pointsRequired}
-                </Text>
-              </View>
-
-              <View
-                style={[
-                  styles.levelProgressBar,
-                  { backgroundColor: colors.text + "20" },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.levelProgressFill,
+                    styles.statCard,
                     {
-                      width: `${stats.fitLevelProgress}%`,
-                      backgroundColor: stats.currentFitLevel.color,
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
                     },
                   ]}
-                />
+                >
+                  <View
+                    style={[
+                      styles.statIconContainer,
+                      { backgroundColor: stats.currentFitLevel.color + "15" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="flare"
+                      size={20}
+                      color={stats.currentFitLevel.color}
+                    />
+                  </View>
+                  {/* Novo container para Label e Value */}
+                  <View style={styles.statTextContainer}>
+                    <Text
+                      style={[styles.statLabel, { color: colors.text + "70" }]}
+                    >
+                      {t("achievements.fitPoints")}
+                    </Text>
+                    <Text style={[styles.statValue, { color: colors.text }]}>
+                      {stats.totalFitPoints}
+                    </Text>
+                  </View>
+                </Animated.View>
+
+                {/* Conquistas */}
+                <Animated.View
+                  entering={FadeInDown.delay(1 * 100).duration(300)}
+                  style={[
+                    styles.statCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.statIconContainer,
+                      { backgroundColor: "#FFD700" + "15" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="trophy-outline"
+                      size={20}
+                      color="#FFD700"
+                    />
+                  </View>
+                  {/* Novo container para Label e Value */}
+                  <View style={styles.statTextContainer}>
+                    <Text
+                      style={[styles.statLabel, { color: colors.text + "70" }]}
+                    >
+                      {t("achievements.title")}
+                    </Text>
+                    <Text style={[styles.statValue, { color: colors.text }]}>
+                      {stats.unlockedAchievements}/{stats.totalAchievements}
+                    </Text>
+                  </View>
+                </Animated.View>
+              </View>
+
+              {/* Linha 2 */}
+              <View style={styles.statsRow}>
+                {/* Progresso */}
+                <Animated.View
+                  entering={FadeInDown.delay(2 * 100).duration(300)}
+                  style={[
+                    styles.statCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.statIconContainer,
+                      { backgroundColor: "#4169E1" + "15" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="percent"
+                      size={20}
+                      color="#4169E1"
+                    />
+                  </View>
+                  {/* Novo container para Label e Value */}
+                  <View style={styles.statTextContainer}>
+                    <Text
+                      style={[styles.statLabel, { color: colors.text + "70" }]}
+                    >
+                      {t("achievements.stats.completion")}
+                    </Text>
+                    <Text style={[styles.statValue, { color: colors.text }]}>
+                      {stats.completionPercentage}%
+                    </Text>
+                  </View>
+                </Animated.View>
+
+                {/* Sequência (NOVO) */}
+                <Animated.View
+                  entering={FadeInDown.delay(3 * 100).duration(300)}
+                  style={[
+                    styles.statCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.statIconContainer,
+                      { backgroundColor: "#FF6B6B" + "15" }, // Cor de fogo com opacidade
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="fire"
+                      size={20}
+                      color="#FF6B6B" // Cor de fogo
+                    />
+                  </View>
+                  <View style={styles.statTextContainer}>
+                    <Text
+                      style={[styles.statLabel, { color: colors.text + "70" }]}
+                    >
+                      {t("achievements.stats.streak", "Sequência")}
+                    </Text>
+                    <Text style={[styles.statValue, { color: colors.text }]}>
+                      {stats.currentStreak || 0}
+                      <Text
+                        style={[
+                          styles.statLabel,
+                          { color: colors.text + "70" },
+                        ]}
+                      >
+                        {" "}
+                        {stats.currentStreak === 1 ? "dia" : "dias"}
+                      </Text>
+                    </Text>
+                  </View>
+                </Animated.View>
               </View>
             </View>
-          )}
-
-          {/* Exibição de conquistas em destaque */}
-          <View style={styles.featuredAchievementsContainer}>
-            {featuredAchievements.map((item, index) =>
-              renderAchievementBadge(item, index)
-            )}
           </View>
-        </View>
+        )}
+      </View>
+
+      {/* Renderizar o Modal aqui */}
+      {selectedAchievement && (
+        <AchievementDetailsModal
+          visible={isModalVisible}
+          achievement={selectedAchievement}
+          currentValue={selectedAchievement.threshold ?? 0}
+          isUnlocked={true}
+          onClose={handleCloseModal}
+        />
       )}
-    </View>
+    </>
   );
 };
 
@@ -454,7 +521,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   titleContainer: {
     flexDirection: "row",
@@ -502,7 +569,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   progressContainer: {
-    marginTop: 14,
+    // marginTop removido para diminuir o espaço entre header e barra
   },
   progressBar: {
     height: 6,
@@ -524,63 +591,41 @@ const styles = StyleSheet.create({
     paddingTop: 6,
   },
   statsGrid: {
+    flexDirection: "column",
+  },
+  statsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 20,
+    marginBottom: 12,
   },
   statCard: {
-    flex: 1,
+    width: "48%",
+    flexDirection: "row",
     alignItems: "center",
     padding: 12,
     borderRadius: 12,
-    marginHorizontal: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: "rgba(0, 0, 0, 0.1)",
   },
   statIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 6,
+    marginRight: 10,
+  },
+  statTextContainer: {
+    flex: 1,
+    justifyContent: "center",
   },
   statValue: {
     fontSize: 16,
-    fontWeight: "600",
-    marginTop: 4,
+    fontWeight: "700",
   },
   statLabel: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  levelProgressContainer: {
-    marginBottom: 20,
-  },
-  levelProgressHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  levelProgressTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  levelProgressPoints: {
-    fontSize: 12,
-  },
-  levelProgressBar: {
-    height: 8,
-    borderRadius: 4,
-    width: "100%",
-    overflow: "hidden",
-  },
-  levelProgressFill: {
-    height: "100%",
-    borderRadius: 4,
+    fontSize: 13,
+    marginBottom: 2,
   },
   featuredAchievementsContainer: {
     flexDirection: "row",
@@ -590,7 +635,6 @@ const styles = StyleSheet.create({
   badgeContainer: {
     alignItems: "center",
     width: (width - 100) / 3,
-    marginHorizontal: 5,
   },
   badgeTitle: {
     fontSize: 12,

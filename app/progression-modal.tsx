@@ -10,6 +10,7 @@ import {
   Alert,
   Animated,
   Dimensions,
+  KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
@@ -31,6 +32,9 @@ import InfoModal from "../components/common/InfoModal";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
+import { format } from "date-fns";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { KEYS } from "../constants/keys";
 
 // Constantes para animação do header
 const { width } = Dimensions.get("window");
@@ -282,244 +286,261 @@ export default function ProgressionModal() {
     >
       <StatusBar style="light" />
 
-      {/* Cabeçalho com gradiente colapsável */}
-      <Animated.View
-        style={[styles.gradientHeaderContainer, { height: headerHeight }]}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 70 : 0}
       >
-        <LinearGradient
-          colors={[
-            workoutColor as string,
-            (workoutColor + "90") as string,
-            (workoutColor + "40") as string,
-          ]}
-          style={[styles.headerGradient, { flex: 1 }]}
-        >
-          {/* Cabeçalho de navegação */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={handleClose}
-              disabled={loading || applying}
-            >
-              <Ionicons name="chevron-down" size={24} color="#FFF" />
-            </TouchableOpacity>
-
-            <Animated.Text
-              style={[
-                styles.headerTitle,
-                {
-                  opacity: headerTitleOpacity,
-                  transform: [
-                    { scale: titleScale },
-                    { translateY: titleTranslateY },
-                  ],
-                },
-              ]}
-            >
-              {workoutName as string}
-            </Animated.Text>
-
-            <TouchableOpacity
-              style={styles.infoButton}
-              onPress={handleShowInfo}
-              disabled={loading || applying}
-            >
-              <Ionicons
-                name="information-circle-outline"
-                size={24}
-                color="#FFF"
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Conteúdo do cabeçalho - desaparece ao rolar */}
+        {/* Header fixo que inclui gradiente */}
+        <View style={styles.fixedHeaderContainer}>
+          {/* Cabeçalho com gradiente colapsável */}
           <Animated.View
-            style={[
-              styles.gradientContent,
-              {
-                opacity: heroContentOpacity,
-                transform: [{ translateY: heroContentTranslate }],
-              },
-            ]}
+            style={[styles.gradientHeaderContainer, { height: headerHeight }]}
           >
-            <Ionicons
-              name="barbell"
-              size={32}
-              color="#fff"
-              style={styles.headerIcon}
-            />
-            <Text style={styles.headerGradientTitle}>
-              {workoutName as string}
-            </Text>
-            {previousDate && (
-              <Text style={styles.headerGradientSubtitle}>
-                {historyCount > 1
-                  ? t("progression.modal.basedOn", {
-                      count: historyCount,
-                      date: formatDate(previousDate),
-                    })
-                  : t("progression.modal.basedOn_singular", {
-                      date: formatDate(previousDate),
-                    })}
-              </Text>
-            )}
-          </Animated.View>
-        </LinearGradient>
-      </Animated.View>
+            <LinearGradient
+              colors={[
+                workoutColor as string,
+                (workoutColor + "90") as string,
+                (workoutColor + "40") as string,
+              ]}
+              style={[styles.headerGradient, { flex: 1 }]}
+            >
+              {/* Cabeçalho de navegação */}
+              <View style={styles.header}>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={handleClose}
+                  disabled={loading || applying}
+                >
+                  <Ionicons name="chevron-down" size={24} color="#FFF" />
+                </TouchableOpacity>
 
-      <Animated.ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-        scrollEventThrottle={16}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
-        showsVerticalScrollIndicator={false}
-      >
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={workoutColor as string} />
-            <Text style={[styles.loadingText, { color: colors.text }]}>
-              {t("progression.modal.calculating")}
-            </Text>
-          </View>
-        ) : (
-          <>
-            {suggestions.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Ionicons
-                  name="fitness-outline"
-                  size={40}
-                  color={colors.secondary}
-                />
-                <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                  {t("progression.modal.noWorkoutsFound")}
-                </Text>
-                <Text style={[styles.emptyText, { color: colors.secondary }]}>
-                  {t("progression.modal.noWorkoutsDescription")}
-                </Text>
-              </View>
-            ) : (
-              <>
-                <View style={styles.sectionTitleContainer}>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                    {t("progression.modal.suggestionsTitle")}
-                  </Text>
-                </View>
-
-                <Text
+                <Animated.Text
                   style={[
-                    styles.sectionDescription,
-                    { color: colors.secondary },
+                    styles.headerTitle,
+                    {
+                      opacity: headerTitleOpacity,
+                      transform: [
+                        { scale: titleScale },
+                        { translateY: titleTranslateY },
+                      ],
+                    },
                   ]}
                 >
-                  {t("progression.modal.selectExercisesDescription")}
+                  {workoutName as string}
+                </Animated.Text>
+
+                <TouchableOpacity
+                  style={styles.infoButton}
+                  onPress={handleShowInfo}
+                  disabled={loading || applying}
+                >
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={24}
+                    color="#FFF"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Conteúdo do cabeçalho - desaparece ao rolar */}
+              <Animated.View
+                style={[
+                  styles.gradientContent,
+                  {
+                    opacity: heroContentOpacity,
+                    transform: [{ translateY: heroContentTranslate }],
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="barbell"
+                  size={32}
+                  color="#fff"
+                  style={styles.headerIcon}
+                />
+                <Text style={styles.headerGradientTitle}>
+                  {workoutName as string}
                 </Text>
+                {previousDate && (
+                  <Text style={styles.headerGradientSubtitle}>
+                    {historyCount > 1
+                      ? t("progression.modal.basedOn", {
+                          count: historyCount,
+                          date: formatDate(previousDate),
+                        })
+                      : t("progression.modal.basedOn_singular", {
+                          date: formatDate(previousDate),
+                        })}
+                  </Text>
+                )}
+              </Animated.View>
+            </LinearGradient>
+          </Animated.View>
+        </View>
 
-                <View style={styles.suggestionsContainer}>
-                  {suggestions.map((suggestion, index) => (
-                    <ProgressionCard
-                      key={suggestion.exerciseId}
-                      suggestion={suggestion}
-                      index={index}
-                      isSelected={selectedExercises.includes(
-                        suggestion.exerciseId
-                      )}
-                      workoutColor={workoutColor as string}
-                      theme={theme}
-                      onToggleSelection={toggleSuggestionSelection}
-                    />
-                  ))}
-                </View>
-              </>
-            )}
-          </>
-        )}
-      </Animated.ScrollView>
-
-      {/* Botão de aplicar */}
-      {suggestions.length > 0 && (
-        <View
-          style={[
-            styles.bottomBar,
+        <Animated.ScrollView
+          style={styles.content}
+          contentContainerStyle={[
+            styles.contentContainer,
             {
-              backgroundColor: colors.background,
-              borderTopColor: colors.border,
+              paddingTop: HEADER_MAX_HEIGHT + 16,
+              minHeight: Dimensions.get("window").height * 1.2,
             },
           ]}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
+          )}
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+          overScrollMode="always"
         >
-          <TouchableOpacity
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={workoutColor as string} />
+              <Text style={[styles.loadingText, { color: colors.text }]}>
+                {t("progression.modal.calculating")}
+              </Text>
+            </View>
+          ) : (
+            <>
+              {suggestions.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Ionicons
+                    name="fitness-outline"
+                    size={40}
+                    color={colors.secondary}
+                  />
+                  <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                    {t("progression.modal.noWorkoutsFound")}
+                  </Text>
+                  <Text style={[styles.emptyText, { color: colors.secondary }]}>
+                    {t("progression.modal.noWorkoutsDescription")}
+                  </Text>
+                </View>
+              ) : (
+                <>
+                  <View style={styles.sectionTitleContainer}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                      {t("progression.modal.suggestionsTitle")}
+                    </Text>
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.sectionDescription,
+                      { color: colors.secondary },
+                    ]}
+                  >
+                    {t("progression.modal.selectExercisesDescription")}
+                  </Text>
+
+                  <View style={styles.suggestionsContainer}>
+                    {suggestions.map((suggestion, index) => (
+                      <ProgressionCard
+                        key={suggestion.exerciseId}
+                        suggestion={suggestion}
+                        index={index}
+                        isSelected={selectedExercises.includes(
+                          suggestion.exerciseId
+                        )}
+                        workoutColor={workoutColor as string}
+                        theme={theme}
+                        onToggleSelection={toggleSuggestionSelection}
+                      />
+                    ))}
+                  </View>
+                </>
+              )}
+            </>
+          )}
+        </Animated.ScrollView>
+
+        {/* Botão de aplicar */}
+        {suggestions.length > 0 && (
+          <View
             style={[
-              styles.applyButton,
+              styles.bottomBar,
               {
-                backgroundColor: workoutColor as string,
-                opacity: applying || selectedExercises.length === 0 ? 0.6 : 1,
+                backgroundColor: colors.background,
+                borderTopColor: colors.border,
               },
             ]}
-            onPress={handleApplySuggestions}
-            disabled={applying || selectedExercises.length === 0}
           >
-            {applying ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <>
-                <Text style={styles.applyButtonText}>
-                  {t("progression.modal.applyProgressions", {
-                    count: selectedExercises.length,
-                  })}
-                </Text>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={20}
-                  color="#FFFFFF"
-                  style={styles.applyButtonIcon}
-                />
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
-      )}
+            <TouchableOpacity
+              style={[
+                styles.applyButton,
+                {
+                  backgroundColor: workoutColor as string,
+                  opacity: applying || selectedExercises.length === 0 ? 0.6 : 1,
+                },
+              ]}
+              onPress={handleApplySuggestions}
+              disabled={applying || selectedExercises.length === 0}
+            >
+              {applying ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <Text style={styles.applyButtonText}>
+                    {t("progression.modal.applyProgressions", {
+                      count: selectedExercises.length,
+                    })}
+                  </Text>
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={20}
+                    color="#FFFFFF"
+                    style={styles.applyButtonIcon}
+                  />
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
 
-      {/* Modal de informações */}
-      <InfoModal
-        visible={showInfoModal}
-        title={t("progression.infoModal.title")}
-        subtitle={t("progression.infoModal.subtitle")}
-        onClose={() => setShowInfoModal(false)}
-        closeButtonText={t("progression.infoModal.gotIt")}
-        topIcon={{
-          name: "fitness-outline",
-          color: workoutColor as string,
-          backgroundColor: `${workoutColor}20`,
-        }}
-        infoItems={[
-          {
-            title: t("progression.infoModal.items.smartProgression.title"),
-            description: t(
-              "progression.infoModal.items.smartProgression.description"
-            ),
-            icon: "analytics-outline",
+        {/* Modal de informações */}
+        <InfoModal
+          visible={showInfoModal}
+          title={t("progression.infoModal.title")}
+          subtitle={t("progression.infoModal.subtitle")}
+          onClose={() => setShowInfoModal(false)}
+          closeButtonText={t("progression.infoModal.gotIt")}
+          topIcon={{
+            name: "fitness-outline",
             color: workoutColor as string,
-          },
-          {
-            title: t("progression.infoModal.items.adaptation.title"),
-            description: t(
-              "progression.infoModal.items.adaptation.description"
-            ),
-            icon: "body-outline",
-            color: workoutColor as string,
-          },
-          {
-            title: t("progression.infoModal.items.perception.title"),
-            description: t(
-              "progression.infoModal.items.perception.description"
-            ),
-            icon: "pulse-outline",
-            color: workoutColor as string,
-          },
-        ]}
-      />
+            backgroundColor: `${workoutColor}20`,
+          }}
+          infoItems={[
+            {
+              title: t("progression.infoModal.items.smartProgression.title"),
+              description: t(
+                "progression.infoModal.items.smartProgression.description"
+              ),
+              icon: "analytics-outline",
+              color: workoutColor as string,
+            },
+            {
+              title: t("progression.infoModal.items.adaptation.title"),
+              description: t(
+                "progression.infoModal.items.adaptation.description"
+              ),
+              icon: "body-outline",
+              color: workoutColor as string,
+            },
+            {
+              title: t("progression.infoModal.items.perception.title"),
+              description: t(
+                "progression.infoModal.items.perception.description"
+              ),
+              icon: "pulse-outline",
+              color: workoutColor as string,
+            },
+          ]}
+        />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -527,6 +548,17 @@ export default function ProgressionModal() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  fixedHeaderContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    backgroundColor: "transparent",
   },
   gradientHeaderContainer: {
     overflow: "hidden",
@@ -600,7 +632,6 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingBottom: 140,
-    minHeight: Dimensions.get("window").height * 1.1,
   },
   loadingContainer: {
     padding: 40,
@@ -632,7 +663,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginHorizontal: 16,
-    marginTop: 20,
+    marginTop: 0,
     marginBottom: 8,
   },
   sectionTitle: {
@@ -665,7 +696,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     height: 56,
-    marginBottom: 20,
+    marginBottom: 0,
     borderRadius: 28,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },

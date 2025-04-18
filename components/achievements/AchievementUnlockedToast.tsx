@@ -84,6 +84,16 @@ const AchievementUnlockedToast: React.FC<AchievementUnlockedToastProps> = ({
     });
   };
 
+  // Buscar o nome e descrição traduzidos da conquista
+  const achievementName = t(
+    `achievements.database.achievements.${title}.name`,
+    ""
+  );
+  const achievementDescription = t(
+    `achievements.database.achievements.${title}.description`,
+    description
+  );
+
   return (
     <Animated.View
       style={[
@@ -128,18 +138,18 @@ const AchievementUnlockedToast: React.FC<AchievementUnlockedToastProps> = ({
                 color={RARITY_COLORS.legendary}
               />
               <Text style={[styles.pointsText, { color: colors.text }]}>
-                +{points}
+                +{points} {t("achievements.points")}
               </Text>
             </View>
           </View>
           <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
-            {title}
+            {achievementName}
           </Text>
           <Text
             style={[styles.description, { color: colors.text + "99" }]}
             numberOfLines={2}
           >
-            {description}
+            {achievementDescription}
           </Text>
         </View>
 
@@ -158,70 +168,78 @@ const AchievementUnlockedToast: React.FC<AchievementUnlockedToastProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    top: 60, // Ajustar de acordo com a altura do cabeçalho
-    alignSelf: "center",
-    width: width - 32,
-    borderRadius: 16,
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 9999,
+    elevation: 10,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 3.84,
-    elevation: 5,
-    zIndex: 1000,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    overflow: "hidden",
+    paddingTop: 50, // Para posicionar abaixo da status bar
   },
   content: {
     flexDirection: "row",
-    padding: 16,
     alignItems: "center",
+    padding: 16,
+    paddingTop: 12,
+    paddingBottom: 14,
   },
   iconContainer: {
-    marginRight: 16,
+    marginRight: 12,
   },
   achievementIconBackground: {
-    borderRadius: 25,
-    padding: 5,
+    padding: 8,
+    borderRadius: 20,
   },
   textContainer: {
     flex: 1,
+    marginRight: 10,
   },
   headerRow: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 2,
   },
   title: {
     fontSize: 12,
-    fontWeight: "500",
+    fontWeight: "600",
     textTransform: "uppercase",
+    letterSpacing: 0.5,
+    opacity: 0.8,
   },
   pointsContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: RARITY_COLORS.legendary + "20",
+    backgroundColor: "rgba(251, 166, 28, 0.1)",
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: 12,
   },
   pointsText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "bold",
-    marginLeft: 2,
+    marginLeft: 3,
   },
   name: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 15,
+    fontWeight: "700",
     marginBottom: 2,
   },
   description: {
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: "400",
+    opacity: 0.8,
   },
   closeButton: {
-    padding: 8,
-    marginLeft: 8,
+    padding: 5,
+    borderRadius: 12,
+    marginLeft: 5,
   },
 });
 

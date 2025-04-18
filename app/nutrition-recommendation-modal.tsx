@@ -69,6 +69,7 @@ const { width } = Dimensions.get("window");
 const HEADER_MAX_HEIGHT = 180;
 const HEADER_MIN_HEIGHT = 55;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
+const CARD_HEIGHT = 80; // Altura aproximada do card de recomendação
 
 export default function NutritionRecommendationModal() {
   const router = useRouter();
@@ -1107,110 +1108,122 @@ export default function NutritionRecommendationModal() {
         style={styles.keyboardAvoidingView}
         keyboardVerticalOffset={Platform.OS === "ios" ? 70 : 0}
       >
-        {/* Cabeçalho com gradiente colapsável */}
-        <Animated.View
-          style={[styles.gradientHeaderContainer, { height: headerHeight }]}
-        >
-          <LinearGradient
-            colors={[
-              mealColor as string,
-              (mealColor + "90") as string,
-              (mealColor + "40") as string,
-            ]}
-            style={[styles.headerGradient, { flex: 1 }]}
+        {/* Header fixo que inclui gradiente */}
+        <View style={styles.fixedHeaderContainer}>
+          {/* Cabeçalho com gradiente colapsável */}
+          <Animated.View
+            style={[styles.gradientHeaderContainer, { height: headerHeight }]}
           >
-            {/* Cabeçalho de navegação */}
-            <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={handleClose}
-                disabled={loading || applying}
-              >
-                <Ionicons name="chevron-down" size={24} color="#FFF" />
-              </TouchableOpacity>
+            <LinearGradient
+              colors={[
+                mealColor as string,
+                (mealColor + "90") as string,
+                (mealColor + "40") as string,
+              ]}
+              style={[styles.headerGradient, { flex: 1 }]}
+            >
+              {/* Cabeçalho de navegação */}
+              <View style={styles.header}>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={handleClose}
+                  disabled={loading || applying}
+                >
+                  <Ionicons name="chevron-down" size={24} color="#FFF" />
+                </TouchableOpacity>
 
-              <Animated.Text
+                <Animated.Text
+                  style={[
+                    styles.headerTitle,
+                    {
+                      opacity: headerTitleOpacity,
+                      transform: [
+                        { scale: titleScale },
+                        { translateY: titleTranslateY },
+                      ],
+                    },
+                  ]}
+                >
+                  {getMealName()}
+                </Animated.Text>
+
+                {!loading && selectedMealRecommendation && (
+                  <TouchableOpacity
+                    style={styles.configButton}
+                    onPress={() => router.push("/meal-distribution-config")}
+                    accessibilityLabel={t(
+                      "nutrition.recommendation.configButtonAccessibility",
+                      "Configurar distribuição de refeições"
+                    )}
+                  >
+                    <Ionicons name="settings-outline" size={22} color="#FFF" />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Conteúdo do cabeçalho - desaparece ao rolar */}
+              <Animated.View
                 style={[
-                  styles.headerTitle,
+                  styles.gradientContent,
                   {
-                    opacity: headerTitleOpacity,
-                    transform: [
-                      { scale: titleScale },
-                      { translateY: titleTranslateY },
-                    ],
+                    opacity: heroContentOpacity,
+                    transform: [{ translateY: heroContentTranslate }],
                   },
                 ]}
               >
-                {getMealName()}
-              </Animated.Text>
+                <MaterialCommunityIcons
+                  name="food-fork-drink"
+                  size={32}
+                  color="#fff"
+                  style={styles.headerIcon}
+                />
+                <Text style={styles.headerGradientTitle}>{getMealName()}</Text>
+                {selectedMealRecommendation && (
+                  <Text style={styles.headerGradientSubtitle}>
+                    {Math.round(selectedMealRecommendation.percentageOfDaily)}%{" "}
+                    {t(
+                      "nutrition.recommendation.ofDailyNeeds",
+                      "do seu plano diário"
+                    )}
+                  </Text>
+                )}
+              </Animated.View>
+            </LinearGradient>
+          </Animated.View>
 
-              {!loading && selectedMealRecommendation && (
-                <TouchableOpacity
-                  style={styles.configButton}
-                  onPress={() => router.push("/meal-distribution-config")}
-                  accessibilityLabel={t(
-                    "nutrition.recommendation.configButtonAccessibility",
-                    "Configurar distribuição de refeições"
-                  )}
-                >
-                  <Ionicons name="settings-outline" size={22} color="#FFF" />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Conteúdo do cabeçalho - desaparece ao rolar */}
-            <Animated.View
+          {/* Card de recomendação fixo abaixo do header */}
+          {!loading && selectedMealRecommendation && (
+            <View
               style={[
-                styles.gradientContent,
-                {
-                  opacity: heroContentOpacity,
-                  transform: [{ translateY: heroContentTranslate }],
-                },
+                styles.fixedCardContainer,
+                { backgroundColor: colors.background },
               ]}
             >
-              <MaterialCommunityIcons
-                name="food-fork-drink"
-                size={32}
-                color="#fff"
-                style={styles.headerIcon}
+              <NutritionRecommendationCard
+                recommendation={selectedMealRecommendation}
+                mealColor={mealColor as string}
+                theme={theme}
+                mealTotals={
+                  Object.keys(selectedFoods).length > 0
+                    ? combinedTotals
+                    : mealTotals
+                }
+                isPreview={Object.keys(selectedFoods).length > 0}
+                onConfigPress={() => router.push("/meal-distribution-config")}
               />
-              <Text style={styles.headerGradientTitle}>{getMealName()}</Text>
-              {selectedMealRecommendation && (
-                <Text style={styles.headerGradientSubtitle}>
-                  {Math.round(selectedMealRecommendation.percentageOfDaily)}%{" "}
-                  {t(
-                    "nutrition.recommendation.ofDailyNeeds",
-                    "do seu plano diário"
-                  )}
-                </Text>
-              )}
-            </Animated.View>
-          </LinearGradient>
-        </Animated.View>
-
-        {/* Card de recomendação fixo no topo */}
-        {!loading && selectedMealRecommendation && (
-          <View style={styles.fixedCardContainer}>
-            <NutritionRecommendationCard
-              recommendation={selectedMealRecommendation}
-              mealColor={mealColor as string}
-              theme={theme}
-              mealTotals={
-                Object.keys(selectedFoods).length > 0
-                  ? combinedTotals
-                  : mealTotals
-              }
-              isPreview={Object.keys(selectedFoods).length > 0}
-              onConfigPress={() => router.push("/meal-distribution-config")}
-            />
-          </View>
-        )}
+            </View>
+          )}
+        </View>
 
         <Animated.ScrollView
           style={styles.content}
           contentContainerStyle={[
             styles.contentContainer,
-            !loading && selectedMealRecommendation && { paddingTop: 0 },
+            {
+              paddingTop: HEADER_MAX_HEIGHT + CARD_HEIGHT,
+              // Garantir que mesmo com pouco conteúdo, o scroll funcione
+              minHeight: Dimensions.get("window").height * 1.2,
+            },
           ]}
           scrollEventThrottle={16}
           onScroll={Animated.event(
@@ -1218,6 +1231,8 @@ export default function NutritionRecommendationModal() {
             { useNativeDriver: false }
           )}
           showsVerticalScrollIndicator={false}
+          bounces={true}
+          overScrollMode="always"
         >
           {loading ? (
             <View style={styles.loadingContainer}>
@@ -1489,6 +1504,14 @@ const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
   },
+  fixedHeaderContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    backgroundColor: "transparent",
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -1557,15 +1580,20 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   fixedCardContainer: {
-    zIndex: 10,
-    marginTop: -5,
+    zIndex: 9,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   content: {
     flex: 1,
   },
   contentContainer: {
     paddingBottom: 140,
-    minHeight: Dimensions.get("window").height * 1.1,
   },
   loadingContainer: {
     padding: 40,
@@ -1615,7 +1643,7 @@ const styles = StyleSheet.create({
   },
   suggestionsSection: {
     paddingHorizontal: 16,
-    marginTop: 16,
+    marginTop: 0,
   },
   sectionHeaderContainer: {
     marginBottom: 12,

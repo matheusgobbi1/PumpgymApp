@@ -1627,14 +1627,21 @@
     "completed": "{{completed}} of {{total}}",
     "stats": {
       "unlocked": "Unlocked",
-      "points": "Points",
+      "points": "FitPoints",
       "completion": "Completion"
     },
     "secret": "Secret achievement. Continue your journey to discover it.",
     "locked": "Locked",
+    "unlocked": "Unlocked",
     "nextLevel": "Next level",
     "viewAll": "View all",
-    "points": "points",
+    "fitPoints": "FitPoints",
+    "points": "FitPoints",
+    "no_achievements": "No achievements found",
+    "reward": "Reward",
+    "rarity": "Rarity",
+    "forLevel": "for level",
+    "level": "Level",
     "categories": {
       "all": "All",
       "workout": "Workout",
@@ -1645,9 +1652,487 @@
       "water": "Water",
       "account": "Account"
     },
-    "unlocked": "ACHIEVEMENT UNLOCKED",
+    "rarities": {
+      "all": "All Rarities",
+      "common": "Common",
+      "uncommon": "Uncommon",
+      "rare": "Rare",
+      "epic": "Epic",
+      "legendary": "Legendary"
+    },
     "viewAllAchievements": "View all achievements",
     "recentAchievements": "Recent Achievements",
-    "emptyState": "Complete activities to unlock achievements"
+    "emptyState": "Complete activities to unlock achievements",
+    "progressPercentage": "{{percentage}}% complete",
+    "database": {
+      "categories": {
+        "workout": "Workout",
+        "nutrition": "Nutrition",
+        "consistency": "Consistency",
+        "social": "Social",
+        "weight": "Weight",
+        "water": "Water",
+        "account": "Account"
+      },
+      "rarities": {
+        "common": "Common",
+        "uncommon": "Uncommon",
+        "rare": "Rare",
+        "epic": "Epic",
+        "legendary": "Legendary"
+      },
+      "achievements": {
+        "workout_completion_1": {
+          "name": "First Steps",
+          "description": "Complete your first workout"
+        },
+        "workout_completion_2": {
+          "name": "Dedicated",
+          "description": "Complete 5 workouts"
+        },
+        "workout_completion_3": {
+          "name": "Consistent",
+          "description": "Complete 25 workouts"
+        },
+        "workout_completion_4": {
+          "name": "Athlete",
+          "description": "Complete 100 workouts"
+        },
+        "workout_completion_5": {
+          "name": "Legendary",
+          "description": "Complete 365 workouts"
+        },
+        "streak_days_1": {
+          "name": "Spark",
+          "description": "3 consecutive days of workout"
+        },
+        "streak_days_2": {
+          "name": "Flame",
+          "description": "7 consecutive days of workout"
+        },
+        "streak_days_3": {
+          "name": "Wildfire",
+          "description": "14 consecutive days of workout"
+        },
+        "streak_days_4": {
+          "name": "Inferno",
+          "description": "30 consecutive days of workout"
+        },
+        "streak_days_5": {
+          "name": "Phoenix",
+          "description": "90 consecutive days of workout"
+        },
+        "nutrition_goals_1": {
+          "name": "Nutrition Beginner",
+          "description": "Reach your macro goals for 1 day"
+        },
+        "nutrition_goals_2": {
+          "name": "Mindful Eater",
+          "description": "Reach your macro goals for 7 days"
+        },
+        "nutrition_goals_3": {
+          "name": "Disciplined",
+          "description": "Reach your macro goals for 30 days"
+        },
+        "nutrition_goals_4": {
+          "name": "Amateur Nutritionist",
+          "description": "Reach your macro goals for 90 days"
+        },
+        "nutrition_goals_5": {
+          "name": "Nutrition Guru",
+          "description": "Reach your macro goals for 180 days"
+        },
+        "water_intake_1": {
+          "name": "Water Drop",
+          "description": "Reach your water goal for 1 day"
+        },
+        "water_intake_2": {
+          "name": "Fountain",
+          "description": "Reach your water goal for 7 days"
+        },
+        "water_intake_3": {
+          "name": "River",
+          "description": "Reach your water goal for 30 days"
+        },
+        "water_intake_4": {
+          "name": "Waterfall",
+          "description": "Reach your water goal for 90 days"
+        },
+        "water_intake_5": {
+          "name": "Ocean",
+          "description": "Reach your water goal for 180 days"
+        },
+        "weight_goals_1": {
+          "name": "First Pounds",
+          "description": "Reach 10% of your weight goal"
+        },
+        "weight_goals_2": {
+          "name": "On the Way",
+          "description": "Reach 25% of your weight goal"
+        },
+        "weight_goals_3": {
+          "name": "Halfway There",
+          "description": "Reach 50% of your weight goal"
+        },
+        "weight_goals_4": {
+          "name": "Almost There",
+          "description": "Reach 75% of your weight goal"
+        },
+        "weight_goals_5": {
+          "name": "Complete Metamorphosis",
+          "description": "Reach 100% of your weight goal"
+        },
+        "exercise_variety_1": {
+          "name": "Curious",
+          "description": "Try 5 different exercises"
+        },
+        "exercise_variety_2": {
+          "name": "Adventurer",
+          "description": "Try 15 different exercises"
+        },
+        "exercise_variety_3": {
+          "name": "Versatile",
+          "description": "Try 30 different exercises"
+        },
+        "exercise_variety_4": {
+          "name": "Variety Master",
+          "description": "Try 50 different exercises"
+        },
+        "exercise_variety_5": {
+          "name": "Living Encyclopedia",
+          "description": "Try 100 different exercises"
+        },
+        "app_usage_1": {
+          "name": "Novice",
+          "description": "Use the app for 7 days"
+        },
+        "app_usage_2": {
+          "name": "Regular",
+          "description": "Use the app for 30 days"
+        },
+        "app_usage_3": {
+          "name": "Dedicated",
+          "description": "Use the app for 90 days"
+        },
+        "app_usage_4": {
+          "name": "Loyal",
+          "description": "Use the app for 180 days"
+        },
+        "app_usage_5": {
+          "name": "Lifetime",
+          "description": "Use the app for 365 days"
+        },
+        "meal_tracking_1": {
+          "name": "Culinary Beginner",
+          "description": "Track 7 days of meals"
+        },
+        "meal_tracking_2": {
+          "name": "Amateur Gourmet",
+          "description": "Track 30 days of meals"
+        },
+        "meal_tracking_3": {
+          "name": "Nutrition Chef",
+          "description": "Track 90 days of meals"
+        },
+        "meal_tracking_4": {
+          "name": "Culinary Master",
+          "description": "Track 180 days of meals"
+        },
+        "meal_tracking_5": {
+          "name": "Gastronomy Legend",
+          "description": "Track 365 days of meals"
+        },
+        "weight_tracking_1": {
+          "name": "First Entry",
+          "description": "Record your weight for the first time"
+        },
+        "weight_tracking_2": {
+          "name": "Attentive",
+          "description": "Record your weight 10 times"
+        },
+        "weight_tracking_3": {
+          "name": "Vigilant",
+          "description": "Record your weight 25 times"
+        },
+        "weight_tracking_4": {
+          "name": "Meticulous",
+          "description": "Record your weight 50 times"
+        },
+        "weight_tracking_5": {
+          "name": "Body Scientist",
+          "description": "Record your weight 100 times"
+        },
+        "hidden_achievement": {
+          "name": "Secret Revealed",
+          "description": "You found a secret!"
+        },
+        "first_food": {
+          "name": "First Nutritional Step",
+          "description": "You recorded your first food. Keep tracking your nutrition!"
+        },
+        "meal_type_creation": {
+          "name": "Meal Organizer",
+          "description": "You set up your meal types. Organization is the first step to success!"
+        },
+        "workout_type_creation": {
+          "name": "Workout Architect",
+          "description": "You set up your workout types. Start building your ideal body!"
+        },
+        "daily_login_streak_1": {
+          "name": "First Steps",
+          "description": "3 consecutive days of app usage"
+        },
+        "daily_login_streak_2": {
+          "name": "Commitment",
+          "description": "7 consecutive days of app usage"
+        },
+        "daily_login_streak_3": {
+          "name": "Discipline",
+          "description": "14 consecutive days of app usage"
+        },
+        "daily_login_streak_4": {
+          "name": "Solid Routine",
+          "description": "30 consecutive days of app usage"
+        },
+        "daily_login_streak_5": {
+          "name": "Embedded Habit",
+          "description": "60 consecutive days of app usage"
+        },
+        "early_bird": {
+          "name": "Early Bird",
+          "description": "You worked out before 7am! Discipline is part of your DNA."
+        },
+        "night_owl": {
+          "name": "Night Owl",
+          "description": "You worked out after 10pm! Your determination has no time limit."
+        },
+        "superset_master": {
+          "name": "Superset Master",
+          "description": "Complete 10 workouts using superset technique"
+        },
+        "leg_day_warrior": {
+          "name": "Leg Day Warrior",
+          "description": "Complete 20 leg workouts"
+        },
+        "protein_addict": {
+          "name": "Protein Addict",
+          "description": "Reach your daily protein goal for 30 days"
+        },
+        "pre_workout_junkie": {
+          "name": "Pre-workout Junkie",
+          "description": "Record pre-workout use in 15 sessions"
+        },
+        "no_pain_no_gain": {
+          "name": "No Pain No Gain",
+          "description": "Complete 5 high-intensity workouts"
+        },
+        "cardio_king": {
+          "name": "Cardio King",
+          "description": "Complete 30 cardio sessions"
+        },
+        "weekend_warrior": {
+          "name": "Weekend Warrior",
+          "description": "Train for 10 consecutive weekends"
+        },
+        "one_rep_max": {
+          "name": "1RM King",
+          "description": "Record 10 personal records of 1 rep max"
+        },
+        "transformation_photos": {
+          "name": "Before and After",
+          "description": "Record 5 progress photos"
+        },
+        "gym_rat": {
+          "name": "Gym Rat",
+          "description": "Spend more than 50 total hours training"
+        },
+        "caloric_goal_1": {
+          "name": "Precise Nutrition",
+          "description": "Reach your daily caloric goal for the first time"
+        },
+        "caloric_goal_2": {
+          "name": "Calorie Counter",
+          "description": "Reach your daily caloric goal for 7 days"
+        },
+        "caloric_goal_3": {
+          "name": "Calorie Master",
+          "description": "Reach your daily caloric goal for 30 days"
+        },
+        "caloric_goal_4": {
+          "name": "Caloric Expert",
+          "description": "Reach your daily caloric goal for 90 days"
+        },
+        "caloric_goal_5": {
+          "name": "Legendary Nutritional Precision",
+          "description": "Reach your daily caloric goal for 180 days"
+        },
+        "daily_steps_1": {
+          "name": "On the Move",
+          "description": "Reach 2,500 steps in a day"
+        },
+        "daily_steps_2": {
+          "name": "Walker",
+          "description": "Reach 5,000 steps in a day"
+        },
+        "daily_steps_3": {
+          "name": "Urban Marathoner",
+          "description": "Reach 10,000 steps in a day"
+        },
+        "daily_steps_4": {
+          "name": "Tireless Explorer",
+          "description": "Reach 15,000 steps in a day"
+        },
+        "daily_steps_5": {
+          "name": "Tireless Nomad",
+          "description": "Reach 20,000 steps in a day"
+        },
+        "hidden_24h_warrior": {
+          "name": "24h Warrior",
+          "description": "Trained both early in the morning and late at night."
+        },
+        "hidden_perfect_week": {
+          "name": "Perfect Week",
+          "description": "Logged workouts on all 7 days of a week."
+        },
+        "hidden_consistent_chef": {
+          "name": "Consistent Chef",
+          "description": "Logged meals for 30 consecutive days."
+        },
+        "hidden_macro_master": {
+          "name": "Macro Master",
+          "description": "Hit the exact daily targets for Calories, Protein, Carbs, and Fat on the same day."
+        },
+        "hidden_weight_vigilant": {
+          "name": "Weight Vigilant",
+          "description": "Logged body weight for 7 consecutive days."
+        },
+        "protein_goal_1": {
+          "name": "Protein Beginner",
+          "description": "Reach your daily protein goal for the first time"
+        },
+        "protein_goal_2": {
+          "name": "Protein Disciple",
+          "description": "Reach your daily protein goal for 7 days"
+        },
+        "protein_goal_3": {
+          "name": "Protein Adept",
+          "description": "Reach your daily protein goal for 30 days"
+        },
+        "protein_goal_4": {
+          "name": "Protein Master",
+          "description": "Reach your daily protein goal for 60 days"
+        },
+        "protein_goal_5": {
+          "name": "Protein Legend",
+          "description": "Reach your daily protein goal for 100 days"
+        },
+        "progression_apply_1": {
+          "name": "Evolution Started",
+          "description": "Apply your first workout progression suggestion"
+        },
+        "progression_apply_2": {
+          "name": "Always Improving",
+          "description": "Apply 10 progression suggestions"
+        },
+        "progression_apply_3": {
+          "name": "Progression Master",
+          "description": "Apply 50 progression suggestions"
+        },
+        "progression_apply_4": {
+          "name": "Evolution Legend",
+          "description": "Apply 100 progression suggestions"
+        }
+      }
+    },
+    "fitLevel": {
+      "levels": {
+        "1": {
+          "title": "Beginner",
+          "description": "Just started at the gym and still has no experience."
+        },
+        "2": {
+          "title": "Newbie",
+          "description": "Learning the basic movements."
+        },
+        "3": {
+          "title": "Motivated Newbie",
+          "description": "Creating the habit of training regularly."
+        },
+        "4": {
+          "title": "Dedicated Newbie",
+          "description": "Discovering your ideal training routine."
+        },
+        "5": {
+          "title": "Advanced Beginner",
+          "description": "Starting to understand the benefits of consistency."
+        },
+        "6": {
+          "title": "Gym Rat",
+          "description": "The first results are already visible in the mirror."
+        },
+        "7": {
+          "title": "Gymbro",
+          "description": "Training has become an important part of your routine."
+        },
+        "8": {
+          "title": "Athlete",
+          "description": "Your physical form already attracts positive attention."
+        },
+        "9": {
+          "title": "Committed",
+          "description": "Rarely misses a day of training on the schedule."
+        },
+        "10": {
+          "title": "Personal Trainer",
+          "description": "Masters advanced techniques and adjusts training with precision."
+        },
+        "11": {
+          "title": "Beast",
+          "description": "Perfect balance between training, nutrition, and rest."
+        },
+        "12": {
+          "title": "Mutant",
+          "description": "Achieved a body that is a reference in the gym."
+        },
+        "13": {
+          "title": "Machine",
+          "description": "Your physique already impresses everyone."
+        },
+        "14": {
+          "title": "Living Legend",
+          "description": "Knows all exercises and their variations."
+        },
+        "15": {
+          "title": "Tank",
+          "description": "Genetics and discipline forming a perfect physique."
+        },
+        "16": {
+          "title": "Bodybuilder",
+          "description": "Doesn't know limits, only knows overcoming."
+        },
+        "17": {
+          "title": "Demigod",
+          "description": "Became a reference for everyone in the gym."
+        },
+        "18": {
+          "title": "Mr. Olympia",
+          "description": "Professional level of dedication."
+        },
+        "19": {
+          "title": "Leviathan",
+          "description": "Few mortals reach this level."
+        },
+        "20": {
+          "title": "Greek God",
+          "description": "Achieved physical perfection worthy of Olympus!"
+        }
+      },
+      "progress": {
+        "current": "Current Level",
+        "next": "Next Level",
+        "pointsToNext": "FitPoints to next level",
+        "totalPoints": "Total FitPoints"
+      }
+    }
   }
 } 

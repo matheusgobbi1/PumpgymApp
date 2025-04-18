@@ -271,13 +271,13 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
             <View
               style={[
                 styles.iconContainer,
-                { backgroundColor: colors.primary + "20" },
+                { backgroundColor: colors.accentGray + "20" },
               ]}
             >
               <MaterialCommunityIcons
                 name="human"
                 size={18}
-                color={colors.primary}
+                color={colors.accentGray}
               />
             </View>
             <View>
@@ -302,14 +302,14 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
                     style={[
                       styles.editActionButton,
                       styles.cancelButton,
-                      { backgroundColor: colors.text + "10" },
+                      { backgroundColor: colors.accentGray + "20" },
                     ]}
                     onPress={handleCancelEdit}
                   >
                     <Ionicons
                       name="close"
                       size={20}
-                      color={colors.text + "80"}
+                      color={colors.accentGray}
                     />
                   </TouchableOpacity>
                 )}
@@ -318,7 +318,7 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
                     styles.editActionButton,
                     isEditMode
                       ? styles.saveButton
-                      : { backgroundColor: colors.text + "10" },
+                      : { backgroundColor: colors.accentGray + "20" },
                     isEditMode && { backgroundColor: colors.primary },
                   ]}
                   onPress={handleEditPress}
@@ -329,7 +329,7 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
                     <Ionicons
                       name="options-outline"
                       size={20}
-                      color={colors.text + "80"}
+                      color={colors.accentGray}
                     />
                   )}
                 </TouchableOpacity>
@@ -356,7 +356,7 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
               name="body-outline"
               size={16}
               color={
-                activeSection === "perfil" ? colors.primary : colors.text + "60"
+                activeSection === "perfil" ? colors.primary : colors.accentGray
               }
             />
             <Text
@@ -390,7 +390,7 @@ export default function ProfileInfoCard({ onEditPress }: ProfileInfoCardProps) {
               color={
                 activeSection === "objetivo"
                   ? colors.primary
-                  : colors.text + "60"
+                  : colors.accentGray
               }
             />
             <Text

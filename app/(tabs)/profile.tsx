@@ -1,5 +1,11 @@
 import React, { useCallback, useState, useEffect, useRef } from "react";
-import { View, StyleSheet, ScrollView, InteractionManager } from "react-native";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  InteractionManager,
+  Platform,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
@@ -34,6 +40,9 @@ export default function Profile() {
   const { isReady } = useTabPreloader({
     delayMs: 150,
   });
+
+  // Calcular altura do header
+  const headerHeight = Platform.OS === "ios" ? 70 : 60;
 
   // Inicializar a UI após a renderização inicial
   useEffect(() => {
@@ -101,7 +110,11 @@ export default function Profile() {
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          // Adicionar padding top para compensar header
+          { paddingTop: headerHeight + 12 }, // +12 de padding original
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.cardsContainer}>
@@ -129,12 +142,17 @@ export default function Profile() {
       style={{ flex: 1, backgroundColor: colors.background }}
       edges={["top"]}
     >
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <HomeHeader
-          title={user?.email || t("common.user")}
-          onFitLevelPress={() => router.push("/achievements-modal")}
-        />
+      {/* Container principal da tela com fundo transparente */}
+      <View style={[styles.container, { backgroundColor: "transparent" }]}>
+        {/* Header posicionado absolutamente no topo */}
+        <View style={styles.headerWrapper}>
+          <HomeHeader
+            title={user?.email || t("common.user")}
+            onFitLevelPress={() => router.push("/achievements-modal")}
+          />
+        </View>
 
+        {/* Conteúdo da tela renderizado aqui */}
         {renderScreenContent()}
       </View>
     </SafeAreaView>
@@ -144,18 +162,28 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: "relative", // Para que o header absoluto funcione
+  },
+  // Wrapper para o header absoluto
+  headerWrapper: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1, // Header fica sobre o ScrollView
   },
   scrollView: {
     flex: 1,
+    backgroundColor: "transparent", // ScrollView precisa ser transparente
   },
   scrollContent: {
     paddingBottom: 24,
-    paddingTop: 12,
+    // paddingTop é aplicado dinamicamente (headerHeight + 12)
   },
   cardsContainer: {
     marginVertical: 0,
     paddingTop: 0,
-    paddingHorizontal: 0,
+    paddingHorizontal: 0, // Removido o padding horizontal que foi adicionado incorretamente
   },
   bottomPadding: {
     height: 80, // Altura suficiente para ficar acima da bottom tab

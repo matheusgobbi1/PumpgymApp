@@ -14,6 +14,11 @@ globs:
 alwaysApply: false
 ---
 ---
+description: 
+globs: 
+alwaysApply: false
+---
+---
 description: Best practices for implementing bottom sheets with @gorhom/bottom-sheet
 globs: **/*.{ts,tsx}
 alwaysApply: false

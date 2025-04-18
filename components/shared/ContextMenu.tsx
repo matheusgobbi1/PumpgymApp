@@ -154,7 +154,7 @@ const ContextMenu = memo(
           onRequestClose={() => setIsExpanded(false)}
         >
           <BlurView
-            intensity={theme === "dark" ? 50 : 80}
+            intensity={theme === "dark" ? 40 : 80}
             tint={theme === "dark" ? "dark" : "light"}
             style={styles.blurContainer}
           >

@@ -532,25 +532,38 @@ export default function FoodSuggestionCard({
     const foodId = foodItem.id.toLowerCase();
     const foodName = foodItem.name.toLowerCase();
 
-    // Verificar tanto pelo ID quanto pelo nome do alimento
-    if (
-      foodId.includes("pao") ||
-      foodName.includes("pão") ||
-      foodName.includes("pao")
-    ) {
-      return <FontAwesome5 name="bread-slice" size={18} color={mealColor} />;
-    } else if (foodId.includes("ovo") || foodName.includes("ovo")) {
-      return <FontAwesome5 name="egg" size={18} color={mealColor} />;
+    // 1. Itens específicos primeiro
+    if (foodId.includes("whey") || foodName.includes("whey")) {
+      return (
+        <MaterialCommunityIcons
+          name="shaker-outline"
+          size={20}
+          color={mealColor}
+        />
+      );
     } else if (
-      foodId.includes("banana") ||
-      foodId.includes("maca") ||
-      foodId.includes("fruta") ||
-      foodName.includes("banana") ||
-      foodName.includes("maçã") ||
-      foodName.includes("maca") ||
-      foodName.includes("fruta")
+      foodId.includes("macarrao") ||
+      foodName.includes("macarrão") ||
+      foodName.includes("macarrao") ||
+      foodName.includes("pasta")
     ) {
-      return <FontAwesome5 name="apple-alt" size={18} color={mealColor} />;
+      return (
+        <MaterialCommunityIcons name="pasta" size={20} color={mealColor} />
+      );
+    } else if (
+      foodId.includes("arroz") ||
+      foodName.includes("arroz") ||
+      foodName.includes("rice")
+    ) {
+      return <MaterialCommunityIcons name="rice" size={20} color={mealColor} />;
+    } else if (
+      foodId.includes("batata") || // Mantendo "batata" na verificação
+      foodName.includes("batata") ||
+      foodName.includes("potato")
+    ) {
+      return (
+        <MaterialCommunityIcons name="carrot" size={20} color={mealColor} />
+      ); // Ícone trocado para cenoura
     } else if (
       foodId.includes("frango") ||
       foodId.includes("patinho") ||
@@ -575,25 +588,12 @@ export default function FoodSuggestionCard({
       foodName.includes("atum")
     ) {
       return <FontAwesome5 name="fish" size={18} color={mealColor} />;
-    } else if (
-      foodId.includes("legumes") ||
-      foodId.includes("salada") ||
-      foodName.includes("legumes") ||
-      foodName.includes("salada") ||
-      foodName.includes("verdura") ||
-      foodName.includes("folhas")
-    ) {
-      return <MaterialCommunityIcons name="leaf" size={20} color={mealColor} />;
-    } else if (
-      foodId.includes("requeijao") ||
-      foodId.includes("queijo") ||
-      foodName.includes("requeijão") ||
-      foodName.includes("queijo")
-    ) {
-      return <FontAwesome5 name="cheese" size={18} color={mealColor} />;
+    } else if (foodId.includes("ovo") || foodName.includes("ovo")) {
+      return <FontAwesome5 name="egg" size={18} color={mealColor} />;
     } else if (
       foodId.includes("iogurte_desnatado") ||
-      foodName.includes("iogurte desnatado")
+      foodName.includes("iogurte desnatado") ||
+      foodName.includes("leite desnatado")
     ) {
       return (
         <FontAwesome5
@@ -606,33 +606,14 @@ export default function FoodSuggestionCard({
     } else if (foodId.includes("iogurte") || foodName.includes("iogurte")) {
       return <FontAwesome5 name="glass-whiskey" size={18} color={mealColor} />;
     } else if (
-      foodId.includes("aveia") ||
-      foodId.includes("granola") ||
-      foodId.includes("chia") ||
-      foodName.includes("aveia") ||
-      foodName.includes("granola") ||
-      foodName.includes("chia") ||
-      foodName.includes("cereal")
+      foodId.includes("requeijao") ||
+      foodId.includes("queijo") ||
+      foodName.includes("requeijão") ||
+      foodName.includes("queijo")
     ) {
       return (
-        <MaterialCommunityIcons name="grain" size={20} color={mealColor} />
+        <MaterialCommunityIcons name="cheese" size={18} color={mealColor} />
       );
-    } else if (foodId.includes("whey") || foodName.includes("whey")) {
-      return (
-        <MaterialCommunityIcons
-          name="shaker-outline"
-          size={20}
-          color={mealColor}
-        />
-      );
-    } else if (
-      foodId.includes("azeite") ||
-      foodId.includes("oleo") ||
-      foodName.includes("azeite") ||
-      foodName.includes("óleo") ||
-      foodName.includes("oleo")
-    ) {
-      return <MaterialCommunityIcons name="oil" size={20} color={mealColor} />;
     } else if (
       foodId.includes("castanha") ||
       foodId.includes("amendoim") ||
@@ -644,11 +625,67 @@ export default function FoodSuggestionCard({
       return (
         <MaterialCommunityIcons name="peanut" size={20} color={mealColor} />
       );
+    } else if (
+      foodId.includes("azeite") ||
+      foodId.includes("oleo") ||
+      foodName.includes("azeite") ||
+      foodName.includes("óleo") ||
+      foodName.includes("oleo")
+    ) {
+      return <MaterialCommunityIcons name="oil" size={20} color={mealColor} />;
     }
 
-    // Padrão
+    // 2. Categorias mais amplas
+    else if (
+      foodId.includes("pao") ||
+      foodName.includes("pão") ||
+      foodName.includes("pao")
+    ) {
+      return (
+        <MaterialCommunityIcons name="baguette" size={18} color={mealColor} />
+      );
+    } else if (
+      foodId.includes("aveia") ||
+      foodId.includes("granola") ||
+      foodId.includes("chia") ||
+      foodName.includes("aveia") ||
+      foodName.includes("granola") ||
+      foodName.includes("chia") ||
+      foodName.includes("cereal")
+    ) {
+      return (
+        <MaterialCommunityIcons name="grain" size={20} color={mealColor} />
+      );
+    } else if (
+      foodId.includes("banana") ||
+      foodId.includes("maca") ||
+      foodId.includes("fruta") ||
+      foodName.includes("banana") ||
+      foodName.includes("maçã") ||
+      foodName.includes("maca") ||
+      foodName.includes("fruta") ||
+      foodName.includes("mamão") ||
+      foodName.includes("mamao")
+    ) {
+      return <FontAwesome5 name="apple-alt" size={18} color={mealColor} />;
+    } else if (
+      foodId.includes("legumes") ||
+      foodId.includes("salada") ||
+      foodName.includes("legumes") ||
+      foodName.includes("salada") ||
+      foodName.includes("verdura") ||
+      foodName.includes("folhas")
+    ) {
+      return <MaterialCommunityIcons name="leaf" size={20} color={mealColor} />;
+    }
+
+    // 3. Padrão
     return (
-      <MaterialCommunityIcons name="food-variant" size={20} color={mealColor} />
+      <MaterialCommunityIcons
+        name="food-fork-drink"
+        size={20}
+        color={mealColor}
+      />
     );
   };
 

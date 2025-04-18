@@ -498,7 +498,7 @@ export default function NutritionSummaryCard({
         "profile.nutritionCard.carbsInfoDesc",
         "Carboidratos são a principal fonte de energia para o corpo e são cruciais para performance em treinos. Priorize fontes complexas como arroz integral, batata doce, aveia e frutas. A quantidade ideal varia conforme seus objetivos e nível de atividade física."
       ),
-      icon: "bread-slice",
+      icon: "baguette",
       iconType: "material",
       color: "#118AB2",
     },
@@ -580,13 +580,13 @@ export default function NutritionSummaryCard({
         <View
           style={[
             styles.iconContainer,
-            { backgroundColor: colors.primary + "20" },
+            { backgroundColor: colors.accentGray + "20" },
           ]}
         >
           <MaterialCommunityIcons
             name="nutrition"
             size={18}
-            color={colors.primary}
+            color={colors.accentGray}
           />
         </View>
         <View>
@@ -606,11 +606,11 @@ export default function NutritionSummaryCard({
               style={[
                 styles.editActionButton,
                 styles.cancelButton,
-                { backgroundColor: colors.text + "10" },
+                { backgroundColor: colors.accentGray + "20" },
               ]}
               onPress={handleCancelEdit}
             >
-              <Ionicons name="close" size={20} color={colors.text + "80"} />
+              <Ionicons name="close" size={20} color={colors.accentGray} />
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -628,27 +628,27 @@ export default function NutritionSummaryCard({
             <TouchableOpacity
               style={[
                 styles.infoButton,
-                { backgroundColor: colors.text + "10" },
+                { backgroundColor: colors.accentGray + "20" },
               ]}
               onPress={handleInfoPress}
             >
               <Ionicons
                 name="information-circle-outline"
                 size={20}
-                color={colors.text + "80"}
+                color={colors.accentGray}
               />
             </TouchableOpacity>
             <TouchableOpacity
               style={[
                 styles.customizeButton,
-                { backgroundColor: colors.text + "10" },
+                { backgroundColor: colors.accentGray + "20" },
               ]}
               onPress={handleCustomizePress}
             >
               <Ionicons
                 name="options-outline"
                 size={20}
-                color={colors.text + "80"}
+                color={colors.accentGray}
               />
             </TouchableOpacity>
           </View>
@@ -922,7 +922,7 @@ export default function NutritionSummaryCard({
               ]}
             >
               <MaterialCommunityIcons
-                name="bread-slice"
+                name="baguette"
                 size={18}
                 color="#118AB2"
               />
@@ -1238,11 +1238,7 @@ export default function NutritionSummaryCard({
             { backgroundColor: "#4ECDC415" },
           ]}
         >
-          <MaterialCommunityIcons
-            name="bread-slice"
-            size={20}
-            color="#4ECDC4"
-          />
+          <MaterialCommunityIcons name="baguette" size={20} color="#4ECDC4" />
         </View>
         <Text style={[styles.nutrientDetailValue, { color: colors.text }]}>
           {nutritionInfo.carbs}g

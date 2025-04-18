@@ -7,6 +7,7 @@ import {
   Pressable,
   Dimensions,
   InteractionManager,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HomeHeader from "../../components/home/HomeHeader";
@@ -333,72 +334,95 @@ export default function HomeScreen() {
     );
   }, [activeTab, handleAchievementsPress, isUIReady]);
 
-  // Renderização da tela de carregamento e do conteúdo principal
-  const renderScreenContent = () => {
-    if (!isUIReady || !isReady) {
-      return <TabPreloader message={t("common.loading")} />;
-    }
+  // Calcular a altura combinada do header e das abas
+  const headerHeight = Platform.OS === "ios" ? 70 : 60;
+  const tabsHeight = 50; // Estimativa da altura das abas (paddingVertical + fontSize)
+  const totalHeaderAndTabsHeight = headerHeight + tabsHeight;
 
-    return (
-      <>
-        {/* Seletor de abas */}
-        <View style={styles.tabContainer}>
-          <Pressable
-            onPress={() => handleTabChange("lembretes")}
+  return (
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      edges={["top"]}
+    >
+      <View style={[styles.container, { backgroundColor: "transparent" }]}>
+        {/* Wrapper para posicionamento absoluto */}
+        <View style={styles.headerTabsWrapper}>
+          <View style={styles.headerWrapper}>
+            <HomeHeader onFitLevelPress={handleFitLevelPress} />
+          </View>
+          <View
             style={[
-              styles.tabButton,
-              activeTab === "lembretes" && [
-                styles.activeTabButton,
-                { borderBottomColor: colors.primary },
-              ],
+              styles.tabsPositioner,
+              { top: headerHeight },
+              { backgroundColor: `${colors.background}E0` },
             ]}
           >
-            <Text
-              style={[
-                styles.tabText,
-                {
-                  color: colors.text + (activeTab === "lembretes" ? "" : "80"),
-                },
-                activeTab === "lembretes" && {
-                  color: colors.primary,
-                  fontWeight: "600",
-                },
-              ]}
-            >
-              {t("home.reminders")}
-            </Text>
-          </Pressable>
+            {/* Seletor de abas */}
+            <View style={styles.tabContainer}>
+              <Pressable
+                onPress={() => handleTabChange("lembretes")}
+                style={[
+                  styles.tabButton,
+                  activeTab === "lembretes" && [
+                    styles.activeTabButton,
+                    { borderBottomColor: colors.primary },
+                  ],
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    {
+                      color:
+                        colors.text + (activeTab === "lembretes" ? "" : "80"),
+                    },
+                    activeTab === "lembretes" && {
+                      color: colors.primary,
+                      fontWeight: "600",
+                    },
+                  ]}
+                >
+                  {t("home.reminders")}
+                </Text>
+              </Pressable>
 
-          <Pressable
-            onPress={() => handleTabChange("progresso")}
-            style={[
-              styles.tabButton,
-              activeTab === "progresso" && [
-                styles.activeTabButton,
-                { borderBottomColor: colors.primary },
-              ],
-            ]}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                {
-                  color: colors.text + (activeTab === "progresso" ? "" : "80"),
-                },
-                activeTab === "progresso" && {
-                  color: colors.primary,
-                  fontWeight: "600",
-                },
-              ]}
-            >
-              {t("home.progress")}
-            </Text>
-          </Pressable>
+              <Pressable
+                onPress={() => handleTabChange("progresso")}
+                style={[
+                  styles.tabButton,
+                  activeTab === "progresso" && [
+                    styles.activeTabButton,
+                    { borderBottomColor: colors.primary },
+                  ],
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    {
+                      color:
+                        colors.text + (activeTab === "progresso" ? "" : "80"),
+                    },
+                    activeTab === "progresso" && {
+                      color: colors.primary,
+                      fontWeight: "600",
+                    },
+                  ]}
+                >
+                  {t("home.progress")}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
         </View>
 
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            // Adicionar padding top para compensar header e abas
+            { paddingTop: totalHeaderAndTabsHeight + 16 }, // +16 de padding original
+          ]}
           showsVerticalScrollIndicator={false}
         >
           {/* Renderizar as duas abas, mas controlar a visibilidade via CSS */}
@@ -408,19 +432,6 @@ export default function HomeScreen() {
           {/* Espaço adicional para garantir que o conteúdo fique acima da bottom tab */}
           <View style={styles.bottomPadding} />
         </ScrollView>
-      </>
-    );
-  };
-
-  return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      edges={["top"]}
-    >
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <HomeHeader onFitLevelPress={handleFitLevelPress} />
-
-        {renderScreenContent()}
       </View>
     </SafeAreaView>
   );
@@ -429,29 +440,36 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: "relative", // Necessário para posicionar filhos absolutamente
   },
-  headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    width: "100%",
-    justifyContent: "space-between",
+  headerTabsWrapper: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10, // Garantir que fique sobre o ScrollView
   },
-  badgeContainer: {
-    marginRight: 10,
+  headerWrapper: {
+    // O HomeHeader já tem seu próprio background e padding
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 24,
-  },
-  bottomPadding: {
-    height: 80, // Altura suficiente para ficar acima da bottom tab
+  tabsPositioner: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    // top é definido inline
   },
   tabContainer: {
     flexDirection: "row",
     paddingHorizontal: 16,
-    marginBottom: 12,
+    // marginBottom removido, o espaçamento é controlado pelo paddingTop do ScrollView
+  },
+  scrollView: {
+    flex: 1,
+    // backgroundColor: "lightblue", // Para debug de posicionamento
+  },
+  scrollContent: {
+    paddingBottom: 24,
+    // paddingTop é aplicado dinamicamente
   },
   tabButton: {
     flex: 1,
@@ -481,23 +499,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 16,
   },
-  placeholderCard: {
-    width: (width - 48) / 2, // Metade da largura da tela menos o padding
-    height: (width - 48) / 2,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  placeholderText: {
-    fontSize: 16,
-    fontWeight: "500",
+  bottomPadding: {
+    height: 80, // Altura suficiente para ficar acima da bottom tab
   },
 });

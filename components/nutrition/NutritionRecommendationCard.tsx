@@ -154,7 +154,7 @@ export default function NutritionRecommendationCard({
         <View style={styles.macroItem}>
           <View style={styles.macroValueContainer}>
             <MaterialCommunityIcons
-              name="bread-slice"
+              name="baguette"
               size={18}
               color="#FFFFFF"
               style={styles.macroIcon}

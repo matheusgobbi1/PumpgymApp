@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   Modal,
   Dimensions,
-  ScrollView,
+  Platform,
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -81,13 +81,33 @@ export default function AchievementDetailsModal({
     onClose();
   };
 
+  // Obter o nome e descrição traduzidos da conquista
+  const getAchievementName = () => {
+    if (isSecret) return "???";
+    return t(
+      `achievements.database.achievements.${achievement.id}.name`,
+      achievement.name
+    );
+  };
+
+  const getAchievementDescription = () => {
+    if (isSecret) return t("achievements.secret");
+    return t(
+      `achievements.database.achievements.${achievement.id}.description`,
+      achievement.description
+    );
+  };
+
+  // Obter a tradução para a raridade
+  const getRarityTranslation = (rarity: string): string => {
+    return t(`achievements.rarities.${rarity}`);
+  };
+
   // Função para obter o gradiente com base na raridade
   const getRarityGradient = () => {
     if (!isUnlocked) return null;
 
-    // Opacidades ajustadas com base no tema
-    const opacityBase = theme === "dark" ? 1 : 2; // Fator multiplicador para o modo claro
-
+    // Ajustes nos gradientes para mais suavidade e presença
     switch (achievement.rarity) {
       case "common":
         return (
@@ -95,8 +115,8 @@ export default function AchievementDetailsModal({
             colors={[
               "transparent",
               theme === "dark"
-                ? "rgba(200, 200, 200, 0.05)"
-                : "rgba(230, 230, 230, 0.35)",
+                ? "rgba(200, 200, 200, 0.08)" // Ligeiramente mais visível
+                : "rgba(210, 210, 210, 0.5)", // Mais opaco no light
             ]}
             style={styles.rarityGradientBackground}
             start={{ x: 0.5, y: 0 }}
@@ -109,8 +129,8 @@ export default function AchievementDetailsModal({
             colors={[
               "transparent",
               theme === "dark"
-                ? "rgba(100, 185, 100, 0.1)"
-                : "rgba(100, 185, 100, 0.25)",
+                ? "rgba(100, 185, 100, 0.12)" // Verde mais sutil
+                : "rgba(100, 185, 100, 0.35)",
             ]}
             style={styles.rarityGradientBackground}
             start={{ x: 0.5, y: 0 }}
@@ -123,8 +143,8 @@ export default function AchievementDetailsModal({
             colors={[
               "transparent",
               theme === "dark"
-                ? "rgba(83, 135, 223, 0.15)"
-                : "rgba(83, 135, 223, 0.3)",
+                ? "rgba(83, 135, 223, 0.18)" // Azul mais presente
+                : "rgba(83, 135, 223, 0.4)",
             ]}
             style={styles.rarityGradientBackground}
             start={{ x: 0.5, y: 0 }}
@@ -137,8 +157,8 @@ export default function AchievementDetailsModal({
             colors={[
               "transparent",
               theme === "dark"
-                ? "rgba(167, 89, 216, 0.2)"
-                : "rgba(167, 89, 216, 0.35)",
+                ? "rgba(167, 89, 216, 0.25)" // Roxo mais intenso
+                : "rgba(167, 89, 216, 0.45)",
             ]}
             style={styles.rarityGradientBackground}
             start={{ x: 0.5, y: 0 }}
@@ -146,132 +166,9 @@ export default function AchievementDetailsModal({
           />
         );
       case "legendary":
-        return (
-          <LinearGradient
-            colors={[
-              "transparent",
-              theme === "dark"
-                ? "rgba(251, 166, 28, 0.1)"
-                : "rgba(251, 166, 28, 0.15)",
-              theme === "dark"
-                ? "rgba(251, 166, 28, 0.2)"
-                : "rgba(251, 166, 28, 0.4)",
-            ]}
-            style={styles.rarityGradientBackground}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-          />
-        );
+        return null;
       default:
         return null;
-    }
-  };
-
-  // Função para obter elementos de borda com base na raridade
-  const getRarityBorderElement = () => {
-    if (!isUnlocked) return null;
-
-    // Agora aplicamos para todas as raridades, não apenas épicas e legendárias
-    switch (achievement.rarity) {
-      case "common":
-        return theme === "light" ? (
-          <LinearGradient
-            colors={["transparent", "rgba(180, 180, 180, 0.6)", "transparent"]}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={[styles.rarityBorder, styles.rarityBorderLight]}
-          />
-        ) : null;
-      case "uncommon":
-        return (
-          <LinearGradient
-            colors={[
-              "transparent",
-              theme === "dark"
-                ? "rgba(100, 185, 100, 0.5)"
-                : "rgba(100, 185, 100, 0.7)",
-              "transparent",
-            ]}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={[
-              styles.rarityBorder,
-              theme === "light" && styles.rarityBorderLight,
-            ]}
-          />
-        );
-      case "rare":
-        return (
-          <LinearGradient
-            colors={[
-              "transparent",
-              theme === "dark"
-                ? "rgba(83, 135, 223, 0.5)"
-                : "rgba(83, 135, 223, 0.7)",
-              "transparent",
-            ]}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={[
-              styles.rarityBorder,
-              theme === "light" && styles.rarityBorderLight,
-            ]}
-          />
-        );
-      case "epic":
-        return (
-          <LinearGradient
-            colors={[
-              "transparent",
-              theme === "dark" ? "#A759D8" : "rgba(167, 89, 216, 0.8)",
-              "transparent",
-            ]}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={[
-              styles.rarityBorder,
-              theme === "light" && styles.rarityBorderLight,
-            ]}
-          />
-        );
-      case "legendary":
-        return (
-          <LinearGradient
-            colors={[
-              "transparent",
-              theme === "dark" ? "#FBA61C" : "rgba(251, 166, 28, 0.8)",
-              "transparent",
-            ]}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={[
-              styles.rarityBorder,
-              theme === "light" && styles.rarityBorderLight,
-            ]}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
-  // Função para obter o estilo do título com base na raridade
-  const getTitleStyle = () => {
-    if (!isUnlocked) return {};
-
-    switch (achievement.rarity) {
-      case "common":
-        return styles.commonTitle;
-      case "uncommon":
-        return styles.uncommonTitle;
-      case "rare":
-        return styles.rareTitle;
-      case "epic":
-        return styles.epicTitle;
-      case "legendary":
-        return styles.legendaryTitle;
-      default:
-        return {};
     }
   };
 
@@ -330,8 +227,45 @@ export default function AchievementDetailsModal({
             },
           ]}
         >
-          {/* Gradiente de fundo específico da raridade */}
-          {getRarityGradient()}
+          {/* Gradiente de Barra de Ouro e Brilho (Apenas Lendário) */}
+          {isUnlocked && achievement.rarity === "legendary" && (
+            <>
+              <LinearGradient
+                colors={[
+                  "#FFF5D4",
+                  "#FADA80",
+                  "#F6C644",
+                  "#EAA827",
+                  "#D9952C",
+                  "#B17B1E",
+                ]}
+                start={{ x: 0, y: 0.4 }}
+                end={{ x: 1, y: 0.6 }}
+                locations={[0, 0.2, 0.4, 0.6, 0.8, 1]}
+                style={styles.rarityGradientBackground}
+              />
+              <MotiView
+                from={{ opacity: 0, translateX: -100 }}
+                animate={{
+                  opacity: [0, 0.7, 0],
+                  translateX: [width * -0.2, width * 1.1],
+                }}
+                transition={{
+                  type: "timing",
+                  duration: 2500,
+                  loop: true,
+                  repeatReverse: false,
+                  delay: 1000,
+                }}
+                style={styles.legendaryShimmer}
+              />
+            </>
+          )}
+
+          {/* Gradiente de fundo específico da raridade (outras raridades) */}
+          {isUnlocked &&
+            achievement.rarity !== "legendary" &&
+            getRarityGradient()}
 
           {/* Efeito de brilho na borda para raridades épicas e legendárias */}
           {isUnlocked && ["epic", "legendary"].includes(achievement.rarity) && (
@@ -368,179 +302,201 @@ export default function AchievementDetailsModal({
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            bounces={true}
-          >
-            <View style={styles.badgeCenterContainer}>
-              <View style={styles.badgeWithEffectsContainer}>
-                {isUnlocked && (
-                  <RarityEffects
-                    rarity={achievement.rarity}
-                    size={90}
-                    isUnlocked={isUnlocked}
+          <View style={styles.contentContainer}>
+            {/* Nova Seção Superior: Ícone | Raridade e FitPoints */}
+            <View style={styles.topSection}>
+              {/* Ícone da Conquista */}
+              <View style={styles.badgeCenterContainer}>
+                <View style={styles.badgeWithEffectsContainer}>
+                  {isUnlocked && (
+                    <RarityEffects
+                      rarity={achievement.rarity}
+                      size={80}
+                      isUnlocked={isUnlocked}
+                    />
+                  )}
+                  <AchievementBadge
+                    icon={
+                      (isUnlocked ? achievement.icon : "help-circle") as any
+                    }
+                    color={isUnlocked ? achievement.badgeColor : "#999999"}
+                    size="large"
+                    locked={!isUnlocked}
+                    new={false}
+                    showShadow={true}
+                    withPulse={isUnlocked && achievement.rarity === "legendary"}
                   />
-                )}
-                <AchievementBadge
-                  icon={(isUnlocked ? achievement.icon : "help-circle") as any}
-                  color={isUnlocked ? achievement.badgeColor : "#999999"}
-                  size="large"
-                  locked={!isUnlocked}
-                  new={false}
-                  showShadow={true}
-                  withPulse={isUnlocked && achievement.rarity === "legendary"}
-                />
+                </View>
               </View>
-            </View>
 
-            <Text
-              style={[
-                styles.detailTitle,
-                { color: colors.text },
-                getTitleStyle(),
-              ]}
-            >
-              {isSecret ? "???" : achievement.name}
-            </Text>
-
-            <Text
-              style={[styles.detailDescription, { color: colors.text + "CC" }]}
-            >
-              {isSecret ? t("achievements.secret") : achievement.description}
-            </Text>
-
-            {!isSecret && (
-              <View style={styles.statusContainer}>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    {
-                      backgroundColor:
-                        theme === "dark"
-                          ? "rgba(255,255,255,0.1)"
-                          : "rgba(0,0,0,0.05)",
-                    },
-                    isUnlocked && {
-                      backgroundColor: `${achievement.badgeColor}${
-                        theme === "dark" ? "20" : "30"
-                      }`,
-                    },
-                  ]}
-                >
-                  <Text
+              {/* Lado Direito: Raridade e FitPoints */}
+              {!isSecret && (
+                <View style={styles.rightInfoContainer}>
+                  {/* Raridade */}
+                  <View
                     style={[
-                      styles.statusText,
+                      styles.rarityBadgeContainer, // Novo estilo
                       {
-                        color: isUnlocked
-                          ? achievement.badgeColor
-                          : colors.text + "80",
+                        backgroundColor:
+                          theme === "dark"
+                            ? "rgba(40, 40, 45, 0.7)"
+                            : "rgba(240, 240, 245, 0.7)",
+                        borderColor: isUnlocked
+                          ? `${achievement.badgeColor}40`
+                          : theme === "dark"
+                          ? "rgba(70, 70, 75, 0.4)"
+                          : "rgba(200, 200, 205, 0.4)",
                       },
                     ]}
                   >
-                    {isUnlocked
-                      ? t("achievements.unlocked")
-                      : t("achievements.locked")}
-                  </Text>
-                </View>
-              </View>
-            )}
+                    <MaterialCommunityIcons
+                      name={
+                        achievement.rarity === "legendary"
+                          ? "crown"
+                          : achievement.rarity === "epic"
+                          ? "star-four-points"
+                          : achievement.rarity === "rare"
+                          ? "star"
+                          : achievement.rarity === "uncommon"
+                          ? "circle-slice-8"
+                          : "circle-outline"
+                      }
+                      size={18}
+                      color={achievement.badgeColor}
+                      style={styles.rarityIcon}
+                    />
+                    <Text
+                      style={[
+                        styles.rarityText,
+                        { color: achievement.badgeColor },
+                        achievement.rarity === "legendary" &&
+                          styles.legendaryRarityText,
+                      ]}
+                    >
+                      {getRarityTranslation(achievement.rarity)}
+                    </Text>
+                  </View>
 
-            {/* Borda decorativa baseada na raridade */}
-            {getRarityBorderElement()}
-
-            {!isSecret && (
-              <View style={styles.rewardContainer}>
-                <View
-                  style={[
-                    styles.divider,
-                    {
-                      backgroundColor: isUnlocked
-                        ? `${achievement.badgeColor}${
-                            theme === "dark" ? "50" : "40"
-                          }`
-                        : "#EEEEEE30",
-                    },
-                  ]}
-                />
-
-                <Text style={[styles.rewardTitle, { color: colors.text }]}>
-                  {t("achievements.reward")}
-                </Text>
-                <View
-                  style={[
-                    styles.fitPointsContainer,
-                    isUnlocked &&
-                      achievement.rarity === "legendary" &&
-                      styles.legendaryRewardContainer,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name={achievement.fitPointsIcon}
-                    size={24}
-                    color={achievement.badgeColor}
-                  />
-                  <Text
+                  {/* FitPoints */}
+                  <View
                     style={[
-                      styles.fitPointsText,
-                      { color: colors.text },
+                      styles.fitPointsContainerRight, // Novo estilo para o container dos fitpoints
+                      {
+                        backgroundColor:
+                          theme === "dark"
+                            ? "rgba(40, 40, 45, 0.7)"
+                            : "rgba(240, 240, 245, 0.7)",
+                        borderColor: isUnlocked
+                          ? `${achievement.badgeColor}40`
+                          : theme === "dark"
+                          ? "rgba(70, 70, 75, 0.4)"
+                          : "rgba(200, 200, 205, 0.4)",
+                      },
                       isUnlocked &&
                         achievement.rarity === "legendary" && {
-                          color: achievement.badgeColor,
-                          fontWeight: "bold",
+                          backgroundColor: "rgba(251, 166, 28, 0.1)",
+                          borderColor: "rgba(251, 166, 28, 0.3)",
                         },
                     ]}
                   >
-                    {achievement.fitPoints} {t("achievements.fitPoints")}
-                  </Text>
+                    <MaterialCommunityIcons
+                      name="flare"
+                      size={20} // Ajustar tamanho se necessário
+                      color={achievement.badgeColor}
+                      style={styles.fitPointsIconRight} // Novo estilo para o ícone de fitpoints
+                    />
+                    <Text
+                      style={[
+                        styles.fitPointsText,
+                        { color: colors.text },
+                        isUnlocked &&
+                          achievement.rarity === "legendary" && {
+                            color: "#4A2B00",
+                            fontWeight: "bold",
+                          },
+                      ]}
+                    >
+                      {achievement.fitPoints}{" "}
+                      {t("achievements.fitPointsShort", "FP")}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            )}
+              )}
+            </View>
 
-            {!isSecret && (
-              <View style={styles.rarityInfoContainer}>
-                <View
-                  style={[
-                    styles.divider,
-                    {
-                      backgroundColor: isUnlocked
-                        ? `${achievement.badgeColor}${
-                            theme === "dark" ? "50" : "40"
-                          }`
-                        : "#EEEEEE30",
-                    },
-                  ]}
-                />
-
-                <Text style={[styles.rarityTitle, { color: colors.text }]}>
-                  {t("achievements.rarity")}
-                </Text>
-                <View
-                  style={[
-                    styles.rarityBadge,
-                    {
-                      backgroundColor:
-                        theme === "dark"
-                          ? `${achievement.badgeColor}20`
-                          : `${achievement.badgeColor}35`,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.rarityText,
-                      { color: achievement.badgeColor },
-                      achievement.rarity === "legendary" &&
-                        styles.legendaryRarityText,
-                    ]}
-                  >
-                    {t(`achievements.rarities.${achievement.rarity}`)}
-                  </Text>
-                </View>
-              </View>
-            )}
-          </ScrollView>
+            {/* Título e Descrição abaixo */}
+            <View style={styles.textContainerBottom}>
+              {/* Novo estilo */}
+              <Text
+                style={[
+                  styles.detailTitle,
+                  { color: colors.text },
+                  isUnlocked && achievement.rarity === "legendary"
+                    ? styles.legendaryTitle
+                    : isUnlocked
+                    ? achievement.rarity === "common"
+                      ? [
+                          styles.commonTitle,
+                          { color: theme === "dark" ? "#E0E0E0" : "#444444" },
+                        ]
+                      : achievement.rarity === "uncommon"
+                      ? [
+                          styles.uncommonTitle,
+                          {
+                            color: theme === "dark" ? "#86DC86" : "#1E8449",
+                            textShadowColor:
+                              theme === "dark"
+                                ? "rgba(100, 185, 100, 0.2)"
+                                : "rgba(255, 255, 255, 0.5)",
+                          },
+                        ]
+                      : achievement.rarity === "rare"
+                      ? [
+                          styles.rareTitle,
+                          {
+                            color: theme === "dark" ? "#7CACF8" : "#2471A3",
+                            textShadowColor:
+                              theme === "dark"
+                                ? "rgba(83, 135, 223, 0.25)"
+                                : "rgba(255, 255, 255, 0.5)",
+                          },
+                        ]
+                      : achievement.rarity === "epic"
+                      ? [
+                          styles.epicTitle,
+                          {
+                            color: theme === "dark" ? "#C58AF3" : "#6C3483",
+                            textShadowColor:
+                              theme === "dark"
+                                ? "rgba(167, 89, 216, 0.3)"
+                                : "rgba(255, 255, 255, 0.5)",
+                          },
+                        ]
+                      : {}
+                    : {},
+                ]}
+                // numberOfLines={2} // Remover limite de linhas
+                adjustsFontSizeToFit={false} // Não ajustar mais
+                // minimumFontScale={0.8}
+              >
+                {getAchievementName()}
+              </Text>
+              <Text
+                style={[
+                  styles.detailDescription,
+                  {
+                    color:
+                      isUnlocked && achievement.rarity === "legendary"
+                        ? "#4A2B00"
+                        : colors.text + "CC",
+                  },
+                ]}
+                // numberOfLines={3} // Remover limite de linhas
+              >
+                {getAchievementDescription()}
+              </Text>
+            </View>
+          </View>
 
           <TouchableOpacity
             style={[
@@ -557,6 +513,7 @@ export default function AchievementDetailsModal({
                     ? "rgba(255,255,255,0.1)"
                     : "transparent"
                   : achievement.badgeColor,
+                marginTop: 10,
               },
             ]}
             onPress={() => {
@@ -571,7 +528,9 @@ export default function AchievementDetailsModal({
                 styles.closeButtonText,
                 {
                   color: isUnlocked
-                    ? theme === "dark"
+                    ? achievement.rarity === "legendary"
+                      ? "#4A2B00"
+                      : theme === "dark"
                       ? "#000000"
                       : "#FFFFFF"
                     : achievement.badgeColor,
@@ -600,12 +559,11 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     borderWidth: 1,
     overflow: "hidden",
-    maxHeight: "80%",
   },
   modalHeader: {
     alignItems: "flex-end",
-    paddingTop: 20,
-    paddingRight: 20,
+    paddingTop: 16,
+    paddingRight: 16,
   },
   closeModalButton: {
     height: 36,
@@ -619,23 +577,87 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 3,
   },
-  scrollView: {
-    flexGrow: 0,
+  contentContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 5,
   },
-  scrollContent: {
-    padding: 24,
-    paddingTop: 0,
+  topSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 18,
   },
   badgeCenterContainer: {
-    alignItems: "center",
-    marginVertical: 20,
+    marginRight: 15,
   },
   badgeWithEffectsContainer: {
     position: "relative",
     alignItems: "center",
     justifyContent: "center",
-    height: 120,
-    width: 120,
+    height: 95,
+    width: 95,
+  },
+  textContainer: {
+    flex: 1,
+  },
+  rightInfoContainer: {
+    // Novo container
+    flex: 1,
+    justifyContent: "center", // Centralizar verticalmente
+    alignItems: "flex-start", // Alinhar itens à esquerda dentro deste container
+    gap: 10, // Espaço entre raridade e fitpoints
+    marginLeft: 10, // Espaço do ícone
+  },
+  rarityBadgeContainer: {
+    // Novo estilo para o container da raridade
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignSelf: "flex-start", // Para não ocupar toda a largura
+  },
+  fitPointsContainerRight: {
+    // Novo estilo para o container dos fitpoints
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignSelf: "flex-start", // Para não ocupar toda a largura
+  },
+  fitPointsIconRight: {
+    // Novo estilo para o ícone de fitpoints
+    marginRight: 4,
+  },
+  statusSectionTop: {
+    // Novo estilo para seção de status (se mantida)
+    marginBottom: 15,
+    marginTop: 5, // Adiciona espaço acima
+  },
+  statusSection: {
+    marginBottom: 15,
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    minWidth: 150, // Largura mínima para o status badge
+    alignSelf: "center", // Centralizar na horizontal
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    opacity: 0.9,
+    textAlign: "center", // Centralizar texto da descrição
+    paddingHorizontal: 5, // Adicionar padding lateral para não colar nas bordas
+  },
+  statusIcon: {
+    marginRight: 6,
+  },
+  rarityIcon: {
+    marginRight: 6,
   },
   rarityGradientBackground: {
     position: "absolute",
@@ -645,82 +667,52 @@ const styles = StyleSheet.create({
     bottom: 0,
     borderRadius: 28,
   },
-  rarityBorder: {
-    height: 1,
-    marginVertical: 10,
-    opacity: 0.7,
-  },
-  rarityBorderLight: {
-    height: 2,
-    opacity: 0.9,
-  },
   detailTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  detailDescription: {
-    fontSize: 18,
-    textAlign: "center",
-    marginBottom: 24,
-    lineHeight: 26,
-  },
-  statusContainer: {
-    alignItems: "center",
-    marginVertical: 16,
-  },
-  statusBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  statusText: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  rewardContainer: {
-    marginTop: 24,
-    paddingTop: 0,
-  },
-  rewardTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 16,
+    marginBottom: 8,
+  },
+  detailDescription: {
+    fontSize: 15,
+    marginBottom: 5,
+    lineHeight: 20,
+    opacity: 0.9,
+  },
+  statusText: {
+    fontSize: 15,
+    fontWeight: "bold",
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1,
   },
   fitPointsContainer: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  fitPointsIconContainer: {
+    marginRight: 6,
   },
   fitPointsText: {
-    fontSize: 18,
-    fontWeight: "500",
-    marginLeft: 10,
-  },
-  rarityInfoContainer: {
-    marginTop: 24,
-    paddingTop: 0,
-  },
-  rarityTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 16,
+    fontSize: 16,
+    fontWeight: "600",
   },
   rarityBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    flexDirection: "row",
+    alignItems: "center",
   },
   rarityText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "bold",
   },
   closeButton: {
-    margin: 20,
-    height: 54,
-    borderRadius: 27,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    height: 48,
+    borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 10,
@@ -737,41 +729,37 @@ const styles = StyleSheet.create({
   },
   uncommonTitle: {
     fontWeight: "700",
-    color: "#64B964",
-    textShadowColor: "rgba(100, 185, 100, 0.3)",
-    textShadowOffset: { width: 0, height: 0.5 },
-    textShadowRadius: 0.5,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   rareTitle: {
     fontWeight: "700",
-    color: "#5387DF",
-    textShadowColor: "rgba(83, 135, 223, 0.3)",
-    textShadowOffset: { width: 0, height: 0.5 },
-    textShadowRadius: 0.5,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   epicTitle: {
     fontWeight: "700",
-    color: "#A759D8",
-    textShadowColor: "rgba(167, 89, 216, 0.4)",
-    textShadowOffset: { width: 0, height: 0.5 },
-    textShadowRadius: 0.5,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   legendaryTitle: {
     fontWeight: "800",
-    color: "#FBA61C",
-    textShadowColor: "rgba(251, 166, 28, 0.3)",
-    textShadowOffset: { width: 0, height: 0.5 },
+    color: "#4A2B00",
+    textShadowColor: "rgba(255, 230, 180, 0.5)",
+    textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 1,
+    letterSpacing: 0.5,
   },
   legendaryRewardContainer: {
-    padding: 10,
-    borderRadius: 15,
     backgroundColor: "rgba(251, 166, 28, 0.1)",
+    borderColor: "rgba(251, 166, 28, 0.3)",
   },
   legendaryRarityText: {
-    textShadowColor: "rgba(251, 166, 28, 0.3)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 0.5,
+    color: "#FFF9E0",
+    textShadowColor: "rgba(74, 43, 0, 0.9)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    fontWeight: "bold",
   },
   glowingBorder: {
     borderWidth: 2,
@@ -784,9 +772,18 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 0,
   },
-  divider: {
-    height: 1,
-    marginBottom: 20,
-    width: "100%",
+  legendaryShimmer: {
+    position: "absolute",
+    width: 70,
+    height: "100%",
+    backgroundColor: "rgba(255, 253, 242, 0.8)",
+    transform: [{ skewX: "-30deg" }],
+    zIndex: 1,
+    borderRadius: 28,
+  },
+  textContainerBottom: {
+    marginTop: 10,
+    alignItems: "flex-start",
+    paddingHorizontal: 5,
   },
 });

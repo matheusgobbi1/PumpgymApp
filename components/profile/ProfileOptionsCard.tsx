@@ -98,13 +98,13 @@ export default function ProfileOptionsCard({
           <View
             style={[
               styles.optionIconContainer,
-              { backgroundColor: colors.primary + "15" },
+              { backgroundColor: colors.accentGray + "15" },
             ]}
           >
             <Ionicons
               name="information-circle-outline"
               size={20}
-              color={colors.primary}
+              color={colors.accentGray}
             />
           </View>
           <Text style={[styles.optionText, { color: colors.text }]}>
@@ -124,13 +124,13 @@ export default function ProfileOptionsCard({
           <View
             style={[
               styles.optionIconContainer,
-              { backgroundColor: colors.primary + "15" },
+              { backgroundColor: colors.accentGray + "15" },
             ]}
           >
             <Ionicons
               name="language-outline"
               size={20}
-              color={colors.primary}
+              color={colors.accentGray}
             />
           </View>
           <Text style={[styles.optionText, { color: colors.text }]}>

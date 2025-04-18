@@ -342,10 +342,10 @@ export default function WeightProgressChart({
             <View
               style={[
                 styles.iconContainer,
-                { backgroundColor: colors.primary + "20" },
+                { backgroundColor: colors.accentGray + "20" },
               ]}
             >
-              <FontAwesome5 name="weight" size={16} color={colors.primary} />
+              <FontAwesome5 name="weight" size={16} color={colors.accentGray} />
             </View>
             <View>
               <Text style={[styles.title, { color: colors.text }]}>
@@ -361,14 +361,14 @@ export default function WeightProgressChart({
             <TouchableOpacity
               style={[
                 styles.infoButton,
-                { backgroundColor: colors.primary + "20" },
+                { backgroundColor: colors.accentGray + "20" },
               ]}
               onPress={openInfoModal}
             >
               <Ionicons
                 name="information-circle-outline"
                 size={20}
-                color={colors.primary}
+                color={colors.accentGray}
               />
             </TouchableOpacity>
 
@@ -376,14 +376,14 @@ export default function WeightProgressChart({
               <TouchableOpacity
                 style={[
                   styles.expandButton,
-                  { backgroundColor: colors.text + "10" },
+                  { backgroundColor: colors.accentGray + "20" },
                 ]}
                 onPress={toggleExpand}
               >
                 <Ionicons
                   name={isExpanded ? "chevron-up" : "chevron-down"}
                   size={20}
-                  color={colors.text + "80"}
+                  color={colors.accentGray}
                 />
               </TouchableOpacity>
             )}
@@ -398,7 +398,7 @@ export default function WeightProgressChart({
                   styles.periodButton,
                   selectedPeriod === "1m" && [
                     styles.selectedPeriod,
-                    { backgroundColor: colors.primary + "20" },
+                    { backgroundColor: colors.accentGray + "20" },
                   ],
                 ]}
                 onPress={() => handlePeriodChange("1m")}
@@ -406,9 +406,9 @@ export default function WeightProgressChart({
                 <Text
                   style={[
                     styles.periodText,
-                    { color: colors.text + "80" },
+                    { color: colors.accentGray },
                     selectedPeriod === "1m" && {
-                      color: colors.primary,
+                      color: colors.accentGray,
                       fontWeight: "600",
                     },
                   ]}
@@ -422,7 +422,7 @@ export default function WeightProgressChart({
                   styles.periodButton,
                   selectedPeriod === "3m" && [
                     styles.selectedPeriod,
-                    { backgroundColor: colors.primary + "20" },
+                    { backgroundColor: colors.accentGray + "20" },
                   ],
                 ]}
                 onPress={() => handlePeriodChange("3m")}
@@ -430,9 +430,9 @@ export default function WeightProgressChart({
                 <Text
                   style={[
                     styles.periodText,
-                    { color: colors.text + "80" },
+                    { color: colors.accentGray },
                     selectedPeriod === "3m" && {
-                      color: colors.primary,
+                      color: colors.accentGray,
                       fontWeight: "600",
                     },
                   ]}
@@ -446,7 +446,7 @@ export default function WeightProgressChart({
                   styles.periodButton,
                   selectedPeriod === "6m" && [
                     styles.selectedPeriod,
-                    { backgroundColor: colors.primary + "20" },
+                    { backgroundColor: colors.accentGray + "20" },
                   ],
                 ]}
                 onPress={() => handlePeriodChange("6m")}
@@ -454,9 +454,9 @@ export default function WeightProgressChart({
                 <Text
                   style={[
                     styles.periodText,
-                    { color: colors.text + "80" },
+                    { color: colors.accentGray },
                     selectedPeriod === "6m" && {
-                      color: colors.primary,
+                      color: colors.accentGray,
                       fontWeight: "600",
                     },
                   ]}
@@ -470,7 +470,7 @@ export default function WeightProgressChart({
                   styles.periodButton,
                   selectedPeriod === "all" && [
                     styles.selectedPeriod,
-                    { backgroundColor: colors.primary + "20" },
+                    { backgroundColor: colors.accentGray + "20" },
                   ],
                 ]}
                 onPress={() => handlePeriodChange("all")}
@@ -478,9 +478,9 @@ export default function WeightProgressChart({
                 <Text
                   style={[
                     styles.periodText,
-                    { color: colors.text + "80" },
+                    { color: colors.accentGray },
                     selectedPeriod === "all" && {
-                      color: colors.primary,
+                      color: colors.accentGray,
                       fontWeight: "600",
                     },
                   ]}
@@ -491,7 +491,12 @@ export default function WeightProgressChart({
             </View>
 
             <View style={styles.statsContainer}>
-              <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+              <View
+                style={[
+                  styles.statCard,
+                  { backgroundColor: colors.accentGray + "20" },
+                ]}
+              >
                 <Text
                   style={[styles.statLabel, { color: colors.text }]}
                   numberOfLines={1}
@@ -508,7 +513,12 @@ export default function WeightProgressChart({
                 </Text>
               </View>
 
-              <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+              <View
+                style={[
+                  styles.statCard,
+                  { backgroundColor: colors.accentGray + "20" },
+                ]}
+              >
                 <Text
                   style={[styles.statLabel, { color: colors.text }]}
                   numberOfLines={1}
@@ -535,7 +545,12 @@ export default function WeightProgressChart({
                 </Text>
               </View>
 
-              <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+              <View
+                style={[
+                  styles.statCard,
+                  { backgroundColor: colors.accentGray + "20" },
+                ]}
+              >
                 <Text
                   style={[styles.statLabel, { color: colors.text }]}
                   numberOfLines={1}

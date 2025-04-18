@@ -11,6 +11,7 @@ import {
   ScrollView,
   Alert,
   InteractionManager,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
@@ -343,6 +344,10 @@ export default function NutritionScreen() {
     return hasMealTypesConfigured && configuredMealTypes.length > 0;
   }, [hasMealTypesConfigured, configuredMealTypes]);
 
+  // Calcular alturas
+  const headerHeight = Platform.OS === "ios" ? 70 : 60; // Altura do HomeHeader
+  const calendarHeight = 90; // Altura estimada do Calendário
+
   // Renderizar os modais baseados no modalInfo
   const renderModals = () => {
     // Se não houver modal visível, não renderizar nada
@@ -419,7 +424,6 @@ export default function NutritionScreen() {
 
   // Renderizar o conteúdo completo da tela de forma condicional
   const renderScreenContent = () => {
-    // Mostrar preloader enquanto a tela não estiver pronta
     if (!isUIReady || !isReady) {
       return <TabPreloader message={t("common.loading")} />;
     }
@@ -427,28 +431,46 @@ export default function NutritionScreen() {
     // Se não houver refeições configuradas, mostrar o estado vazio
     if (!hasMealTypesConfigured || configuredMealTypes.length === 0) {
       return (
-        <>
-          {calendarComponent}
+        // Container relativo principal para conteúdo
+        <View style={styles.contentWrapper}>
+          {/* Calendário posicionado absolutamente abaixo do header */}
+          <View style={[styles.calendarWrapper, { top: headerHeight }]}>
+            {calendarComponent}
+          </View>
+
           <ScrollView
-            style={styles.container}
-            contentContainerStyle={styles.contentContainer}
+            style={styles.scrollView}
+            contentContainerStyle={[
+              styles.contentContainer,
+              // Padding top = altura do header + altura do calendário + padding original
+              { paddingTop: headerHeight + calendarHeight + 16 },
+            ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             removeClippedSubviews={true}
           >
             {emptyStateComponent}
           </ScrollView>
-        </>
+        </View>
       );
     }
 
     // Renderizar o conteúdo normal quando tudo estiver pronto
     return (
-      <>
-        {calendarComponent}
+      // Container relativo principal para conteúdo
+      <View style={styles.contentWrapper}>
+        {/* Calendário posicionado absolutamente abaixo do header */}
+        <View style={[styles.calendarWrapper, { top: headerHeight }]}>
+          {calendarComponent}
+        </View>
+
         <ScrollView
-          style={styles.container}
-          contentContainerStyle={styles.contentContainer}
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.contentContainer,
+            // Padding top = altura do header + altura do calendário + padding original
+            { paddingTop: headerHeight + calendarHeight + 16 },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           removeClippedSubviews={true}
@@ -475,7 +497,7 @@ export default function NutritionScreen() {
             />
           ))}
         </ScrollView>
-      </>
+      </View>
     );
   };
 
@@ -484,26 +506,32 @@ export default function NutritionScreen() {
       style={{ flex: 1, backgroundColor: colors.background }}
       edges={["top"]}
     >
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <HomeHeader
-          title={t("nutrition.title")}
-          showContextMenu={true}
-          menuActions={menuActions}
-          menuVisible={isMenuVisible}
-          onFitLevelPress={() => router.push("/achievements-modal")}
-        />
+      {/* Container principal da tela com fundo transparente */}
+      <View style={[styles.container, { backgroundColor: "transparent" }]}>
+        {/* Header posicionado absolutamente no topo */}
+        <View style={styles.headerWrapper}>
+          <HomeHeader
+            title={t("nutrition.title")}
+            showContextMenu={true}
+            menuActions={menuActions}
+            menuVisible={isMenuVisible}
+            onFitLevelPress={() => router.push("/achievements-modal")}
+          />
+        </View>
 
+        {/* Conteúdo da tela (ScrollView + Calendar) renderizado aqui */}
         {renderScreenContent()}
 
-        <MealConfigSheet
-          ref={mealConfigSheetRef}
-          onMealConfigured={handleMealConfigured}
-          key={`meal-config-configured-${mealConfigKey}-${theme}`}
-        />
-
-        {/* Renderizar modais fora do ScrollView */}
+        {/* Renderizar modais fora do ScrollView e do container principal */}
         {renderModals()}
       </View>
+
+      {/* BottomSheet continua fora do container principal */}
+      <MealConfigSheet
+        ref={mealConfigSheetRef}
+        onMealConfigured={handleMealConfigured}
+        key={`meal-config-configured-${mealConfigKey}-${theme}`}
+      />
     </SafeAreaView>
   );
 }
@@ -511,9 +539,37 @@ export default function NutritionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: "relative", // Para que o header absoluto funcione
+  },
+  // Wrapper para o header absoluto
+  headerWrapper: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2, // Header fica sobre o calendário
+  },
+  // Wrapper para o conteúdo principal (ScrollView + Calendário)
+  contentWrapper: {
+    flex: 1,
+    position: "relative", // Para que o calendário absoluto funcione
+    marginTop: 0, // O espaço é criado pelo paddingTop do ScrollView
+  },
+  // Wrapper do calendário absoluto
+  calendarWrapper: {
+    position: "absolute",
+    // top é definido inline (abaixo do header)
+    left: 0,
+    right: 0,
+    zIndex: 1, // Calendário fica sobre o ScrollView, mas abaixo do header
+  },
+  scrollView: {
+    flex: 1,
+    backgroundColor: "transparent", // ScrollView precisa ser transparente
   },
   contentContainer: {
-    padding: 16,
+    paddingHorizontal: 16, // Padding horizontal aplicado aqui
     paddingBottom: 100,
+    // paddingTop será adicionado dinamicamente
   },
 });

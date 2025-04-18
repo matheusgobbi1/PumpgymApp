@@ -1,4 +1,11 @@
-import { StyleSheet, View, ScrollView, Alert, Dimensions } from "react-native";
+import {
+  StyleSheet,
+  View,
+  ScrollView,
+  Alert,
+  Dimensions,
+  Platform,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
@@ -15,10 +22,12 @@ import { format } from "date-fns";
 import EmptyWorkoutState from "../../components/training/EmptyWorkoutState";
 import * as Haptics from "expo-haptics";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import WorkoutConfigSheet, {
+import WorkoutConfigSheet from "../../components/training/WorkoutConfigSheet";
+import {
+  useWorkoutContext,
+  Exercise,
   WorkoutType,
-} from "../../components/training/WorkoutConfigSheet";
-import { useWorkoutContext, Exercise } from "../../context/WorkoutContext";
+} from "../../context/WorkoutContext";
 import WorkoutCard from "../../components/training/WorkoutCard";
 import TrainingStatsCard from "../../components/training/TrainingStatsCard";
 import { useRouter } from "expo-router";
@@ -581,9 +590,12 @@ export default function TrainingScreen() {
     [hasConfiguredWorkouts]
   );
 
+  // Calcular alturas
+  const headerHeight = Platform.OS === "ios" ? 70 : 60; // Altura do HomeHeader
+  const calendarHeight = 90; // Altura estimada do Calendário
+
   // Renderização do conteúdo completo da tela
   const renderScreenContent = () => {
-    // Enquanto a interface não está pronta, mostrar o preloader
     if (!isUIReady || !isReady) {
       return <TabPreloader message={t("common.loading")} />;
     }
@@ -591,38 +603,51 @@ export default function TrainingScreen() {
     const shouldShowEmptyState = !hasWorkoutsForSelectedDate;
 
     return (
-      <>
-        {calendarComponent}
+      // Container relativo principal para conteúdo (ScrollView + elementos absolutos)
+      <View style={styles.contentWrapper}>
+        {/* Calendário posicionado absolutamente abaixo do header */}
+        <View style={[styles.calendarWrapper, { top: headerHeight }]}>
+          {calendarComponent}
+        </View>
 
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollViewContent}
+          contentContainerStyle={[
+            styles.scrollViewContent,
+            // Padding top = altura do header + altura do calendário + padding original
+            { paddingTop: headerHeight + calendarHeight + 16 },
+          ]}
           keyboardShouldPersistTaps="handled"
           scrollEventThrottle={16}
-          showsVerticalScrollIndicator={false}
-          removeClippedSubviews={true} // Melhora a performance para listas longas
+          showsHorizontalScrollIndicator={false}
+          removeClippedSubviews={true}
         >
-          {/* Renderizar os cards de treino ou o EmptyState */}
           {shouldShowEmptyState ? emptyStateComponent : renderWorkoutCards()}
         </ScrollView>
-      </>
+      </View>
     );
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <HomeHeader
-          title={t("training.title")}
-          showContextMenu={true}
-          menuActions={menuActions}
-          menuVisible={isMenuVisible}
-          onFitLevelPress={() => router.push("/achievements-modal")}
-        />
+      {/* Container principal da tela com fundo transparente */}
+      <View style={[styles.container, { backgroundColor: "transparent" }]}>
+        {/* Header posicionado absolutamente no topo */}
+        <View style={styles.headerWrapper}>
+          <HomeHeader
+            title={t("training.title")}
+            showContextMenu={true}
+            menuActions={menuActions}
+            menuVisible={isMenuVisible}
+            onFitLevelPress={() => router.push("/achievements-modal")}
+          />
+        </View>
 
+        {/* Conteúdo da tela (ScrollView + Calendar) renderizado aqui */}
         {renderScreenContent()}
       </View>
 
+      {/* BottomSheet continua fora do container principal */}
       <WorkoutConfigSheet
         ref={workoutConfigSheetRef}
         onWorkoutConfigured={handleWorkoutConfigured}
@@ -636,12 +661,37 @@ export default function TrainingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: "relative", // Para que o header absoluto funcione
+  },
+  // Wrapper para o header absoluto
+  headerWrapper: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2, // Header fica sobre o calendário
+  },
+  // Wrapper para o conteúdo principal (ScrollView + Calendário)
+  contentWrapper: {
+    flex: 1,
+    position: "relative", // Para que o calendário absoluto funcione
+    marginTop: 0, // O espaço é criado pelo paddingTop do ScrollView
+  },
+  // Wrapper do calendário absoluto
+  calendarWrapper: {
+    position: "absolute",
+    // top é definido inline (abaixo do header)
+    left: 0,
+    right: 0,
+    zIndex: 1, // Calendário fica sobre o ScrollView, mas abaixo do header
   },
   scrollView: {
     flex: 1,
+    backgroundColor: "transparent", // ScrollView precisa ser transparente
   },
   scrollViewContent: {
-    padding: 16,
+    paddingHorizontal: 16, // Padding horizontal aplicado aqui
     paddingBottom: 100,
+    // paddingTop será adicionado dinamicamente
   },
 });

@@ -17,9 +17,8 @@ import Animated, {
   FadeOut,
 } from "react-native-reanimated";
 import { useTheme } from "../../context/ThemeContext";
-import { useWorkoutContext } from "../../context/WorkoutContext";
+import { useWorkoutContext, WorkoutType } from "../../context/WorkoutContext";
 import Colors from "../../constants/Colors";
-import { WorkoutType } from "./WorkoutConfigSheet";
 import WorkoutIcon from "../shared/WorkoutIcon";
 import { useTranslation } from "react-i18next";
 

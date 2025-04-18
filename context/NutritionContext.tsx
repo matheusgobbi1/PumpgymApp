@@ -4,6 +4,8 @@ import React, {
   useContext,
   ReactNode,
   useEffect,
+  useMemo,
+  useCallback,
 } from "react";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
@@ -16,6 +18,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
 import { SyncService } from "../services/SyncService";
 import { CustomMealDistribution } from "../utils/nutritionDistributionAlgorithm";
+import { format, isToday, subDays } from "date-fns";
+import { useAchievements } from "./AchievementContext";
 
 // Chaves para armazenamento no AsyncStorage
 const KEYS = {
@@ -29,6 +33,9 @@ const KEYS = {
   TEMP_NUTRITION_DATA: "@temp_nutrition_data",
   MEALS_KEY: "@meals:",
   CUSTOM_MEAL_DISTRIBUTION: "pumpgym_custom_meal_distribution",
+  WATER_INTAKE: "pumpgym_water_intake",
+  WATER_GOAL_DAYS: "pumpgym_water_goal_days",
+  LAST_WATER_GOAL_DAY: "pumpgym_last_water_goal_day",
 };
 
 // Função utilitária para arredondar valores nutricionais
@@ -77,6 +84,9 @@ export type MacroDistribution =
   | "high-protein"
   | "high-fat"
   | "low-carb";
+
+// Novo tipo para o histórico de água
+export type WaterHistoryType = { [date: string]: number };
 
 // Interface para entradas do histórico de peso
 export interface WeightHistoryEntry {
@@ -130,6 +140,11 @@ interface NutritionContextType {
   updateCustomMealDistributionWhenMealTypesChange: (
     currentMealTypeIds: string[]
   ) => Promise<void>;
+  currentWaterIntake: number;
+  addWater: (amount?: number) => void;
+  removeWater: (amount?: number) => void;
+  dailyWaterGoal: number;
+  waterHistory: WaterHistoryType;
 }
 
 const NutritionContext = createContext<NutritionContextType | undefined>(
@@ -172,6 +187,214 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
     useState<NutritionInfo>(initialNutritionInfo);
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const { user, isNewUser, registrationCompleted } = useAuth();
+
+  // Novo estado para o consumo atual de água
+  const [currentWaterIntake, setCurrentWaterIntake] = useState(0);
+  // Estado para saber se a meta de água foi atingida hoje
+  const [goalMetToday, setGoalMetToday] = useState(false);
+  // Novo estado para o histórico de água
+  const [waterHistory, setWaterHistory] = useState<{ [date: string]: number }>(
+    {}
+  );
+
+  // Definição do tamanho do copo padrão
+  const CUP_SIZE = 250;
+
+  // Calcular meta diária de água (usar valor do nutritionInfo ou padrão)
+  const dailyWaterGoal = useMemo(() => {
+    return nutritionInfo.waterIntake || 2000; // Padrão 2000ml se não definido
+  }, [nutritionInfo.waterIntake]);
+
+  // Função para obter a chave de armazenamento de água para uma data
+  const getWaterStorageKeyForDate = useCallback(
+    (date: string) => {
+      if (!user) return null;
+      return `${KEYS.WATER_INTAKE}_${user.uid}_${date}`;
+    },
+    [user]
+  );
+
+  // Função para carregar histórico de água (últimos 14 dias)
+  const loadWaterHistory = useCallback(async () => {
+    if (!user) return;
+    const today = new Date();
+    const history: { [date: string]: number } = {};
+    try {
+      for (let i = 0; i < 14; i++) {
+        const checkDate = subDays(today, i);
+        const dateStr = format(checkDate, "yyyy-MM-dd");
+        const storageKey = getWaterStorageKeyForDate(dateStr);
+        if (storageKey) {
+          const data = await AsyncStorage.getItem(storageKey);
+          if (data) {
+            history[dateStr] = JSON.parse(data);
+          }
+        }
+      }
+      setWaterHistory(history);
+    } catch (error) {
+      console.error("Erro ao carregar histórico de água:", error);
+      setWaterHistory({}); // Resetar em caso de erro
+    }
+  }, [user, getWaterStorageKeyForDate]);
+
+  // Função para carregar consumo de água do dia
+  const loadCurrentWaterIntake = useCallback(async () => {
+    const today = format(new Date(), "yyyy-MM-dd");
+    const storageKey = getWaterStorageKeyForDate(today);
+    if (!storageKey) return;
+
+    try {
+      const data = await AsyncStorage.getItem(storageKey);
+      if (data) {
+        const savedIntake = JSON.parse(data);
+        setCurrentWaterIntake(savedIntake);
+        // Verifica se a meta já estava atingida ao carregar
+        if (savedIntake >= dailyWaterGoal) {
+          setGoalMetToday(true);
+        }
+      } else {
+        setCurrentWaterIntake(0); // Começa do zero se não houver dados
+      }
+
+      // Verifica também o último dia registrado de meta batida
+      const lastWaterGoalDayKey = `${KEYS.LAST_WATER_GOAL_DAY}_${user?.uid}`;
+      const lastWaterGoalDay = await AsyncStorage.getItem(lastWaterGoalDayKey);
+      if (lastWaterGoalDay === today && !goalMetToday) {
+        setGoalMetToday(true);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar consumo de água:", error);
+      setCurrentWaterIntake(0);
+    }
+  }, [user, getWaterStorageKeyForDate, dailyWaterGoal, goalMetToday]);
+
+  // Carregar dados de água quando o usuário muda ou o dia muda (implícito pela chave)
+  useEffect(() => {
+    if (user) {
+      loadCurrentWaterIntake();
+      // Carregar histórico também
+      loadWaterHistory();
+    }
+  }, [user, loadCurrentWaterIntake, loadWaterHistory]);
+
+  // Verificar e resetar goalMetToday se for um novo dia
+  useEffect(() => {
+    const intervalId = setInterval(async () => {
+      const today = format(new Date(), "yyyy-MM-dd");
+      const lastWaterGoalDayKey = `${KEYS.LAST_WATER_GOAL_DAY}_${user?.uid}`;
+      const lastWaterGoalDay = await AsyncStorage.getItem(lastWaterGoalDayKey);
+      if (lastWaterGoalDay !== today && goalMetToday) {
+        setGoalMetToday(false);
+      }
+      // Recarrega a água caso o dia tenha mudado e o app ficou aberto
+      const storageKey = getWaterStorageKeyForDate(today);
+      const data = await AsyncStorage.getItem(storageKey || "");
+      if (!data && currentWaterIntake !== 0) {
+        setCurrentWaterIntake(0);
+      }
+    }, 60000); // Verificar a cada minuto
+
+    return () => clearInterval(intervalId);
+  }, [user, goalMetToday, getWaterStorageKeyForDate, currentWaterIntake]);
+
+  // Função para verificar conquistas de água (agora só gerencia AsyncStorage)
+  const checkWaterAchievement = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const today = format(new Date(), "yyyy-MM-dd");
+      const waterGoalDaysKey = `${KEYS.WATER_GOAL_DAYS}_${user.uid}`;
+      const lastWaterGoalDayKey = `${KEYS.LAST_WATER_GOAL_DAY}_${user.uid}`;
+
+      const lastWaterGoalDay = await AsyncStorage.getItem(lastWaterGoalDayKey);
+
+      // Se já atingimos a meta hoje E já registramos isso, não fazer nada
+      if (lastWaterGoalDay === today) return;
+
+      // Salvar o dia atual como último dia em que a meta foi atingida
+      await AsyncStorage.setItem(lastWaterGoalDayKey, today);
+      setGoalMetToday(true); // Garante que o estado local está sincronizado
+
+      // Calcular novo valor para dias totais com meta atingida
+      const storedWaterGoalDays = await AsyncStorage.getItem(waterGoalDaysKey);
+      const currentWaterGoalDays = storedWaterGoalDays
+        ? parseInt(storedWaterGoalDays)
+        : 0;
+      const newWaterGoalDays = currentWaterGoalDays + 1;
+
+      await AsyncStorage.setItem(waterGoalDaysKey, newWaterGoalDays.toString());
+
+      // REMOVIDO: Chamada para atualizar progresso da conquista
+      // await updateAchievementProgress("water_intake", newWaterGoalDays, true);
+    } catch (error) {
+      console.error("Erro ao verificar/salvar dados de meta de água:", error);
+    }
+    // Remover updateAchievementProgress das dependências
+  }, [user]);
+
+  // Função para salvar o consumo atual de água
+  const saveCurrentWaterIntake = useCallback(
+    async (intake: number) => {
+      const today = format(new Date(), "yyyy-MM-dd");
+      const storageKey = getWaterStorageKeyForDate(today);
+      if (!storageKey) return;
+
+      try {
+        await AsyncStorage.setItem(storageKey, JSON.stringify(intake));
+        setCurrentWaterIntake(intake); // Atualiza o estado local
+        // Atualizar também o histórico local para o dia atual
+        setWaterHistory((prevHistory) => ({
+          ...prevHistory,
+          [today]: intake,
+        }));
+
+        // Verifica se atingiu a meta APÓS salvar
+        if (intake >= dailyWaterGoal && !goalMetToday) {
+          checkWaterAchievement();
+        }
+      } catch (error) {
+        console.error("Erro ao salvar consumo de água:", error);
+      }
+    },
+    [
+      getWaterStorageKeyForDate,
+      dailyWaterGoal,
+      goalMetToday,
+      checkWaterAchievement,
+    ]
+  );
+
+  // Função para adicionar água
+  const addWater = useCallback(
+    (amount: number = CUP_SIZE) => {
+      // Permitir adicionar mesmo se a meta foi ultrapassada
+      const newIntake = currentWaterIntake + amount;
+      saveCurrentWaterIntake(newIntake);
+    },
+    [currentWaterIntake, saveCurrentWaterIntake, CUP_SIZE]
+  );
+
+  // Função para remover água
+  const removeWater = useCallback(
+    (amount: number = CUP_SIZE) => {
+      const newIntake = Math.max(0, currentWaterIntake - amount); // Não permite negativo
+      saveCurrentWaterIntake(newIntake);
+      // Se a ingestão cair abaixo da meta, resetar o flag goalMetToday
+      // (embora o registro do dia já tenha sido feito na conquista)
+      if (newIntake < dailyWaterGoal && goalMetToday) {
+        // Potencialmente resetar goalMetToday aqui, mas pode causar re-contagem
+        // Vamos manter simples por enquanto e só resetar no dia seguinte.
+      }
+    },
+    [
+      currentWaterIntake,
+      saveCurrentWaterIntake,
+      CUP_SIZE,
+      dailyWaterGoal,
+      goalMetToday,
+    ]
+  );
 
   // Efeito para recarregar dados quando o registro é concluído
   useEffect(() => {
@@ -1155,6 +1378,11 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
         saveCustomMealDistribution,
         resetCustomMealDistribution,
         updateCustomMealDistributionWhenMealTypesChange,
+        currentWaterIntake,
+        addWater,
+        removeWater,
+        dailyWaterGoal,
+        waterHistory,
       }}
     >
       {children}

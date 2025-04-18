@@ -311,10 +311,14 @@ export default function TrainingStatsCard({
 
       const displayProgressAbs = Math.min(Math.abs(displayProgress), 100);
 
-      // Definir uma cor de fundo para o ícone mesmo quando é o primeiro treino
-      const iconBackgroundColor = hasPrevious
-        ? progressColor + "15"
-        : colors.primary + "15"; // Usar a cor primária quando não há dados anteriores
+      // Definir uma cor de fundo para o ícone
+      const iconBackgroundColor =
+        progressColor === colors.text + "80" || progressColor === colors.primary
+          ? colors.accentGray + "20"
+          : progressColor + "15";
+
+      // Manter a cor original do ícone
+      const iconColor = hasPrevious ? progressColor : colors.primary;
 
       // Identificador único para cada linha de estatística
       const statKey = `stat-${title}-${theme}`;
@@ -339,11 +343,7 @@ export default function TrainingStatsCard({
                   { backgroundColor: iconBackgroundColor },
                 ]}
               >
-                <Ionicons
-                  name={icon as any}
-                  size={18}
-                  color={hasPrevious ? progressColor : colors.primary}
-                />
+                <Ionicons name={icon as any} size={18} color={iconColor} />
               </View>
               <View>
                 <Text style={[styles.statTitle, { color: colors.text }]}>

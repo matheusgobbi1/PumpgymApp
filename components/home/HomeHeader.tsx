@@ -65,7 +65,9 @@ export default function HomeHeader({
   }, [user?.displayName, t]);
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, { backgroundColor: `${colors.background}E0` }]}
+    >
       <View style={styles.content}>
         <View style={styles.userInfo}>
           <View style={styles.greetingRow}>
@@ -98,7 +100,7 @@ export default function HomeHeader({
           ) : (
             <View style={styles.subtitleContainer}>
               <Text
-                style={[styles.dateText, { color: colors.text, opacity: 0.7 }]}
+                style={[styles.dateText, { color: colors.primary }]}
                 numberOfLines={1}
               >
                 {currentDate}
@@ -109,7 +111,11 @@ export default function HomeHeader({
 
         <View style={styles.rightContainer}>
           <View style={styles.fitLevelContainer}>
-            <FitLevelBadge size="small" onPress={onFitLevelPress} />
+            <FitLevelBadge
+              size="small"
+              showLevel={false}
+              onPress={onFitLevelPress}
+            />
           </View>
 
           {showContextMenu && (
@@ -130,7 +136,6 @@ export default function HomeHeader({
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    paddingHorizontal: 20,
     paddingTop: Platform.OS === "ios" ? 10 : 10,
     paddingBottom: 20,
     height: Platform.OS === "ios" ? 70 : 60, // Garantir altura fixa
@@ -145,6 +150,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 60, // Altura fixa para a área de informações
     justifyContent: "center",
+    paddingLeft: 20,
   },
   greetingRow: {
     flexDirection: "row",
@@ -179,9 +185,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: 50, // Altura fixa para o lado direito
     minWidth: 50, // Garantir espaço mínimo mesmo sem elementos
+    paddingRight: 20,
   },
   fitLevelContainer: {
-    marginRight: 12,
+    marginRight: 0,
   },
   menuContainer: {
     padding: 4,

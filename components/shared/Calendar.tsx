@@ -98,7 +98,7 @@ const CalendarDay = React.memo(
             style={[
               styles.dayContainer,
               isSelected && {
-                backgroundColor: colors.secondary,
+                backgroundColor: colors.primary,
               },
               !isSelected &&
                 isToday && {
@@ -114,7 +114,11 @@ const CalendarDay = React.memo(
               style={[
                 styles.dayText,
                 {
-                  color: isSelected ? "#FFF" : colors.text,
+                  color: isSelected
+                    ? theme === "dark"
+                      ? "#000" // Preto no modo escuro
+                      : "#FFF" // Branco no modo claro
+                    : colors.text, // Cor padrão para outros dias
                   opacity: isSelected ? 1 : isToday ? 1 : 0.7,
                 },
               ]}
@@ -304,7 +308,12 @@ export default function Calendar({
   }, [normalizedSelectedDate, scrollToDate]);
 
   return (
-    <View style={styles.outerContainer}>
+    <View
+      style={[
+        styles.outerContainer,
+        { backgroundColor: `${colors.background}E0` },
+      ]}
+    >
       <View style={styles.container}>
         <View style={styles.calendarContainer}>
           {/* Gradiente esquerdo - cobre toda a altura */}
@@ -388,7 +397,6 @@ export default function Calendar({
 const styles = StyleSheet.create({
   outerContainer: {
     overflow: "hidden",
-    backgroundColor: "transparent",
   },
   container: {
     width: "100%",

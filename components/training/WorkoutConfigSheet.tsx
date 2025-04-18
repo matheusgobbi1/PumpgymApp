@@ -30,7 +30,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { Swipeable } from "react-native-gesture-handler";
 import { useTheme } from "../../context/ThemeContext";
-import { useWorkoutContext } from "../../context/WorkoutContext";
+import { useWorkoutContext, WorkoutType } from "../../context/WorkoutContext";
 import Colors from "../../constants/Colors";
 
 import { MotiView } from "moti";
@@ -211,16 +211,6 @@ const AVAILABLE_COLORS: string[] = [
   "#757575",
   "#616161",
 ];
-
-// Interface para o tipo de treino
-export interface WorkoutType {
-  id: string;
-  name: string;
-  iconType: WorkoutIconType;
-  color: string;
-  selected: boolean;
-  isDefault?: boolean;
-}
 
 // Interface para as props do componente
 interface WorkoutConfigSheetProps {

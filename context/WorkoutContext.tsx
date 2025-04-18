@@ -11,7 +11,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { format } from "date-fns";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "./AuthContext";
-import { WorkoutType } from "../components/training/WorkoutConfigSheet";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { KEYS } from "../constants/keys";
 import {
@@ -60,6 +59,19 @@ export interface Workout {
   iconType?: { type: string; name: string }; // Adicionar propriedade iconType
   color: string;
   exercises: Exercise[];
+}
+
+// Exportar a interface WorkoutType que foi movida de WorkoutConfigSheet
+export interface WorkoutType {
+  id: string;
+  name: string;
+  iconType: {
+    type: "ionicons" | "material" | "fontawesome";
+    name: string;
+  };
+  color: string;
+  selected: boolean;
+  isDefault?: boolean;
 }
 
 // Interface para totais do treino
@@ -1763,12 +1775,25 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
         // Salvar os treinos
         await saveWorkouts();
+
+        // NOVO: Salvar timestamp da aplicação bem-sucedida no AsyncStorage
+        const todayStr = format(new Date(), "yyyy-MM-dd");
+        // Obter userId do hook useAuth (já está no escopo do provider)
+        if (userId && userId !== "anonymous" && userId !== "no-user") {
+          await AsyncStorage.setItem(
+            `${KEYS.LAST_PROGRESSION_APPLIED_CHECK_DATE}_${userId}`,
+            todayStr
+          );
+        }
+        // FIM NOVO
+
         return true;
       } catch (error) {
+        console.error("Erro ao aplicar progressão:", error);
         return false;
       }
     },
-    [workouts, selectedDate, saveWorkouts]
+    [workouts, selectedDate, saveWorkouts, userId] // Adicionar userId às dependências
   );
 
   // Função para remover um treino inteiro para uma data específica

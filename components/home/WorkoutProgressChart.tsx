@@ -26,8 +26,7 @@ import { BarChart, LineChart } from "react-native-chart-kit";
 import { format, subDays, isToday, isAfter, isBefore, isEqual } from "date-fns";
 import * as Haptics from "expo-haptics";
 import { useWorkoutContext } from "../../context/WorkoutContext";
-import { Exercise } from "../../context/WorkoutContext";
-import { WorkoutType } from "../../components/training/WorkoutConfigSheet";
+import { Exercise, WorkoutType } from "../../context/WorkoutContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import InfoModal, { InfoItem } from "../common/InfoModal";
@@ -867,7 +866,7 @@ export default function WorkoutProgressChart({
           onPress={() => handleSelectExercise(exercise)}
           style={[
             styles.exerciseCardTouchable,
-            { backgroundColor: colors.card },
+            { backgroundColor: colors.accentGray + "20" },
             selectedExercise?.id === exercise.id && {
               borderColor: colors.primary,
               backgroundColor: colors.primary + "10",
@@ -956,7 +955,7 @@ export default function WorkoutProgressChart({
                 {
                   width: "100%",
                   borderColor: colors.primary,
-                  backgroundColor: colors.primary + "10",
+                  backgroundColor: colors.accentGray + "20",
                 },
               ]}
             >
@@ -1144,7 +1143,7 @@ export default function WorkoutProgressChart({
                       <Ionicons
                         name="alert-circle-outline"
                         size={18}
-                        color={colors.danger}
+                        color={colors.accentGray}
                       />
                     </View>
                   )}
@@ -1172,14 +1171,14 @@ export default function WorkoutProgressChart({
                   <TouchableOpacity
                     style={[
                       styles.infoButton,
-                      { backgroundColor: colors.primary + "20" },
+                      { backgroundColor: colors.accentGray + "20" },
                     ]}
                     onPress={openInfoModal}
                   >
                     <Ionicons
                       name="information-circle-outline"
                       size={20}
-                      color={colors.primary}
+                      color={colors.accentGray}
                     />
                   </TouchableOpacity>
 
@@ -1188,14 +1187,14 @@ export default function WorkoutProgressChart({
                     <TouchableOpacity
                       style={[
                         styles.expandButton,
-                        { backgroundColor: colors.text + "10" },
+                        { backgroundColor: colors.accentGray + "20" },
                       ]}
                       onPress={toggleExpand}
                     >
                       <Ionicons
                         name={isExpanded ? "chevron-up" : "chevron-down"}
                         size={20}
-                        color={colors.text + "80"}
+                        color={colors.accentGray}
                       />
                     </TouchableOpacity>
                   )}
@@ -1239,7 +1238,7 @@ export default function WorkoutProgressChart({
                             styles.chartTypeButton,
                             selectedChartType === "weight" && [
                               styles.selectedChartType,
-                              { backgroundColor: colors.primary + "20" },
+                              { backgroundColor: colors.accentGray + "20" },
                             ],
                           ]}
                           onPress={() => changeChartType("weight")}
@@ -1247,9 +1246,9 @@ export default function WorkoutProgressChart({
                           <Text
                             style={[
                               styles.chartTypeText,
-                              { color: colors.text + "80" },
+                              { color: colors.accentGray },
                               selectedChartType === "weight" && {
-                                color: colors.primary,
+                                color: colors.accentGray,
                                 fontWeight: "600",
                               },
                             ]}
@@ -1263,7 +1262,7 @@ export default function WorkoutProgressChart({
                             styles.chartTypeButton,
                             selectedChartType === "calories" && [
                               styles.selectedChartType,
-                              { backgroundColor: colors.primary + "20" },
+                              { backgroundColor: colors.accentGray + "20" },
                             ],
                           ]}
                           onPress={() => changeChartType("calories")}
@@ -1271,9 +1270,9 @@ export default function WorkoutProgressChart({
                           <Text
                             style={[
                               styles.chartTypeText,
-                              { color: colors.text + "80" },
+                              { color: colors.accentGray },
                               selectedChartType === "calories" && {
-                                color: colors.primary,
+                                color: colors.accentGray,
                                 fontWeight: "600",
                               },
                             ]}
@@ -1287,7 +1286,7 @@ export default function WorkoutProgressChart({
                             styles.chartTypeButton,
                             selectedChartType === "volume" && [
                               styles.selectedChartType,
-                              { backgroundColor: colors.primary + "20" },
+                              { backgroundColor: colors.accentGray + "20" },
                             ],
                           ]}
                           onPress={() => changeChartType("volume")}
@@ -1295,9 +1294,9 @@ export default function WorkoutProgressChart({
                           <Text
                             style={[
                               styles.chartTypeText,
-                              { color: colors.text + "80" },
+                              { color: colors.accentGray },
                               selectedChartType === "volume" && {
-                                color: colors.primary,
+                                color: colors.accentGray,
                                 fontWeight: "600",
                               },
                             ]}
@@ -1314,7 +1313,7 @@ export default function WorkoutProgressChart({
                             styles.chartTypeButton,
                             selectedHistoryPeriod === "1m" && [
                               styles.selectedChartType,
-                              { backgroundColor: colors.primary + "20" },
+                              { backgroundColor: colors.accentGray + "20" },
                             ],
                           ]}
                           onPress={() => changeHistoryPeriod("1m")}
@@ -1322,9 +1321,9 @@ export default function WorkoutProgressChart({
                           <Text
                             style={[
                               styles.chartTypeText,
-                              { color: colors.text + "80" },
+                              { color: colors.accentGray },
                               selectedHistoryPeriod === "1m" && {
-                                color: colors.primary,
+                                color: colors.accentGray,
                                 fontWeight: "600",
                               },
                             ]}
@@ -1338,7 +1337,7 @@ export default function WorkoutProgressChart({
                             styles.chartTypeButton,
                             selectedHistoryPeriod === "6m" && [
                               styles.selectedChartType,
-                              { backgroundColor: colors.primary + "20" },
+                              { backgroundColor: colors.accentGray + "20" },
                             ],
                           ]}
                           onPress={() => changeHistoryPeriod("6m")}
@@ -1346,9 +1345,9 @@ export default function WorkoutProgressChart({
                           <Text
                             style={[
                               styles.chartTypeText,
-                              { color: colors.text + "80" },
+                              { color: colors.accentGray },
                               selectedHistoryPeriod === "6m" && {
-                                color: colors.primary,
+                                color: colors.accentGray,
                                 fontWeight: "600",
                               },
                             ]}
@@ -1362,7 +1361,7 @@ export default function WorkoutProgressChart({
                             styles.chartTypeButton,
                             selectedHistoryPeriod === "all" && [
                               styles.selectedChartType,
-                              { backgroundColor: colors.primary + "20" },
+                              { backgroundColor: colors.accentGray + "20" },
                             ],
                           ]}
                           onPress={() => changeHistoryPeriod("all")}
@@ -1370,9 +1369,9 @@ export default function WorkoutProgressChart({
                           <Text
                             style={[
                               styles.chartTypeText,
-                              { color: colors.text + "80" },
+                              { color: colors.accentGray },
                               selectedHistoryPeriod === "all" && {
-                                color: colors.primary,
+                                color: colors.accentGray,
                                 fontWeight: "600",
                               },
                             ]}
@@ -1531,7 +1530,7 @@ export default function WorkoutProgressChart({
                     <Ionicons
                       name="barbell-outline"
                       size={18}
-                      color={colors.primary}
+                      color={colors.accentGray}
                     />
                   </View>
                   <View>

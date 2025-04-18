@@ -164,6 +164,12 @@ export default function MacrosCard({
       // Usar a mesma lógica de cor do progresso para o ícone
       const iconColor = progressColor;
 
+      // Definir a cor de fundo do ícone
+      const iconBackgroundColor =
+        progressColor === colors.primary || progressColor === colors.text + "80"
+          ? colors.accentGray + "20"
+          : iconColor + "15";
+
       // Verificação para exibição do progresso visual
       const lowerBuffer = 0.03; // 3%
       const upperBuffer = 0.05; // 5%
@@ -192,7 +198,7 @@ export default function MacrosCard({
               <View
                 style={[
                   styles.iconContainer,
-                  { backgroundColor: iconColor + "15" },
+                  { backgroundColor: iconBackgroundColor },
                 ]}
               >
                 {iconType === "ionicons" ? (
@@ -239,6 +245,7 @@ export default function MacrosCard({
                         ]}
                       >
                         {Math.round(remaining)}
+                        {isMacro ? "g" : "kcal"}
                       </Text>
                     </>
                   ) : (
@@ -251,6 +258,7 @@ export default function MacrosCard({
                         ]}
                       >
                         {Math.round(remaining)}
+                        {isMacro ? "g" : "kcal"}
                       </Text>
                     </>
                   )}
@@ -369,7 +377,7 @@ export default function MacrosCard({
             )}
             {MacroProgressComponent(
               t("common.nutrition.carbs"),
-              "bread-slice",
+              "baguette",
               "material",
               dayTotals.carbs,
               nutritionInfo.carbs || 0,
