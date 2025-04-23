@@ -10,6 +10,7 @@ import {
   ScrollView,
   Alert,
   Platform,
+  InteractionManager,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
@@ -22,37 +23,47 @@ import { useMeals, MealType } from "../../context/MealContext";
 import { useNutrition } from "../../context/NutritionContext";
 import { useWorkoutContext, WorkoutType } from "../../context/WorkoutContext";
 import { validateWeight } from "../../utils/validations";
-import WorkoutIcon from "./WorkoutIcon"; // Assuming WorkoutIcon is in the same folder
+import WorkoutIcon from "./WorkoutIcon";
 
 const { width } = Dimensions.get("window");
-const FAB_SIZE = 70;
+const FAB_SIZE = 65;
 const TABBAR_WIDTH = width * 0.8;
 const TABBAR_HEIGHT = 70;
 const TABBAR_BORDER_RADIUS = 40;
 const TABBAR_HORIZONTAL_MARGIN = width * 0.1;
 const BOTTOM_POSITION_INITIAL = 10;
+const DEFAULT_ICON_SIZE = 30;
+const MENU_ICON_SIZE = 28;
+const CONTROL_BUTTON_BG = "rgb(75, 75, 75)";
+const CONTROL_ICON_COLOR = "#FFFFFF";
+const CONTROL_BUTTON_SIZE = 45;
+const CONTROL_BUTTON_RADIUS = 22.5;
 
-// Função para reduzir uso do Haptics em alguns dispositivos
-const safeHaptics = {
-  impactAsync: (style: Haptics.ImpactFeedbackStyle) => {
+const triggerHaptic = (
+  type: "light" | "medium" | "error" | "success" = "light"
+) => {
+  try {
     if (Platform.OS === "ios") {
-      // Reduzir frequência de haptics no iOS
-      setTimeout(() => Haptics.impactAsync(style), 0);
-    } else {
-      Haptics.impactAsync(style);
+      return;
     }
-  },
-  selectionAsync: () => {
-    if (Platform.OS === "ios") {
-      // Reduzir frequência de haptics no iOS
-      setTimeout(() => Haptics.selectionAsync(), 0);
-    } else {
-      Haptics.selectionAsync();
+
+    switch (type) {
+      case "light":
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        break;
+      case "medium":
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        break;
+      case "error":
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        break;
+      case "success":
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        break;
     }
-  },
-  notificationAsync: (type: Haptics.NotificationFeedbackType) => {
-    Haptics.notificationAsync(type);
-  },
+  } catch (error) {
+    // Ignorar erros de Haptics
+  }
 };
 
 export default function FloatingActionButton() {
@@ -72,85 +83,69 @@ export default function FloatingActionButton() {
     nutritionInfo,
   } = useNutrition();
   const { selectedWorkoutTypes, startWorkoutForDate } = useWorkoutContext();
+
   const [isExpanded, setIsExpanded] = useState(false);
-  const [fabContentMode, setFabContentMode] = useState<
+  const [contentMode, setContentMode] = useState<
     "default" | "mealTypes" | "water" | "workoutTypes" | "updateWeight"
   >("default");
   const [adjustingWeight, setAdjustingWeight] = useState<number>(
     nutritionInfo.weight || 0
   );
 
-  const animatedValue = useRef(new Animated.Value(0)).current;
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const contentModeOpacity = useRef({
-    default: new Animated.Value(1),
-    mealTypes: new Animated.Value(0),
-    water: new Animated.Value(0),
-    workoutTypes: new Animated.Value(0),
-    updateWeight: new Animated.Value(0),
-  }).current;
+  const containerAnim = useRef(new Animated.Value(0)).current;
 
-  const dynamicBottom =
-    insets.bottom > 0 ? insets.bottom : BOTTOM_POSITION_INITIAL;
+  const dynamicBottom = useMemo(
+    () => (insets.bottom > 0 ? insets.bottom : BOTTOM_POSITION_INITIAL),
+    [insets.bottom]
+  );
 
-  const [isToggleEnabled, setIsToggleEnabled] = useState(true);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const toggleExpand = useCallback(() => {
-    if (!isToggleEnabled) return;
+    if (isAnimating) return;
 
-    setIsToggleEnabled(false);
-    setTimeout(() => setIsToggleEnabled(true), 300);
-
+    setIsAnimating(true);
     const toValue = isExpanded ? 0 : 1;
-    const hapticStyle = isExpanded
-      ? Haptics.ImpactFeedbackStyle.Light
-      : Haptics.ImpactFeedbackStyle.Medium;
 
-    safeHaptics.impactAsync(hapticStyle);
+    if (Platform.OS === "android") {
+      triggerHaptic(isExpanded ? "light" : "medium");
+    }
 
-    Animated.parallel([
-      Animated.timing(animatedValue, {
-        toValue,
-        duration: 250,
-        useNativeDriver: false, // Layout properties are not supported by native driver
-      }),
-      Animated.timing(backdropOpacity, {
-        toValue,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setIsExpanded(!isExpanded); // Update state after animation completes
-      if (toValue === 0) {
-        // Reset mode and opacities only after collapsing
-        setFabContentMode("default");
-        Object.keys(contentModeOpacity).forEach((key) => {
-          contentModeOpacity[key as keyof typeof contentModeOpacity].setValue(
-            key === "default" ? 1 : 0
-          );
-        });
-        setAdjustingWeight(nutritionInfo.weight || 0);
-      } else {
-        // Prepare state for expansion if needed
-        if (fabContentMode === "updateWeight") {
+    Animated.timing(containerAnim, {
+      toValue,
+      duration: 250,
+      useNativeDriver: false,
+    }).start(() => {
+      InteractionManager.runAfterInteractions(() => {
+        setIsExpanded(!isExpanded);
+        setIsAnimating(false);
+
+        if (toValue === 0) {
+          setContentMode("default");
           setAdjustingWeight(nutritionInfo.weight || 0);
         }
-      }
+      });
     });
-  }, [
-    isExpanded,
-    animatedValue,
-    backdropOpacity,
-    contentModeOpacity,
-    nutritionInfo.weight,
-    fabContentMode,
-    isToggleEnabled,
-  ]);
+  }, [isExpanded, containerAnim, isAnimating, nutritionInfo.weight]);
+
+  const changeContentMode = useCallback(
+    (newMode: typeof contentMode) => {
+      if (contentMode === newMode) return;
+      InteractionManager.runAfterInteractions(() => {
+        setContentMode(newMode);
+
+        if (newMode === "updateWeight") {
+          setAdjustingWeight(nutritionInfo.weight || 0);
+        }
+      });
+    },
+    [contentMode, nutritionInfo.weight]
+  );
 
   const adjustWeight = useCallback((amount: number) => {
     setAdjustingWeight((prevWeight) => {
       const newWeight = Math.max(0, prevWeight + amount);
-      return Math.round(newWeight * 10) / 10; // Round to one decimal place
+      return Math.round(newWeight * 10) / 10;
     });
   }, []);
 
@@ -162,11 +157,10 @@ export default function FloatingActionButton() {
         "Erro",
         validationResult.message || t("validation.invalidWeight")
       );
-      safeHaptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      triggerHaptic("error");
       return;
     }
 
-    // Avoid unnecessary updates if weight hasn't changed
     if (adjustingWeight === nutritionInfo.weight) {
       toggleExpand();
       return;
@@ -175,15 +169,15 @@ export default function FloatingActionButton() {
     try {
       await updateNutritionInfo({ weight: adjustingWeight });
       await saveNutritionInfo();
-      safeHaptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      toggleExpand(); // Collapse after successful save
+      triggerHaptic("success");
+      toggleExpand();
     } catch (error) {
       console.error("Failed to save weight:", error);
       Alert.alert(
         "Erro",
         t("errors.saveWeightError") || "Não foi possível salvar o peso."
       );
-      safeHaptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      triggerHaptic("error");
     }
   }, [
     adjustingWeight,
@@ -194,42 +188,12 @@ export default function FloatingActionButton() {
     nutritionInfo.weight,
   ]);
 
-  const changeContentMode = useCallback(
-    (newMode: typeof fabContentMode) => {
-      if (fabContentMode === newMode) return; // Prevent unnecessary animation if mode is already set
-
-      const currentOpacityAnim = contentModeOpacity[fabContentMode];
-      const nextOpacityAnim = contentModeOpacity[newMode];
-
-      Animated.sequence([
-        Animated.timing(currentOpacityAnim, {
-          toValue: 0,
-          duration: 100, // Faster fade out
-          useNativeDriver: true,
-        }),
-        Animated.timing(nextOpacityAnim, {
-          toValue: 1,
-          duration: 150, // Slightly slower fade in
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        setFabContentMode(newMode); // Update mode after animation
-        // Ensure correct state after mode change
-        if (newMode === "updateWeight") {
-          setAdjustingWeight(nutritionInfo.weight || 0);
-        }
-      });
-    },
-    [fabContentMode, contentModeOpacity, nutritionInfo.weight]
-  );
-
   const menuOptions = useMemo(
     () => [
       {
         icon: "barbell-outline" as const,
         label: t("training.menu.newWorkout", "Novo Treino"),
         onPress: () => {
-          safeHaptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           if (selectedWorkoutTypes.length > 0) {
             changeContentMode("workoutTypes");
           } else {
@@ -242,7 +206,6 @@ export default function FloatingActionButton() {
         icon: "nutrition-outline" as const,
         label: t("nutrition.menu.newMeal", "Nova Refeição"),
         onPress: () => {
-          safeHaptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           changeContentMode("mealTypes");
         },
       },
@@ -250,8 +213,7 @@ export default function FloatingActionButton() {
         icon: "scale-outline" as const,
         label: t("weight.update", "Atualizar Peso"),
         onPress: () => {
-          safeHaptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          setAdjustingWeight(nutritionInfo.weight || 0); // Ensure weight is current before showing
+          setAdjustingWeight(nutritionInfo.weight || 0);
           changeContentMode("updateWeight");
         },
       },
@@ -259,7 +221,6 @@ export default function FloatingActionButton() {
         icon: "water-outline" as const,
         label: t("waterIntake.title", "Registrar Água"),
         onPress: () => {
-          safeHaptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           changeContentMode("water");
         },
       },
@@ -274,62 +235,9 @@ export default function FloatingActionButton() {
     ]
   );
 
-  const containerWidth = animatedValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [FAB_SIZE, TABBAR_WIDTH],
-    extrapolate: "clamp",
-  });
-
-  const containerHeight = animatedValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [FAB_SIZE, TABBAR_HEIGHT],
-    extrapolate: "clamp",
-  });
-
-  const containerBorderRadius = animatedValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [FAB_SIZE / 2, TABBAR_BORDER_RADIUS],
-    extrapolate: "clamp",
-  });
-
-  const containerBottom = animatedValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [
-      dynamicBottom + (TABBAR_HEIGHT - FAB_SIZE) / 2,
-      dynamicBottom,
-    ],
-    extrapolate: "clamp",
-  });
-
-  const containerLeft = animatedValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [(width - FAB_SIZE) / 2, TABBAR_HORIZONTAL_MARGIN],
-    extrapolate: "clamp",
-  });
-
-  const iconOpacity = animatedValue.interpolate({
-    inputRange: [0, 0.1],
-    outputRange: [1, 0],
-    extrapolate: "clamp",
-  });
-
-  const optionsOpacity = animatedValue.interpolate({
-    inputRange: [0.5, 1],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-
-  const rotateCross = animatedValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "225deg"],
-    extrapolate: "clamp",
-  });
-
   const navigateToAddFood = useCallback(
     (meal: MealType) => {
-      safeHaptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      toggleExpand(); // Collapse FAB first
-      // Use setTimeout to allow animation to start before navigating
+      toggleExpand();
       setTimeout(() => {
         router.push({
           pathname: "/(add-food)",
@@ -339,17 +247,15 @@ export default function FloatingActionButton() {
             mealColor: meal.color || colors.primary,
           },
         });
-      }, 100); // Short delay
+      }, 150);
     },
     [router, colors.primary, toggleExpand]
   );
 
   const handleStartWorkout = useCallback(
     async (workoutType: WorkoutType) => {
-      safeHaptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       await startWorkoutForDate(workoutType.id);
-      toggleExpand(); // Collapse FAB first
-      // Use setTimeout to allow animation to start before navigating
+      toggleExpand();
       setTimeout(() => {
         router.push({
           pathname: "/(add-exercise)",
@@ -359,303 +265,306 @@ export default function FloatingActionButton() {
             workoutColor: workoutType.color,
           },
         });
-      }, 100); // Short delay
+      }, 150);
     },
     [startWorkoutForDate, toggleExpand, router]
   );
 
   const handleAddWater = useCallback(() => {
-    safeHaptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     addWater();
   }, [addWater]);
 
   const handleRemoveWater = useCallback(() => {
-    safeHaptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     removeWater();
   }, [removeWater]);
 
-  const handleAdjustWeightUp = useCallback(() => {
-    safeHaptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    adjustWeight(0.1);
-  }, [adjustWeight]);
-
-  const handleAdjustWeightDown = useCallback(() => {
-    safeHaptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    adjustWeight(-0.1);
-  }, [adjustWeight]);
+  const animations = useMemo(
+    () => ({
+      containerWidth: containerAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [FAB_SIZE, TABBAR_WIDTH],
+      }),
+      containerHeight: containerAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [FAB_SIZE, TABBAR_HEIGHT],
+      }),
+      containerBorderRadius: containerAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [FAB_SIZE / 2, TABBAR_BORDER_RADIUS],
+      }),
+      containerBottom: containerAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [
+          dynamicBottom + (TABBAR_HEIGHT - FAB_SIZE) / 2,
+          dynamicBottom,
+        ],
+      }),
+      containerLeft: containerAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [(width - FAB_SIZE) / 2, TABBAR_HORIZONTAL_MARGIN],
+      }),
+      iconOpacity: containerAnim.interpolate({
+        inputRange: [0, 0.5],
+        outputRange: [1, 0],
+      }),
+      iconRotation: containerAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ["0deg", "45deg"],
+      }),
+      contentOpacity: containerAnim.interpolate({
+        inputRange: [0.5, 1],
+        outputRange: [0, 1],
+      }),
+    }),
+    [containerAnim, dynamicBottom]
+  );
 
   return (
     <>
       {isExpanded && (
-        <Animated.View
-          style={[styles.transparentBackdrop, { opacity: backdropOpacity }]}
-          pointerEvents={isExpanded ? "auto" : "none"}
-        >
-          <Pressable style={styles.backdropTouchable} onPress={toggleExpand} />
-        </Animated.View>
+        <Pressable style={styles.invisibleBackdrop} onPress={toggleExpand} />
       )}
 
       <Animated.View
         style={[
-          styles.animatedContainer,
+          styles.container,
           {
-            width: containerWidth,
-            height: containerHeight,
-            borderRadius: containerBorderRadius,
-            bottom: containerBottom,
-            left: containerLeft,
+            width: animations.containerWidth,
+            height: animations.containerHeight,
+            borderRadius: animations.containerBorderRadius,
+            bottom: animations.containerBottom,
+            left: animations.containerLeft,
             backgroundColor: colors.primary,
           },
         ]}
       >
-        {/* FAB Icon (Plus/Cross) */}
         <Animated.View
           style={[
-            styles.fabIconWrapper,
-            { opacity: iconOpacity, transform: [{ rotate: rotateCross }] },
+            styles.iconWrapper,
+            {
+              opacity: animations.iconOpacity,
+              transform: [{ rotate: animations.iconRotation }],
+            },
           ]}
         >
           <TouchableOpacity
-            style={styles.fabTouchable}
-            activeOpacity={0.9}
+            style={styles.iconButton}
             onPress={toggleExpand}
-            disabled={!isToggleEnabled} // Disable during animation
+            disabled={isAnimating}
+            activeOpacity={0.8}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="add" size={38} color={colors.background} />
+            <Ionicons
+              name="add"
+              size={DEFAULT_ICON_SIZE}
+              color={colors.background}
+            />
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Expanded Options Container */}
         <Animated.View
-          style={[styles.optionsRow, { opacity: optionsOpacity }]}
+          style={[styles.content, { opacity: animations.contentOpacity }]}
           pointerEvents={isExpanded ? "auto" : "none"}
         >
-          {/* Default Options */}
-          <Animated.View
-            style={[
-              styles.contentWrapper,
-              styles.defaultOptionsContainer,
-              { opacity: contentModeOpacity.default },
-            ]}
-            pointerEvents={fabContentMode === "default" ? "auto" : "none"}
-          >
-            {menuOptions.map((option, index) => (
-              <TouchableOpacity
-                key={`default-option-${index}`}
-                style={styles.optionButton}
-                onPress={option.onPress}
-                activeOpacity={0.7}
-                disabled={!isExpanded}
-              >
-                <Ionicons
-                  name={option.icon}
-                  size={28}
-                  color={colors.background}
-                />
-              </TouchableOpacity>
-            ))}
-          </Animated.View>
-
-          {/* Meal Types Options */}
-          <Animated.View
-            style={[
-              styles.contentWrapper,
-              { opacity: contentModeOpacity.mealTypes },
-            ]}
-            pointerEvents={fabContentMode === "mealTypes" ? "auto" : "none"}
-          >
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContentContainer}
-              alwaysBounceHorizontal={false}
-              style={styles.scrollView}
-            >
-              {mealTypes.map((mealType) => (
+          {contentMode === "default" && (
+            <View style={styles.defaultMenu}>
+              {menuOptions.map((option, index) => (
                 <TouchableOpacity
-                  key={`mealType-${mealType.id}`}
-                  style={styles.optionButton}
-                  onPress={() => navigateToAddFood(mealType)}
+                  key={`option-${index}`}
+                  style={styles.menuItem}
+                  onPress={option.onPress}
                   activeOpacity={0.7}
-                  disabled={!isExpanded}
+                  hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                 >
                   <Ionicons
-                    name={(mealType.icon || "restaurant-outline") as any}
-                    size={28}
-                    color={mealType.color || colors.background}
+                    name={option.icon}
+                    size={MENU_ICON_SIZE}
+                    color={colors.background}
                   />
                 </TouchableOpacity>
               ))}
-            </ScrollView>
-          </Animated.View>
-
-          {/* Water Options */}
-          <Animated.View
-            style={[
-              styles.contentWrapper,
-              styles.waterOptionsContainer,
-              { opacity: contentModeOpacity.water },
-            ]}
-            pointerEvents={fabContentMode === "water" ? "auto" : "none"}
-          >
-            <TouchableOpacity
-              style={[
-                styles.adjustButton,
-                { backgroundColor: colors.background + "30" },
-              ]}
-              onPress={() => changeContentMode("default")}
-              activeOpacity={0.7}
-              disabled={!isExpanded}
-            >
-              <Ionicons name="arrow-back" size={24} color={colors.background} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.adjustButton,
-                { backgroundColor: colors.background + "30" },
-              ]}
-              onPress={handleRemoveWater}
-              activeOpacity={0.7}
-              disabled={!isExpanded || currentWaterIntake <= 0}
-            >
-              <MaterialCommunityIcons
-                name="minus"
-                size={24}
-                color={colors.background}
-              />
-            </TouchableOpacity>
-            <View style={styles.waterDisplayContainer}>
-              <Text
-                style={[
-                  styles.waterDisplayTextBase,
-                  { color: colors.background },
-                ]}
-              >
-                {`${(currentWaterIntake / 1000).toFixed(1)}L`}
-              </Text>
             </View>
-            <TouchableOpacity
-              style={[
-                styles.adjustButton,
-                { backgroundColor: colors.background + "30" },
-              ]}
-              onPress={handleAddWater}
-              activeOpacity={0.7}
-              disabled={!isExpanded || currentWaterIntake >= dailyWaterGoal}
-            >
-              <MaterialCommunityIcons
-                name="plus"
-                size={24}
-                color={colors.background}
-              />
-            </TouchableOpacity>
-          </Animated.View>
+          )}
 
-          {/* Workout Types Options */}
-          <Animated.View
-            style={[
-              styles.contentWrapper,
-              { opacity: contentModeOpacity.workoutTypes },
-            ]}
-            pointerEvents={fabContentMode === "workoutTypes" ? "auto" : "none"}
-          >
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContentContainer}
-              alwaysBounceHorizontal={false}
-              style={styles.scrollView}
-            >
-              {selectedWorkoutTypes.map((workoutType) => (
-                <TouchableOpacity
-                  key={`workoutType-${workoutType.id}`}
-                  style={styles.optionButton}
-                  onPress={() => handleStartWorkout(workoutType)}
-                  activeOpacity={0.7}
-                  disabled={!isExpanded}
-                >
-                  <WorkoutIcon
-                    iconType={workoutType.iconType}
-                    size={28}
-                    color={workoutType.color || colors.background}
-                  />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </Animated.View>
-
-          {/* Update Weight Options */}
-          <Animated.View
-            style={[
-              styles.contentWrapper,
-              styles.updateWeightContainer,
-              { opacity: contentModeOpacity.updateWeight },
-            ]}
-            pointerEvents={fabContentMode === "updateWeight" ? "auto" : "none"}
-          >
-            <TouchableOpacity
-              style={[
-                styles.adjustButton,
-                { backgroundColor: colors.background + "30" },
-              ]}
-              onPress={() => changeContentMode("default")}
-              activeOpacity={0.7}
-              disabled={!isExpanded}
-            >
-              <Ionicons name="arrow-back" size={24} color={colors.background} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.adjustButton,
-                { backgroundColor: colors.background + "30" },
-              ]}
-              onPress={handleAdjustWeightDown}
-              activeOpacity={0.7}
-              disabled={!isExpanded || adjustingWeight <= 0}
-            >
-              <Ionicons name="remove" size={24} color={colors.background} />
-            </TouchableOpacity>
-            <View style={styles.weightDisplayContainer}>
-              <Text
-                style={[
-                  styles.weightDisplayTextBase,
-                  { color: colors.background },
+          {contentMode === "mealTypes" && (
+            <View style={styles.scrollMenuFull}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={[
+                  styles.scrollContent,
+                  styles.centeredContent,
                 ]}
+                removeClippedSubviews={true}
               >
-                {adjustingWeight.toFixed(1)}
-              </Text>
-              <Text
-                style={[
-                  styles.weightUnitTextBase,
-                  { color: colors.background + "B0" },
-                ]}
-              >
-                kg
-              </Text>
+                {mealTypes.map((mealType) => (
+                  <TouchableOpacity
+                    key={`meal-${mealType.id}`}
+                    style={styles.menuItem}
+                    onPress={() => navigateToAddFood(mealType)}
+                    hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                  >
+                    <Ionicons
+                      name={(mealType.icon || "restaurant-outline") as any}
+                      size={MENU_ICON_SIZE}
+                      color={mealType.color || colors.background}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
-            <TouchableOpacity
-              style={[
-                styles.adjustButton,
-                { backgroundColor: colors.background + "30" },
-              ]}
-              onPress={handleAdjustWeightUp}
-              activeOpacity={0.7}
-              disabled={!isExpanded}
-            >
-              <Ionicons name="add" size={24} color={colors.background} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.adjustButton,
-                { backgroundColor: colors.background + "30" },
-              ]}
-              onPress={handleUpdateWeight}
-              activeOpacity={0.7}
-              disabled={!isExpanded || adjustingWeight === nutritionInfo.weight} // Disable if weight hasn't changed
-            >
-              <Ionicons name="checkmark" size={24} color={colors.background} />
-            </TouchableOpacity>
-          </Animated.View>
+          )}
+
+          {contentMode === "water" && (
+            <View style={styles.controlsMenu}>
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={() => changeContentMode("default")}
+                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+              >
+                <Ionicons
+                  name="arrow-back"
+                  size={MENU_ICON_SIZE}
+                  color={CONTROL_ICON_COLOR}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.controlButton,
+                  currentWaterIntake <= 0 && styles.disabledButton,
+                ]}
+                onPress={handleRemoveWater}
+                disabled={currentWaterIntake <= 0}
+                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+              >
+                <MaterialCommunityIcons
+                  name="minus"
+                  size={MENU_ICON_SIZE}
+                  color={CONTROL_ICON_COLOR}
+                />
+              </TouchableOpacity>
+
+              <View style={styles.valueDisplay}>
+                <Text style={[styles.valueText, { color: colors.background }]}>
+                  {`${(currentWaterIntake / 1000).toFixed(1)}L`}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.controlButton,
+                  currentWaterIntake >= dailyWaterGoal && styles.disabledButton,
+                ]}
+                onPress={handleAddWater}
+                disabled={currentWaterIntake >= dailyWaterGoal}
+                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+              >
+                <MaterialCommunityIcons
+                  name="plus"
+                  size={MENU_ICON_SIZE}
+                  color={CONTROL_ICON_COLOR}
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {contentMode === "workoutTypes" && (
+            <View style={styles.scrollMenuFull}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={[
+                  styles.scrollContent,
+                  styles.centeredContent,
+                ]}
+                removeClippedSubviews={true}
+              >
+                {selectedWorkoutTypes.map((workoutType) => (
+                  <TouchableOpacity
+                    key={`workout-${workoutType.id}`}
+                    style={styles.menuItem}
+                    onPress={() => handleStartWorkout(workoutType)}
+                    hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                  >
+                    <WorkoutIcon
+                      iconType={workoutType.iconType}
+                      size={MENU_ICON_SIZE}
+                      color={workoutType.color || colors.background}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {contentMode === "updateWeight" && (
+            <View style={styles.controlsMenu}>
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={() => changeContentMode("default")}
+                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+              >
+                <Ionicons
+                  name="arrow-back"
+                  size={MENU_ICON_SIZE}
+                  color={CONTROL_ICON_COLOR}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.controlButton,
+                  adjustingWeight <= 0 && styles.disabledButton,
+                ]}
+                onPress={() => adjustWeight(-0.1)}
+                disabled={adjustingWeight <= 0}
+                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+              >
+                <Ionicons
+                  name="remove"
+                  size={MENU_ICON_SIZE}
+                  color={CONTROL_ICON_COLOR}
+                />
+              </TouchableOpacity>
+
+              <View style={styles.valueDisplay}>
+                <Text style={[styles.valueText, { color: colors.background }]}>
+                  {adjustingWeight.toFixed(1)}
+                  <Text style={styles.unitText}>kg</Text>
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={() => adjustWeight(0.1)}
+                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+              >
+                <Ionicons
+                  name="add"
+                  size={MENU_ICON_SIZE}
+                  color={CONTROL_ICON_COLOR}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.controlButton,
+                  adjustingWeight === nutritionInfo.weight &&
+                    styles.disabledButton,
+                ]}
+                onPress={handleUpdateWeight}
+                disabled={adjustingWeight === nutritionInfo.weight}
+                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+              >
+                <Ionicons
+                  name="checkmark"
+                  size={MENU_ICON_SIZE}
+                  color={CONTROL_ICON_COLOR}
+                />
+              </TouchableOpacity>
+            </View>
+          )}
         </Animated.View>
       </Animated.View>
     </>
@@ -663,34 +572,32 @@ export default function FloatingActionButton() {
 }
 
 const styles = StyleSheet.create({
-  animatedContainer: {
+  container: {
     position: "absolute",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 20,
     overflow: "hidden",
-    // Shared shadow for better performance
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 10,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  fabIconWrapper: {
-    position: "absolute", // Keep icon centered during animation
+  iconWrapper: {
+    position: "absolute",
     width: FAB_SIZE,
     height: FAB_SIZE,
     alignItems: "center",
     justifyContent: "center",
   },
-  fabTouchable: {
+  iconButton: {
     width: FAB_SIZE,
     height: FAB_SIZE,
     alignItems: "center",
     justifyContent: "center",
   },
-  optionsRow: {
-    // Takes full space of the animated container when expanded
+  content: {
     position: "absolute",
     top: 0,
     left: 0,
@@ -698,88 +605,90 @@ const styles = StyleSheet.create({
     bottom: 0,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 15, // Padding inside the expanded row
   },
-  contentWrapper: {
-    // Absolute fill within optionsRow to allow fading between modes
-    ...StyleSheet.absoluteFillObject,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  defaultOptionsContainer: {
-    justifyContent: "space-around", // Distribute default icons evenly
-    paddingHorizontal: 15, // Padding for default icons
-  },
-  waterOptionsContainer: {
-    justifyContent: "space-between", // Space between back, controls, dummy view
-    alignItems: "center",
-    paddingHorizontal: 10, // Adjust padding for back button
-  },
-  optionButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 10,
-    minWidth: 60, // Ensure minimum touch area
-    height: "100%",
-  },
-  scrollContentContainer: {
-    alignItems: "center",
-    justifyContent: "center", // Center items if they don't fill the scrollview
-    paddingHorizontal: 5, // Padding inside the scroll view
-    flexGrow: 1, // Allow container to grow
-  },
-  scrollView: {
-    width: "100%", // Take full width within the content wrapper
-  },
-  transparentBackdrop: {
+  backdrop: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "transparent", // Changed from rgba(0,0,0,0.4)
-    zIndex: 15, // Below the FAB container
+    zIndex: 15,
   },
-  backdropTouchable: {
+  backdropPressable: {
     width: "100%",
     height: "100%",
   },
-  updateWeightContainer: {
-    justifyContent: "space-between", // Space between back, controls, save
+  defaultMenu: {
+    flexDirection: "row",
+    justifyContent: "space-around",
     alignItems: "center",
-    paddingHorizontal: 10, // Adjust padding for back button
+    width: "100%",
+    paddingHorizontal: 15,
   },
-  adjustButton: {
-    padding: 10,
-    borderRadius: 25,
-    width: 50,
-    height: 50,
-    justifyContent: "center",
+  scrollMenu: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    paddingHorizontal: 10,
+  },
+  scrollMenuFull: {
+    width: "100%",
     alignItems: "center",
   },
-  weightDisplayContainer: {
+  scrollContent: {
     alignItems: "center",
-    minWidth: 80, // Keep consistent width
     paddingHorizontal: 5,
   },
-  weightDisplayTextBase: {
-    fontSize: 28,
-    fontWeight: "bold",
-    textAlign: "center",
+  centeredContent: {
+    flexGrow: 1,
+    justifyContent: "center",
   },
-  weightUnitTextBase: {
-    fontSize: 14,
-    fontWeight: "500",
-    textAlign: "center",
-  },
-  waterDisplayContainer: {
+  controlsMenu: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    width: "100%",
+    paddingHorizontal: 10,
   },
-  waterDisplayTextBase: {
-    fontSize: 18,
+  menuItem: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 10,
+    minWidth: 48,
+    minHeight: 48,
+  },
+  controlButton: {
+    width: CONTROL_BUTTON_SIZE,
+    height: CONTROL_BUTTON_SIZE,
+    borderRadius: CONTROL_BUTTON_RADIUS,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: CONTROL_BUTTON_BG,
+    margin: 3,
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  valueDisplay: {
+    alignItems: "center",
+    minWidth: 70,
+  },
+  valueText: {
+    fontSize: 20,
     fontWeight: "bold",
+    textAlign: "center",
   },
-  disabledSaveButton: {
-    opacity: 0.5, // Indicate visually that the button is disabled
+  unitText: {
+    fontSize: 12,
+    fontWeight: "normal",
+    marginLeft: 2,
+  },
+  invisibleBackdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 15,
   },
 });

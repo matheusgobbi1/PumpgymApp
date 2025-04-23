@@ -36,8 +36,6 @@ import ConfirmationModal from "../../components/ui/ConfirmationModal";
 import { MenuAction } from "../../components/shared/ContextMenu";
 import HomeHeader from "../../components/home/HomeHeader";
 import { useTranslation } from "react-i18next";
-import { useTabPreloader } from "../../hooks/useTabPreloader";
-import TabPreloader from "../../components/TabPreloader";
 import { useDateLocale } from "../../hooks/useDateLocale";
 
 // Interface local para os tipos de refeição com a propriedade foods
@@ -70,11 +68,6 @@ export default function NutritionScreen() {
 
   // Estado para controlar o carregamento
   const [isUIReady, setIsUIReady] = useState(false);
-
-  // Hook de precarregamento de tabs
-  const { isReady } = useTabPreloader({
-    delayMs: 150, // Pequeno delay para permitir animações fluidas
-  });
 
   const {
     selectedDate,
@@ -346,7 +339,7 @@ export default function NutritionScreen() {
 
   // Calcular alturas
   const headerHeight = Platform.OS === "ios" ? 70 : 60; // Altura do HomeHeader
-  const calendarHeight = 90; // Altura estimada do Calendário
+  const calendarHeight = 60; // Altura estimada do Calendário
 
   // Renderizar os modais baseados no modalInfo
   const renderModals = () => {
@@ -424,8 +417,19 @@ export default function NutritionScreen() {
 
   // Renderizar o conteúdo completo da tela de forma condicional
   const renderScreenContent = () => {
-    if (!isUIReady || !isReady) {
-      return <TabPreloader message={t("common.loading")} />;
+    if (!isUIReady) {
+      return (
+        <View
+          style={[
+            styles.container,
+            { justifyContent: "center", alignItems: "center" },
+          ]}
+        >
+          <View style={styles.loadingContainer}>
+            {/* Você pode adicionar aqui qualquer UI de carregamento simples, se necessário */}
+          </View>
+        </View>
+      );
     }
 
     // Se não houver refeições configuradas, mostrar o estado vazio
@@ -571,5 +575,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, // Padding horizontal aplicado aqui
     paddingBottom: 100,
     // paddingTop será adicionado dinamicamente
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

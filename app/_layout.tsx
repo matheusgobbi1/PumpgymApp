@@ -20,10 +20,10 @@ import {
   AchievementProvider,
   useAchievements,
 } from "../context/AchievementContext";
+import { ToastProvider } from "../components/common/ToastContext";
 import "../i18n"; // Importando a configuração i18n
 import i18n, { getLanguageStatus } from "../i18n"; // Importar getLanguageStatus para depuração
 import "../firebase/config";
-import OfflineNotice from "../components/notifications/OfflineNotice";
 import Colors from "../constants/Colors";
 import "react-native-reanimated";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
@@ -150,8 +150,9 @@ export default function RootLayout() {
                       <NutritionProvider>
                         <AchievementProvider>
                           <ReminderProvider>
-                            <OfflineNotice />
-                            <AppContent />
+                            <ToastProvider>
+                              <AppContent />
+                            </ToastProvider>
                           </ReminderProvider>
                         </AchievementProvider>
                       </NutritionProvider>
@@ -392,10 +393,11 @@ function AppContent() {
         screenOptions={{
           headerShown: false,
           contentStyle: {
-            backgroundColor: colors.background,
+            backgroundColor: "transparent",
           },
-          // Remover bordas e sombras
-          animation: Platform.OS === "android" ? "fade_from_bottom" : undefined,
+          // Configuração melhorada de animações
+          animation: "none",
+          animationDuration: 100,
           presentation: "card",
         }}
       >
@@ -410,6 +412,7 @@ function AppContent() {
           options={{
             presentation: "modal",
             animation: "slide_from_bottom",
+            animationDuration: 200,
           }}
         />
         <Stack.Screen
@@ -417,6 +420,7 @@ function AppContent() {
           options={{
             presentation: "modal",
             animation: "slide_from_bottom",
+            animationDuration: 200,
           }}
         />
         <Stack.Screen
@@ -424,6 +428,7 @@ function AppContent() {
           options={{
             presentation: "modal",
             animation: "slide_from_bottom",
+            animationDuration: 200,
           }}
         />
         <Stack.Screen
@@ -431,6 +436,7 @@ function AppContent() {
           options={{
             presentation: "modal",
             animation: "slide_from_bottom",
+            animationDuration: 200,
           }}
         />
         <Stack.Screen
@@ -438,6 +444,7 @@ function AppContent() {
           options={{
             presentation: "modal",
             animation: "slide_from_bottom",
+            animationDuration: 200,
           }}
         />
         <Stack.Screen
@@ -445,6 +452,7 @@ function AppContent() {
           options={{
             presentation: "modal",
             animation: "slide_from_bottom",
+            animationDuration: 200,
           }}
         />
         <Stack.Screen
@@ -453,6 +461,7 @@ function AppContent() {
             presentation: route?.params?.mode === "edit" ? "card" : "modal",
             animation:
               route?.params?.mode === "edit" ? "default" : "slide_from_bottom",
+            animationDuration: 200,
           })}
         />
         <Stack.Screen
@@ -460,6 +469,7 @@ function AppContent() {
           options={{
             presentation: "modal",
             animation: "slide_from_bottom",
+            animationDuration: 200,
           }}
         />
         <Stack.Screen
@@ -467,6 +477,7 @@ function AppContent() {
           options={{
             presentation: "modal",
             animation: "slide_from_bottom",
+            animationDuration: 200,
           }}
         />
         <Stack.Screen
@@ -474,6 +485,7 @@ function AppContent() {
           options={{
             presentation: "modal",
             animation: "slide_from_bottom",
+            animationDuration: 200,
           }}
         />
         <Stack.Screen
@@ -481,6 +493,7 @@ function AppContent() {
           options={{
             presentation: "modal",
             animation: "slide_from_bottom",
+            animationDuration: 200,
           }}
         />
       </Stack>

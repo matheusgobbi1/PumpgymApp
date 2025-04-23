@@ -397,19 +397,22 @@ export default function Calendar({
 const styles = StyleSheet.create({
   outerContainer: {
     overflow: "hidden",
+    height: 80, // Altura fixa reduzida
   },
   container: {
     width: "100%",
     backgroundColor: "transparent",
+    height: "100%",
   },
   calendarContainer: {
     position: "relative",
     width: "100%",
     backgroundColor: "transparent",
+    height: "100%",
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingVertical: 5,
+    paddingVertical: 2, // Reduzir o padding vertical
   },
   dayColumn: {
     alignItems: "center",
@@ -421,10 +424,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     opacity: 0.5,
     textTransform: "lowercase",
+    marginBottom: 2, // Adicionar margem menor
   },
   dayButton: {
     alignItems: "center",
-    paddingBottom: 8,
+    paddingBottom: 2, // Reduzir padding inferior
     backgroundColor: "transparent",
   },
   dayContainer: {
@@ -443,6 +447,6 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     position: "absolute",
-    bottom: 10,
+    bottom: 2, // Ajustar posição do indicador
   },
 });

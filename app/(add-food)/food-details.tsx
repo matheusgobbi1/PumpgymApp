@@ -26,6 +26,7 @@ import { FoodItem, FoodServing } from "../../types/food";
 import Slider from "@react-native-community/slider";
 import { useTranslation } from "react-i18next";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useToast } from "../../components/common/ToastContext";
 
 const { width } = Dimensions.get("window");
 
@@ -126,6 +127,7 @@ export default function FoodDetailsScreen() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const [portion, setPortion] = useState("100");
   const [numberOfPortions, setNumberOfPortions] = useState("1");
   const [isCustomPortion, setIsCustomPortion] = useState(true);
@@ -769,9 +771,27 @@ export default function FoodDetailsScreen() {
     if (isEditMode && foodId) {
       // Atualizar o alimento existente
       updateFoodInMeal(mealId, newFood);
+
+      // Mostrar toast de atualização
+      showToast({
+        message: t("nutrition.foodDetails.updatedSuccess", {
+          defaultValue: `${newFood.name} atualizado com sucesso`,
+        }),
+        type: "success",
+        duration: 3000,
+      });
     } else {
       // Adicionar novo alimento à refeição
       addFoodToMeal(mealId, newFood);
+
+      // Mostrar toast de adição
+      showToast({
+        message: t("nutrition.addFood.addedSuccess", {
+          defaultValue: `${newFood.name} adicionado à refeição`,
+        }),
+        type: "success",
+        duration: 3000,
+      });
     }
 
     // Adicionar ao histórico com a porção exata em que foi adicionado

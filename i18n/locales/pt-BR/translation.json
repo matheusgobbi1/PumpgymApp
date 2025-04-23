@@ -695,7 +695,9 @@
     "addToWorkout": "Adicionar ao",
     "exerciseNamePlaceholder": "Nome do exercício",
     "notesPlaceholder": "Adicione anotações sobre o exercício...",
-    "intensitySection": "Configurações de intensidade"
+    "intensitySection": "Configurações de intensidade",
+    "addedSuccess": "{{defaultValue}}",
+    "updatedSuccess": "{{defaultValue}}"
   },
   "dates": {
     "today": "Hoje",
@@ -811,10 +813,10 @@
     },
     "addFood": {
       "title": "Adicionar Alimento",
-      "searchPlaceholder": "Buscar alimento...",
+      "searchPlaceholder": "Buscar alimentos...",
       "scanCode": "Escanear Código",
-      "quickAdd": "Adição Manual",
-      "recentlyAdded": "Adicionados Recentemente",
+      "quickAdd": "Adicionar personalizado",
+      "recentlyAdded": "Adicionados recentemente",
       "clear": "Limpar",
       "noFoodFound": "Nenhum alimento encontrado",
       "searchError": "Erro ao buscar alimentos. Tente novamente.",
@@ -824,7 +826,10 @@
       "calories": "Calorias",
       "protein": "Proteína",
       "carbs": "Carboidratos",
-      "fat": "Gordura"
+      "fat": "Gordura",
+      "addedToMeal": "adicionado à refeição",
+      "addedSuccess": "Alimento adicionado com sucesso",
+      "deletedSuccess": "Alimento removido com sucesso"
     },
     "foodDetails": {
       "title": "Detalhes do Alimento",
@@ -838,7 +843,8 @@
       "foodNotFound": "Alimento não encontrado",
       "loadError": "Erro ao carregar detalhes do alimento",
       "genericError": "Erro ao carregar alimento",
-      "tryAgain": "Tentar Novamente"
+      "tryAgain": "Tentar Novamente",
+      "updatedSuccess": "{{defaultValue}}"
     },
     "common": {
       "gender": {
@@ -1290,7 +1296,8 @@
       "waterInfoTitle": "Água",
       "waterInfoDesc": "A hidratação adequada é crucial para todos os processos corporais, incluindo recuperação muscular e performance. Recomenda-se consumir de 35-45ml por kg de peso corporal diariamente, aumentando em dias de treino intenso ou calor.",
       "macrosBalanceTitle": "Distribuição de Macros",
-      "macrosBalanceDesc": "O equilíbrio entre proteínas, carboidratos e gorduras é fundamental para atingir seus objetivos. Para hipertrofia, uma distribuição típica é 30% de proteínas, 40-50% de carboidratos e 20-30% de gorduras. Ajuste essa distribuição conforme seus resultados e necessidades específicas."
+      "macrosBalanceDesc": "O equilíbrio entre proteínas, carboidratos e gorduras é fundamental para atingir seus objetivos. Para hipertrofia, uma distribuição típica é 30% de proteínas, 40-50% de carboidratos e 20-30% de gorduras. Ajuste essa distribuição conforme seus resultados e necessidades específicas.",
+      "saveSuccess": "Informações nutricionais salvas com sucesso"
     }
   },
   "workouts": {

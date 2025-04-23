@@ -42,6 +42,9 @@ import {
   isWithinInterval,
 } from "date-fns";
 
+// Chave para controlar verificação retroativa de conquistas
+const RETROACTIVE_CHECK_KEY = "ACHIEVEMENT_RETROACTIVE_CHECK_COMPLETED";
+
 // Tipos
 export interface AchievementProgress {
   id: string;
@@ -157,6 +160,46 @@ export const AchievementProvider = ({ children }: { children: ReactNode }) => {
     return progress[id]?.currentValue ?? 0;
   };
 
+  // Salvar progresso das conquistas com debounce para evitar muitas chamadas
+  const saveProgressWithDebounce = useCallback(
+    debounce(async () => {
+      if (!user) return;
+
+      try {
+        // Salvar no AsyncStorage
+        await AsyncStorage.setItem(
+          `${KEYS.ACHIEVEMENTS_PROGRESS}:${user.uid}`,
+          JSON.stringify(progress)
+        );
+
+        // Salvar conquistas recentes
+        await AsyncStorage.setItem(
+          `${KEYS.RECENTLY_UNLOCKED_ACHIEVEMENTS}:${user.uid}`,
+          JSON.stringify(recentlyUnlocked)
+        );
+
+        // Salvar no Firebase se estiver online
+        try {
+          await setDoc(
+            doc(db, "users", user.uid, "gameData", "achievements"),
+            { progress, updatedAt: new Date().toISOString() },
+            { merge: true }
+          );
+        } catch (firebaseError) {
+          // Ignorar erro do Firebase, dados mantidos localmente
+        }
+      } catch (error) {
+        // Ignorar erro ao salvar
+      }
+    }, 1000),
+    [user, progress, recentlyUnlocked]
+  );
+
+  // Salvar progresso das conquistas
+  const saveAchievementProgress = async () => {
+    saveProgressWithDebounce();
+  };
+
   // Função para marcar conquista como visualizada
   const markUnlockedAsViewed = async (id: string) => {
     // Encontrar a conquista nos recentemente desbloqueados
@@ -174,7 +217,7 @@ export const AchievementProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // Salvar
-      await saveAchievementProgress(); // saveAchievementProgress deve ser definida antes daqui
+      await saveAchievementProgress();
     }
   };
 
@@ -1242,6 +1285,9 @@ export const AchievementProvider = ({ children }: { children: ReactNode }) => {
   // Executar verificação de conquistas quando o usuário logar
   useEffect(() => {
     if (user) {
+      // Verificar se já realizamos a verificação retroativa de conquistas para este usuário
+      checkRetroactiveAchievements();
+
       // Esperar um pouco para os outros contextos serem carregados
       const timer = setTimeout(() => {
         // Verificar se já carregamos os dados primeiro
@@ -1260,44 +1306,58 @@ export const AchievementProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user?.uid, Object.keys(progress).length]);
 
-  // Salvar progresso das conquistas com debounce para evitar muitas chamadas
-  const saveProgressWithDebounce = useCallback(
-    debounce(async () => {
-      if (!user) return;
+  // Nova função para verificar conquistas retroativamente para usuários existentes
+  const checkRetroactiveAchievements = async () => {
+    if (!user) return;
 
-      try {
-        // Salvar no AsyncStorage
-        await AsyncStorage.setItem(
-          `${KEYS.ACHIEVEMENTS_PROGRESS}:${user.uid}`,
-          JSON.stringify(progress)
-        );
+    try {
+      // Verificar se já realizamos a verificação retroativa para este usuário
+      const retroCheckKey = `${RETROACTIVE_CHECK_KEY}_${user.uid}`;
+      const hasCheckedRetroactive = await AsyncStorage.getItem(retroCheckKey);
 
-        // Salvar conquistas recentes
-        await AsyncStorage.setItem(
-          `${KEYS.RECENTLY_UNLOCKED_ACHIEVEMENTS}:${user.uid}`,
-          JSON.stringify(recentlyUnlocked)
-        );
+      // Se já verificamos anteriormente, não precisamos fazer novamente
+      if (hasCheckedRetroactive === "true") {
+        return;
+      }
 
-        // Salvar no Firebase se estiver online
+      // Aguardar pelo carregamento completo de todos os dados
+      setTimeout(async () => {
+        console.log("Iniciando verificação retroativa de conquistas...");
+
+        // Verificação completa forçada de todas as conquistas
+        await checkAchievements();
+
+        // Verificações adicionais específicas
+        await check24hWarriorAchievement();
+        await checkPerfectWeekAchievement();
+        await checkConsistentChefAchievement();
+        await checkMacroMasterAchievement();
+        await checkWeightWatcherAchievement();
+        await checkDailyStepsAchievement();
+        await checkWeightGoalAchievements();
+
+        // Registrar que já realizamos a verificação retroativa para este usuário
+        await AsyncStorage.setItem(retroCheckKey, "true");
+
+        // Tentar salvar também no Firebase para garantir persistência
         try {
           await setDoc(
-            doc(db, "users", user.uid, "gameData", "achievements"),
-            { progress, updatedAt: new Date().toISOString() },
+            doc(db, "users", user.uid, "gameData", "retroChecks"),
+            {
+              achievementsChecked: true,
+              checkedAt: new Date().toISOString(),
+            },
             { merge: true }
           );
         } catch (firebaseError) {
-          // Ignorar erro do Firebase, dados mantidos localmente
+          // Ignorar erro do Firebase, já salvamos no AsyncStorage
         }
-      } catch (error) {
-        // Ignorar erro ao salvar
-      }
-    }, 1000),
-    [user, progress, recentlyUnlocked]
-  );
 
-  // Salvar progresso das conquistas
-  const saveAchievementProgress = async () => {
-    saveProgressWithDebounce();
+        console.log("Verificação retroativa de conquistas concluída");
+      }, 5000); // Aguardar 5 segundos para garantir que todos os dados estejam carregados
+    } catch (error) {
+      console.error("Erro ao verificar conquistas retroativamente:", error);
+    }
   };
 
   // Verificar se uma conquista específica já foi completamente desbloqueada

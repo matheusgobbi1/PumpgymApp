@@ -98,7 +98,7 @@ export default function NutritionRecommendationCard({
             <MaterialCommunityIcons
               name="fire"
               size={18}
-              color="#FFFFFF"
+              color={colors.text}
               style={styles.macroIcon}
             />
             <Text
@@ -128,7 +128,7 @@ export default function NutritionRecommendationCard({
             <MaterialCommunityIcons
               name="food-steak"
               size={18}
-              color="#FFFFFF"
+              color={colors.text}
               style={styles.macroIcon}
             />
             <Text
@@ -156,7 +156,7 @@ export default function NutritionRecommendationCard({
             <MaterialCommunityIcons
               name="baguette"
               size={18}
-              color="#FFFFFF"
+              color={colors.text}
               style={styles.macroIcon}
             />
             <Text
@@ -184,7 +184,7 @@ export default function NutritionRecommendationCard({
             <MaterialCommunityIcons
               name="oil"
               size={18}
-              color="#FFFFFF"
+              color={colors.text}
               style={styles.macroIcon}
             />
             <Text

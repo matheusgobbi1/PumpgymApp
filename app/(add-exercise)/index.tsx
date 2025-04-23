@@ -8,6 +8,7 @@ import {
   ScrollView,
   Dimensions,
   FlatList,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -25,6 +26,7 @@ import {
 } from "../../data/exerciseDatabase";
 import { debounce } from "lodash";
 import { useTranslation } from "react-i18next";
+import { useToast } from "../../components/common/ToastContext";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.44;
@@ -224,6 +226,7 @@ const RecentExerciseItem = React.memo(
     workoutId,
     addExerciseToWorkout,
     t,
+    showToast,
   }: {
     exercise: Exercise;
     index: number;
@@ -234,6 +237,7 @@ const RecentExerciseItem = React.memo(
     workoutId: string;
     addExerciseToWorkout: Function;
     t: Function;
+    showToast: Function;
   }) => (
     <MotiView
       key={`recent_${exercise.id}_${index}_${theme}`}
@@ -243,7 +247,14 @@ const RecentExerciseItem = React.memo(
     >
       <TouchableOpacity
         key={`recent-exercise-${exercise.id}-${theme}`}
-        style={[styles.exerciseItem, { backgroundColor: colors.light }]}
+        style={[
+          styles.exerciseItem,
+          {
+            backgroundColor: colors.light,
+            borderWidth: 1,
+            borderColor: colors.border,
+          },
+        ]}
         onPress={() => navigateToExerciseDetails(exercise)}
       >
         <View style={styles.exerciseInfo}>
@@ -257,9 +268,17 @@ const RecentExerciseItem = React.memo(
           <Text
             style={[styles.exerciseCategory, { color: colors.text + "80" }]}
           >
-            {exercise.sets?.length || 0} séries •{" "}
-            {exercise.sets?.[0]?.reps || 0} reps •{" "}
-            {exercise.sets?.[0]?.weight || 0}kg
+            {exercise.category === "cardio"
+              ? `${exercise.cardioDuration || 30} min • ${
+                  exercise.cardioIntensity && exercise.cardioIntensity <= 3
+                    ? "Baixa"
+                    : exercise.cardioIntensity && exercise.cardioIntensity >= 8
+                    ? "Alta"
+                    : "Média"
+                } ${exercise.cardioIntensity || 5}/10`
+              : `${exercise.sets?.length || 0} séries • ${
+                  exercise.sets?.[0]?.reps || 0
+                } reps • ${exercise.sets?.[0]?.weight || 0}kg`}
           </Text>
         </View>
         <TouchableOpacity
@@ -286,16 +305,36 @@ const RecentExerciseItem = React.memo(
               notes: exercise.notes,
               category: exercise.category,
               completed: false,
-              sets: (exercise.sets || []).map((set) => ({
-                id: `set-${Date.now()}-${Math.random()}`,
-                reps: set.reps,
-                weight: set.weight,
-                restTime: set.restTime || 60,
-                completed: false,
-              })),
+              sets:
+                exercise.category === "cardio"
+                  ? []
+                  : (exercise.sets || []).map((set) => ({
+                      id: `set-${Date.now()}-${Math.random()}`,
+                      reps: set.reps,
+                      weight: set.weight,
+                      restTime: set.restTime || 60,
+                      completed: false,
+                    })),
+              // Copiar configurações de cardio se for um exercício de cardio
+              cardioDuration:
+                exercise.category === "cardio"
+                  ? exercise.cardioDuration || 30
+                  : undefined,
+              cardioIntensity:
+                exercise.category === "cardio"
+                  ? exercise.cardioIntensity || 5
+                  : undefined,
             };
             addExerciseToWorkout(workoutId, newExercise);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+            // Mostrar toast de sucesso
+            showToast({
+              message: t("exercise.addedSuccess", {
+                defaultValue: `${exerciseName} adicionado ao treino`,
+              }),
+              type: "success",
+            });
           }}
         >
           <Ionicons name="add" size={20} color="#FFF" />
@@ -317,6 +356,7 @@ const SearchResultItem = React.memo(
     addExerciseToWorkout,
     workoutId,
     t,
+    showToast,
   }: {
     exercise: ExerciseData;
     index: number;
@@ -327,6 +367,7 @@ const SearchResultItem = React.memo(
     addExerciseToWorkout: Function;
     workoutId: string;
     t: Function;
+    showToast: Function;
   }) => (
     <MotiView
       key={`${exercise.id}_${index}_${theme}`}
@@ -336,7 +377,14 @@ const SearchResultItem = React.memo(
     >
       <TouchableOpacity
         key={`exercise-item-${exercise.id}-${theme}`}
-        style={[styles.exerciseItem, { backgroundColor: colors.light }]}
+        style={[
+          styles.exerciseItem,
+          {
+            backgroundColor: colors.light,
+            borderWidth: 1,
+            borderColor: colors.border,
+          },
+        ]}
         onPress={() => navigateToExerciseDetails(exercise)}
       >
         <View style={styles.exerciseInfo}>
@@ -379,33 +427,47 @@ const SearchResultItem = React.memo(
               name: exerciseName,
               category: exercise.category,
               notes: `${exercise.muscle} - ${exercise.equipment}`,
-              sets: [
-                {
-                  id: `set-${Date.now()}-1`,
-                  reps: 12,
-                  weight: 10,
-                  completed: false,
-                  restTime: 60,
-                },
-                {
-                  id: `set-${Date.now()}-2`,
-                  reps: 12,
-                  weight: 10,
-                  completed: false,
-                  restTime: 60,
-                },
-                {
-                  id: `set-${Date.now()}-3`,
-                  reps: 12,
-                  weight: 10,
-                  completed: false,
-                  restTime: 60,
-                },
-              ],
+              sets:
+                exercise.category === "cardio"
+                  ? []
+                  : [
+                      {
+                        id: `set-${Date.now()}-1`,
+                        reps: 12,
+                        weight: 10,
+                        completed: false,
+                        restTime: 60,
+                      },
+                      {
+                        id: `set-${Date.now()}-2`,
+                        reps: 12,
+                        weight: 10,
+                        completed: false,
+                        restTime: 60,
+                      },
+                      {
+                        id: `set-${Date.now()}-3`,
+                        reps: 12,
+                        weight: 10,
+                        completed: false,
+                        restTime: 60,
+                      },
+                    ],
               completed: false,
+              // Definir valores padrão para cardio
+              cardioDuration: exercise.category === "cardio" ? 30 : undefined,
+              cardioIntensity: exercise.category === "cardio" ? 5 : undefined,
             };
             addExerciseToWorkout(workoutId, newExercise);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+            // Mostrar toast de sucesso
+            showToast({
+              message: t("exercise.addedSuccess", {
+                defaultValue: `${exerciseName} adicionado ao treino`,
+              }),
+              type: "success",
+            });
           }}
         >
           <Ionicons name="add" size={20} color="#FFF" />
@@ -421,6 +483,7 @@ export default function AddExerciseScreen() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { t } = useTranslation();
+  const { showToast } = useToast();
 
   // Extrair parâmetros da URL
   const workoutId = params.workoutId as string;
@@ -535,36 +598,50 @@ export default function AddExerciseScreen() {
         name: exerciseName,
         category: exercise.category,
         notes: `${exercise.muscle} - ${exercise.equipment}`,
-        sets: [
-          {
-            id: `set-${Date.now()}-1`,
-            reps: 12,
-            weight: 10,
-            completed: false,
-            restTime: 60,
-          },
-          {
-            id: `set-${Date.now()}-2`,
-            reps: 12,
-            weight: 10,
-            completed: false,
-            restTime: 60,
-          },
-          {
-            id: `set-${Date.now()}-3`,
-            reps: 12,
-            weight: 10,
-            completed: false,
-            restTime: 60,
-          },
-        ],
+        sets:
+          exercise.category === "cardio"
+            ? []
+            : [
+                {
+                  id: `set-${Date.now()}-1`,
+                  reps: 12,
+                  weight: 10,
+                  completed: false,
+                  restTime: 60,
+                },
+                {
+                  id: `set-${Date.now()}-2`,
+                  reps: 12,
+                  weight: 10,
+                  completed: false,
+                  restTime: 60,
+                },
+                {
+                  id: `set-${Date.now()}-3`,
+                  reps: 12,
+                  weight: 10,
+                  completed: false,
+                  restTime: 60,
+                },
+              ],
         completed: false,
+        // Definir valores padrão para cardio
+        cardioDuration: exercise.category === "cardio" ? 30 : undefined,
+        cardioIntensity: exercise.category === "cardio" ? 5 : undefined,
       };
 
       addExerciseToWorkout(workoutId, newExercise);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      // Mostrar toast de sucesso
+      showToast({
+        message: t("exercise.addedSuccess", {
+          defaultValue: `${exerciseName} adicionado ao treino`,
+        }),
+        type: "success",
+      });
     },
-    [workoutId, addExerciseToWorkout, t]
+    [workoutId, addExerciseToWorkout, t, showToast]
   );
 
   // Função para navegar para a tela de detalhes do exercício - otimizada
@@ -645,6 +722,7 @@ export default function AddExerciseScreen() {
         addExerciseToWorkout={addExerciseToWorkout}
         workoutId={workoutId}
         t={t}
+        showToast={showToast}
       />
     ));
   }, [
@@ -658,14 +736,18 @@ export default function AddExerciseScreen() {
     addExerciseToWorkout,
     workoutId,
     router,
+    showToast,
   ]);
 
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["bottom"]}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View
+        style={[styles.header, { paddingTop: Platform.OS === "ios" ? 70 : 50 }]}
+      >
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
@@ -683,8 +765,17 @@ export default function AddExerciseScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      {/* Search Bar */}
-      <View style={[styles.searchContainer, { backgroundColor: colors.light }]}>
+      {/* Search Bar com borda */}
+      <View
+        style={[
+          styles.searchContainer,
+          {
+            backgroundColor: colors.light,
+            borderWidth: 1,
+            borderColor: colors.border,
+          },
+        ]}
+      >
         <Ionicons
           name="search"
           size={20}
@@ -738,6 +829,7 @@ export default function AddExerciseScreen() {
                 workoutId={workoutId}
                 addExerciseToWorkout={addExerciseToWorkout}
                 t={t}
+                showToast={showToast}
               />
             ))}
           </View>
@@ -782,7 +874,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 16,
     height: 50,
-    borderRadius: 25,
+    borderRadius: 20,
   },
   searchIcon: {
     marginRight: 10,

@@ -19,8 +19,6 @@ import { useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
-import { useTabPreloader } from "../../hooks/useTabPreloader";
-import TabPreloader from "../../components/TabPreloader";
 
 export default function Profile() {
   const { t } = useTranslation();
@@ -35,11 +33,6 @@ export default function Profile() {
 
   // Estado para controlar o carregamento
   const [isUIReady, setIsUIReady] = useState(false);
-
-  // Hook de precarregamento de tabs
-  const { isReady } = useTabPreloader({
-    delayMs: 150,
-  });
 
   // Calcular altura do header
   const headerHeight = Platform.OS === "ios" ? 70 : 60;
@@ -102,8 +95,19 @@ export default function Profile() {
 
   // Renderizar o conteúdo da tela de forma condicional
   const renderScreenContent = () => {
-    if (!isUIReady || !isReady) {
-      return <TabPreloader message={t("common.loading")} />;
+    if (!isUIReady) {
+      return (
+        <View
+          style={[
+            styles.container,
+            { justifyContent: "center", alignItems: "center" },
+          ]}
+        >
+          <View style={styles.loadingContainer}>
+            {/* Você pode adicionar aqui qualquer UI de carregamento simples, se necessário */}
+          </View>
+        </View>
+      );
     }
 
     return (
@@ -187,5 +191,10 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 80, // Altura suficiente para ficar acima da bottom tab
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

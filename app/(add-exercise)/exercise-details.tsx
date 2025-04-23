@@ -22,6 +22,7 @@ import Colors from "../../constants/Colors";
 import { ExerciseData, getExerciseById } from "../../data/exerciseDatabase";
 import { useTranslation } from "react-i18next";
 import { MotiView } from "moti";
+import { useToast } from "../../components/common/ToastContext";
 
 const { width } = Dimensions.get("window");
 
@@ -867,6 +868,7 @@ const ExerciseDetailsScreen = () => {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { t } = useTranslation();
+  const { showToast } = useToast();
 
   // Referências para o ScrollView e inputs
   const scrollViewRef = useRef<ScrollView>(null);
@@ -1076,9 +1078,25 @@ const ExerciseDetailsScreen = () => {
     // Se estamos editando, atualizar o exercício existente
     if (mode === "edit" && exerciseId) {
       updateExerciseInWorkout(workoutId, exerciseId, newExercise);
+
+      // Mostrar toast de atualização
+      showToast({
+        message: t("exercise.updatedSuccess", {
+          defaultValue: `${newExercise.name} atualizado com sucesso`,
+        }),
+        type: "success",
+      });
     } else {
       // Caso contrário, adicionar um novo exercício
       addExerciseToWorkout(workoutId, newExercise);
+
+      // Mostrar toast de adição
+      showToast({
+        message: t("exercise.addedSuccess", {
+          defaultValue: `${newExercise.name} adicionado ao treino`,
+        }),
+        type: "success",
+      });
     }
 
     // Voltar para a tela anterior

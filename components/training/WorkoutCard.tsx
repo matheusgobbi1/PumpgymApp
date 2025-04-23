@@ -487,9 +487,17 @@ export default function WorkoutCard({
                       ]}
                     >
                       {exercise.category === "cardio"
-                        ? `${exercise.cardioDuration} min • ${t(
-                            "exercise.intensityLevels.medium"
-                          )} ${exercise.cardioIntensity}/10`
+                        ? `${exercise.cardioDuration} min • ${
+                            exercise.cardioIntensity &&
+                            exercise.cardioIntensity <= 3
+                              ? t("exercise.cardioConfig.intensityLevels.low")
+                              : exercise.cardioIntensity &&
+                                exercise.cardioIntensity >= 8
+                              ? t("exercise.cardioConfig.intensityLevels.high")
+                              : t(
+                                  "exercise.cardioConfig.intensityLevels.medium"
+                                )
+                          } ${exercise.cardioIntensity}/10`
                         : exercise.sets && exercise.sets.length > 0
                         ? `${exercise.sets.length} ${
                             exercise.sets.length === 1

@@ -29,8 +29,6 @@ import { useTranslation } from "react-i18next";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KEYS } from "../../constants/keys";
 import { useAuth } from "../../context/AuthContext";
-import { useTabPreloader } from "../../hooks/useTabPreloader";
-import TabPreloader from "../../components/TabPreloader";
 import { useAchievements } from "../../context/AchievementContext";
 import FitLevelBadge from "../../components/home/FitLevelBadge";
 
@@ -77,11 +75,6 @@ export default function HomeScreen() {
 
   // Estado para controlar o carregamento
   const [isUIReady, setIsUIReady] = useState(false);
-
-  // Hook de precarregamento de tabs
-  const { isReady, withPreloadDelay } = useTabPreloader({
-    delayMs: 150, // Pequeno delay para permitir animações fluidas
-  });
 
   const [activeTab, setActiveTab] = useState<"lembretes" | "progresso">(
     "lembretes"
@@ -231,7 +224,7 @@ export default function HomeScreen() {
 
   // Verificar conquistas quando a tela é carregada
   useEffect(() => {
-    if (isUIReady && isReady) {
+    if (isUIReady) {
       // Pequeno delay para evitar congestionamento na inicialização
       const timer = setTimeout(() => {
         checkAchievements();
@@ -239,7 +232,7 @@ export default function HomeScreen() {
 
       return () => clearTimeout(timer);
     }
-  }, [isUIReady, isReady, checkAchievements]);
+  }, [isUIReady, checkAchievements]);
 
   // Lidar com a mudança de aba e carregar progresso sob demanda
   const handleTabChange = useCallback(
@@ -284,7 +277,7 @@ export default function HomeScreen() {
 
   // Renderização condicional e lazy loading dos componentes de progresso
   const renderProgressContent = useMemo(() => {
-    if (!isUIReady || !isReady) return null;
+    if (!isUIReady) return null;
 
     return (
       <MemoizedProgressCharts
@@ -302,7 +295,6 @@ export default function HomeScreen() {
     handleWeightChartPress,
     router,
     isUIReady,
-    isReady,
   ]);
 
   // Renderização condicional dos componentes de lembretes

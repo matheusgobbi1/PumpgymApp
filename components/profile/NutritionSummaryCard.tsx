@@ -17,10 +17,10 @@ import { useRouter } from "expo-router";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import Slider from "@react-native-community/slider";
-import { ErrorMessage } from "../common/ErrorMessage";
 import { ValidationResult } from "../../utils/validations";
 import { useTranslation } from "react-i18next";
 import InfoModal, { InfoItem } from "../common/InfoModal";
+import { useToast } from "../common/ToastContext";
 
 const { width } = Dimensions.get("window");
 
@@ -37,6 +37,7 @@ export default function NutritionSummaryCard({
   const { nutritionInfo, updateNutritionInfo, saveNutritionInfo } =
     useNutrition();
   const router = useRouter();
+  const { showToast } = useToast();
 
   // Ref para o bottom sheet
   const customizeSheetRef = useRef<BottomSheetModal>(null);
@@ -349,6 +350,14 @@ export default function NutritionSummaryCard({
 
     // Fornecer feedback tátil de sucesso
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    // Mostrar toast de sucesso
+    showToast({
+      message: t("profile.nutritionCard.saveSuccess", {
+        defaultValue: "Informações nutricionais salvas com sucesso",
+      }),
+      type: "success",
+    });
   };
 
   // Função para atualizar o card após salvar as alterações
@@ -362,6 +371,12 @@ export default function NutritionSummaryCard({
     const caloriesValue = parseInt(value);
     if (isNaN(caloriesValue) || caloriesValue < 800 || caloriesValue > 5000) {
       setCaloriesError(t("profile.nutritionCard.caloriesError"));
+
+      // Mostrar erro via toast
+      showToast({
+        message: t("profile.nutritionCard.caloriesError"),
+        type: "error",
+      });
       return false;
     }
     setCaloriesError("");
@@ -372,7 +387,14 @@ export default function NutritionSummaryCard({
   const validateProtein = (value: string): boolean => {
     const proteinValue = parseInt(value);
     if (isNaN(proteinValue) || proteinValue < 10 || proteinValue > 300) {
-      setProteinError(`${t("profile.nutritionCard.proteinError")} (10-300g)`);
+      const errorMsg = `${t("profile.nutritionCard.proteinError")} (10-300g)`;
+      setProteinError(errorMsg);
+
+      // Mostrar erro via toast
+      showToast({
+        message: errorMsg,
+        type: "error",
+      });
       return false;
     }
     setProteinError("");
@@ -383,7 +405,14 @@ export default function NutritionSummaryCard({
   const validateCarbs = (value: string): boolean => {
     const carbsValue = parseInt(value);
     if (isNaN(carbsValue) || carbsValue < 10 || carbsValue > 500) {
-      setCarbsError(`${t("profile.nutritionCard.carbsError")} (10-500g)`);
+      const errorMsg = `${t("profile.nutritionCard.carbsError")} (10-500g)`;
+      setCarbsError(errorMsg);
+
+      // Mostrar erro via toast
+      showToast({
+        message: errorMsg,
+        type: "error",
+      });
       return false;
     }
     setCarbsError("");
@@ -394,7 +423,14 @@ export default function NutritionSummaryCard({
   const validateFat = (value: string): boolean => {
     const fatValue = parseInt(value);
     if (isNaN(fatValue) || fatValue < 10 || fatValue > 200) {
-      setFatError(`${t("profile.nutritionCard.fatError")} (10-200g)`);
+      const errorMsg = `${t("profile.nutritionCard.fatError")} (10-200g)`;
+      setFatError(errorMsg);
+
+      // Mostrar erro via toast
+      showToast({
+        message: errorMsg,
+        type: "error",
+      });
       return false;
     }
     setFatError("");
@@ -406,6 +442,12 @@ export default function NutritionSummaryCard({
     const waterValue = parseInt(value);
     if (isNaN(waterValue) || waterValue < 500 || waterValue > 8000) {
       setWaterIntakeError(t("profile.nutritionCard.waterIntakeError"));
+
+      // Mostrar erro via toast
+      showToast({
+        message: t("profile.nutritionCard.waterIntakeError"),
+        type: "error",
+      });
       return false;
     }
     setWaterIntakeError("");
@@ -429,7 +471,14 @@ export default function NutritionSummaryCard({
       isNaN(caloriesValue)
     ) {
       if (isSubmitting) {
-        setMacrosError(t("profile.nutritionCard.distributionError"));
+        const errorMsg = t("profile.nutritionCard.distributionError");
+        setMacrosError(errorMsg);
+
+        // Mostrar erro via toast
+        showToast({
+          message: errorMsg,
+          type: "error",
+        });
       }
       return false;
     }
@@ -446,11 +495,16 @@ export default function NutritionSummaryCard({
 
     if (percentDifference > 5) {
       if (isSubmitting) {
-        setMacrosError(
-          `${t(
-            "profile.nutritionCard.distributionError"
-          )} (${totalCalories.toFixed(0)} kcal vs ${caloriesValue} kcal)`
-        );
+        const errorMsg = `${t(
+          "profile.nutritionCard.distributionError"
+        )} (${totalCalories.toFixed(0)} kcal vs ${caloriesValue} kcal)`;
+        setMacrosError(errorMsg);
+
+        // Mostrar erro via toast
+        showToast({
+          message: errorMsg,
+          type: "error",
+        });
       }
       return false;
     }
@@ -660,20 +714,6 @@ export default function NutritionSummaryCard({
   // Renderizar os cards de estatísticas
   const renderStatsCards = () => (
     <>
-      {/* Exibir erros de validação no topo */}
-      {isEditMode && (
-        <View style={styles.errorsContainer}>
-          {caloriesError && <ErrorMessage message={caloriesError} />}
-          {proteinError && <ErrorMessage message={proteinError} />}
-          {carbsError && <ErrorMessage message={carbsError} />}
-          {fatError && <ErrorMessage message={fatError} />}
-          {waterIntakeError && <ErrorMessage message={waterIntakeError} />}
-          {showMacrosError && macrosError && (
-            <ErrorMessage message={macrosError} />
-          )}
-        </View>
-      )}
-
       {/* Card de Calorias (Grande, no topo) */}
       <View
         style={[

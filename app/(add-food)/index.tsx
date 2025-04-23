@@ -8,6 +8,7 @@ import {
   ScrollView,
   Dimensions,
   Alert,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -24,6 +25,7 @@ import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
 import { useTranslation } from "react-i18next";
 import { getFoodCategories } from "../../data/foodDatabaseUtils";
+import { useToast } from "../../components/common/ToastContext";
 
 const { width } = Dimensions.get("window");
 
@@ -186,6 +188,7 @@ export default function AddFoodScreen() {
       fat: number;
     }[]
   >([]);
+  const { showToast } = useToast();
 
   // Extrair parâmetros da refeição
   const mealId = params.mealId as string;
@@ -300,9 +303,15 @@ export default function AddFoodScreen() {
         setSearchResults(response.items || []);
       } catch (err) {
         setError(t("nutrition.addFood.searchError"));
+        // Mostrar erro no toast
+        showToast({
+          message: t("nutrition.addFood.searchError"),
+          type: "error",
+          duration: 4000,
+        });
       }
     }, 300), // Reduzir o atraso do debounce de 500 para 300ms
-    [t]
+    [t, showToast]
   );
 
   useEffect(() => {
@@ -337,8 +346,14 @@ export default function AddFoodScreen() {
 
       // Adicionar ao histórico de busca
       await addToSearchHistory(newFood);
+
+      // Mostrar toast de sucesso
+      showToast({
+        message: `${food.name} ${t("nutrition.addFood.addedToMeal")}`,
+        type: "success",
+      });
     },
-    [mealId, addFoodToMeal, addToSearchHistory]
+    [mealId, addFoodToMeal, addToSearchHistory, showToast, t]
   );
 
   // Função para adicionar alimento da pesquisa diretamente
@@ -373,8 +388,14 @@ export default function AddFoodScreen() {
 
       // Adicionar ao histórico de busca
       await addToSearchHistory(newFood);
+
+      // Mostrar toast de sucesso
+      showToast({
+        message: `${food.food_name} ${t("nutrition.addFood.addedToMeal")}`,
+        type: "success",
+      });
     },
-    [mealId, addFoodToMeal, addToSearchHistory]
+    [mealId, addFoodToMeal, addToSearchHistory, showToast, t]
   );
 
   // Função para obter a porção preferida para exibição
@@ -558,7 +579,14 @@ export default function AddFoodScreen() {
             {t("nutrition.addFood.noFoodFound")}
           </Text>
           <TouchableOpacity
-            style={[styles.addCustomButton, { backgroundColor: mealColor }]}
+            style={[
+              styles.addCustomButton,
+              {
+                backgroundColor: mealColor,
+                borderWidth: 1,
+                borderColor: mealColor,
+              },
+            ]}
             onPress={() => {
               router.push({
                 pathname: "/(add-food)/quick-add",
@@ -596,7 +624,14 @@ export default function AddFoodScreen() {
         >
           <TouchableOpacity
             key={`food-item-${result.food_id}-${theme}`}
-            style={[styles.foodItem, { backgroundColor: colors.light }]}
+            style={[
+              styles.foodItem,
+              {
+                backgroundColor: colors.light,
+                borderWidth: 1,
+                borderColor: colors.border,
+              },
+            ]}
             onPress={() => handleFoodSelect(result)}
           >
             <View style={styles.foodInfo}>
@@ -625,9 +660,12 @@ export default function AddFoodScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["bottom"]}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View
+        style={[styles.header, { paddingTop: Platform.OS === "ios" ? 70 : 50 }]}
+      >
         <TouchableOpacity
           key={`back-button-${theme}`}
           onPress={() => router.back()}
@@ -646,10 +684,17 @@ export default function AddFoodScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      {/* Search Bar */}
+      {/* Search Bar com borda */}
       <View
         key={`search-container-${theme}`}
-        style={[styles.searchContainer, { backgroundColor: colors.light }]}
+        style={[
+          styles.searchContainer,
+          {
+            backgroundColor: colors.light,
+            borderWidth: 1,
+            borderColor: colors.border,
+          },
+        ]}
       >
         <Ionicons
           name="search"
@@ -676,71 +721,13 @@ export default function AddFoodScreen() {
         )}
       </View>
 
-      {/* Categoria Filter */}
+      {/* Categoria Filter com bordas */}
       <View style={styles.filterWrapper}>
         <FoodCategoryFilter
           selectedCategory={selectedCategory}
           onSelectCategory={handleSelectCategory}
           mealColor={mealColor}
         />
-      </View>
-
-      {/* Quick Actions */}
-      <View style={styles.quickActions}>
-        <View style={styles.quickActionWrapper}>
-          <TouchableOpacity
-            key={`scan-button-${theme}`}
-            style={[
-              styles.quickActionButton,
-              { backgroundColor: colors.light },
-            ]}
-            disabled={true}
-          >
-            <Ionicons
-              name="barcode-outline"
-              size={24}
-              color={colors.text + "40"}
-            />
-            <Text
-              style={[styles.quickActionText, { color: colors.text + "40" }]}
-            >
-              {t("nutrition.addFood.scanCode")}
-            </Text>
-          </TouchableOpacity>
-          <View
-            style={[
-              styles.comingSoonOverlay,
-              { backgroundColor: colors.background + "70" },
-            ]}
-          >
-            <Text style={[styles.comingSoonText, { color: colors.primary }]}>
-              Em breve
-            </Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          key={`quick-add-button-${theme}`}
-          style={[styles.quickActionButton, { backgroundColor: colors.light }]}
-          onPress={() =>
-            router.push({
-              pathname: "/(add-food)/quick-add",
-              params: {
-                mealId,
-                mealColor,
-              },
-            })
-          }
-        >
-          <Ionicons
-            name="add-circle-outline"
-            size={24}
-            color={colors.primary}
-          />
-          <Text style={[styles.quickActionText, { color: colors.text }]}>
-            {t("nutrition.addFood.quickAdd")}
-          </Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -763,6 +750,8 @@ export default function AddFoodScreen() {
                     styles.clearHistoryWrapper,
                     {
                       backgroundColor: colors.light,
+                      borderWidth: 1,
+                      borderColor: colors.border,
                     },
                   ]}
                 >
@@ -789,7 +778,11 @@ export default function AddFoodScreen() {
                   key={`recent-food-${food.id}-${theme}`}
                   style={[
                     styles.recentFoodItem,
-                    { backgroundColor: colors.light },
+                    {
+                      backgroundColor: colors.light,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                    },
                   ]}
                   onPress={() => navigateToFoodDetails(food)}
                 >
@@ -862,7 +855,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 16,
     height: 50,
-    borderRadius: 25,
+    borderRadius: 20,
   },
   searchIcon: {
     marginRight: 10,
@@ -918,6 +911,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#DADADA",
   },
   foodInfo: {
     flex: 1,
@@ -960,6 +955,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#DADADA",
   },
   recentFoodInfo: {
     flex: 1,
@@ -998,7 +995,7 @@ const styles = StyleSheet.create({
   // Estilos para o filtro de categoria
   filterWrapper: {
     height: 32,
-    marginBottom: 10,
+    marginBottom: 20,
     marginTop: 0,
   },
   categoryFilterContainer: {
@@ -1015,6 +1012,7 @@ const styles = StyleSheet.create({
     height: 32,
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 0,
   },
   categoryFilterText: {
     fontSize: 14,

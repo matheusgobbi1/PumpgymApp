@@ -16,7 +16,14 @@ import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import React, { useRef, useState, useCallback, useMemo } from "react";
+import React, {
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+  useReducer,
+  useEffect,
+} from "react";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "../../context/ThemeContext";
 import { useRouter } from "expo-router";
@@ -100,6 +107,28 @@ const WorkoutIcon = ({
   }
 };
 
+// Reducer para gerenciar o estado da TabBar
+type TabBarState = {
+  ready: boolean;
+  opacity: Animated.Value;
+};
+
+type TabBarAction = { type: "SET_READY" };
+
+function tabBarReducer(state: TabBarState, action: TabBarAction): TabBarState {
+  switch (action.type) {
+    case "SET_READY":
+      Animated.timing(state.opacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+      return { ...state, ready: true };
+    default:
+      return state;
+  }
+}
+
 export default function TabLayout() {
   const { theme } = useTheme();
   const colors = Colors[theme];
@@ -117,6 +146,21 @@ export default function TabLayout() {
     nutritionInfo,
   } = useNutrition();
   const { selectedWorkoutTypes, startWorkoutForDate } = useWorkoutContext();
+
+  // Inicialização do estado da TabBar com o reducer
+  const [tabBarState, dispatch] = useReducer(tabBarReducer, {
+    ready: false,
+    opacity: new Animated.Value(0),
+  });
+
+  // Efeito para definir a TabBar como pronta após um curto delay
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      dispatch({ type: "SET_READY" });
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const dynamicBottom =
     insets.bottom > 0 ? insets.bottom : BOTTOM_POSITION_INITIAL;
@@ -150,6 +194,28 @@ export default function TabLayout() {
     [startWorkoutForDate, router]
   );
 
+  // Estilo da TabBar com animação
+  const animatedTabBarStyle = {
+    position: "absolute" as const,
+    bottom: dynamicBottom,
+    marginHorizontal: TABBAR_HORIZONTAL_MARGIN,
+    width: TABBAR_WIDTH,
+    alignSelf: "center" as const,
+    elevation: 8,
+    backgroundColor: colors.background + "E6",
+    borderRadius: TABBAR_BORDER_RADIUS,
+    height: TABBAR_HEIGHT,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    paddingBottom: 0,
+    paddingTop: 14,
+    borderTopWidth: 0,
+    opacity: tabBarState.opacity,
+    transform: [{ translateY: 0 }], // Fixar posição vertical
+  };
+
   return (
     <>
       <Tabs
@@ -157,29 +223,13 @@ export default function TabLayout() {
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.tabIconDefault,
           headerShown: false,
-          tabBarStyle: {
-            position: "absolute",
-            bottom: dynamicBottom,
-            marginHorizontal: TABBAR_HORIZONTAL_MARGIN,
-            width: TABBAR_WIDTH,
-            alignSelf: "center",
-            elevation: 8,
-            backgroundColor: colors.background + "E6",
-            borderRadius: TABBAR_BORDER_RADIUS,
-            height: TABBAR_HEIGHT,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.15,
-            shadowRadius: 4,
-            paddingBottom: 0,
-            paddingTop: 14,
-            borderTopWidth: 0,
-          },
+          tabBarStyle: animatedTabBarStyle,
           tabBarShowLabel: false,
           headerStyle: {
             backgroundColor: colors.background,
           },
           headerTintColor: colors.text,
+          animation: "fade", // Usar animação fade para transições mais suaves
         }}
       >
         <Tabs.Screen

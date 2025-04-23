@@ -35,8 +35,6 @@ import { useLocalSearchParams } from "expo-router";
 import { MenuAction } from "../../components/shared/ContextMenu";
 import HomeHeader from "../../components/home/HomeHeader";
 import { useTranslation } from "react-i18next";
-import { useTabPreloader } from "../../hooks/useTabPreloader";
-import TabPreloader from "../../components/TabPreloader";
 import { InteractionManager } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -162,11 +160,6 @@ export default function TrainingScreen() {
   const colors = Colors[theme];
   const router = useRouter();
   const params = useLocalSearchParams();
-
-  // Hook de precarregamento de tabs
-  const { isReady, withPreloadDelay } = useTabPreloader({
-    delayMs: 150, // Pequeno delay para permitir animações fluidas
-  });
 
   // Estado para controlar carregamento da UI
   const [isUIReady, setIsUIReady] = useState(false);
@@ -592,12 +585,23 @@ export default function TrainingScreen() {
 
   // Calcular alturas
   const headerHeight = Platform.OS === "ios" ? 70 : 60; // Altura do HomeHeader
-  const calendarHeight = 90; // Altura estimada do Calendário
+  const calendarHeight = 70; // Altura ajustada do Calendário (reduzida de 90 para 80)
 
   // Renderização do conteúdo completo da tela
   const renderScreenContent = () => {
-    if (!isUIReady || !isReady) {
-      return <TabPreloader message={t("common.loading")} />;
+    if (!isUIReady) {
+      return (
+        <View
+          style={[
+            styles.container,
+            { justifyContent: "center", alignItems: "center" },
+          ]}
+        >
+          <View style={styles.loadingContainer}>
+            {/* Você pode adicionar aqui qualquer UI de carregamento simples, se necessário */}
+          </View>
+        </View>
+      );
     }
 
     const shouldShowEmptyState = !hasWorkoutsForSelectedDate;
@@ -614,8 +618,8 @@ export default function TrainingScreen() {
           style={styles.scrollView}
           contentContainerStyle={[
             styles.scrollViewContent,
-            // Padding top = altura do header + altura do calendário + padding original
-            { paddingTop: headerHeight + calendarHeight + 16 },
+            // Padding top = altura do header + altura do calendário + padding reduzido
+            { paddingTop: headerHeight + calendarHeight + 8 },
           ]}
           keyboardShouldPersistTaps="handled"
           scrollEventThrottle={16}
@@ -684,6 +688,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1, // Calendário fica sobre o ScrollView, mas abaixo do header
+    height: 80, // Definir altura fixa igual à do componente Calendar
   },
   scrollView: {
     flex: 1,
@@ -693,5 +698,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, // Padding horizontal aplicado aqui
     paddingBottom: 100,
     // paddingTop será adicionado dinamicamente
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

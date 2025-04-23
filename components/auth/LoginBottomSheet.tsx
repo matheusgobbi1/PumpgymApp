@@ -42,6 +42,7 @@ import { useTranslation } from "react-i18next";
 import { handleLoginError } from "../../utils/errorHandler";
 import { useRouter } from "expo-router";
 import ForgotPasswordModal from "./ForgotPasswordModal";
+import { useToast } from "../../components/common/ToastContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -68,11 +69,11 @@ const LoginBottomSheet = ({
   const { login } = useAuth();
   const { t } = useTranslation();
   const router = useRouter();
+  const { showToast } = useToast();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [snapPoints, setSnapPoints] = useState<(string | number)[]>([
@@ -250,17 +251,22 @@ const LoginBottomSheet = ({
       const validationResult = validateLogin(email, password);
       if (!validationResult.isValid) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        setError(
-          email === "" || password === ""
-            ? t("login.bottomSheet.errorMessages.emptyFields")
-            : validationResult.message
-        );
+
+        // Usar toast em vez de mensagem de erro inline
+        showToast({
+          message:
+            email === "" || password === ""
+              ? t("login.bottomSheet.errorMessages.emptyFields")
+              : validationResult.message,
+          type: "error",
+          duration: 4000,
+        });
+
         return;
       }
 
       // Iniciar o carregamento
       setLoading(true);
-      setError("");
 
       // Chamar a função de login
       await login(email, password);
@@ -268,9 +274,15 @@ const LoginBottomSheet = ({
       // Fechar o BottomSheet após o login bem-sucedido
       setBottomSheetIndex(-1);
     } catch (err) {
-      // Usar nosso tratador de erro personalizado
+      // Usar nosso tratador de erro personalizado e exibir via toast
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      setError(handleLoginError(err));
+
+      // Usar toast em vez de mensagem de erro inline
+      showToast({
+        message: handleLoginError(err),
+        type: "error",
+        duration: 4000,
+      });
     } finally {
       setLoading(false);
     }
@@ -428,28 +440,6 @@ const LoginBottomSheet = ({
             >
               <Ionicons name="close-outline" size={28} color={colors.primary} />
             </TouchableOpacity>
-          </View>
-        </TouchableWithoutFeedback>
-
-        <TouchableWithoutFeedback onPress={dismissKeyboard}>
-          <View>
-            {/* Mensagem de erro */}
-            {error ? (
-              <MotiView
-                from={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: "timing", duration: 300 }}
-                style={styles.errorContainer}
-              >
-                <Ionicons
-                  name="alert-circle"
-                  size={20}
-                  color="#FF3B30"
-                  style={{ marginRight: 8 }}
-                />
-                <Text style={styles.errorText}>{error}</Text>
-              </MotiView>
-            ) : null}
           </View>
         </TouchableWithoutFeedback>
 
@@ -709,19 +699,6 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 4,
-  },
-  errorContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 59, 48, 0.1)",
-    borderRadius: 12,
-    padding: 12,
-    marginHorizontal: 24,
-    marginBottom: 16,
-  },
-  errorText: {
-    color: "#FF3B30",
-    flex: 1,
   },
   scrollView: {
     flex: 1,
