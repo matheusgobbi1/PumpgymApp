@@ -334,6 +334,7 @@ const RecentExerciseItem = React.memo(
                 defaultValue: `${exerciseName} adicionado ao treino`,
               }),
               type: "success",
+              position: "bottom",
             });
           }}
         >
@@ -467,6 +468,7 @@ const SearchResultItem = React.memo(
                 defaultValue: `${exerciseName} adicionado ao treino`,
               }),
               type: "success",
+              position: "bottom",
             });
           }}
         >
@@ -639,6 +641,7 @@ export default function AddExerciseScreen() {
           defaultValue: `${exerciseName} adicionado ao treino`,
         }),
         type: "success",
+        position: "bottom",
       });
     },
     [workoutId, addExerciseToWorkout, t, showToast]

@@ -229,7 +229,7 @@ export default function TabLayout() {
             backgroundColor: colors.background,
           },
           headerTintColor: colors.text,
-          animation: "fade", // Usar animação fade para transições mais suaves
+          animation: "none", // Usar animação fade para transições mais suaves
         }}
       >
         <Tabs.Screen

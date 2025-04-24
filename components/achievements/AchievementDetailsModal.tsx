@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -37,7 +37,7 @@ interface AchievementDetailsModalProps {
   onClose: () => void;
 }
 
-export default function AchievementDetailsModal({
+function AchievementDetailsModal({
   visible,
   achievement,
   currentValue,
@@ -51,8 +51,17 @@ export default function AchievementDetailsModal({
   // Animação para brilho da borda
   const borderOpacity = useSharedValue(0.4);
 
-  React.useEffect(() => {
+  // Hooks para manipulação de dados
+  const handleClose = useCallback(() => {
+    requestAnimationFrame(() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    });
+    onClose();
+  }, [onClose]);
+
+  useEffect(() => {
     if (
+      visible &&
       isUnlocked &&
       achievement?.rarity &&
       ["epic", "legendary"].includes(achievement.rarity)
@@ -63,7 +72,7 @@ export default function AchievementDetailsModal({
         true // yoyo
       );
     }
-  }, [isUnlocked, achievement?.rarity]);
+  }, [visible, isUnlocked, achievement?.rarity, borderOpacity]);
 
   const animatedBorderStyle = useAnimatedStyle(() => {
     return {
@@ -75,11 +84,6 @@ export default function AchievementDetailsModal({
   if (!achievement) return null;
 
   const isSecret = achievement.hidden && !isUnlocked;
-
-  const handleClose = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onClose();
-  };
 
   // Obter o nome e descrição traduzidos da conquista
   const getAchievementName = () => {
@@ -107,66 +111,81 @@ export default function AchievementDetailsModal({
   const getRarityGradient = () => {
     if (!isUnlocked) return null;
 
-    // Ajustes nos gradientes para mais suavidade e presença
+    // Simplificando gradientes para melhorar o desempenho
     switch (achievement.rarity) {
       case "common":
         return (
-          <LinearGradient
-            colors={[
-              "transparent",
-              theme === "dark"
-                ? "rgba(200, 200, 200, 0.08)" // Ligeiramente mais visível
-                : "rgba(210, 210, 210, 0.5)", // Mais opaco no light
+          <View
+            style={[
+              styles.rarityGradientBackground,
+              {
+                backgroundColor:
+                  theme === "dark"
+                    ? "rgba(200, 200, 200, 0.08)"
+                    : "rgba(210, 210, 210, 0.5)",
+              },
             ]}
-            style={styles.rarityGradientBackground}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
           />
         );
       case "uncommon":
         return (
-          <LinearGradient
-            colors={[
-              "transparent",
-              theme === "dark"
-                ? "rgba(100, 185, 100, 0.12)" // Verde mais sutil
-                : "rgba(100, 185, 100, 0.35)",
+          <View
+            style={[
+              styles.rarityGradientBackground,
+              {
+                backgroundColor:
+                  theme === "dark"
+                    ? "rgba(100, 185, 100, 0.12)"
+                    : "rgba(100, 185, 100, 0.35)",
+              },
             ]}
-            style={styles.rarityGradientBackground}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
           />
         );
       case "rare":
         return (
-          <LinearGradient
-            colors={[
-              "transparent",
-              theme === "dark"
-                ? "rgba(83, 135, 223, 0.18)" // Azul mais presente
-                : "rgba(83, 135, 223, 0.4)",
+          <View
+            style={[
+              styles.rarityGradientBackground,
+              {
+                backgroundColor:
+                  theme === "dark"
+                    ? "rgba(83, 135, 223, 0.18)"
+                    : "rgba(83, 135, 223, 0.4)",
+              },
             ]}
-            style={styles.rarityGradientBackground}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
           />
         );
       case "epic":
         return (
-          <LinearGradient
-            colors={[
-              "transparent",
-              theme === "dark"
-                ? "rgba(167, 89, 216, 0.25)" // Roxo mais intenso
-                : "rgba(167, 89, 216, 0.45)",
+          <View
+            style={[
+              styles.rarityGradientBackground,
+              {
+                backgroundColor:
+                  theme === "dark"
+                    ? "rgba(167, 89, 216, 0.25)"
+                    : "rgba(167, 89, 216, 0.45)",
+              },
             ]}
-            style={styles.rarityGradientBackground}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
           />
         );
       case "legendary":
-        return null;
+        return (
+          <LinearGradient
+            colors={[
+              "#FFF5D4",
+              "#FADA80",
+              "#F6C644",
+              "#EAA827",
+              "#D9952C",
+              "#B17B1E",
+            ]}
+            start={{ x: 0, y: 0.4 }}
+            end={{ x: 1, y: 0.6 }}
+            locations={[0, 0.2, 0.4, 0.6, 0.8, 1]}
+            style={styles.rarityGradientBackground}
+          />
+        );
       default:
         return null;
     }
@@ -203,9 +222,10 @@ export default function AchievementDetailsModal({
 
       <View style={styles.modalContainer}>
         <MotiView
-          from={{ opacity: 0, scale: 0.9 }}
+          from={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: "timing", duration: 250 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ type: "timing", duration: 200 }}
           style={[
             styles.modalContent,
             {
@@ -227,45 +247,27 @@ export default function AchievementDetailsModal({
             },
           ]}
         >
-          {/* Gradiente de Barra de Ouro e Brilho (Apenas Lendário) */}
-          {isUnlocked && achievement.rarity === "legendary" && (
-            <>
-              <LinearGradient
-                colors={[
-                  "#FFF5D4",
-                  "#FADA80",
-                  "#F6C644",
-                  "#EAA827",
-                  "#D9952C",
-                  "#B17B1E",
-                ]}
-                start={{ x: 0, y: 0.4 }}
-                end={{ x: 1, y: 0.6 }}
-                locations={[0, 0.2, 0.4, 0.6, 0.8, 1]}
-                style={styles.rarityGradientBackground}
-              />
-              <MotiView
-                from={{ opacity: 0, translateX: -100 }}
-                animate={{
-                  opacity: [0, 0.7, 0],
-                  translateX: [width * -0.2, width * 1.1],
-                }}
-                transition={{
-                  type: "timing",
-                  duration: 2500,
-                  loop: true,
-                  repeatReverse: false,
-                  delay: 1000,
-                }}
-                style={styles.legendaryShimmer}
-              />
-            </>
-          )}
+          {/* Gradiente de fundo específico da raridade */}
+          {getRarityGradient()}
 
-          {/* Gradiente de fundo específico da raridade (outras raridades) */}
-          {isUnlocked &&
-            achievement.rarity !== "legendary" &&
-            getRarityGradient()}
+          {/* Efeito de brilho adicional apenas para o lendário */}
+          {isUnlocked && achievement.rarity === "legendary" && (
+            <MotiView
+              from={{ opacity: 0, translateX: -100 }}
+              animate={{
+                opacity: [0, 0.7, 0],
+                translateX: [width * -0.2, width * 1.1],
+              }}
+              transition={{
+                type: "timing",
+                duration: 2500,
+                loop: true,
+                repeatReverse: false,
+                delay: 1000,
+              }}
+              style={styles.legendaryShimmer}
+            />
+          )}
 
           {/* Efeito de brilho na borda para raridades épicas e legendárias */}
           {isUnlocked && ["epic", "legendary"].includes(achievement.rarity) && (
@@ -308,7 +310,7 @@ export default function AchievementDetailsModal({
               {/* Ícone da Conquista */}
               <View style={styles.badgeCenterContainer}>
                 <View style={styles.badgeWithEffectsContainer}>
-                  {isUnlocked && (
+                  {isUnlocked && achievement.rarity === "legendary" && (
                     <RarityEffects
                       rarity={achievement.rarity}
                       size={80}
@@ -324,7 +326,7 @@ export default function AchievementDetailsModal({
                     locked={!isUnlocked}
                     new={false}
                     showShadow={true}
-                    withPulse={isUnlocked && achievement.rarity === "legendary"}
+                    withPulse={false}
                   />
                 </View>
               </View>
@@ -335,7 +337,7 @@ export default function AchievementDetailsModal({
                   {/* Raridade */}
                   <View
                     style={[
-                      styles.rarityBadgeContainer, // Novo estilo
+                      styles.rarityBadgeContainer,
                       {
                         backgroundColor:
                           theme === "dark"
@@ -380,7 +382,7 @@ export default function AchievementDetailsModal({
                   {/* FitPoints */}
                   <View
                     style={[
-                      styles.fitPointsContainerRight, // Novo estilo para o container dos fitpoints
+                      styles.fitPointsContainerRight,
                       {
                         backgroundColor:
                           theme === "dark"
@@ -401,9 +403,9 @@ export default function AchievementDetailsModal({
                   >
                     <MaterialCommunityIcons
                       name="flare"
-                      size={20} // Ajustar tamanho se necessário
+                      size={20}
                       color={achievement.badgeColor}
-                      style={styles.fitPointsIconRight} // Novo estilo para o ícone de fitpoints
+                      style={styles.fitPointsIconRight}
                     />
                     <Text
                       style={[
@@ -426,7 +428,6 @@ export default function AchievementDetailsModal({
 
             {/* Título e Descrição abaixo */}
             <View style={styles.textContainerBottom}>
-              {/* Novo estilo */}
               <Text
                 style={[
                   styles.detailTitle,
@@ -475,9 +476,6 @@ export default function AchievementDetailsModal({
                       : {}
                     : {},
                 ]}
-                // numberOfLines={2} // Remover limite de linhas
-                adjustsFontSizeToFit={false} // Não ajustar mais
-                // minimumFontScale={0.8}
               >
                 {getAchievementName()}
               </Text>
@@ -491,7 +489,6 @@ export default function AchievementDetailsModal({
                         : colors.text + "CC",
                   },
                 ]}
-                // numberOfLines={3} // Remover limite de linhas
               >
                 {getAchievementDescription()}
               </Text>
@@ -516,10 +513,7 @@ export default function AchievementDetailsModal({
                 marginTop: 10,
               },
             ]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              handleClose();
-            }}
+            onPress={handleClose}
             activeOpacity={0.5}
             hitSlop={{ top: 10, left: 10, bottom: 10, right: 10 }}
           >
@@ -600,41 +594,36 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rightInfoContainer: {
-    // Novo container
     flex: 1,
-    justifyContent: "center", // Centralizar verticalmente
-    alignItems: "flex-start", // Alinhar itens à esquerda dentro deste container
-    gap: 10, // Espaço entre raridade e fitpoints
-    marginLeft: 10, // Espaço do ícone
+    justifyContent: "center",
+    alignItems: "flex-start",
+    gap: 10,
+    marginLeft: 10,
   },
   rarityBadgeContainer: {
-    // Novo estilo para o container da raridade
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
     borderWidth: 1,
-    alignSelf: "flex-start", // Para não ocupar toda a largura
+    alignSelf: "flex-start",
   },
   fitPointsContainerRight: {
-    // Novo estilo para o container dos fitpoints
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
     borderWidth: 1,
-    alignSelf: "flex-start", // Para não ocupar toda a largura
+    alignSelf: "flex-start",
   },
   fitPointsIconRight: {
-    // Novo estilo para o ícone de fitpoints
     marginRight: 4,
   },
   statusSectionTop: {
-    // Novo estilo para seção de status (se mantida)
     marginBottom: 15,
-    marginTop: 5, // Adiciona espaço acima
+    marginTop: 5,
   },
   statusSection: {
     marginBottom: 15,
@@ -643,15 +632,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 16,
     borderWidth: 1,
-    minWidth: 150, // Largura mínima para o status badge
-    alignSelf: "center", // Centralizar na horizontal
+    minWidth: 150,
+    alignSelf: "center",
   },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
     opacity: 0.9,
-    textAlign: "center", // Centralizar texto da descrição
-    paddingHorizontal: 5, // Adicionar padding lateral para não colar nas bordas
+    textAlign: "center",
+    paddingHorizontal: 5,
   },
   statusIcon: {
     marginRight: 6,
@@ -787,3 +776,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
   },
 });
+
+export default memo(AchievementDetailsModal);

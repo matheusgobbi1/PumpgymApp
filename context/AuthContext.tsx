@@ -35,6 +35,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getFirestore } from "firebase/firestore";
 import { KEYS } from "../constants/keys";
 import { FirebaseError } from "firebase/app";
+import NetInfo from "@react-native-community/netinfo";
 
 // Garantir que auth é do tipo FirebaseAuth
 const firebaseAuth: FirebaseAuth = auth;
@@ -155,6 +156,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setSessionRestoreAttempted(true);
       setAuthStateStable(false);
 
+      // Verificar conexão com a internet
+      const isOnline = await OfflineStorage.isOnline();
+
       // Verificar se já existe um usuário autenticado no Firebase
       if (auth.currentUser) {
         setUser(auth.currentUser);
@@ -169,6 +173,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (userData?.email && userData?.password) {
           try {
+            // Se estiver offline, considerar o usuário autenticado com os dados locais
+            if (!isOnline) {
+              // Definir o usuário baseado nos dados armazenados localmente
+              // Isso evita redirecionamento para a tela de login quando offline
+              setUser({
+                uid: userData.uid,
+                email: userData.email,
+                displayName: userData.displayName,
+                isAnonymous: userData.isAnonymous || false,
+                // Outras propriedades necessárias podem ser adicionadas aqui
+              } as FirebaseUser);
+              setIsAnonymous(userData.isAnonymous || false);
+              setIsNewUser(!userData.onboardingCompleted);
+              return true;
+            }
+
+            // Se estiver online, tenta autenticar no Firebase
             const userCredential = await signInWithEmailAndPassword(
               firebaseAuth,
               userData.email,
@@ -212,8 +233,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               return true;
             }
           } catch (error) {
-            // Erro ao restaurar sessão
-            // Remover dados inválidos
+            // Se o erro for devido à falta de conexão, usar os dados locais
+            if (!isOnline) {
+              // Definir o usuário baseado nos dados armazenados localmente
+              setUser({
+                uid: userData.uid,
+                email: userData.email,
+                displayName: userData.displayName,
+                isAnonymous: userData.isAnonymous || false,
+                // Outras propriedades necessárias podem ser adicionadas aqui
+              } as FirebaseUser);
+              setIsAnonymous(userData.isAnonymous || false);
+              setIsNewUser(!userData.onboardingCompleted);
+              return true;
+            }
+
+            // Se estiver online mas houve erro de autenticação, limpar dados inválidos
             await removeUserData();
             await removeAuthToken();
           }
@@ -235,11 +270,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     let authUnsubscribe: (() => void) | null = null;
+    let netInfoUnsubscribe: (() => void) | null = null;
 
     const initializeApp = async () => {
       try {
         setAuthStateStable(false);
         setNavigationAttempted(false);
+
+        // Configurar listener para conectividade de rede
+        netInfoUnsubscribe = NetInfo.addEventListener(async (state) => {
+          // Se reconectar à internet e não houver usuário, tentar restaurar sessão
+          if (state.isConnected && !user && authStateStable) {
+            try {
+              await restoreSession();
+            } catch (error) {
+              // Erro ao restaurar sessão após reconexão
+            }
+          }
+        });
 
         // Tentar restaurar a sessão primeiro
         try {
@@ -281,15 +329,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                     setIsAnonymous(false);
                     setIsNewUser(!onboardingCompleted);
                   } catch (error) {
-                    // Erro ao obter dados do usuário
+                    // Verificar se o erro é devido à falta de conexão
+                    const isOnline = await OfflineStorage.isOnline();
+                    if (!isOnline) {
+                      // Se offline, obter dados do armazenamento local
+                      try {
+                        const userData = await getUserData();
+                        if (userData && userData.uid === currentUser.uid) {
+                          setIsNewUser(!userData.onboardingCompleted);
+                        }
+                      } catch (localError) {
+                        // Erro ao obter dados locais
+                      }
+                    }
+
+                    // Definir usuário mesmo sem obter dados adicionais
                     setUser(currentUser);
                     setIsAnonymous(false);
                     setIsNewUser(true);
                   }
                 }
               } else {
-                setUser(null);
-                setIsAnonymous(false);
+                // Se não há usuário, verificar se temos dados locais
+                // e se estamos offline antes de limpar o estado
+                const isOnline = await OfflineStorage.isOnline();
+                const userData = await getUserData();
+
+                if (!isOnline && userData && userData.uid) {
+                  // Se offline e temos dados locais, criar um usuário baseado nesses dados
+                  setUser({
+                    uid: userData.uid,
+                    email: userData.email,
+                    displayName: userData.displayName,
+                    isAnonymous: userData.isAnonymous || false,
+                  } as FirebaseUser);
+                  setIsAnonymous(userData.isAnonymous || false);
+                  setIsNewUser(!userData.onboardingCompleted);
+                } else {
+                  setUser(null);
+                  setIsAnonymous(false);
+                }
               }
             } catch (error) {
               // Erro no listener de autenticação
@@ -326,6 +405,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       if (authUnsubscribe) {
         authUnsubscribe();
+      }
+      if (netInfoUnsubscribe) {
+        netInfoUnsubscribe();
       }
     };
   }, [restoreSession]);

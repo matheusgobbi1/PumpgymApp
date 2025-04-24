@@ -260,6 +260,10 @@ export default function NutritionScreen() {
     });
   }, [mealTypes, getFoodsForMeal]);
 
+  // Verificar se deve mostrar o estado vazio
+  const shouldShowEmptyState =
+    !hasMealTypesConfigured || configuredMealTypes.length === 0;
+
   // Memoizar o componente EmptyNutritionState para evitar re-renderizações desnecessárias
   const emptyStateComponent = useMemo(
     () => (
@@ -520,6 +524,7 @@ export default function NutritionScreen() {
             menuActions={menuActions}
             menuVisible={isMenuVisible}
             onFitLevelPress={() => router.push("/achievements-modal")}
+            showFitLevelBadge={!shouldShowEmptyState}
           />
         </View>
 

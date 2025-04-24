@@ -4,6 +4,7 @@ import * as Notifications from "expo-notifications";
 import { db } from "./config";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import Constants from "expo-constants";
 
 // Configuração das notificações para mostrar quando o app está em primeiro plano
 Notifications.setNotificationHandler({
@@ -14,9 +15,15 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Função para registrar o dispositivo para notificações push
+// Função auxiliar para aguardar um determinado período
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Função para registrar o dispositivo para notificações push com retry
 export async function registerForPushNotificationsAsync() {
   let token;
+  let retryCount = 0;
+  const maxRetries = 3; // Número máximo de tentativas
+  const initialDelay = 2000; // Tempo inicial em ms antes de tentar novamente
 
   if (Device.isDevice) {
     // Verificar permissões existentes
@@ -36,12 +43,60 @@ export async function registerForPushNotificationsAsync() {
       return null;
     }
 
-    // Obter o token de push do Expo
-    token = (
-      await Notifications.getExpoPushTokenAsync({
-        projectId: process.env.EXPO_PUBLIC_EXPO_PROJECT_ID,
-      })
-    ).data;
+    // Obter o projectId do app.json ou .env
+    const projectId =
+      Constants.expoConfig?.extra?.eas?.projectId ||
+      process.env.EXPO_PUBLIC_PROJECT_ID ||
+      process.env.EXPO_PUBLIC_EXPO_PROJECT_ID;
+
+    if (!projectId) {
+      console.warn(
+        "Nenhum projectId encontrado para notificações push. Verifique suas configurações."
+      );
+    }
+
+    // Tenta obter o token com retry
+    while (retryCount < maxRetries) {
+      try {
+        console.log(
+          `Tentativa ${retryCount + 1} de obter token de notificações push...`
+        );
+
+        // Timeout mais longo para a solicitação
+        const tokenResponse = await Promise.race([
+          Notifications.getExpoPushTokenAsync({
+            projectId,
+          }),
+          // Cancela se demorar mais de 15 segundos
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject(new Error("Timeout ao obter token de notificações")),
+              15000
+            )
+          ),
+        ]);
+
+        // Se chegou aqui, obteve o token com sucesso
+        token = (tokenResponse as any).data;
+        console.log("Token de notificação obtido com sucesso:", token);
+        break;
+      } catch (error) {
+        retryCount++;
+        console.warn(
+          `Erro ao obter token (tentativa ${retryCount}/${maxRetries}):`,
+          error
+        );
+
+        if (retryCount < maxRetries) {
+          // Espera um tempo antes de tentar novamente (com backoff exponencial)
+          const delay = initialDelay * Math.pow(2, retryCount - 1);
+          console.log(`Tentando novamente em ${delay / 1000} segundos...`);
+          await sleep(delay);
+        } else {
+          console.error("Todas as tentativas de obter token falharam");
+        }
+      }
+    }
   } else {
     console.log("É necessário um dispositivo físico para notificações push");
   }

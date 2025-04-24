@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -148,7 +148,18 @@ const Toast: React.FC<ToastProps> = ({
         : insets.bottom + 10,
   };
 
-  if (!visible && fadeAnim._value === 0) {
+  // Armazena o valor atual da animação em uma ref
+  const fadeValue = useRef(0);
+
+  // Adiciona um listener para obter o valor atual da animação
+  useEffect(() => {
+    const id = fadeAnim.addListener(({ value }) => {
+      fadeValue.current = value;
+    });
+    return () => fadeAnim.removeListener(id);
+  }, []);
+
+  if (!visible && fadeValue.current === 0) {
     return null;
   }
 

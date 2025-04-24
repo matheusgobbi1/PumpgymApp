@@ -22,6 +22,7 @@ interface HomeHeaderProps {
   showContextMenu?: boolean;
   menuActions?: MenuAction[];
   menuVisible?: boolean;
+  showFitLevelBadge?: boolean;
 }
 
 export default function HomeHeader({
@@ -34,6 +35,7 @@ export default function HomeHeader({
   showContextMenu = false,
   menuActions = [],
   menuVisible = true,
+  showFitLevelBadge = true,
 }: HomeHeaderProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
@@ -110,13 +112,15 @@ export default function HomeHeader({
         </View>
 
         <View style={styles.rightContainer}>
-          <View style={styles.fitLevelContainer}>
-            <FitLevelBadge
-              size="small"
-              showLevel={false}
-              onPress={onFitLevelPress}
-            />
-          </View>
+          {showFitLevelBadge && (
+            <View style={styles.fitLevelContainer}>
+              <FitLevelBadge
+                size="small"
+                showLevel={false}
+                onPress={onFitLevelPress}
+              />
+            </View>
+          )}
 
           {showContextMenu && (
             <View style={styles.menuContainer}>

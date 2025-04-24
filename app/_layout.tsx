@@ -396,9 +396,8 @@ function AppContent() {
             backgroundColor: "transparent",
           },
           // Configuração melhorada de animações
-          animation: "none",
-          animationDuration: 100,
-          presentation: "card",
+          animation: "simple_push",
+          animationDuration: 200,
         }}
       >
         <Stack.Screen name="index" />
@@ -406,7 +405,24 @@ function AppContent() {
         <Stack.Screen name="auth/register" />
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="(add-food)" />
+        <Stack.Screen
+          name="(add-food)"
+          options={{
+            animation: "slide_from_right",
+            animationDuration: 200,
+            presentation: "card",
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="(add-exercise)"
+          options={{
+            animation: "slide_from_right",
+            animationDuration: 200,
+            presentation: "card",
+            headerShown: false,
+          }}
+        />
         <Stack.Screen
           name="reminder-modal"
           options={{
@@ -460,7 +476,7 @@ function AppContent() {
           options={({ route }: { route: { params?: { mode?: string } } }) => ({
             presentation: route?.params?.mode === "edit" ? "card" : "modal",
             animation:
-              route?.params?.mode === "edit" ? "default" : "slide_from_bottom",
+              route?.params?.mode === "edit" ? "fade" : "slide_from_bottom",
             animationDuration: 200,
           })}
         />

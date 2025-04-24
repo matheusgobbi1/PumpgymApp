@@ -181,16 +181,20 @@ export default function AchievementsModal() {
     (achievement: Achievement) => {
       setSelectedAchievement(achievement);
       setDetailsModalVisible(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      // Reduz a intensidade do feedback tátil
+      requestAnimationFrame(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      });
 
       // Marcar como visualizada se foi desbloqueada recentemente
       if (
         isAchievementUnlocked(achievement.id) &&
         isRecentlyUnlocked(achievement.id)
       ) {
-        setTimeout(() => {
+        requestAnimationFrame(() => {
           markUnlockedAsViewed(achievement.id);
-        }, 300);
+        });
       }
     },
     [isAchievementUnlocked, isRecentlyUnlocked, markUnlockedAsViewed]
@@ -199,11 +203,13 @@ export default function AchievementsModal() {
   // Função para fechar o modal de detalhes
   const handleCloseDetails = useCallback(() => {
     setDetailsModalVisible(false);
-    setTimeout(() => setSelectedAchievement(null), 300);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Limpar o achievement após o fechamento do modal
+    setTimeout(() => {
+      setSelectedAchievement(null);
+    }, 200);
   }, []);
 
-  // Renderizar um item de conquista
+  // Renderizar um item de conquista com memoização para evitar re-renderizações
   const renderAchievementItem = useCallback(
     ({ item }: { item: Achievement }) => {
       const currentValue = getAchievementValue(item.id);
@@ -212,6 +218,7 @@ export default function AchievementsModal() {
 
       return (
         <AchievementCard
+          key={item.id}
           achievement={item}
           currentValue={currentValue}
           isUnlocked={isUnlocked}
@@ -228,28 +235,7 @@ export default function AchievementsModal() {
     ]
   );
 
-  // Modal de detalhes da conquista
-  const achievementDetailsModal = useMemo(() => {
-    if (!selectedAchievement) return null;
-
-    return (
-      <AchievementDetailsModal
-        visible={detailsModalVisible}
-        achievement={selectedAchievement}
-        currentValue={getAchievementValue(selectedAchievement.id)}
-        isUnlocked={isAchievementUnlocked(selectedAchievement.id)}
-        onClose={handleCloseDetails}
-      />
-    );
-  }, [
-    selectedAchievement,
-    detailsModalVisible,
-    getAchievementValue,
-    isAchievementUnlocked,
-    handleCloseDetails,
-  ]);
-
-  // Renderizar um chip de filtro de raridade
+  // Renderizar um chip de filtro de raridade com memoização
   const renderFilterChip = useCallback(
     (filter: Filter) => {
       const { value } = filter;
@@ -259,6 +245,7 @@ export default function AchievementsModal() {
 
       return (
         <TouchableOpacity
+          key={`filter-${value}`}
           onPress={() => handleRarityFilter(rarity)}
           activeOpacity={0.7}
           style={[
@@ -298,6 +285,11 @@ export default function AchievementsModal() {
     ]
   );
 
+  // Memorizar os chips de filtro para evitar re-renderização
+  const filterChips = useMemo(() => {
+    return rarityFilters.map(renderFilterChip);
+  }, [rarityFilters, renderFilterChip]);
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -330,27 +322,20 @@ export default function AchievementsModal() {
             { backgroundColor: colors.background },
           ]}
         >
-          <FlatList
+          <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            data={rarityFilters}
-            extraData={selectedRarityFilter}
-            initialNumToRender={rarityFilters.length}
-            renderItem={({ item }: { item: Filter }) => (
-              <View key={`${item.type}-${item.value}`}>
-                {renderFilterChip(item)}
-              </View>
-            )}
-            keyExtractor={(item) => `${item.type}-${item.value}`}
-            style={styles.filterList}
             contentContainerStyle={styles.filtersContent}
-          />
+          >
+            {filterChips}
+          </ScrollView>
         </View>
 
         {/* Lista de conquistas */}
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          removeClippedSubviews={true}
         >
           {/* Exibir as conquistas */}
           <View style={styles.contentInnerContainer}>
@@ -379,7 +364,21 @@ export default function AchievementsModal() {
         </ScrollView>
 
         {/* Modal de detalhes da conquista */}
-        {achievementDetailsModal}
+        <AchievementDetailsModal
+          visible={detailsModalVisible}
+          achievement={selectedAchievement}
+          currentValue={
+            selectedAchievement
+              ? getAchievementValue(selectedAchievement.id)
+              : 0
+          }
+          isUnlocked={
+            selectedAchievement
+              ? isAchievementUnlocked(selectedAchievement.id)
+              : false
+          }
+          onClose={handleCloseDetails}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -416,11 +415,9 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     zIndex: 99,
   },
-  filterList: {
-    flexGrow: 0,
-  },
   filtersContent: {
     paddingHorizontal: 18,
+    flexDirection: "row",
   },
   filterChip: {
     flexDirection: "row",

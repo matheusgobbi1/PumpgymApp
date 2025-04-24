@@ -7,6 +7,7 @@ interface ToastMessage {
   message: string;
   type: ToastType;
   duration?: number;
+  position?: "top" | "bottom";
 }
 
 interface ToastContextProps {
@@ -23,11 +24,18 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({
   const [message, setMessage] = useState("");
   const [type, setType] = useState<ToastType>("success");
   const [duration, setDuration] = useState(3000);
+  const [position, setPosition] = useState<"top" | "bottom">("bottom");
 
-  const showToast = ({ message, type, duration = 3000 }: ToastMessage) => {
+  const showToast = ({
+    message,
+    type,
+    duration = 3000,
+    position = "bottom",
+  }: ToastMessage) => {
     setMessage(message);
     setType(type);
     setDuration(duration);
+    setPosition(position);
     setVisible(true);
   };
 
@@ -43,6 +51,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({
         message={message}
         type={type}
         duration={duration}
+        position={position}
         onClose={hideToast}
       />
     </ToastContext.Provider>

@@ -157,6 +157,126 @@ const removeAccents = (text: string) => {
     .toLowerCase();
 };
 
+// Item de alimento recente
+const RecentFoodItem = React.memo(
+  ({
+    food,
+    index,
+    theme,
+    mealColor,
+    colors,
+    navigateToFoodDetails,
+    handleQuickAdd,
+    t,
+  }: {
+    food: any;
+    index: number;
+    theme: string;
+    mealColor: string;
+    colors: any;
+    navigateToFoodDetails: Function;
+    handleQuickAdd: Function;
+    t: Function;
+  }) => (
+    <MotiView
+      key={`recent_${food.id}_${index}_${theme}`}
+      from={{ opacity: 0, translateY: 10 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ delay: index * 50 }}
+    >
+      <TouchableOpacity
+        key={`recent-food-${food.id}-${theme}`}
+        style={[
+          styles.recentFoodItem,
+          {
+            backgroundColor: colors.light,
+            borderWidth: 1,
+            borderColor: colors.border,
+          },
+        ]}
+        onPress={() => navigateToFoodDetails(food)}
+      >
+        <View style={styles.recentFoodInfo}>
+          <Text style={[styles.recentFoodName, { color: colors.text }]}>
+            {food.name}
+          </Text>
+          <Text style={[styles.recentFoodMeta, { color: colors.text + "80" }]}>
+            {food.portionDescription
+              ? `${food.portionDescription} • ${food.calories} kcal`
+              : `${food.portion}g • ${food.calories} kcal`}
+          </Text>
+        </View>
+        <TouchableOpacity
+          key={`recent-add-button-${food.id}-${theme}`}
+          style={[styles.addButton, { backgroundColor: mealColor }]}
+          onPress={() => handleQuickAdd(food)}
+        >
+          <Ionicons name="add" size={20} color="#FFF" />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </MotiView>
+  )
+);
+
+// Item de resultado de busca
+const SearchResultItem = React.memo(
+  ({
+    result,
+    index,
+    theme,
+    mealColor,
+    colors,
+    handleFoodSelect,
+    handleQuickAddFromSearch,
+    getServingDescription,
+  }: {
+    result: FoodItem;
+    index: number;
+    theme: string;
+    mealColor: string;
+    colors: any;
+    handleFoodSelect: Function;
+    handleQuickAddFromSearch: Function;
+    getServingDescription: Function;
+  }) => (
+    <MotiView
+      key={`${result.food_id}_${index}_${theme}`}
+      from={{ opacity: 0, translateY: 20 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ delay: index * 100 }}
+    >
+      <TouchableOpacity
+        key={`food-item-${result.food_id}-${theme}`}
+        style={[
+          styles.foodItem,
+          {
+            backgroundColor: colors.light,
+            borderWidth: 1,
+            borderColor: colors.border,
+          },
+        ]}
+        onPress={() => handleFoodSelect(result)}
+      >
+        <View style={styles.foodInfo}>
+          <Text style={[styles.foodName, { color: colors.text }]}>
+            {result.food_name}
+          </Text>
+          <Text style={[styles.foodCategory, { color: colors.text + "80" }]}>
+            {getServingDescription(result)}
+          </Text>
+        </View>
+        <TouchableOpacity
+          key={`add-button-${result.food_id}-${theme}`}
+          style={[styles.addButton, { backgroundColor: mealColor }]}
+          onPress={() => handleQuickAddFromSearch(result)}
+        >
+          <Ionicons name="add" size={20} color="#FFF" />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </MotiView>
+  )
+);
+
 export default function AddFoodScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -308,6 +428,7 @@ export default function AddFoodScreen() {
           message: t("nutrition.addFood.searchError"),
           type: "error",
           duration: 4000,
+          position: "bottom",
         });
       }
     }, 300), // Reduzir o atraso do debounce de 500 para 300ms
@@ -351,6 +472,7 @@ export default function AddFoodScreen() {
       showToast({
         message: `${food.name} ${t("nutrition.addFood.addedToMeal")}`,
         type: "success",
+        position: "bottom",
       });
     },
     [mealId, addFoodToMeal, addToSearchHistory, showToast, t]
@@ -393,6 +515,7 @@ export default function AddFoodScreen() {
       showToast({
         message: `${food.food_name} ${t("nutrition.addFood.addedToMeal")}`,
         type: "success",
+        position: "bottom",
       });
     },
     [mealId, addFoodToMeal, addToSearchHistory, showToast, t]
@@ -561,7 +684,7 @@ export default function AddFoodScreen() {
     });
   };
 
-  const renderSearchResults = () => {
+  const renderSearchResults = useCallback(() => {
     if (error) {
       return (
         <View style={styles.centerContainer}>
@@ -579,14 +702,7 @@ export default function AddFoodScreen() {
             {t("nutrition.addFood.noFoodFound")}
           </Text>
           <TouchableOpacity
-            style={[
-              styles.addCustomButton,
-              {
-                backgroundColor: mealColor,
-                borderWidth: 1,
-                borderColor: mealColor,
-              },
-            ]}
+            style={[styles.addCustomButton, { backgroundColor: mealColor }]}
             onPress={() => {
               router.push({
                 pathname: "/(add-food)/quick-add",
@@ -616,46 +732,33 @@ export default function AddFoodScreen() {
       }
 
       return (
-        <MotiView
-          key={`${result.food_id}_${index}_${theme}`}
-          from={{ opacity: 0, translateY: 20 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ delay: index * 50 }}
-        >
-          <TouchableOpacity
-            key={`food-item-${result.food_id}-${theme}`}
-            style={[
-              styles.foodItem,
-              {
-                backgroundColor: colors.light,
-                borderWidth: 1,
-                borderColor: colors.border,
-              },
-            ]}
-            onPress={() => handleFoodSelect(result)}
-          >
-            <View style={styles.foodInfo}>
-              <Text style={[styles.foodName, { color: colors.text }]}>
-                {result.food_name}
-              </Text>
-              <Text
-                style={[styles.foodCategory, { color: colors.text + "80" }]}
-              >
-                {getServingDescription(result)}
-              </Text>
-            </View>
-            <TouchableOpacity
-              key={`add-button-${result.food_id}-${theme}`}
-              style={[styles.addButton, { backgroundColor: mealColor }]}
-              onPress={() => handleQuickAddFromSearch(result)}
-            >
-              <Ionicons name="add" size={20} color="#FFF" />
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </MotiView>
+        <SearchResultItem
+          key={`search-result-${result.food_id}-${index}`}
+          result={result}
+          index={index}
+          theme={theme}
+          mealColor={mealColor}
+          colors={colors}
+          handleFoodSelect={handleFoodSelect}
+          handleQuickAddFromSearch={handleQuickAddFromSearch}
+          getServingDescription={getServingDescription}
+        />
       );
     });
-  };
+  }, [
+    searchResults,
+    searchQuery,
+    error,
+    colors,
+    theme,
+    mealColor,
+    t,
+    router,
+    mealId,
+    handleFoodSelect,
+    handleQuickAddFromSearch,
+    getServingDescription,
+  ]);
 
   return (
     <SafeAreaView
@@ -768,50 +871,17 @@ export default function AddFoodScreen() {
             </View>
 
             {searchHistory.map((food, index) => (
-              <MotiView
-                key={`recent_${food.id}_${index}_${theme}`}
-                from={{ opacity: 0, translateY: 10 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                transition={{ delay: index * 50 }}
-              >
-                <TouchableOpacity
-                  key={`recent-food-${food.id}-${theme}`}
-                  style={[
-                    styles.recentFoodItem,
-                    {
-                      backgroundColor: colors.light,
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                  onPress={() => navigateToFoodDetails(food)}
-                >
-                  <View style={styles.recentFoodInfo}>
-                    <Text
-                      style={[styles.recentFoodName, { color: colors.text }]}
-                    >
-                      {food.name}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.recentFoodMeta,
-                        { color: colors.text + "80" },
-                      ]}
-                    >
-                      {food.portionDescription
-                        ? `${food.portionDescription} • ${food.calories} kcal`
-                        : `${food.portion}g • ${food.calories} kcal`}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    key={`recent-add-button-${food.id}-${theme}`}
-                    style={[styles.addButton, { backgroundColor: mealColor }]}
-                    onPress={() => handleQuickAdd(food)}
-                  >
-                    <Ionicons name="add" size={20} color="#FFF" />
-                  </TouchableOpacity>
-                </TouchableOpacity>
-              </MotiView>
+              <RecentFoodItem
+                key={`recent-food-item-${food.id}-${index}`}
+                food={food}
+                index={index}
+                theme={theme}
+                mealColor={mealColor}
+                colors={colors}
+                navigateToFoodDetails={navigateToFoodDetails}
+                handleQuickAdd={handleQuickAdd}
+                t={t}
+              />
             ))}
           </View>
         )}
@@ -852,7 +922,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     margin: 20,
-    marginBottom: 10,
+    marginBottom: 12,
     paddingHorizontal: 16,
     height: 50,
     borderRadius: 20,
@@ -892,10 +962,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   centerContainer: {
-    flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingTop: 40,
+    paddingBottom: 20,
   },
   errorText: {
     fontSize: 16,
@@ -904,13 +974,14 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     textAlign: "center",
+    marginBottom: 16,
   },
   foodItem: {
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
     borderRadius: 16,
-    marginBottom: 12,
+    marginVertical: 6,
     borderWidth: 1,
     borderColor: "#DADADA",
   },
@@ -944,6 +1015,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
+    marginBottom: 12,
   },
   recentHistorySection: {
     marginBottom: 20,
@@ -995,8 +1067,7 @@ const styles = StyleSheet.create({
   // Estilos para o filtro de categoria
   filterWrapper: {
     height: 32,
-    marginBottom: 20,
-    marginTop: 0,
+    marginBottom: 12,
   },
   categoryFilterContainer: {
     paddingHorizontal: 20,
@@ -1006,7 +1077,7 @@ const styles = StyleSheet.create({
   },
   categoryFilterItem: {
     paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 20,
     marginRight: 8,
     height: 32,
@@ -1019,29 +1090,14 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     lineHeight: 16,
   },
-  comingSoonOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  comingSoonText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
   addCustomButton: {
-    padding: 16,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
   },
   addCustomButtonText: {
+    color: "white",
+    fontWeight: "600",
     fontSize: 14,
-    fontWeight: "500",
   },
 });

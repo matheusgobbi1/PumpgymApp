@@ -32,7 +32,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../../context/AuthContext";
 import ConfirmationModal from "../ui/ConfirmationModal";
 import { useTranslation } from "react-i18next";
-import Animated, { FadeInDown } from "react-native-reanimated";
 import { useDateLocale } from "../../hooks/useDateLocale";
 
 const { width } = Dimensions.get("window");
@@ -181,7 +180,9 @@ export default function WorkoutCard({
 
   // Função para lidar com o feedback tátil
   const handleHapticFeedback = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    requestAnimationFrame(() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    });
   }, []);
 
   // Função para alternar o estado de expansão de um exercício
@@ -247,7 +248,9 @@ export default function WorkoutCard({
 
   // Função para abrir o modal de progressão
   const openProgressionModal = useCallback(() => {
-    handleHapticFeedback();
+    requestAnimationFrame(() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    });
 
     // Verificar se existe um treino anterior
     const mostRecentDate = getMostRecentWorkoutDate();
@@ -266,7 +269,13 @@ export default function WorkoutCard({
       // Se não houver treino anterior, mostrar feedback de erro
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
-  }, [getMostRecentWorkoutDate, handleHapticFeedback, router, workout]);
+  }, [
+    getMostRecentWorkoutDate,
+    router,
+    workout.id,
+    workout.name,
+    workout.color,
+  ]);
 
   // Função para copiar treino de uma data anterior
   const handleCopyWorkout = useCallback(async () => {
@@ -439,14 +448,7 @@ export default function WorkoutCard({
             }
           }}
         >
-          <Animated.View
-            entering={FadeInDown.delay(exerciseIndex * 100)
-              .duration(400)
-              .springify()
-              .withInitialValues({
-                opacity: 0,
-                transform: [{ translateY: 10 }],
-              })}
+          <View
             style={[
               styles.exerciseItemContainer,
               { backgroundColor: colors.light },
@@ -731,7 +733,7 @@ export default function WorkoutCard({
                   )}
                 </View>
               )}
-          </Animated.View>
+          </View>
         </Swipeable>
       ),
     [
@@ -762,7 +764,12 @@ export default function WorkoutCard({
                   backgroundColor: workout.color + "10",
                 },
               ]}
-              onPress={openCopyModal}
+              onPress={() => {
+                requestAnimationFrame(() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  openCopyModal();
+                });
+              }}
             >
               <Ionicons name="copy-outline" size={20} color={workout.color} />
             </TouchableOpacity>
@@ -778,7 +785,12 @@ export default function WorkoutCard({
                   backgroundColor: workout.color + "10",
                 },
               ]}
-              onPress={openProgressionModal}
+              onPress={() => {
+                requestAnimationFrame(() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  openProgressionModal();
+                });
+              }}
             >
               <Ionicons
                 name="trending-up-outline"
@@ -799,14 +811,16 @@ export default function WorkoutCard({
             ]}
             onPress={(e) => {
               e.stopPropagation();
-              handleHapticFeedback();
-              router.push({
-                pathname: "/(add-exercise)",
-                params: {
-                  workoutId: workout.id,
-                  workoutName: workout.name,
-                  workoutColor: workout.color,
-                },
+              requestAnimationFrame(() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push({
+                  pathname: "/(add-exercise)",
+                  params: {
+                    workoutId: workout.id,
+                    workoutName: workout.name,
+                    workoutColor: workout.color,
+                  },
+                });
               });
             }}
           >
@@ -822,7 +836,6 @@ export default function WorkoutCard({
       workout.id,
       workout.name,
       router,
-      handleHapticFeedback,
     ]
   );
 

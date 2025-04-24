@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import AchievementBadge from "./AchievementBadge";
 import { Achievement } from "../../constants/achievementsDatabase";
-import { LinearGradient } from "expo-linear-gradient";
 import RarityEffects from "./RarityEffects";
 import { useTranslation } from "react-i18next";
 import { useAchievements } from "../../context/AchievementContext";
@@ -39,10 +38,13 @@ const AchievementCard: React.FC<AchievementCardProps> = ({
   const { markUnlockedAsViewed } = useAchievements();
 
   // Se a conquista é secreta e não está desbloqueada, mostrar uma versão oculta
-  const isSecret = achievement.hidden && !isUnlocked;
+  const isSecret = useMemo(
+    () => achievement.hidden && !isUnlocked,
+    [achievement.hidden, isUnlocked]
+  );
 
-  // Definição de estilos por raridade
-  const getRarityStyles = () => {
+  // Definição de estilos por raridade - useMemo para evitar recálculos
+  const rarityStyles = useMemo(() => {
     if (!isUnlocked) return {};
 
     switch (achievement.rarity) {
@@ -75,29 +77,63 @@ const AchievementCard: React.FC<AchievementCardProps> = ({
       default:
         return {};
     }
-  };
+  }, [achievement.rarity, isUnlocked]);
 
-  const rarityStyles = getRarityStyles();
-
-  // Obter o nome traduzido da conquista
-  const getAchievementName = () => {
+  // Obter o nome traduzido da conquista - memorizado para evitar traduções repetidas
+  const achievementName = useMemo(() => {
     if (isSecret) return "???";
     return t(
       `achievements.database.achievements.${achievement.id}.name`,
       achievement.name
     );
-  };
+  }, [isSecret, achievement.id, achievement.name, t]);
 
   // Função para lidar com o clique na conquista
   const handlePress = useCallback(() => {
-    // Se for uma conquista nova e desbloqueada, marcá-la como visualizada
     if (isNew && isUnlocked) {
-      markUnlockedAsViewed(achievement.id);
+      requestAnimationFrame(() => {
+        markUnlockedAsViewed(achievement.id);
+      });
     }
 
-    // Chamar o manipulador de clique passado como propriedade
     onPress(achievement);
   }, [achievement, isNew, isUnlocked, markUnlockedAsViewed, onPress]);
+
+  // Memoizando a decisão do ícone e cor para evitar cálculos na renderização
+  const { iconName, iconColor } = useMemo(
+    () => ({
+      iconName: isUnlocked ? achievement.icon : "help-circle",
+      iconColor: isUnlocked ? achievement.badgeColor : "#999999",
+    }),
+    [isUnlocked, achievement.icon, achievement.badgeColor]
+  );
+
+  // Memoização dos estilos do título
+  const titleStyle = useMemo(
+    () => [
+      styles.badgeTitle,
+      { color: colors.text },
+      isSecret && styles.secretText,
+      isUnlocked && rarityStyles.titleStyle,
+      isNew && styles.newTitle,
+    ],
+    [colors.text, isSecret, isUnlocked, rarityStyles.titleStyle, isNew]
+  );
+
+  // Memoização dos estilos do wrapper do badge
+  const badgeWrapperStyle = useMemo(
+    () => [
+      styles.badgeWrapper,
+      isNew && styles.newAchievementBadge,
+      rarityStyles.badgeWrapper,
+    ],
+    [isNew, rarityStyles.badgeWrapper]
+  );
+
+  // Otimização: Mostrar efeitos apenas para conquistas lendárias ou épicas desbloqueadas
+  const showRarityEffects =
+    isUnlocked &&
+    (achievement.rarity === "legendary" || achievement.rarity === "epic");
 
   return (
     <TouchableOpacity
@@ -105,23 +141,19 @@ const AchievementCard: React.FC<AchievementCardProps> = ({
       onPress={handlePress}
       activeOpacity={0.7}
     >
-      <View
-        style={[
-          styles.badgeWrapper,
-          isNew && styles.newAchievementBadge,
-          rarityStyles.badgeWrapper,
-        ]}
-      >
-        {/* Efeitos visuais baseados na raridade */}
-        <RarityEffects
-          rarity={achievement.rarity}
-          size={BADGE_SIZE - 5}
-          isUnlocked={isUnlocked}
-        />
+      <View style={badgeWrapperStyle}>
+        {/* Efeitos visuais apenas para raridades altas */}
+        {showRarityEffects && (
+          <RarityEffects
+            rarity={achievement.rarity}
+            size={BADGE_SIZE - 5}
+            isUnlocked={isUnlocked}
+          />
+        )}
 
         <AchievementBadge
-          icon={(isUnlocked ? achievement.icon : "help-circle") as any}
-          color={isUnlocked ? achievement.badgeColor : "#999999"}
+          icon={iconName as any}
+          color={iconColor}
           size="medium"
           locked={!isUnlocked}
           new={isNew}
@@ -130,18 +162,8 @@ const AchievementCard: React.FC<AchievementCardProps> = ({
         />
       </View>
 
-      <Text
-        style={[
-          styles.badgeTitle,
-          { color: colors.text },
-          isSecret && styles.secretText,
-          isUnlocked && rarityStyles.titleStyle,
-          isNew && styles.newTitle,
-        ]}
-        numberOfLines={2}
-        ellipsizeMode="tail"
-      >
-        {getAchievementName()}
+      <Text style={titleStyle} numberOfLines={2} ellipsizeMode="tail">
+        {achievementName}
       </Text>
     </TouchableOpacity>
   );

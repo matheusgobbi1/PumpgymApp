@@ -191,6 +191,15 @@ export default function TrainingScreen() {
     workouts,
   } = useWorkoutContext();
 
+  // Verificar se há treinos configurados para a data selecionada
+  const hasWorkoutsForSelectedDate = useMemo(
+    () => Object.keys(workoutsForSelectedDate).length > 0,
+    [workoutsForSelectedDate]
+  );
+
+  // Variável para determinar se deve mostrar o estado vazio
+  const shouldShowEmptyState = !hasWorkoutsForSelectedDate;
+
   // Carregar a UI após a renderização inicial
   useEffect(() => {
     // Se já estiver pronto, não precisamos fazer nada
@@ -219,12 +228,6 @@ export default function TrainingScreen() {
 
   // Referência para armazenar contagens anteriores de exercícios
   const prevExercisesCountRef = useRef<{ [key: string]: number }>({});
-
-  // Verificar se há treinos configurados para a data selecionada
-  const hasWorkoutsForSelectedDate = useMemo(
-    () => Object.keys(workoutsForSelectedDate).length > 0,
-    [workoutsForSelectedDate]
-  );
 
   // Detectar quando o usuário completa um treino (adicionando exercícios)
   const checkForCompletedWorkout = useCallback(
@@ -604,8 +607,6 @@ export default function TrainingScreen() {
       );
     }
 
-    const shouldShowEmptyState = !hasWorkoutsForSelectedDate;
-
     return (
       // Container relativo principal para conteúdo (ScrollView + elementos absolutos)
       <View style={styles.contentWrapper}>
@@ -644,6 +645,7 @@ export default function TrainingScreen() {
             menuActions={menuActions}
             menuVisible={isMenuVisible}
             onFitLevelPress={() => router.push("/achievements-modal")}
+            showFitLevelBadge={!shouldShowEmptyState}
           />
         </View>
 

@@ -21,7 +21,6 @@ import Colors from "../../constants/Colors";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import { useNutrition } from "../../context/NutritionContext";
-import Animated, { FadeInDown } from "react-native-reanimated";
 
 interface MealCardProps {
   meal: {
@@ -141,7 +140,10 @@ const MealCardComponent = ({
   }, [getPreviousDatesWithMeal]);
 
   const handleHapticFeedback = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Usar requestAnimationFrame para desacoplar do thread principal
+    requestAnimationFrame(() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    });
   }, []);
 
   // Função para navegar para a tela de detalhes do alimento para edição
@@ -320,14 +322,7 @@ const MealCardComponent = ({
           }
         }}
       >
-        <Animated.View
-          entering={FadeInDown.delay(foodIndex * 100)
-            .duration(400)
-            .springify()
-            .withInitialValues({
-              opacity: 0,
-              transform: [{ translateY: 10 }],
-            })}
+        <View
           style={[
             styles.foodItemContainer,
             { backgroundColor: colors.light },
@@ -382,7 +377,7 @@ const MealCardComponent = ({
               </Text>
             </View>
           </View>
-        </Animated.View>
+        </View>
       </Swipeable>
     ),
     [
@@ -534,6 +529,7 @@ const MealCardComponent = ({
                   </View>
                 </View>
                 <View style={styles.actionButtonsContainer}>
+                  {/* Botão de cópia */}
                   {getMostRecentMealDate() && showCopyOption && (
                     <TouchableOpacity
                       style={[
@@ -543,7 +539,14 @@ const MealCardComponent = ({
                           backgroundColor: meal.color + "10",
                         },
                       ]}
-                      onPress={openCopyModal}
+                      onPress={() => {
+                        requestAnimationFrame(() => {
+                          Haptics.impactAsync(
+                            Haptics.ImpactFeedbackStyle.Light
+                          );
+                          openCopyModal();
+                        });
+                      }}
                     >
                       <Ionicons
                         name="copy-outline"
@@ -563,14 +566,16 @@ const MealCardComponent = ({
                       },
                     ]}
                     onPress={() => {
-                      handleHapticFeedback();
-                      router.push({
-                        pathname: "/nutrition-recommendation-modal",
-                        params: {
-                          mealId: meal.id,
-                          mealName: meal.name,
-                          mealColor: meal.color,
-                        },
+                      requestAnimationFrame(() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        router.push({
+                          pathname: "/nutrition-recommendation-modal",
+                          params: {
+                            mealId: meal.id,
+                            mealName: meal.name,
+                            mealColor: meal.color,
+                          },
+                        });
                       });
                     }}
                   >
@@ -589,7 +594,20 @@ const MealCardComponent = ({
                         backgroundColor: meal.color + "10",
                       },
                     ]}
-                    onPress={handleAddFood}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      requestAnimationFrame(() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        router.push({
+                          pathname: "/(add-food)",
+                          params: {
+                            mealId: meal.id,
+                            mealName: meal.name,
+                            mealColor: meal.color,
+                          },
+                        });
+                      });
+                    }}
                   >
                     <Ionicons name="add" size={20} color={meal.color} />
                   </TouchableOpacity>
@@ -605,8 +623,7 @@ const MealCardComponent = ({
                   )}
                 </View>
               ) : (
-                <Animated.View
-                  entering={FadeInDown.duration(400).springify()}
+                <View
                   key={`empty-container-${meal.id}`}
                   style={styles.emptyContainer}
                 >
@@ -626,13 +643,12 @@ const MealCardComponent = ({
                       {t("nutrition.addFirstFood")}
                     </Text>
                   </LinearGradient>
-                </Animated.View>
+                </View>
               )}
 
               {/* Mensagem de sucesso após copiar refeição */}
               {showCopySuccess && (
-                <Animated.View
-                  entering={FadeInDown.duration(300).springify()}
+                <View
                   style={[
                     styles.successMessage,
                     { backgroundColor: meal.color + "20" },
@@ -648,7 +664,7 @@ const MealCardComponent = ({
                   >
                     {t("nutrition.mealCopiedSuccess")}
                   </Text>
-                </Animated.View>
+                </View>
               )}
             </View>
           </View>

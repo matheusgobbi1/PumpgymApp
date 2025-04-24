@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo, memo } from "react";
 import {
   View,
   Text,
@@ -13,10 +13,8 @@ import { useAchievements } from "../../context/AchievementContext";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import AchievementBadge from "./AchievementBadge";
-import { LinearGradient } from "expo-linear-gradient";
-import Animated, { FadeInDown } from "react-native-reanimated";
-import * as Haptics from "expo-haptics";
 import AchievementDetailsModal from "./AchievementDetailsModal";
+import * as Haptics from "expo-haptics";
 import { Achievement } from "../../constants/achievementsDatabase";
 
 const { width } = Dimensions.get("window");
@@ -31,6 +29,33 @@ interface AchievementItem {
   isNew?: boolean;
   locked?: boolean;
 }
+
+const StatCard = memo(
+  ({ icon, iconColor, label, value, delay, bgColor }: any) => (
+    <View
+      style={[
+        styles.statCard,
+        {
+          backgroundColor: bgColor,
+          borderColor: bgColor,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.statIconContainer,
+          { backgroundColor: iconColor + "15" },
+        ]}
+      >
+        <MaterialCommunityIcons name={icon} size={20} color={iconColor} />
+      </View>
+      <View style={styles.statTextContainer}>
+        <Text style={[styles.statLabel, { color: "#FFFFFF70" }]}>{label}</Text>
+        <Text style={[styles.statValue, { color: "#FFFFFF" }]}>{value}</Text>
+      </View>
+    </View>
+  )
+);
 
 const AchievementsCard: React.FC<AchievementsCardProps> = ({ onPress }) => {
   const { theme } = useTheme();
@@ -50,7 +75,7 @@ const AchievementsCard: React.FC<AchievementsCardProps> = ({ onPress }) => {
     useState<Achievement | null>(null);
 
   // Buscar conquistas recentes não visualizadas
-  const newAchievements = React.useMemo(() => {
+  const newAchievements = useMemo(() => {
     return recentlyUnlocked
       .filter((item) => !item.viewed)
       .map((item) => {
@@ -64,7 +89,7 @@ const AchievementsCard: React.FC<AchievementsCardProps> = ({ onPress }) => {
   }, [recentlyUnlocked, achievements]);
 
   // Obter as conquistas mais interessantes para mostrar
-  const featuredAchievements = React.useMemo(() => {
+  const featuredAchievements = useMemo(() => {
     // Se houver conquistas novas, mostrar elas primeiro
     if (newAchievements.length > 0) {
       return newAchievements.slice(0, 3);
@@ -165,16 +190,18 @@ const AchievementsCard: React.FC<AchievementsCardProps> = ({ onPress }) => {
   ]);
 
   // Função para alternar entre expandido e recolhido
-  const toggleExpand = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const toggleExpand = useCallback(() => {
+    requestAnimationFrame(() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    });
     setIsExpanded(!isExpanded);
-  };
+  }, [isExpanded]);
 
   // Função para abrir informações
   const openInfo = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Aqui você poderia implementar um modal de informações similar ao NutritionProgressChart
-    // Por enquanto, apenas usando o onPress padrão
+    requestAnimationFrame(() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    });
     onPress();
   }, [onPress]);
 
@@ -182,16 +209,20 @@ const AchievementsCard: React.FC<AchievementsCardProps> = ({ onPress }) => {
   const handleAchievementPress = useCallback(
     (achievement: Achievement | undefined) => {
       if (achievement) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setSelectedAchievement(achievement);
         setIsModalVisible(true);
-        // Opcional: Marcar como vista se for nova ao ser aberta aqui
-        if (
-          isRecentlyUnlocked(achievement.id) &&
-          !recentlyUnlocked.find((a) => a.id === achievement.id)?.viewed
-        ) {
-          markUnlockedAsViewed(achievement.id);
-        }
+
+        requestAnimationFrame(() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+          // Marcar como vista se for nova
+          if (
+            isRecentlyUnlocked(achievement.id) &&
+            !recentlyUnlocked.find((a) => a.id === achievement.id)?.viewed
+          ) {
+            markUnlockedAsViewed(achievement.id);
+          }
+        });
       }
     },
     [isRecentlyUnlocked, markUnlockedAsViewed, recentlyUnlocked]
@@ -200,13 +231,66 @@ const AchievementsCard: React.FC<AchievementsCardProps> = ({ onPress }) => {
   // Função para fechar o modal
   const handleCloseModal = useCallback(() => {
     setIsModalVisible(false);
-    // Pequeno delay para a animação de saída antes de limpar
-    setTimeout(() => {
-      setSelectedAchievement(null);
-    }, 300); // Ajuste o tempo se necessário
   }, []);
 
   const hasAchievements = stats.unlockedAchievements > 0;
+
+  // Memorizando as estatísticas para evitar re-renderizações
+  const statsCards = useMemo(() => {
+    if (!isExpanded) return null;
+
+    return (
+      <View style={styles.statsGrid}>
+        {/* Linha 1 */}
+        <View style={styles.statsRow}>
+          {/* FitPoints */}
+          <StatCard
+            icon="flare"
+            iconColor={stats.currentFitLevel.color}
+            label={t("achievements.fitPoints")}
+            value={stats.totalFitPoints}
+            delay={0}
+            bgColor={colors.card}
+          />
+
+          {/* Conquistas */}
+          <StatCard
+            icon="trophy-outline"
+            iconColor="#FFD700"
+            label={t("achievements.title")}
+            value={`${stats.unlockedAchievements}/${stats.totalAchievements}`}
+            delay={1}
+            bgColor={colors.card}
+          />
+        </View>
+
+        {/* Linha 2 */}
+        <View style={styles.statsRow}>
+          {/* Progresso */}
+          <StatCard
+            icon="percent"
+            iconColor="#4169E1"
+            label={t("achievements.stats.completion")}
+            value={`${stats.completionPercentage}%`}
+            delay={2}
+            bgColor={colors.card}
+          />
+
+          {/* Sequência */}
+          <StatCard
+            icon="fire"
+            iconColor="#FF6B6B"
+            label={t("achievements.stats.streak", "Sequência")}
+            value={`${stats.currentStreak || 0} ${
+              stats.currentStreak === 1 ? "dia" : "dias"
+            }`}
+            delay={3}
+            bgColor={colors.card}
+          />
+        </View>
+      </View>
+    );
+  }, [isExpanded, stats, t, colors.card]);
 
   return (
     <>
@@ -319,181 +403,17 @@ const AchievementsCard: React.FC<AchievementsCardProps> = ({ onPress }) => {
         </Pressable>
 
         {/* Conteúdo expandido */}
-        {isExpanded && (
-          <View style={styles.expandedContent}>
-            <View style={styles.statsGrid}>
-              {/* Linha 1 */}
-              <View style={styles.statsRow}>
-                {/* FitPoints */}
-                <Animated.View
-                  entering={FadeInDown.delay(0 * 100).duration(300)}
-                  style={[
-                    styles.statCard,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.statIconContainer,
-                      { backgroundColor: stats.currentFitLevel.color + "15" },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name="flare"
-                      size={20}
-                      color={stats.currentFitLevel.color}
-                    />
-                  </View>
-                  {/* Novo container para Label e Value */}
-                  <View style={styles.statTextContainer}>
-                    <Text
-                      style={[styles.statLabel, { color: colors.text + "70" }]}
-                    >
-                      {t("achievements.fitPoints")}
-                    </Text>
-                    <Text style={[styles.statValue, { color: colors.text }]}>
-                      {stats.totalFitPoints}
-                    </Text>
-                  </View>
-                </Animated.View>
-
-                {/* Conquistas */}
-                <Animated.View
-                  entering={FadeInDown.delay(1 * 100).duration(300)}
-                  style={[
-                    styles.statCard,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.statIconContainer,
-                      { backgroundColor: "#FFD700" + "15" },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name="trophy-outline"
-                      size={20}
-                      color="#FFD700"
-                    />
-                  </View>
-                  {/* Novo container para Label e Value */}
-                  <View style={styles.statTextContainer}>
-                    <Text
-                      style={[styles.statLabel, { color: colors.text + "70" }]}
-                    >
-                      {t("achievements.title")}
-                    </Text>
-                    <Text style={[styles.statValue, { color: colors.text }]}>
-                      {stats.unlockedAchievements}/{stats.totalAchievements}
-                    </Text>
-                  </View>
-                </Animated.View>
-              </View>
-
-              {/* Linha 2 */}
-              <View style={styles.statsRow}>
-                {/* Progresso */}
-                <Animated.View
-                  entering={FadeInDown.delay(2 * 100).duration(300)}
-                  style={[
-                    styles.statCard,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.statIconContainer,
-                      { backgroundColor: "#4169E1" + "15" },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name="percent"
-                      size={20}
-                      color="#4169E1"
-                    />
-                  </View>
-                  {/* Novo container para Label e Value */}
-                  <View style={styles.statTextContainer}>
-                    <Text
-                      style={[styles.statLabel, { color: colors.text + "70" }]}
-                    >
-                      {t("achievements.stats.completion")}
-                    </Text>
-                    <Text style={[styles.statValue, { color: colors.text }]}>
-                      {stats.completionPercentage}%
-                    </Text>
-                  </View>
-                </Animated.View>
-
-                {/* Sequência (NOVO) */}
-                <Animated.View
-                  entering={FadeInDown.delay(3 * 100).duration(300)}
-                  style={[
-                    styles.statCard,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.statIconContainer,
-                      { backgroundColor: "#FF6B6B" + "15" }, // Cor de fogo com opacidade
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name="fire"
-                      size={20}
-                      color="#FF6B6B" // Cor de fogo
-                    />
-                  </View>
-                  <View style={styles.statTextContainer}>
-                    <Text
-                      style={[styles.statLabel, { color: colors.text + "70" }]}
-                    >
-                      {t("achievements.stats.streak", "Sequência")}
-                    </Text>
-                    <Text style={[styles.statValue, { color: colors.text }]}>
-                      {stats.currentStreak || 0}
-                      <Text
-                        style={[
-                          styles.statLabel,
-                          { color: colors.text + "70" },
-                        ]}
-                      >
-                        {" "}
-                        {stats.currentStreak === 1 ? "dia" : "dias"}
-                      </Text>
-                    </Text>
-                  </View>
-                </Animated.View>
-              </View>
-            </View>
-          </View>
-        )}
+        {isExpanded && <View style={styles.expandedContent}>{statsCards}</View>}
       </View>
 
       {/* Renderizar o Modal aqui */}
-      {selectedAchievement && (
-        <AchievementDetailsModal
-          visible={isModalVisible}
-          achievement={selectedAchievement}
-          currentValue={selectedAchievement.threshold ?? 0}
-          isUnlocked={true}
-          onClose={handleCloseModal}
-        />
-      )}
+      <AchievementDetailsModal
+        visible={isModalVisible}
+        achievement={selectedAchievement}
+        currentValue={selectedAchievement?.threshold ?? 0}
+        isUnlocked={true}
+        onClose={handleCloseModal}
+      />
     </>
   );
 };
@@ -568,9 +488,7 @@ const styles = StyleSheet.create({
   levelIcon: {
     marginRight: 10,
   },
-  progressContainer: {
-    // marginTop removido para diminuir o espaço entre header e barra
-  },
+  progressContainer: {},
   progressBar: {
     height: 6,
     borderRadius: 3,
@@ -644,4 +562,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default React.memo(AchievementsCard);
+export default memo(AchievementsCard);

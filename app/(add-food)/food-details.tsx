@@ -779,6 +779,7 @@ export default function FoodDetailsScreen() {
         }),
         type: "success",
         duration: 3000,
+        position: "bottom",
       });
     } else {
       // Adicionar novo alimento à refeição
@@ -791,6 +792,7 @@ export default function FoodDetailsScreen() {
         }),
         type: "success",
         duration: 3000,
+        position: "bottom",
       });
     }
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -33,7 +33,7 @@ import {
 } from "../../utils/validations";
 import { ErrorMessage } from "../../components/common/ErrorMessage";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
 export default function CompleteRegistrationScreen() {
   const { t } = useTranslation();
@@ -58,6 +58,7 @@ export default function CompleteRegistrationScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [successAnimation, setSuccessAnimation] = useState(false);
   const [error, setError] = useState("");
   const [activeField, setActiveField] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -99,6 +100,13 @@ export default function CompleteRegistrationScreen() {
       setLoading(true);
       setError("");
       await completeAnonymousRegistration(name, email, password);
+      setSuccessAnimation(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      // Após a animação de sucesso, redireciona para o app
+      setTimeout(() => {
+        // Você pode adicionar navegação aqui se necessário
+      }, 1500);
     } catch (err: any) {
       if (err.code === "auth/email-already-in-use") {
         setError(t("completeRegistration.errors.emailInUse"));
@@ -111,7 +119,14 @@ export default function CompleteRegistrationScreen() {
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
-      setLoading(false);
+      if (!error) {
+        // Mantém loading durante a animação de sucesso
+        setTimeout(() => {
+          setLoading(false);
+        }, 2000);
+      } else {
+        setLoading(false);
+      }
     }
   };
 
@@ -173,6 +188,104 @@ export default function CompleteRegistrationScreen() {
       edges={["bottom"]}
     >
       <StatusBar style={theme === "dark" ? "light" : "dark"} />
+
+      {/* Overlay de carregamento animado */}
+      <AnimatePresence>
+        {loading && (
+          <MotiView
+            from={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ type: "timing", duration: 300 }}
+            style={[
+              StyleSheet.absoluteFillObject,
+              styles.loadingOverlay,
+              { backgroundColor: colors.background + "F0" },
+            ]}
+          >
+            {successAnimation ? (
+              <MotiView
+                from={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", damping: 15 }}
+                style={styles.successContainer}
+              >
+                <MotiView
+                  from={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", damping: 12, delay: 200 }}
+                  style={[
+                    styles.successIconContainer,
+                    { backgroundColor: colors.primary },
+                  ]}
+                >
+                  <Ionicons
+                    name="checkmark"
+                    size={40}
+                    color={theme === "dark" ? "black" : "white"}
+                  />
+                </MotiView>
+                <MotiText
+                  from={{ opacity: 0, translateY: 20 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  transition={{ type: "timing", duration: 300, delay: 400 }}
+                  style={[styles.successText, { color: colors.text }]}
+                >
+                  {t("completeRegistration.success")}
+                </MotiText>
+              </MotiView>
+            ) : (
+              <View style={styles.loadingContainer}>
+                <MotiView
+                  style={[
+                    styles.loadingDot,
+                    { backgroundColor: colors.primary },
+                  ]}
+                  from={{ scale: 0.5, opacity: 0.5 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{
+                    type: "timing",
+                    duration: 700,
+                    loop: true,
+                    repeatReverse: true,
+                    delay: 0,
+                  }}
+                />
+                <MotiView
+                  style={[
+                    styles.loadingDot,
+                    { backgroundColor: colors.primary },
+                  ]}
+                  from={{ scale: 0.5, opacity: 0.5 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{
+                    type: "timing",
+                    duration: 700,
+                    loop: true,
+                    repeatReverse: true,
+                    delay: 200,
+                  }}
+                />
+                <MotiView
+                  style={[
+                    styles.loadingDot,
+                    { backgroundColor: colors.primary },
+                  ]}
+                  from={{ scale: 0.5, opacity: 0.5 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{
+                    type: "timing",
+                    duration: 700,
+                    loop: true,
+                    repeatReverse: true,
+                    delay: 400,
+                  }}
+                />
+              </View>
+            )}
+          </MotiView>
+        )}
+      </AnimatePresence>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -577,29 +690,14 @@ export default function CompleteRegistrationScreen() {
                           disabled={loading}
                           activeOpacity={0.8}
                         >
-                          {loading ? (
-                            <MotiView
-                              from={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              transition={{ type: "timing", duration: 200 }}
-                            >
-                              <Ionicons
-                                name="sync"
-                                size={24}
-                                color={theme === "dark" ? "black" : "white"}
-                                style={styles.loadingIcon}
-                              />
-                            </MotiView>
-                          ) : (
-                            <Text
-                              style={[
-                                styles.createAccountButtonText,
-                                { color: theme === "dark" ? "black" : "white" },
-                              ]}
-                            >
-                              {t("completeRegistration.buttons.createAccount")}
-                            </Text>
-                          )}
+                          <Text
+                            style={[
+                              styles.createAccountButtonText,
+                              { color: theme === "dark" ? "black" : "white" },
+                            ]}
+                          >
+                            {t("completeRegistration.buttons.createAccount")}
+                          </Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -787,8 +885,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  loadingIcon: {
-    transform: [{ rotate: "0deg" }],
+  loadingOverlay: {
+    zIndex: 1000,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+  },
+  loadingDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  successContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  successIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  successText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    textAlign: "center",
   },
   termsContainer: {
     marginTop: 8,

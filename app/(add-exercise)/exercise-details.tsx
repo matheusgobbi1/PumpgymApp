@@ -1085,6 +1085,7 @@ const ExerciseDetailsScreen = () => {
           defaultValue: `${newExercise.name} atualizado com sucesso`,
         }),
         type: "success",
+        position: "bottom",
       });
     } else {
       // Caso contrário, adicionar um novo exercício
@@ -1096,6 +1097,7 @@ const ExerciseDetailsScreen = () => {
           defaultValue: `${newExercise.name} adicionado ao treino`,
         }),
         type: "success",
+        position: "bottom",
       });
     }
 

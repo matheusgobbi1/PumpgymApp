@@ -598,7 +598,8 @@
       "invalidEmail": "Invalid email",
       "weakPassword": "Password too weak",
       "generic": "An error occurred while completing registration. Please try again."
-    }
+    },
+    "success": "Registration successful!"
   },
   "exercise": {
     "add": "Add Exercise",

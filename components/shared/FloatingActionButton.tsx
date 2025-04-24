@@ -42,11 +42,9 @@ const CONTROL_BUTTON_RADIUS = 22.5;
 const triggerHaptic = (
   type: "light" | "medium" | "error" | "success" = "light"
 ) => {
-  try {
-    if (Platform.OS === "ios") {
-      return;
-    }
+  if (Platform.OS !== "android") return;
 
+  try {
     switch (type) {
       case "light":
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -62,7 +60,7 @@ const triggerHaptic = (
         break;
     }
   } catch (error) {
-    // Ignorar erros de Haptics
+    // Ignora erros de feedback tátil
   }
 };
 
@@ -84,6 +82,10 @@ export default function FloatingActionButton() {
   } = useNutrition();
   const { selectedWorkoutTypes, startWorkoutForDate } = useWorkoutContext();
 
+  // Estado único para controle de animação
+  const animationProgress = useRef(new Animated.Value(0)).current;
+
+  // Estados
   const [isExpanded, setIsExpanded] = useState(false);
   const [contentMode, setContentMode] = useState<
     "default" | "mealTypes" | "water" | "workoutTypes" | "updateWeight"
@@ -91,57 +93,122 @@ export default function FloatingActionButton() {
   const [adjustingWeight, setAdjustingWeight] = useState<number>(
     nutritionInfo.weight || 0
   );
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [contentOpacity, setContentOpacity] = useState(0);
 
-  const containerAnim = useRef(new Animated.Value(0)).current;
-
+  // Calcula a posição dinâmica do botão
   const dynamicBottom = useMemo(
     () => (insets.bottom > 0 ? insets.bottom : BOTTOM_POSITION_INITIAL),
     [insets.bottom]
   );
 
-  const [isAnimating, setIsAnimating] = useState(false);
+  // Interpola valores de animação com base no progresso
+  const animatedStyles = useMemo(() => {
+    const widthAnim = animationProgress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [FAB_SIZE, TABBAR_WIDTH],
+    });
 
+    const height = animationProgress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [FAB_SIZE, TABBAR_HEIGHT],
+    });
+
+    const borderRadius = animationProgress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [FAB_SIZE / 2, TABBAR_BORDER_RADIUS],
+    });
+
+    const left = animationProgress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [(width - FAB_SIZE) / 2, TABBAR_HORIZONTAL_MARGIN],
+    });
+
+    const bottom = animationProgress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [
+        dynamicBottom + (TABBAR_HEIGHT - FAB_SIZE) / 2,
+        dynamicBottom,
+      ],
+    });
+
+    // Removendo a rotação, apenas controlando a opacidade
+    const opacity = animationProgress.interpolate({
+      inputRange: [0, 0.5, 1],
+      outputRange: [1, 0, 0],
+    });
+
+    return { width: widthAnim, height, borderRadius, left, bottom, opacity };
+  }, [animationProgress, dynamicBottom, width]);
+
+  // Controla a expansão do FAB
   const toggleExpand = useCallback(() => {
     if (isAnimating) return;
 
     setIsAnimating(true);
-    const toValue = isExpanded ? 0 : 1;
+    const expanding = !isExpanded;
 
+    // Feedback tátil
     if (Platform.OS === "android") {
-      triggerHaptic(isExpanded ? "light" : "medium");
+      triggerHaptic(expanding ? "medium" : "light");
     }
 
-    Animated.timing(containerAnim, {
-      toValue,
-      duration: 250,
+    // Animação suave
+    Animated.timing(animationProgress, {
+      toValue: expanding ? 1 : 0,
+      duration: 250, // Reduzindo para 250ms para ficar mais rápido
       useNativeDriver: false,
     }).start(() => {
-      InteractionManager.runAfterInteractions(() => {
-        setIsExpanded(!isExpanded);
-        setIsAnimating(false);
+      setIsExpanded(expanding);
+      setIsAnimating(false);
 
-        if (toValue === 0) {
+      if (expanding) {
+        setContentOpacity(1);
+      } else {
+        // Resetar estados quando colapsar
+        InteractionManager.runAfterInteractions(() => {
           setContentMode("default");
           setAdjustingWeight(nutritionInfo.weight || 0);
-        }
-      });
+          setContentOpacity(0);
+        });
+      }
     });
-  }, [isExpanded, containerAnim, isAnimating, nutritionInfo.weight]);
 
+    // Fade do conteúdo mais rápido
+    if (expanding) {
+      // Atrasa um pouco a exibição do conteúdo para animação mais suave, mas mais rápido
+      setTimeout(() => {
+        setContentOpacity(1);
+      }, 100);
+    } else {
+      setContentOpacity(0);
+    }
+  }, [isExpanded, isAnimating, animationProgress, nutritionInfo.weight]);
+
+  // Muda o modo de conteúdo com fade mais rápido
   const changeContentMode = useCallback(
     (newMode: typeof contentMode) => {
       if (contentMode === newMode) return;
-      InteractionManager.runAfterInteractions(() => {
+
+      // Fade out rápido
+      setContentOpacity(0);
+
+      // Troca o modo após um breve delay, mas mais rápido
+      setTimeout(() => {
         setContentMode(newMode);
 
         if (newMode === "updateWeight") {
           setAdjustingWeight(nutritionInfo.weight || 0);
         }
-      });
+
+        // Fade in imediato
+        setContentOpacity(1);
+      }, 50);
     },
     [contentMode, nutritionInfo.weight]
   );
 
+  // Ajusta o peso
   const adjustWeight = useCallback((amount: number) => {
     setAdjustingWeight((prevWeight) => {
       const newWeight = Math.max(0, prevWeight + amount);
@@ -149,6 +216,7 @@ export default function FloatingActionButton() {
     });
   }, []);
 
+  // Atualiza o peso
   const handleUpdateWeight = useCallback(async () => {
     const validationResult = validateWeight(adjustingWeight);
 
@@ -188,6 +256,7 @@ export default function FloatingActionButton() {
     nutritionInfo.weight,
   ]);
 
+  // Opções do menu principal
   const menuOptions = useMemo(
     () => [
       {
@@ -235,6 +304,7 @@ export default function FloatingActionButton() {
     ]
   );
 
+  // Navega para adicionar comida
   const navigateToAddFood = useCallback(
     (meal: MealType) => {
       toggleExpand();
@@ -252,6 +322,7 @@ export default function FloatingActionButton() {
     [router, colors.primary, toggleExpand]
   );
 
+  // Inicia um treino
   const handleStartWorkout = useCallback(
     async (workoutType: WorkoutType) => {
       await startWorkoutForDate(workoutType.id);
@@ -270,82 +341,50 @@ export default function FloatingActionButton() {
     [startWorkoutForDate, toggleExpand, router]
   );
 
+  // Adiciona água
   const handleAddWater = useCallback(() => {
     addWater();
   }, [addWater]);
 
+  // Remove água
   const handleRemoveWater = useCallback(() => {
     removeWater();
   }, [removeWater]);
 
-  const animations = useMemo(
-    () => ({
-      containerWidth: containerAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [FAB_SIZE, TABBAR_WIDTH],
-      }),
-      containerHeight: containerAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [FAB_SIZE, TABBAR_HEIGHT],
-      }),
-      containerBorderRadius: containerAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [FAB_SIZE / 2, TABBAR_BORDER_RADIUS],
-      }),
-      containerBottom: containerAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [
-          dynamicBottom + (TABBAR_HEIGHT - FAB_SIZE) / 2,
-          dynamicBottom,
-        ],
-      }),
-      containerLeft: containerAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [(width - FAB_SIZE) / 2, TABBAR_HORIZONTAL_MARGIN],
-      }),
-      iconOpacity: containerAnim.interpolate({
-        inputRange: [0, 0.5],
-        outputRange: [1, 0],
-      }),
-      iconRotation: containerAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: ["0deg", "45deg"],
-      }),
-      contentOpacity: containerAnim.interpolate({
-        inputRange: [0.5, 1],
-        outputRange: [0, 1],
-      }),
-    }),
-    [containerAnim, dynamicBottom]
-  );
-
   return (
     <>
       {isExpanded && (
-        <Pressable style={styles.invisibleBackdrop} onPress={toggleExpand} />
+        <Pressable
+          style={styles.invisibleBackdrop}
+          onPress={toggleExpand}
+          accessible={true}
+          accessibilityLabel={t("accessibility.closeMenu", "Fechar menu")}
+        />
       )}
 
       <Animated.View
         style={[
           styles.container,
           {
-            width: animations.containerWidth,
-            height: animations.containerHeight,
-            borderRadius: animations.containerBorderRadius,
-            bottom: animations.containerBottom,
-            left: animations.containerLeft,
+            width: animatedStyles.width,
+            height: animatedStyles.height,
+            borderRadius: animatedStyles.borderRadius,
+            bottom: animatedStyles.bottom,
+            left: animatedStyles.left,
             backgroundColor: colors.primary,
           },
         ]}
       >
+        {/* Botão principal */}
         <Animated.View
           style={[
             styles.iconWrapper,
             {
-              opacity: animations.iconOpacity,
-              transform: [{ rotate: animations.iconRotation }],
+              opacity: animatedStyles.opacity,
+              // Removendo a transformação de rotação
             },
           ]}
+          pointerEvents={isExpanded ? "none" : "auto"}
         >
           <TouchableOpacity
             style={styles.iconButton}
@@ -353,6 +392,8 @@ export default function FloatingActionButton() {
             disabled={isAnimating}
             activeOpacity={0.8}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessible={true}
+            accessibilityLabel={t("accessibility.openMenu", "Abrir menu")}
           >
             <Ionicons
               name="add"
@@ -362,8 +403,9 @@ export default function FloatingActionButton() {
           </TouchableOpacity>
         </Animated.View>
 
-        <Animated.View
-          style={[styles.content, { opacity: animations.contentOpacity }]}
+        {/* Conteúdo expandido */}
+        <View
+          style={[styles.content, { opacity: contentOpacity }]}
           pointerEvents={isExpanded ? "auto" : "none"}
         >
           {contentMode === "default" && (
@@ -375,6 +417,8 @@ export default function FloatingActionButton() {
                   onPress={option.onPress}
                   activeOpacity={0.7}
                   hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                  accessible={true}
+                  accessibilityLabel={option.label}
                 >
                   <Ionicons
                     name={option.icon}
@@ -395,7 +439,8 @@ export default function FloatingActionButton() {
                   styles.scrollContent,
                   styles.centeredContent,
                 ]}
-                removeClippedSubviews={true}
+                removeClippedSubviews={false}
+                decelerationRate="fast"
               >
                 {mealTypes.map((mealType) => (
                   <TouchableOpacity
@@ -403,6 +448,8 @@ export default function FloatingActionButton() {
                     style={styles.menuItem}
                     onPress={() => navigateToAddFood(mealType)}
                     hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                    accessible={true}
+                    accessibilityLabel={mealType.name}
                   >
                     <Ionicons
                       name={(mealType.icon || "restaurant-outline") as any}
@@ -421,6 +468,8 @@ export default function FloatingActionButton() {
                 style={styles.controlButton}
                 onPress={() => changeContentMode("default")}
                 hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                accessible={true}
+                accessibilityLabel={t("accessibility.back", "Voltar")}
               >
                 <Ionicons
                   name="arrow-back"
@@ -437,6 +486,11 @@ export default function FloatingActionButton() {
                 onPress={handleRemoveWater}
                 disabled={currentWaterIntake <= 0}
                 hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                accessible={true}
+                accessibilityLabel={t(
+                  "waterIntake.removeWater",
+                  "Remover água"
+                )}
               >
                 <MaterialCommunityIcons
                   name="minus"
@@ -459,6 +513,8 @@ export default function FloatingActionButton() {
                 onPress={handleAddWater}
                 disabled={currentWaterIntake >= dailyWaterGoal}
                 hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                accessible={true}
+                accessibilityLabel={t("waterIntake.addWater", "Adicionar água")}
               >
                 <MaterialCommunityIcons
                   name="plus"
@@ -478,7 +534,8 @@ export default function FloatingActionButton() {
                   styles.scrollContent,
                   styles.centeredContent,
                 ]}
-                removeClippedSubviews={true}
+                removeClippedSubviews={false}
+                decelerationRate="fast"
               >
                 {selectedWorkoutTypes.map((workoutType) => (
                   <TouchableOpacity
@@ -486,6 +543,8 @@ export default function FloatingActionButton() {
                     style={styles.menuItem}
                     onPress={() => handleStartWorkout(workoutType)}
                     hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                    accessible={true}
+                    accessibilityLabel={workoutType.name}
                   >
                     <WorkoutIcon
                       iconType={workoutType.iconType}
@@ -504,6 +563,8 @@ export default function FloatingActionButton() {
                 style={styles.controlButton}
                 onPress={() => changeContentMode("default")}
                 hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                accessible={true}
+                accessibilityLabel={t("accessibility.back", "Voltar")}
               >
                 <Ionicons
                   name="arrow-back"
@@ -520,6 +581,8 @@ export default function FloatingActionButton() {
                 onPress={() => adjustWeight(-0.1)}
                 disabled={adjustingWeight <= 0}
                 hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                accessible={true}
+                accessibilityLabel={t("weight.decrease", "Diminuir peso")}
               >
                 <Ionicons
                   name="remove"
@@ -539,6 +602,8 @@ export default function FloatingActionButton() {
                 style={styles.controlButton}
                 onPress={() => adjustWeight(0.1)}
                 hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                accessible={true}
+                accessibilityLabel={t("weight.increase", "Aumentar peso")}
               >
                 <Ionicons
                   name="add"
@@ -556,6 +621,8 @@ export default function FloatingActionButton() {
                 onPress={handleUpdateWeight}
                 disabled={adjustingWeight === nutritionInfo.weight}
                 hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                accessible={true}
+                accessibilityLabel={t("weight.save", "Salvar peso")}
               >
                 <Ionicons
                   name="checkmark"
@@ -565,7 +632,7 @@ export default function FloatingActionButton() {
               </TouchableOpacity>
             </View>
           )}
-        </Animated.View>
+        </View>
       </Animated.View>
     </>
   );
@@ -590,6 +657,7 @@ const styles = StyleSheet.create({
     height: FAB_SIZE,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 21,
   },
   iconButton: {
     width: FAB_SIZE,
@@ -605,18 +673,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     flexDirection: "row",
     alignItems: "center",
-  },
-  backdrop: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 15,
-  },
-  backdropPressable: {
-    width: "100%",
-    height: "100%",
+    zIndex: 20,
   },
   defaultMenu: {
     flexDirection: "row",
@@ -624,12 +681,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: "100%",
     paddingHorizontal: 15,
-  },
-  scrollMenu: {
-    flexDirection: "row",
-    alignItems: "center",
-    width: "100%",
-    paddingHorizontal: 10,
   },
   scrollMenuFull: {
     width: "100%",
