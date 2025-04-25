@@ -588,7 +588,7 @@ export default function TrainingScreen() {
 
   // Calcular alturas
   const headerHeight = Platform.OS === "ios" ? 70 : 60; // Altura do HomeHeader
-  const calendarHeight = 70; // Altura ajustada do Calendário (reduzida de 90 para 80)
+  const calendarHeight = 70; // Altura ajustada do Calendário
 
   // Renderização do conteúdo completo da tela
   const renderScreenContent = () => {
@@ -622,19 +622,22 @@ export default function TrainingScreen() {
             // Padding top = altura do header + altura do calendário + padding reduzido
             { paddingTop: headerHeight + calendarHeight + 8 },
           ]}
-          keyboardShouldPersistTaps="handled"
-          scrollEventThrottle={16}
-          showsHorizontalScrollIndicator={false}
-          removeClippedSubviews={true}
+          showsVerticalScrollIndicator={false}
         >
           {shouldShowEmptyState ? emptyStateComponent : renderWorkoutCards()}
+
+          {/* Espaço adicional para garantir que o conteúdo fique acima da bottom tab */}
+          <View style={styles.bottomPadding} />
         </ScrollView>
       </View>
     );
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      edges={["top"]}
+    >
       {/* Container principal da tela com fundo transparente */}
       <View style={[styles.container, { backgroundColor: "transparent" }]}>
         {/* Header posicionado absolutamente no topo */}
@@ -675,7 +678,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 2, // Header fica sobre o calendário
+    zIndex: 10, // Garantir que fique sobre o ScrollView
   },
   // Wrapper para o conteúdo principal (ScrollView + Calendário)
   contentWrapper: {
@@ -690,7 +693,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1, // Calendário fica sobre o ScrollView, mas abaixo do header
-    height: 80, // Definir altura fixa igual à do componente Calendar
+    height: 70, // Definir altura fixa igual à do componente Calendar
   },
   scrollView: {
     flex: 1,
@@ -698,12 +701,15 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     paddingHorizontal: 16, // Padding horizontal aplicado aqui
-    paddingBottom: 100,
+    paddingBottom: 24,
     // paddingTop será adicionado dinamicamente
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  bottomPadding: {
+    height: 80, // Altura suficiente para ficar acima da bottom tab
   },
 });

@@ -464,7 +464,7 @@ const Calendar = ({
 const styles = StyleSheet.create({
   outerContainer: {
     overflow: "hidden",
-    height: 80,
+    height: 70,
   },
   container: {
     width: "100%",
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingVertical: 2,
+    paddingVertical: 0,
   },
   dayColumn: {
     alignItems: "center",
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
   },
   dayButton: {
     alignItems: "center",
-    paddingBottom: 2,
+    paddingBottom: 0,
     backgroundColor: "transparent",
   },
   dayContainer: {

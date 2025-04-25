@@ -407,11 +407,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
-    marginBottom: 25,
+    marginBottom: 10,
   },
   macrosContainer: {
     gap: 20,

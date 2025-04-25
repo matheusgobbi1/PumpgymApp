@@ -15,7 +15,7 @@ export const FIT_LEVELS: FitLevel[] = [
     level: 1,
     title: "Iniciante",
     pointsRequired: 0,
-    icon: "baby-bottle",
+    icon: "egg",
     color: "#9E9E9E", // Cinza
     description: "Acabou de entrar na academia e ainda não tem experiência.",
   },

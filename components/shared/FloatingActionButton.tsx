@@ -27,17 +27,18 @@ import WorkoutIcon from "./WorkoutIcon";
 
 const { width } = Dimensions.get("window");
 const FAB_SIZE = 65;
-const TABBAR_WIDTH = width * 0.8;
+const TABBAR_WIDTH = width * 0.85;
 const TABBAR_HEIGHT = 70;
 const TABBAR_BORDER_RADIUS = 40;
-const TABBAR_HORIZONTAL_MARGIN = width * 0.1;
+const TABBAR_HORIZONTAL_MARGIN = width * 0.075;
 const BOTTOM_POSITION_INITIAL = 10;
 const DEFAULT_ICON_SIZE = 30;
 const MENU_ICON_SIZE = 28;
+const CONTROL_ICON_SIZE = 30;
 const CONTROL_BUTTON_BG = "rgb(75, 75, 75)";
 const CONTROL_ICON_COLOR = "#FFFFFF";
-const CONTROL_BUTTON_SIZE = 45;
-const CONTROL_BUTTON_RADIUS = 22.5;
+const CONTROL_BUTTON_SIZE = 54;
+const CONTROL_BUTTON_RADIUS = 26;
 
 const triggerHaptic = (
   type: "light" | "medium" | "error" | "success" = "light"
@@ -465,7 +466,7 @@ export default function FloatingActionButton() {
           {contentMode === "water" && (
             <View style={styles.controlsMenu}>
               <TouchableOpacity
-                style={styles.controlButton}
+                style={[styles.controlButton, styles.backButton]}
                 onPress={() => changeContentMode("default")}
                 hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                 accessible={true}
@@ -473,7 +474,7 @@ export default function FloatingActionButton() {
               >
                 <Ionicons
                   name="arrow-back"
-                  size={MENU_ICON_SIZE}
+                  size={CONTROL_ICON_SIZE}
                   color={CONTROL_ICON_COLOR}
                 />
               </TouchableOpacity>
@@ -494,7 +495,7 @@ export default function FloatingActionButton() {
               >
                 <MaterialCommunityIcons
                   name="minus"
-                  size={MENU_ICON_SIZE}
+                  size={CONTROL_ICON_SIZE}
                   color={CONTROL_ICON_COLOR}
                 />
               </TouchableOpacity>
@@ -518,7 +519,7 @@ export default function FloatingActionButton() {
               >
                 <MaterialCommunityIcons
                   name="plus"
-                  size={MENU_ICON_SIZE}
+                  size={CONTROL_ICON_SIZE}
                   color={CONTROL_ICON_COLOR}
                 />
               </TouchableOpacity>
@@ -558,78 +559,87 @@ export default function FloatingActionButton() {
           )}
 
           {contentMode === "updateWeight" && (
-            <View style={styles.controlsMenu}>
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={() => changeContentMode("default")}
-                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                accessible={true}
-                accessibilityLabel={t("accessibility.back", "Voltar")}
-              >
-                <Ionicons
-                  name="arrow-back"
-                  size={MENU_ICON_SIZE}
-                  color={CONTROL_ICON_COLOR}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.controlButton,
-                  adjustingWeight <= 0 && styles.disabledButton,
-                ]}
-                onPress={() => adjustWeight(-0.1)}
-                disabled={adjustingWeight <= 0}
-                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                accessible={true}
-                accessibilityLabel={t("weight.decrease", "Diminuir peso")}
-              >
-                <Ionicons
-                  name="remove"
-                  size={MENU_ICON_SIZE}
-                  color={CONTROL_ICON_COLOR}
-                />
-              </TouchableOpacity>
-
-              <View style={styles.valueDisplay}>
-                <Text style={[styles.valueText, { color: colors.background }]}>
-                  {adjustingWeight.toFixed(1)}
-                  <Text style={styles.unitText}>kg</Text>
-                </Text>
+            <View style={styles.controlsMenuUpdate}>
+              <View style={styles.controlsLeft}>
+                <TouchableOpacity
+                  style={[styles.controlButton, styles.backButton]}
+                  onPress={() => changeContentMode("default")}
+                  hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                  accessible={true}
+                  accessibilityLabel={t("accessibility.back", "Voltar")}
+                >
+                  <Ionicons
+                    name="arrow-back"
+                    size={CONTROL_ICON_SIZE}
+                    color={CONTROL_ICON_COLOR}
+                  />
+                </TouchableOpacity>
               </View>
 
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={() => adjustWeight(0.1)}
-                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                accessible={true}
-                accessibilityLabel={t("weight.increase", "Aumentar peso")}
-              >
-                <Ionicons
-                  name="add"
-                  size={MENU_ICON_SIZE}
-                  color={CONTROL_ICON_COLOR}
-                />
-              </TouchableOpacity>
+              <View style={styles.controlsCenter}>
+                <TouchableOpacity
+                  style={[
+                    styles.controlButton,
+                    adjustingWeight <= 0 && styles.disabledButton,
+                  ]}
+                  onPress={() => adjustWeight(-0.1)}
+                  disabled={adjustingWeight <= 0}
+                  hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                  accessible={true}
+                  accessibilityLabel={t("weight.decrease", "Diminuir peso")}
+                >
+                  <Ionicons
+                    name="remove"
+                    size={CONTROL_ICON_SIZE}
+                    color={CONTROL_ICON_COLOR}
+                  />
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[
-                  styles.controlButton,
-                  adjustingWeight === nutritionInfo.weight &&
-                    styles.disabledButton,
-                ]}
-                onPress={handleUpdateWeight}
-                disabled={adjustingWeight === nutritionInfo.weight}
-                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                accessible={true}
-                accessibilityLabel={t("weight.save", "Salvar peso")}
-              >
-                <Ionicons
-                  name="checkmark"
-                  size={MENU_ICON_SIZE}
-                  color={CONTROL_ICON_COLOR}
-                />
-              </TouchableOpacity>
+                <View style={styles.valueDisplay}>
+                  <Text
+                    style={[styles.valueText, { color: colors.background }]}
+                  >
+                    {adjustingWeight.toFixed(1)}
+                    <Text style={styles.unitText}>kg</Text>
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.controlButton}
+                  onPress={() => adjustWeight(0.1)}
+                  hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                  accessible={true}
+                  accessibilityLabel={t("weight.increase", "Aumentar peso")}
+                >
+                  <Ionicons
+                    name="add"
+                    size={CONTROL_ICON_SIZE}
+                    color={CONTROL_ICON_COLOR}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.controlsRight}>
+                <TouchableOpacity
+                  style={[
+                    styles.controlButton,
+                    styles.saveButton,
+                    adjustingWeight === nutritionInfo.weight &&
+                      styles.disabledButton,
+                  ]}
+                  onPress={handleUpdateWeight}
+                  disabled={adjustingWeight === nutritionInfo.weight}
+                  hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                  accessible={true}
+                  accessibilityLabel={t("weight.save", "Salvar peso")}
+                >
+                  <Ionicons
+                    name="checkmark"
+                    size={CONTROL_ICON_SIZE}
+                    color={CONTROL_ICON_COLOR}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         </View>
@@ -715,7 +725,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: CONTROL_BUTTON_BG,
-    margin: 3,
+    margin: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.5,
+    elevation: 3,
+  },
+  saveButton: {
+    marginRight: 6,
   },
   disabledButton: {
     opacity: 0.5,
@@ -741,5 +759,28 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 15,
+  },
+  backButton: {
+    marginLeft: 6,
+  },
+  controlsMenuUpdate: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    paddingHorizontal: 8,
+  },
+  controlsLeft: {
+    flex: 1,
+    alignItems: "flex-start",
+  },
+  controlsCenter: {
+    flex: 2,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  controlsRight: {
+    flex: 1,
+    alignItems: "flex-end",
   },
 });

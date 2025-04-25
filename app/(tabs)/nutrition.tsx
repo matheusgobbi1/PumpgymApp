@@ -343,7 +343,7 @@ export default function NutritionScreen() {
 
   // Calcular alturas
   const headerHeight = Platform.OS === "ios" ? 70 : 60; // Altura do HomeHeader
-  const calendarHeight = 60; // Altura estimada do Calendário
+  const calendarHeight = 70; // Altura ajustada do Calendário
 
   // Renderizar os modais baseados no modalInfo
   const renderModals = () => {
@@ -449,15 +449,18 @@ export default function NutritionScreen() {
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={[
-              styles.contentContainer,
-              // Padding top = altura do header + altura do calendário + padding original
-              { paddingTop: headerHeight + calendarHeight + 16 },
+              styles.scrollViewContent,
+              // Padding top = altura do header + altura do calendário + padding reduzido
+              { paddingTop: headerHeight + calendarHeight + 8 },
             ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             removeClippedSubviews={true}
           >
             {emptyStateComponent}
+
+            {/* Espaço adicional para garantir que o conteúdo fique acima da bottom tab */}
+            <View style={styles.bottomPadding} />
           </ScrollView>
         </View>
       );
@@ -475,9 +478,9 @@ export default function NutritionScreen() {
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={[
-            styles.contentContainer,
-            // Padding top = altura do header + altura do calendário + padding original
-            { paddingTop: headerHeight + calendarHeight + 16 },
+            styles.scrollViewContent,
+            // Padding top = altura do header + altura do calendário + padding reduzido
+            { paddingTop: headerHeight + calendarHeight + 8 },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -504,6 +507,9 @@ export default function NutritionScreen() {
               setModalInfo={setModalInfo}
             />
           ))}
+
+          {/* Espaço adicional para garantir que o conteúdo fique acima da bottom tab */}
+          <View style={styles.bottomPadding} />
         </ScrollView>
       </View>
     );
@@ -556,7 +562,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 2, // Header fica sobre o calendário
+    zIndex: 10, // Garantir que fique sobre o ScrollView
   },
   // Wrapper para o conteúdo principal (ScrollView + Calendário)
   contentWrapper: {
@@ -571,19 +577,23 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1, // Calendário fica sobre o ScrollView, mas abaixo do header
+    height: 70, // Definir altura fixa igual à do componente Calendar
   },
   scrollView: {
     flex: 1,
     backgroundColor: "transparent", // ScrollView precisa ser transparente
   },
-  contentContainer: {
+  scrollViewContent: {
     paddingHorizontal: 16, // Padding horizontal aplicado aqui
-    paddingBottom: 100,
+    paddingBottom: 24,
     // paddingTop será adicionado dinamicamente
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  bottomPadding: {
+    height: 80, // Altura suficiente para ficar acima da bottom tab
   },
 });
