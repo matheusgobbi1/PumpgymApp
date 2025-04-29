@@ -4,7 +4,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Image,
   Dimensions,
   StatusBar,
   Keyboard,
@@ -17,20 +16,13 @@ import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-  Easing,
   FadeIn,
   FadeInDown,
   FadeInUp,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import LoginBottomSheet from "../../components/auth/LoginBottomSheet";
-import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { useFonts } from "expo-font";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "../../context/LanguageContext";
 
@@ -296,9 +288,9 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   primaryButton: {
-    backgroundColor: "#FF4500",
+    backgroundColor: "#000000",
     borderWidth: 1,
-    borderColor: "#FF6347",
+    borderColor: "#333333",
   },
   buttonText: {
     color: "#FFFFFF",

@@ -335,6 +335,7 @@ export default function WorkoutCard({
         category: exercise.category,
         cardioDuration: exercise.cardioDuration,
         cardioIntensity: exercise.cardioIntensity,
+        isBodyweightExercise: exercise.isBodyweightExercise,
       };
 
       // Navegar para a tela de detalhes do exercício como um card (não modal) quando editando
@@ -524,7 +525,11 @@ export default function WorkoutCard({
                       <Text
                         style={[styles.macroNumber, { color: colors.text }]}
                       >
-                        {exercise.sets[0].weight}
+                        {exercise.isBodyweightExercise
+                          ? t("exercise.bodyweight.short", {
+                              defaultValue: "PC",
+                            })
+                          : exercise.sets[0].weight}
                       </Text>
                       {"   "}R{" "}
                       <Text
@@ -644,7 +649,11 @@ export default function WorkoutCard({
                         <Text
                           style={[styles.setWeight, { color: colors.text }]}
                         >
-                          {set.weight}
+                          {exercise.isBodyweightExercise || set.weight === 0
+                            ? t("exercise.bodyweight.short", {
+                                defaultValue: "PC",
+                              })
+                            : set.weight}
                         </Text>
                         <Text style={[styles.setReps, { color: colors.text }]}>
                           {set.reps}

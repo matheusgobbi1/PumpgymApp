@@ -609,6 +609,8 @@
     "noExercisesFound": "No exercises found for",
     "addAsNewExercise": "Add as new exercise",
     "allCategories": "All",
+    "bodyweight": "Bodyweight",
+    "bodyweight.short": "BW",
     "muscleGroups": {
       "all": "All",
       "chest": "Chest",
@@ -1324,6 +1326,14 @@
         "lowIntensityHighReps": "You've reached the target repetitions with low intensity. It's time to significantly increase the weight.",
         "lowIntensityNearTarget": "Your intensity is low. We suggest slightly increasing the weight and maintaining your current repetitions to better stimulate the muscle.",
         "lowIntensityLowReps": "Your intensity is low. We recommend a significant increase in repetitions."
+      },
+      "bodyweight": {
+        "highReps": "You've reached a high number of repetitions. Increase the exercise difficulty or reduce rest time between sets.",
+        "addSet": "Add another set to increase your training volume and stimulate new muscle growth.",
+        "increaseReps": "Increase the repetitions in all sets to progress in this bodyweight exercise.",
+        "highRepsNoWeight": "Reduce rest time between sets to increase exercise intensity.",
+        "mediumReps": "Continue increasing the number of repetitions in each set gradually.",
+        "lowReps": "Focus on gradually increasing repetitions while maintaining good technical quality of the movement."
       }
     }
   },
@@ -1363,7 +1373,9 @@
       "Paralelas": "Parallel Bars",
       "Roda": "Wheel",
       "Piscina": "Swimming Pool",
-      "Escada": "Stairs"
+      "Escada": "Stairs",
+      "Quadra": "Court",
+      "Parede de escalada": "Climbing Wall"
     },
     "difficulty": {
       "iniciante": "Beginner",
@@ -1543,7 +1555,13 @@
       "ex242": "Jump Rope",
       "ex243": "HIIT",
       "ex244": "Water Aerobics",
-      "ex245": "Spinning"
+      "ex245": "Spinning",
+      "ex246": "Pilates",
+      "ex247": "Soccer",
+      "ex248": "Tennis",
+      "ex249": "Climbing",
+      "ex250": "Basketball",
+      "ex251": "Volleyball"
     }
   },
   "dates": {

@@ -633,6 +633,8 @@
     "noExercisesFound": "Nenhum exercício encontrado para",
     "addAsNewExercise": "Adicionar como novo exercício",
     "allCategories": "Todos",
+    "bodyweight": "Peso Corporal",
+    "bodyweight.short": "PC",
     "muscleGroups": {
       "all": "Todos",
       "chest": "Peito",
@@ -1418,7 +1420,9 @@
       "Paralelas": "Paralelas",
       "Roda": "Roda",
       "Piscina": "Piscina",
-      "Escada": "Escada"
+      "Escada": "Escada",
+      "Quadra": "Quadra",
+      "Parede de escalada": "Parede de escalada"
     },
     "difficulty": {
       "iniciante": "Iniciante",
@@ -1598,7 +1602,13 @@
       "ex242": "Corda",
       "ex243": "HIIT",
       "ex244": "Hidroginástica",
-      "ex245": "Spinning"
+      "ex245": "Spinning",
+      "ex246": "Pilates",
+      "ex247": "Futebol",
+      "ex248": "Tênis",
+      "ex249": "Escalada",
+      "ex250": "Basquete",
+      "ex251": "Vôlei"
     }
   },
   "progression": {
@@ -1608,9 +1618,9 @@
       "basedOn_singular": "Baseado no treino de {{date}}",
       "calculating": "Calculando progressões...",
       "noWorkoutsFound": "Nenhum treino anterior encontrado",
-      "noWorkoutsDescription": "Para sugerir progressões, é necessário ter pelo menos um treino anterior registrado.",
+      "noWorkoutsDescription": "Para sugerir progressões, você precisa ter ao menos um treino anterior registrado.",
       "suggestionsTitle": "Sugestões de Progressão",
-      "selectExercisesDescription": "Selecione os exercícios que deseja aplicar a progressão sugerida:",
+      "selectExercisesDescription": "Selecione os exercícios para os quais deseja aplicar a progressão sugerida:",
       "applyProgressions": "Aplicar Progressões ({{count}})",
       "alert": {
         "attention": "Atenção",
@@ -1621,7 +1631,7 @@
     },
     "infoModal": {
       "title": "Sobre as Sugestões",
-      "subtitle": "As sugestões são baseadas no seu histórico de treinos, mas considere também:",
+      "subtitle": "As sugestões são baseadas no histórico de treinos, mas também consideram:",
       "gotIt": "Entendi",
       "items": {
         "smartProgression": {
@@ -1630,11 +1640,11 @@
         },
         "adaptation": {
           "title": "Adaptação",
-          "description": "Ajuste o peso, séries e repetições de acordo com sua capacidade atual, equipamentos disponíveis e disposição física do dia."
+          "description": "Ajuste o peso, séries e repetições de acordo com sua capacidade atual, equipamentos disponíveis e disposição física diária."
         },
         "perception": {
           "title": "Percepção",
-          "description": "Utilize sua percepção de esforço como guia principal para determinar a progressão ideal. Tente progredir gradualmente em cada treino, seja aumentando a carga, séries, repetições ou até mesmo a qualidade da técnica de cada repetição."
+          "description": "Use seu esforço percebido como principal guia para determinar a progressão ideal. Tente progredir gradualmente em cada treino, seja aumentando carga, séries, repetições ou mesmo a qualidade da técnica de cada repetição."
         }
       }
     },
@@ -1652,36 +1662,44 @@
       "set": "Série {{number}}",
       "toFailure": "Até a Falha",
       "repsInReserve": "Reps em Reserva",
-      "perceivedEffort": "Percepção de Esforço",
+      "perceivedEffort": "Esforço Percebido",
       "cancel": "Cancelar",
       "confirm": "Confirmar"
     },
     "algorithm": {
       "plateau": {
-        "highReps": "Você atingiu um bom número de repetições e está em platô. É hora de aumentar a carga para estimular novo crescimento.",
-        "notHighReps": "Mesmo sem atingir 12 repetições, você está em platô há alguns treinos. Um aumento de carga pode ajudar a estimular novo progresso.",
-        "repeatedWorkouts": "Você está repetindo o mesmo treino há várias sessões. Para quebrar o platô, sugerimos adicionar uma série adicional.",
+        "highReps": "Você alcançou um bom número de repetições e está em um platô. É hora de aumentar o peso para estimular novo crescimento.",
+        "notHighReps": "Mesmo sem alcançar 12 repetições, você está em platô por vários treinos. Aumentar o peso pode ajudar a estimular novo progresso.",
+        "repeatedWorkouts": "Você tem repetido o mesmo treino por várias sessões. Para quebrar o platô, sugerimos adicionar uma série adicional.",
         "needMoreVolume": "Para continuar evoluindo, recomendamos adicionar uma série adicional para aumentar o volume de treino.",
-        "lowIntensity": "Sua intensidade de treino está mais baixa do que o ideal. Reduza o tempo de descanso para aumentar a densidade do treino e leve a última série até a falha muscular.",
-        "lowReps": "Você está em um platô com um número moderado de repetições. Tente aumentar 1-2 repetições em todas as séries e leve a última até a falha muscular.",
-        "needBetterTechnique": "Para quebrar esse platô, mantenha o mesmo peso e repetições, mas aumente a intensidade controlando melhor o tempo das repetições (2s descida, 1s subida) e leve a última série até a falha.",
-        "combined": "Para quebrar esse platô, vamos ajustar levemente o peso e as repetições para criar um novo estímulo e levar a última série até a falha muscular."
+        "lowIntensity": "Sua intensidade de treino está abaixo do ideal. Reduza o tempo de descanso para aumentar a densidade do treino e leve a última série até a falha muscular.",
+        "lowReps": "Você está em um platô com número moderado de repetições. Tente aumentar 1-2 repetições em todas as séries e leve a última até a falha muscular.",
+        "needBetterTechnique": "Para quebrar este platô, mantenha o mesmo peso e repetições, mas aumente a intensidade controlando melhor o tempo das repetições (2s descida, 1s subida) e leve a última série até a falha.",
+        "combined": "Para quebrar este platô, vamos ajustar levemente o peso e as repetições para criar um novo estímulo e levar a última série até a falha muscular."
       },
       "scenarios": {
-        "highRepsWithFailure": "Você treinou até a falha ou muito próximo dela e atingiu 12+ repetições. Vamos aumentar o peso e ajustar as repetições.",
-        "highIntensity": "Você treinou com intensidade muito alta. Recomendamos manter o peso atual e aumentar levemente as repetições focando na técnica.",
-        "goodReps": "Você atingiu um bom número de repetições com intensidade moderada. É hora de aumentar a carga para estimular novo crescimento.",
-        "nearTargetReps": "Você está treinando com boa intensidade. Como está próximo das 12 repetições, sugerimos um aumento leve de peso mantendo as repetições, para preparar para a próxima fase.",
-        "continueReps": "Continue aumentando as repetições com esse peso para desenvolver força e técnica.",
+        "highRepsWithFailure": "Você treinou até a falha ou muito próximo dela e alcançou 12+ repetições. Vamos aumentar o peso e ajustar as repetições.",
+        "highIntensity": "Você treinou com intensidade muito alta. Recomendamos manter o peso atual e aumentar ligeiramente as repetições focando na técnica.",
+        "goodReps": "Você alcançou um bom número de repetições com intensidade moderada. É hora de aumentar a carga para estimular novo crescimento.",
+        "nearTargetReps": "Você está treinando com boa intensidade. Como está próximo das 12 repetições, sugerimos um leve aumento de peso mantendo as repetições, para preparar para a próxima fase.",
+        "continueReps": "Continue aumentando as repetições com este peso para desenvolver força e técnica.",
         "weightTooLight": "O peso atual está muito leve para você (RIR alto e esforço baixo). Recomendamos aumentar o peso diretamente, mesmo sem atingir 12 repetições.",
         "weightTooLightKeepReps": "O peso está muito leve (RIR alto e esforço baixo). Recomendamos aumentar o peso e tentar manter o mesmo número de repetições.",
         "veryLowIntensity": "Você está treinando com intensidade muito baixa. Recomendamos um aumento significativo no número de repetições.",
-        "targetReached": "Você atingiu o alvo de repetições com intensidade moderada. Vamos aumentar o peso para continuar o progresso.",
-        "closeToTarget": "Você está próximo do alvo de repetições. Para este treino, sugerimos aumentar o peso levemente e manter as repetições.",
-        "increaseReps": "Continue aumentando gradualmente as repetições com esse peso.",
-        "lowIntensityHighReps": "Você atingiu as repetições alvo com baixa intensidade. É hora de aumentar o peso significativamente.",
-        "lowIntensityNearTarget": "Sua intensidade está baixa. Sugerimos aumentar levemente o peso e manter as repetições atuais para estimular melhor o músculo.",
+        "targetReached": "Você atingiu as repetições alvo com intensidade moderada. Vamos aumentar o peso para continuar o progresso.",
+        "closeToTarget": "Você está próximo das repetições alvo. Para este treino, sugerimos aumentar ligeiramente o peso e manter as repetições.",
+        "increaseReps": "Continue aumentando gradualmente as repetições com este peso.",
+        "lowIntensityHighReps": "Você alcançou as repetições alvo com baixa intensidade. É hora de aumentar significativamente o peso.",
+        "lowIntensityNearTarget": "Sua intensidade está baixa. Sugerimos aumentar ligeiramente o peso e manter suas repetições atuais para estimular melhor o músculo.",
         "lowIntensityLowReps": "Sua intensidade está baixa. Recomendamos um aumento significativo nas repetições."
+      },
+      "bodyweight": {
+        "highReps": "Você alcançou um bom número de repetições. Aumente a dificuldade do exercício ou reduza o tempo de descanso entre séries.",
+        "addSet": "Adicione mais uma série para aumentar o volume de treino e estimular novo crescimento muscular.",
+        "increaseReps": "Aumente as repetições em todas as séries para progredir neste exercício de peso corporal.",
+        "highRepsNoWeight": "Reduza o tempo de descanso entre séries para aumentar a intensidade do exercício.",
+        "mediumReps": "Continue aumentando o número de repetições em cada série gradualmente.",
+        "lowReps": "Foque em aumentar gradualmente as repetições mantendo a qualidade técnica do movimento."
       }
     }
   },

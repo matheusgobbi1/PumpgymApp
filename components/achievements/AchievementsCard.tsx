@@ -31,30 +31,44 @@ interface AchievementItem {
 }
 
 const StatCard = memo(
-  ({ icon, iconColor, label, value, delay, bgColor }: any) => (
-    <View
-      style={[
-        styles.statCard,
-        {
-          backgroundColor: bgColor,
-          borderColor: bgColor,
-        },
-      ]}
-    >
+  ({ icon, iconColor, label, value, delay, bgColor }: any) => {
+    // Obter o tema atual para usar cores apropriadas
+    const { theme } = useTheme();
+    const colors = Colors[theme];
+
+    // Definir cor da borda baseada no tema
+    const borderColor =
+      theme === "light" ? "rgba(0, 0, 0, 0.1)" : "rgba(255, 255, 255, 0.1)";
+
+    return (
       <View
         style={[
-          styles.statIconContainer,
-          { backgroundColor: iconColor + "15" },
+          styles.statCard,
+          {
+            backgroundColor: bgColor,
+            borderColor: borderColor,
+          },
         ]}
       >
-        <MaterialCommunityIcons name={icon} size={20} color={iconColor} />
+        <View
+          style={[
+            styles.statIconContainer,
+            { backgroundColor: iconColor + "15" },
+          ]}
+        >
+          <MaterialCommunityIcons name={icon} size={20} color={iconColor} />
+        </View>
+        <View style={styles.statTextContainer}>
+          <Text style={[styles.statLabel, { color: colors.text + "70" }]}>
+            {label}
+          </Text>
+          <Text style={[styles.statValue, { color: colors.text }]}>
+            {value}
+          </Text>
+        </View>
       </View>
-      <View style={styles.statTextContainer}>
-        <Text style={[styles.statLabel, { color: "#FFFFFF70" }]}>{label}</Text>
-        <Text style={[styles.statValue, { color: "#FFFFFF" }]}>{value}</Text>
-      </View>
-    </View>
-  )
+    );
+  }
 );
 
 const AchievementsCard: React.FC<AchievementsCardProps> = ({ onPress }) => {
@@ -523,7 +537,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(0, 0, 0, 0.1)",
   },
   statIconContainer: {
     width: 32,

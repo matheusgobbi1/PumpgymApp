@@ -413,7 +413,7 @@ export default function HomeScreen() {
           contentContainerStyle={[
             styles.scrollContent,
             // Adicionar padding top para compensar header e abas
-            { paddingTop: totalHeaderAndTabsHeight + 16 }, // +16 de padding original
+            { paddingTop: totalHeaderAndTabsHeight + 5}, // +16 de padding original
           ]}
           showsVerticalScrollIndicator={false}
         >
@@ -489,7 +489,7 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     paddingHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 8,
   },
   bottomPadding: {
     height: 80, // Altura suficiente para ficar acima da bottom tab

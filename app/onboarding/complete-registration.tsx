@@ -32,6 +32,7 @@ import {
   getPasswordStrengthText,
 } from "../../utils/validations";
 import { ErrorMessage } from "../../components/common/ErrorMessage";
+import Constants from "expo-constants";
 
 const { width, height } = Dimensions.get("window");
 
@@ -40,7 +41,8 @@ export default function CompleteRegistrationScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = Colors[theme];
-  const { completeAnonymousRegistration, isAnonymous } = useAuth();
+  const { completeAnonymousRegistration, isAnonymous, loginWithApple } =
+    useAuth();
 
   // Referência para o ScrollView
   const scrollViewRef = useRef<ScrollView>(null);
@@ -65,6 +67,9 @@ export default function CompleteRegistrationScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formStep, setFormStep] = useState(1);
   const [passwordStrength, setPasswordStrength] = useState(0);
+
+  // Verificar se estamos no Expo Go para exibir mensagem adequada
+  const isExpoGo = Constants.executionEnvironment === "standalone";
 
   const handlePasswordChange = (text: string) => {
     setPassword(text);
@@ -130,8 +135,44 @@ export default function CompleteRegistrationScreen() {
     }
   };
 
-  const handleSocialLogin = (provider: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const handleSocialLogin = async (provider: string) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      // Verificar se estamos em modo de desenvolvimento Expo Go
+      if (isExpoGo) {
+        setError(`Login com ${provider} só funciona em builds nativos do app`);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        return;
+      }
+
+      // Verificar se está tentando usar Apple em um dispositivo Android
+      if (provider === "Apple" && Platform.OS === "android") {
+        setError("Login com Apple não está disponível em dispositivos Android");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        return;
+      }
+
+      setLoading(true);
+      setError("");
+
+      if (provider === "Apple") {
+        await loginWithApple();
+      }
+    } catch (err: any) {
+      if (err.code === "auth/email-already-in-use") {
+        setError(t("completeRegistration.errors.emailInUse"));
+      } else if (err.code === "auth/invalid-email") {
+        setError(t("completeRegistration.errors.invalidEmail"));
+      } else if (err.code === "auth/weak-password") {
+        setError(t("completeRegistration.errors.weakPassword"));
+      } else {
+        setError(t("completeRegistration.errors.generic"));
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const nextStep = () => {
@@ -513,26 +554,6 @@ export default function CompleteRegistrationScreen() {
 
                       <View style={styles.socialButtonsContainer}>
                         <TouchableOpacity
-                          key={`google-button-${theme}`}
-                          style={[
-                            styles.socialButton,
-                            {
-                              backgroundColor:
-                                theme === "dark" ? "#333" : "#f5f5f5",
-                              borderColor:
-                                theme === "dark" ? "#444" : "#e0e0e0",
-                            },
-                          ]}
-                          onPress={() => handleSocialLogin("Google")}
-                        >
-                          <Ionicons
-                            name="logo-google"
-                            size={20}
-                            color="#DB4437"
-                          />
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
                           key={`apple-button-${theme}`}
                           style={[
                             styles.socialButton,
@@ -542,6 +563,8 @@ export default function CompleteRegistrationScreen() {
                               borderColor:
                                 theme === "dark" ? "#444" : "#e0e0e0",
                             },
+                            Platform.OS === "android" &&
+                              styles.socialButtonDisabled,
                           ]}
                           onPress={() => handleSocialLogin("Apple")}
                         >
@@ -550,6 +573,11 @@ export default function CompleteRegistrationScreen() {
                             size={20}
                             color={theme === "dark" ? "#fff" : "#000"}
                           />
+                          {Platform.OS === "android" && (
+                            <View style={styles.iosOnlyBadge}>
+                              <Text style={styles.iosOnlyText}>iOS</Text>
+                            </View>
+                          )}
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -851,10 +879,11 @@ const styles = StyleSheet.create({
   socialButtonsContainer: {
     flexDirection: "row",
     justifyContent: "center",
+    alignItems: "center",
     gap: 16,
   },
   socialButton: {
-    width: 56,
+    width: "80%",
     height: 56,
     borderRadius: 28,
     justifyContent: "center",
@@ -931,5 +960,22 @@ const styles = StyleSheet.create({
   },
   termsLink: {
     fontWeight: "bold",
+  },
+  socialButtonDisabled: {
+    backgroundColor: "#e0e0e0",
+    borderColor: "#e0e0e0",
+  },
+  iosOnlyBadge: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    backgroundColor: "#007bff",
+    borderRadius: 12,
+    padding: 2,
+  },
+  iosOnlyText: {
+    fontSize: 10,
+    fontWeight: "bold",
+    color: "white",
   },
 });

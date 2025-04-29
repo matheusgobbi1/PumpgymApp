@@ -47,8 +47,9 @@ export interface Exercise {
   notes?: string;
   cardioDuration?: number; // Duração em minutos para exercícios de cardio
   cardioIntensity?: number; // Intensidade de 1-10 para exercícios de cardio
-  category?: "força" | "cardio" | "flexibilidade" | "equilíbrio"; // Categoria do exercício
+  category?: "força" | "cardio" | "flexibilidade" | "equilíbrio" | "crossfit"; // Categoria do exercício
   completed?: boolean;
+  isBodyweightExercise?: boolean; // Indica se é um exercício de peso corporal
 }
 
 // Interface para treino (workout)

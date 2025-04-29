@@ -6,20 +6,38 @@ import React, {
   useCallback,
 } from "react";
 import {
-  createUserWithEmailAndPassword,
+  getAuth,
   signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-  fetchSignInMethodsForEmail,
-  getIdToken,
-  signInAnonymously as signInAnonymouslyFirebase,
+  createUserWithEmailAndPassword,
+  signOut as authSignOut,
+  User as FirebaseUser,
+  Auth as FirebaseAuth,
   updateProfile,
-  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
-  type User as FirebaseUser,
-  type Auth as FirebaseAuth,
+  onAuthStateChanged,
+  getIdToken,
+  signInWithCredential,
+  sendPasswordResetEmail as sendPasswordResetEmailFirebase,
+  EmailAuthProvider,
+  linkWithCredential,
+  signInAnonymously as signInAnonymouslyFirebase,
+  updateEmail,
+  updatePassword,
+  fetchSignInMethodsForEmail,
+  OAuthProvider,
   type AuthError as FirebaseAuthError,
 } from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp,
+  updateDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { auth, db } from "../firebase/config";
 import { useRouter } from "expo-router";
 import {
@@ -32,10 +50,15 @@ import {
 } from "../firebase/storage";
 import { OfflineStorage } from "../services/OfflineStorage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getFirestore } from "firebase/firestore";
 import { KEYS } from "../constants/keys";
 import { FirebaseError } from "firebase/app";
 import NetInfo from "@react-native-community/netinfo";
+import * as AppleAuthentication from "expo-apple-authentication";
+import { Platform } from "react-native";
+import Constants from "expo-constants";
+
+// Verificar se estamos em um build nativo ou Expo Go
+const isExpoGo = Constants.executionEnvironment === "standalone";
 
 // Garantir que auth é do tipo FirebaseAuth
 const firebaseAuth: FirebaseAuth = auth;
@@ -68,6 +91,7 @@ interface AuthContextType {
   isRestoringSession: boolean;
   navigationAttempted: boolean;
   sendPasswordResetEmail: (email: string) => Promise<void>;
+  loginWithApple: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -945,7 +969,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       // Depois fazer logout no Firebase
-      await firebaseSignOut(firebaseAuth);
+      await authSignOut(firebaseAuth);
 
       // Limpar estados locais
       setUser(null);
@@ -972,9 +996,111 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       // Enviar email de redefinição
-      await firebaseSendPasswordResetEmail(firebaseAuth, email);
+      await sendPasswordResetEmailFirebase(firebaseAuth, email);
     } catch (error) {
       throw error; // Repassar o erro para ser tratado pelo handler
+    }
+  };
+
+  // Login com Apple
+  const loginWithApple = async () => {
+    try {
+      setLoading(true);
+
+      // Verificar se o dispositivo suporta autenticação com Apple
+      const isAvailable = await AppleAuthentication.isAvailableAsync();
+      if (!isAvailable) {
+        throw new Error(
+          "Autenticação com Apple não está disponível neste dispositivo"
+        );
+      }
+
+      // Iniciar o fluxo de autenticação com Apple
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      if (!credential.identityToken) {
+        throw new Error(
+          "Não foi possível obter o token de autenticação da Apple"
+        );
+      }
+
+      // Criar um provedor OAuth para Apple
+      const provider = new OAuthProvider("apple.com");
+
+      // Criar credencial para o Firebase
+      const appleCredential = provider.credential({
+        idToken: credential.identityToken,
+        // O nonce não é necessário em todos os casos, então vamos omiti-lo
+      });
+
+      // Fazer login no Firebase com a credencial da Apple
+      const userCredential = await signInWithCredential(auth, appleCredential);
+      const user = userCredential.user;
+
+      // Determinar o nome de exibição (Apple pode não fornecer em logins subsequentes)
+      const displayName = credential.fullName
+        ? `${credential.fullName.givenName || ""} ${
+            credential.fullName.familyName || ""
+          }`.trim()
+        : user.displayName || "Usuário Apple";
+
+      // Se o nome estiver vazio e o usuário estiver definido, atualizar o perfil
+      if ((!user.displayName || user.displayName === "") && displayName) {
+        await updateProfile(user, { displayName });
+      }
+
+      // Verificar se é a primeira vez que o usuário faz login
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      const isNewUserSignup = !userDoc.exists();
+      const onboardingCompleted = userDoc.data()?.onboardingCompleted ?? false;
+
+      // Salvar token de autenticação
+      const idToken = await getIdToken(user);
+      await saveAuthToken(idToken);
+
+      // Se for novo usuário, criar documento no Firestore
+      if (isNewUserSignup) {
+        await setDoc(doc(db, "users", user.uid), {
+          name: displayName,
+          email: user.email,
+          photoURL: user.photoURL,
+          createdAt: serverTimestamp(),
+          onboardingCompleted: false,
+          provider: "apple",
+        });
+      }
+
+      // Salvar dados do usuário localmente
+      await saveUserData({
+        uid: user.uid,
+        email: user.email,
+        displayName: displayName,
+        photoURL: user.photoURL,
+        onboardingCompleted: isNewUserSignup ? false : onboardingCompleted,
+        isAnonymous: false,
+      });
+
+      // Atualizar estados
+      setUser(user);
+      setIsAnonymous(false);
+      setIsNewUser(isNewUserSignup || !onboardingCompleted);
+
+      // Redirecionar baseado no status do onboarding
+      if (isNewUserSignup || !onboardingCompleted) {
+        router.replace("/onboarding/gender");
+      } else {
+        router.replace("/(tabs)");
+      }
+    } catch (error) {
+      console.error("Erro no login com Apple:", error);
+      throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1000,6 +1126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     isRestoringSession,
     navigationAttempted,
     sendPasswordResetEmail,
+    loginWithApple,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

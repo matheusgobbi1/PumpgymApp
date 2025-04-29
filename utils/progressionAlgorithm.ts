@@ -35,9 +35,11 @@ export interface ExerciseHistory {
 
 // Constantes para limites do algoritmo
 const MAX_REST_TIME = 180; // Máximo de 3 minutos (180s) de descanso
-const MAX_REPS = 12; // Máximo de repetições recomendadas
+const MAX_REPS = 12; // Máximo de repetições recomendadas para exercícios normais
+const MAX_BW_REPS = 20; // Máximo de repetições recomendadas para exercícios bodyweight
 const MIN_REST_TIME = 30; // Mínimo de 30s de descanso
 const OPTIMAL_RIR_RANGE = { min: 0, max: 2 }; // RIR ideal entre 0-2 para hipertrofia
+const BODYWEIGHT_WEIGHT = 0; // Valor para indicar que é um exercício bodyweight (sem peso adicional)
 
 // Função para obter a tradução de uma chave
 function getTranslation(key: string): string {
@@ -45,10 +47,69 @@ function getTranslation(key: string): string {
   if (!i18next.isInitialized || !i18next.exists(key)) {
     // Retornar última parte da chave como texto de fallback
     const fallbackText = key.split(".").pop() || key;
+
+    // Tratamento especial para textos específicos de bodyweight
+    if (key === "exercise.bodyweight.short") {
+      return "PC"; // Peso Corporal abreviado
+    }
+    if (key === "exercise.bodyweight") {
+      return "Peso Corporal";
+    }
+    if (key === "progression.algorithm.bodyweight.highReps") {
+      return "Aumente a dificuldade do exercício ou reduza o descanso";
+    }
+    if (key === "progression.algorithm.bodyweight.addSet") {
+      return "Adicione mais uma série para aumentar o volume";
+    }
+    if (key === "progression.algorithm.bodyweight.increaseReps") {
+      return "Aumente as repetições para progredir";
+    }
+    if (key === "progression.algorithm.bodyweight.highRepsNoWeight") {
+      return "Reduza o tempo de descanso para aumentar intensidade";
+    }
+    if (key === "progression.algorithm.bodyweight.mediumReps") {
+      return "Continue aumentando repetições";
+    }
+    if (key === "progression.algorithm.bodyweight.lowReps") {
+      return "Aumente gradualmente as repetições";
+    }
+
     return fallbackText;
   }
 
   return i18next.t(key);
+}
+
+/**
+ * Verifica se um exercício é do tipo peso corporal (bodyweight)
+ */
+function isBodyweightExercise(
+  exercise: Exercise,
+  exerciseData?: ExerciseData
+): boolean {
+  // Verificar se há uma flag explícita no exercício
+  if (exercise.isBodyweightExercise !== undefined) {
+    return exercise.isBodyweightExercise;
+  }
+
+  // Verificar se há uma flag explícita nos dados do exercício
+  if (exerciseData?.isBodyweightExercise !== undefined) {
+    return exerciseData.isBodyweightExercise;
+  }
+
+  // Verificar se todas as séries têm peso zero
+  if (exercise.sets && exercise.sets.length > 0) {
+    return exercise.sets.every((set) => set.weight === 0);
+  }
+
+  return false;
+}
+
+/**
+ * Obtém o valor do máximo de repetições adequado com base no tipo de exercício
+ */
+function getMaxReps(exercise: Exercise, exerciseData?: ExerciseData): number {
+  return isBodyweightExercise(exercise, exerciseData) ? MAX_BW_REPS : MAX_REPS;
 }
 
 /**
@@ -432,6 +493,10 @@ export function generateExerciseProgressionWithHistory(
   // Obter informações do exercício do banco de dados
   const exerciseData = exerciseInfo || findExerciseData(exercise);
 
+  // Verificar se é um exercício de peso corporal
+  const isBW = isBodyweightExercise(exercise, exerciseData);
+  const maxExerciseReps = getMaxReps(exercise, exerciseData);
+
   // Definir incremento padrão caso não tenha informações específicas
   let weightIncrement = exerciseData?.weightIncrement || 2.5;
 
@@ -486,222 +551,180 @@ export function generateExerciseProgressionWithHistory(
     });
   }
 
-  // MATRIZ DE QUEBRA DE PLATÔ - DECISÃO INTELIGENTE COM BASE NO TIPO DE PLATÔ
+  // LÓGICA ESPECÍFICA PARA EXERCÍCIOS BODYWEIGHT
+  if (isBW) {
+    // Para exercícios bodyweight, focamos mais em reps, técnica e tempo de descanso
 
-  if (historyAnalysis.isInPlateau) {
-    // CASO 1: Platô com repetições altas - Aumentar o peso
-    if (historyAnalysis.shouldIncreaseWeight) {
-      progressionType = "weight";
-
-      if (historyAnalysis.maxReps >= 12) {
+    // Verificar se já está em platô
+    if (historyAnalysis.isInPlateau) {
+      // CASO 1: Platô com reps altas em exercício bodyweight
+      if (maxReps >= maxExerciseReps * 0.7) {
+        // 70% do máximo de reps (14+ para máximo de 20)
+        progressionType = "technique";
         reasonForSuggestion = getTranslation(
-          "progression.algorithm.plateau.highReps"
+          "progression.algorithm.bodyweight.highReps"
         );
-      } else {
-        reasonForSuggestion = getTranslation(
-          "progression.algorithm.plateau.notHighReps"
-        );
-      }
 
-      suggestedSets.forEach((set, index) => {
-        // Aplicar o incremento padrão
-        set.weight = Math.round((set.weight + weightIncrement) * 2) / 2;
+        suggestedSets.forEach((set, index) => {
+          // Para bodyweight com reps altas, sugerir variações mais difíceis
+          // ou reduzir tempo de descanso para aumentar dificuldade
+          const previousRest = previousSets[index].restTime || 60;
+          set.restTime = Math.max(MIN_REST_TIME, previousRest - 15);
 
-        // Reduzir as repetições para compensar o novo peso
-        const originalReps = previousSets[index].reps;
-        if (originalReps >= 10) {
-          set.reps = Math.max(6, originalReps - 4); // Reduzir em 4, mas manter ao menos 6
-        } else {
-          set.reps = Math.max(5, originalReps - 2); // Reduzir menos para pesos já desafiadores
-        }
+          // Aumentar intensidade através de RIR e esforço percebido
+          if (set.repsInReserve !== undefined) {
+            set.repsInReserve = Math.max(0, set.repsInReserve - 1);
+          }
+          if (set.perceivedEffort !== undefined) {
+            set.perceivedEffort = Math.min(5, set.perceivedEffort + 1);
+          }
 
-        // Ajustar o tempo de descanso (máximo de 3 minutos)
-        const previousRest = previousSets[index].restTime || 60;
-        set.restTime = Math.min(MAX_REST_TIME, previousRest + 15);
-
-        // Última série deve ser levada à falha para garantir estímulo máximo
-        if (index === suggestedSets.length - 1) {
-          set.toFailure = true;
-          if (set.repsInReserve !== undefined) set.repsInReserve = 0;
-        }
-      });
-
-      difficultyLevel = "challenging";
-    }
-
-    // CASO 2: Platô com poucas séries - Adicionar uma série
-    else if (historyAnalysis.shouldAddSet) {
-      progressionType = "sets";
-
-      if (historyAnalysis.repeatedWorkouts >= 2) {
-        reasonForSuggestion = getTranslation(
-          "progression.algorithm.plateau.repeatedWorkouts"
-        );
-      } else {
-        reasonForSuggestion = getTranslation(
-          "progression.algorithm.plateau.needMoreVolume"
-        );
-      }
-
-      // Número máximo de séries é 4
-      if (historyAnalysis.currentSets < 4) {
-        // Ajustar tempos de descanso nas séries existentes para ≤ 3 minutos
-        suggestedSets.forEach((set) => {
-          const currentRest = set.restTime || 60;
-          set.restTime = Math.min(MAX_REST_TIME, currentRest);
+          // Última série até a falha
+          if (index === suggestedSets.length - 1) {
+            set.toFailure = true;
+            if (set.repsInReserve !== undefined) set.repsInReserve = 0;
+          }
         });
-
-        // Adicionar uma nova série baseada na última série
-        const lastSet = previousSets[previousSets.length - 1];
-        const newSet: ExerciseSet = {
-          id: `progset-${Date.now()}-${Math.random()
-            .toString(36)
-            .substring(2, 9)}`,
-          reps: lastSet.reps,
-          weight: lastSet.weight,
-          restTime: Math.min(MAX_REST_TIME, lastSet.restTime || 60),
-          repsInReserve: 0, // Última série com RIR 0
-          perceivedEffort: 5, // Percepção máxima
-          toFailure: true, // Nova série deve ser até a falha
-        };
-
-        // Adicionar a nova série às séries sugeridas
-        suggestedSets.push(newSet);
 
         difficultyLevel = "challenging";
       }
-    }
-
-    // CASO 3: Intensidade baixa - Reduzir descanso e aumentar intensidade
-    else if (historyAnalysis.shouldDecreaseRest) {
-      progressionType = "rest";
-      reasonForSuggestion = getTranslation(
-        "progression.algorithm.plateau.lowIntensity"
-      );
-
-      suggestedSets.forEach((set, index) => {
-        // Reduzir tempo de descanso para aumentar intensidade
-        const previousRest = previousSets[index].restTime || 60;
-        // Reduzir em 15s, mínimo de 30s
-        set.restTime = Math.max(MIN_REST_TIME, previousRest - 15);
-
-        // Marcar a última série como "até a falha" para aumentar intensidade
-        if (index === suggestedSets.length - 1) {
-          set.toFailure = true;
-          if (set.repsInReserve !== undefined) {
-            set.repsInReserve = 0;
-          }
-          if (set.perceivedEffort !== undefined) {
-            set.perceivedEffort = 5;
-          }
-        }
-      });
-
-      difficultyLevel = "challenging";
-    }
-
-    // CASO 4: Platô com baixas repetições - Aumentar repetições
-    else if (historyAnalysis.shouldIncreaseReps) {
-      progressionType = "reps";
-      reasonForSuggestion = getTranslation(
-        "progression.algorithm.plateau.lowReps"
-      );
-
-      suggestedSets.forEach((set, index) => {
-        // Aumentar repetições gradualmente, mas sem ultrapassar o máximo
-        set.reps = Math.min(MAX_REPS, previousSets[index].reps + 2);
-
-        // Garantir que o descanso não ultrapasse 3 minutos
-        if (set.restTime) {
-          set.restTime = Math.min(MAX_REST_TIME, set.restTime);
-        }
-
-        // Última série até a falha
-        if (index === suggestedSets.length - 1) {
-          set.toFailure = true;
-          if (set.repsInReserve !== undefined) set.repsInReserve = 0;
-        }
-      });
-
-      difficultyLevel = "moderate";
-    }
-
-    // CASO 5: Platô de intensidade - Aumentar o ritmo/controlar tempo
-    else if (historyAnalysis.shouldIncreaseTempo) {
-      progressionType = "technique";
-      reasonForSuggestion = getTranslation(
-        "progression.algorithm.plateau.needBetterTechnique"
-      );
-
-      suggestedSets.forEach((set, index) => {
-        // Mantém mesmo peso e reps, mas ajusta parâmetros de intensidade
-        if (set.repsInReserve !== undefined) {
-          set.repsInReserve = Math.max(0, set.repsInReserve - 1);
-        }
-        if (set.perceivedEffort !== undefined) {
-          set.perceivedEffort = Math.min(5, set.perceivedEffort + 1);
-        }
-
-        // Ajustar tempo de descanso sem ultrapassar o limite máximo
-        const previousRest = previousSets[index].restTime || 60;
-        set.restTime = Math.min(
-          MAX_REST_TIME,
-          Math.max(MIN_REST_TIME, previousRest - 10)
+      // CASO 2: Platô com poucas séries - Adicionar uma série
+      else if (historyAnalysis.shouldAddSet) {
+        progressionType = "sets";
+        reasonForSuggestion = getTranslation(
+          "progression.algorithm.bodyweight.addSet"
         );
 
-        // Última série até a falha
-        if (index === suggestedSets.length - 1) {
-          set.toFailure = true;
-          if (set.repsInReserve !== undefined) set.repsInReserve = 0;
+        // Número máximo de séries é 4
+        if (historyAnalysis.currentSets < 4) {
+          // Adicionar uma nova série baseada na última série
+          const lastSet = previousSets[previousSets.length - 1];
+          const newSet: ExerciseSet = {
+            id: `progset-${Date.now()}-${Math.random()
+              .toString(36)
+              .substring(2, 9)}`,
+            reps: lastSet.reps,
+            weight: BODYWEIGHT_WEIGHT, // Peso 0 para bodyweight
+            restTime: Math.min(MAX_REST_TIME, lastSet.restTime || 60),
+            repsInReserve: 0, // Última série com RIR 0
+            perceivedEffort: 5, // Percepção máxima
+            toFailure: true, // Nova série deve ser até a falha
+          };
+
+          // Adicionar a nova série às séries sugeridas
+          suggestedSets.push(newSet);
+          difficultyLevel = "challenging";
         }
-      });
+      }
+      // CASO 3: Platô com baixas repetições - Aumentar repetições
+      else {
+        progressionType = "reps";
+        reasonForSuggestion = getTranslation(
+          "progression.algorithm.bodyweight.increaseReps"
+        );
 
-      difficultyLevel = "moderate";
+        suggestedSets.forEach((set, index) => {
+          // Para bodyweight, podemos aumentar mais repetições por vez
+          set.reps = Math.min(maxExerciseReps, previousSets[index].reps + 2);
+
+          // Última série até a falha
+          if (index === suggestedSets.length - 1) {
+            set.toFailure = true;
+            if (set.repsInReserve !== undefined) set.repsInReserve = 0;
+          }
+        });
+
+        difficultyLevel = "moderate";
+      }
     }
-
-    // CASO PADRÃO: Progressão combinada leve
+    // Quando não está em platô
     else {
-      progressionType = "combined";
-      reasonForSuggestion = getTranslation(
-        "progression.algorithm.plateau.combined"
-      );
+      // Para repetições altas, focar em reduzir descanso e aumentar intensidade
+      if (maxReps >= maxExerciseReps * 0.75) {
+        // 75% do máximo (15+ para máximo de 20)
+        progressionType = "rest";
+        reasonForSuggestion = getTranslation(
+          "progression.algorithm.bodyweight.highRepsNoWeight"
+        );
 
-      suggestedSets.forEach((set, index) => {
-        // Pequeno ajuste no peso (meio incremento)
-        const halfIncrement = weightIncrement / 2;
-        set.weight = Math.round((set.weight + halfIncrement) * 2) / 2;
+        suggestedSets.forEach((set, index) => {
+          // Reduzir tempo de descanso para aumentar intensidade
+          const previousRest = previousSets[index].restTime || 60;
+          set.restTime = Math.max(MIN_REST_TIME, previousRest - 10);
 
-        // Pequeno ajuste nas repetições sem ultrapassar máximo
-        set.reps = Math.min(MAX_REPS, previousSets[index].reps + 1);
+          // Manter ou aumentar levemente as repetições
+          set.reps = Math.min(maxExerciseReps, previousSets[index].reps + 1);
 
-        // Garantir que o descanso não ultrapasse o limite
-        if (set.restTime) {
-          set.restTime = Math.min(MAX_REST_TIME, set.restTime);
-        }
+          // Última série até a falha
+          if (index === suggestedSets.length - 1) {
+            set.toFailure = true;
+            if (set.repsInReserve !== undefined) set.repsInReserve = 0;
+          }
+        });
 
-        // Última série até a falha
-        if (index === suggestedSets.length - 1) {
-          set.toFailure = true;
-          if (set.repsInReserve !== undefined) set.repsInReserve = 0;
-        }
-      });
+        difficultyLevel = "challenging";
+      }
+      // Para repetições médias, focar em aumentar repetições
+      else if (maxReps >= 8 && maxReps < maxExerciseReps * 0.75) {
+        progressionType = "reps";
+        reasonForSuggestion = getTranslation(
+          "progression.algorithm.bodyweight.mediumReps"
+        );
 
-      difficultyLevel = "moderate";
+        suggestedSets.forEach((set, index) => {
+          // Aumentar repetições de forma mais agressiva
+          set.reps = Math.min(maxExerciseReps, previousSets[index].reps + 2);
+
+          // Última série até a falha
+          if (index === suggestedSets.length - 1) {
+            set.toFailure = true;
+            if (set.repsInReserve !== undefined) set.repsInReserve = 0;
+          }
+        });
+
+        difficultyLevel = "moderate";
+      }
+      // Para repetições baixas, focar em pequenos incrementos
+      else {
+        progressionType = "reps";
+        reasonForSuggestion = getTranslation(
+          "progression.algorithm.bodyweight.lowReps"
+        );
+
+        suggestedSets.forEach((set, index) => {
+          // Aumentar repetições gradualmente
+          set.reps = Math.min(maxExerciseReps, previousSets[index].reps + 1);
+
+          // Última série até a falha
+          if (index === suggestedSets.length - 1) {
+            set.toFailure = true;
+            if (set.repsInReserve !== undefined) set.repsInReserve = 0;
+          }
+        });
+
+        difficultyLevel = "easy";
+      }
     }
 
-    // Se chegamos até aqui com uma progressão de platô, retornamos a sugestão
-    if (progressionType) {
-      return {
-        exerciseId: exercise.id,
-        exerciseName: exercise.name,
-        previousSets,
-        suggestedSets,
-        progressionType,
-        reasonForSuggestion,
-        difficultyLevel,
-      };
-    }
+    // Não permitir peso acima de zero para exercícios bodyweight puros
+    suggestedSets.forEach((set) => {
+      set.weight = BODYWEIGHT_WEIGHT;
+    });
+
+    // Retornar a sugestão para exercícios bodyweight
+    return {
+      exerciseId: exercise.id,
+      exerciseName: exercise.name,
+      previousSets,
+      suggestedSets,
+      progressionType,
+      reasonForSuggestion,
+      difficultyLevel,
+    };
   }
+
+  // MATRIZ DE QUEBRA DE PLATÔ - DECISÃO INTELIGENTE COM BASE NO TIPO DE PLATÔ
+  // (Lógica original para exercícios que não são bodyweight)
 
   // ============ MATRIZ DE DECISÃO PARA DIFERENTES CENÁRIOS ============
   // (Código original para quando não está em platô)
@@ -1179,7 +1202,7 @@ export function generateExerciseProgressionWithHistory(
     }
 
     // Garantir também que as repetições não ultrapassem o máximo
-    set.reps = Math.min(MAX_REPS, set.reps);
+    set.reps = Math.min(maxExerciseReps, set.reps);
   });
 
   return {

@@ -6,8 +6,9 @@ export interface ExerciseData {
   equipment: string;
   imageUrl?: string;
   videoUrl?: string;
-  category: "força" | "cardio" | "flexibilidade" | "equilíbrio";
+  category: "força" | "cardio" | "flexibilidade" | "equilíbrio" | "crossfit";
   weightIncrement: number; // Incremento sugerido para progressão
+  isBodyweightExercise?: boolean; // Indica se o exercício usa o peso corporal como resistência
 }
 
 // Categorias de músculos
@@ -44,6 +45,13 @@ export const equipmentTypes = [
   "Sem equipamento",
   "Piscina",
   "Escada",
+  "Anéis",
+  "Corda",
+  "Paralelas",
+  "Caixa",
+  "Roda",
+  "Quadra",
+  "Parede de escalada",
 ];
 
 // Banco de dados de exercícios
@@ -218,6 +226,7 @@ export const exerciseDatabase: ExerciseData[] = [
     equipment: "Barra",
     category: "força",
     weightIncrement: 2.5, // Incremental com peso corporal ou anilhas menores
+    isBodyweightExercise: true,
   },
   {
     id: "ex106",
@@ -716,6 +725,7 @@ export const exerciseDatabase: ExerciseData[] = [
     equipment: "Roda",
     category: "força",
     weightIncrement: 0, // Sem incremento por ser peso corporal
+    isBodyweightExercise: true,
   },
   {
     id: "ex226",
@@ -852,6 +862,54 @@ export const exerciseDatabase: ExerciseData[] = [
     name: "Spinning",
     muscle: "Cardio",
     equipment: "Bicicleta",
+    category: "cardio",
+    weightIncrement: 0,
+  },
+  {
+    id: "ex246",
+    name: "Pilates",
+    muscle: "Cardio",
+    equipment: "Sem equipamento",
+    category: "cardio",
+    weightIncrement: 0,
+  },
+  {
+    id: "ex247",
+    name: "Futebol",
+    muscle: "Cardio",
+    equipment: "Quadra",
+    category: "cardio",
+    weightIncrement: 0,
+  },
+  {
+    id: "ex248",
+    name: "Tênis",
+    muscle: "Cardio",
+    equipment: "Quadra",
+    category: "cardio",
+    weightIncrement: 0,
+  },
+  {
+    id: "ex249",
+    name: "Escalada",
+    muscle: "Cardio",
+    equipment: "Parede de escalada",
+    category: "cardio",
+    weightIncrement: 0,
+  },
+  {
+    id: "ex250",
+    name: "Basquete",
+    muscle: "Cardio",
+    equipment: "Quadra",
+    category: "cardio",
+    weightIncrement: 0,
+  },
+  {
+    id: "ex251",
+    name: "Vôlei",
+    muscle: "Cardio",
+    equipment: "Quadra",
     category: "cardio",
     weightIncrement: 0,
   },
@@ -1093,7 +1151,8 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Abdômen",
     equipment: "Barra",
     category: "força",
-    weightIncrement: 0, // Sem incremento para peso corporal puro
+    weightIncrement: 0,
+    isBodyweightExercise: true,
   },
   {
     id: "ex097",
@@ -1110,6 +1169,7 @@ export const exerciseDatabase: ExerciseData[] = [
     equipment: "Paralelas",
     category: "força",
     weightIncrement: 2,
+    isBodyweightExercise: true,
   },
   {
     id: "ex100",
@@ -1118,6 +1178,7 @@ export const exerciseDatabase: ExerciseData[] = [
     equipment: "Barra",
     category: "força",
     weightIncrement: 5,
+    isBodyweightExercise: true,
   },
   {
     id: "ex234",
@@ -1133,6 +1194,258 @@ export const exerciseDatabase: ExerciseData[] = [
     muscle: "Lombar",
     equipment: "Barra",
     category: "força",
+    weightIncrement: 10,
+  },
+
+  // Exercícios de CrossFit
+  {
+    id: "cf001",
+    name: "Wall Ball",
+    muscle: "Corpo inteiro",
+    equipment: "Bola",
+    category: "crossfit",
+    weightIncrement: 2,
+  },
+  {
+    id: "cf002",
+    name: "Box Jump",
+    muscle: "Pernas",
+    equipment: "Caixa",
+    category: "crossfit",
+    weightIncrement: 0, // Altura da caixa pode variar
+  },
+  {
+    id: "cf003",
+    name: "Thrusters",
+    muscle: "Corpo inteiro",
+    equipment: "Barra",
+    category: "crossfit",
+    weightIncrement: 5,
+  },
+  {
+    id: "cf004",
+    name: "Burpees",
+    muscle: "Corpo inteiro",
+    equipment: "Sem equipamento",
+    category: "crossfit",
+    weightIncrement: 0,
+    isBodyweightExercise: true,
+  },
+  {
+    id: "cf005",
+    name: "Double Unders",
+    muscle: "Cardio",
+    equipment: "Corda",
+    category: "crossfit",
+    weightIncrement: 0,
+  },
+  {
+    id: "cf006",
+    name: "Toes to Bar",
+    muscle: "Abdômen",
+    equipment: "Barra",
+    category: "crossfit",
+    weightIncrement: 0,
+    isBodyweightExercise: true,
+  },
+  {
+    id: "cf007",
+    name: "Chest to Bar Pull-ups",
+    muscle: "Costas",
+    equipment: "Barra",
+    category: "crossfit",
+    weightIncrement: 0,
+    isBodyweightExercise: true,
+  },
+  {
+    id: "cf008",
+    name: "Handstand Push-ups",
+    muscle: "Ombros",
+    equipment: "Sem equipamento",
+    category: "crossfit",
+    weightIncrement: 0,
+    isBodyweightExercise: true,
+  },
+  {
+    id: "cf009",
+    name: "Pistol Squat",
+    muscle: "Pernas",
+    equipment: "Sem equipamento",
+    category: "crossfit",
+    weightIncrement: 0,
+    isBodyweightExercise: true,
+  },
+  {
+    id: "cf010",
+    name: "Overhead Squat",
+    muscle: "Corpo inteiro",
+    equipment: "Barra",
+    category: "crossfit",
+    weightIncrement: 5,
+  },
+  {
+    id: "cf011",
+    name: "Rowing",
+    muscle: "Cardio",
+    equipment: "Máquina",
+    category: "crossfit",
+    weightIncrement: 0,
+  },
+  {
+    id: "cf012",
+    name: "Assault Bike",
+    muscle: "Cardio",
+    equipment: "Bicicleta",
+    category: "crossfit",
+    weightIncrement: 0,
+  },
+  {
+    id: "cf013",
+    name: "Ring Muscle-up",
+    muscle: "Corpo inteiro",
+    equipment: "Anéis",
+    category: "crossfit",
+    weightIncrement: 0,
+    isBodyweightExercise: true,
+  },
+  {
+    id: "cf014",
+    name: "Bar Muscle-up",
+    muscle: "Corpo inteiro",
+    equipment: "Barra",
+    category: "crossfit",
+    weightIncrement: 0,
+    isBodyweightExercise: true,
+  },
+  {
+    id: "cf015",
+    name: "Rope Climb",
+    muscle: "Corpo inteiro",
+    equipment: "Corda",
+    category: "crossfit",
+    weightIncrement: 0,
+  },
+  {
+    id: "cf016",
+    name: "Kettlebell Snatch",
+    muscle: "Corpo inteiro",
+    equipment: "Kettlebell",
+    category: "crossfit",
+    weightIncrement: 4,
+  },
+  {
+    id: "cf017",
+    name: "Kettlebell Clean",
+    muscle: "Corpo inteiro",
+    equipment: "Kettlebell",
+    category: "crossfit",
+    weightIncrement: 4,
+  },
+  {
+    id: "cf018",
+    name: "Hang Power Clean",
+    muscle: "Corpo inteiro",
+    equipment: "Barra",
+    category: "crossfit",
+    weightIncrement: 5,
+  },
+  {
+    id: "cf019",
+    name: "Power Snatch",
+    muscle: "Corpo inteiro",
+    equipment: "Barra",
+    category: "crossfit",
+    weightIncrement: 5,
+  },
+  {
+    id: "cf020",
+    name: "Strict Press",
+    muscle: "Ombros",
+    equipment: "Barra",
+    category: "crossfit",
+    weightIncrement: 2.5,
+  },
+  {
+    id: "cf021",
+    name: "Push Press",
+    muscle: "Ombros",
+    equipment: "Barra",
+    category: "crossfit",
+    weightIncrement: 5,
+  },
+  {
+    id: "cf022",
+    name: "Air Squat",
+    muscle: "Pernas",
+    equipment: "Sem equipamento",
+    category: "crossfit",
+    weightIncrement: 0,
+    isBodyweightExercise: true,
+  },
+  {
+    id: "cf023",
+    name: "Front Squat",
+    muscle: "Pernas",
+    equipment: "Barra",
+    category: "crossfit",
+    weightIncrement: 5,
+  },
+  {
+    id: "cf024",
+    name: "Sumo Deadlift High Pull",
+    muscle: "Corpo inteiro",
+    equipment: "Barra",
+    category: "crossfit",
+    weightIncrement: 5,
+  },
+  {
+    id: "cf025",
+    name: "GHD Sit-ups",
+    muscle: "Abdômen",
+    equipment: "Máquina",
+    category: "crossfit",
+    weightIncrement: 0,
+  },
+  {
+    id: "cf026",
+    name: "Ring Dips",
+    muscle: "Peito",
+    equipment: "Anéis",
+    category: "crossfit",
+    weightIncrement: 0,
+    isBodyweightExercise: true,
+  },
+  {
+    id: "cf027",
+    name: "Dips",
+    muscle: "Peito",
+    equipment: "Paralelas",
+    category: "crossfit",
+    weightIncrement: 0,
+    isBodyweightExercise: true,
+  },
+  {
+    id: "cf028",
+    name: "Clean and Jerk",
+    muscle: "Corpo inteiro",
+    equipment: "Barra",
+    category: "crossfit",
+    weightIncrement: 5,
+  },
+  {
+    id: "cf029",
+    name: "Split Jerk",
+    muscle: "Corpo inteiro",
+    equipment: "Barra",
+    category: "crossfit",
+    weightIncrement: 5,
+  },
+  {
+    id: "cf030",
+    name: "Deadlift",
+    muscle: "Lombar",
+    equipment: "Barra",
+    category: "crossfit",
     weightIncrement: 10,
   },
 ];
@@ -1166,4 +1479,11 @@ export const getExercisesByEquipment = (equipment: string): ExerciseData[] => {
 // Função para obter exercício por ID
 export const getExerciseById = (id: string): ExerciseData | undefined => {
   return exerciseDatabase.find((exercise) => exercise.id === id);
+};
+
+// Função para obter exercícios de CrossFit
+export const getCrossfitExercises = (): ExerciseData[] => {
+  return exerciseDatabase.filter(
+    (exercise) => exercise.category === "crossfit"
+  );
 };

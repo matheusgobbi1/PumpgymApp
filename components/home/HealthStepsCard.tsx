@@ -849,7 +849,7 @@ const styles = StyleSheet.create({
   },
   touchableArea: {
     flex: 1,
-    padding: 16,
+    padding: 16 ,
   },
   header: {
     flexDirection: "row",

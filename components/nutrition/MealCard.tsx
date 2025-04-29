@@ -185,7 +185,7 @@ const MealCardComponent = ({
           style={[
             styles.swipeAction,
             styles.swipeActionLeft,
-            { backgroundColor: meal.color + "CC" },
+            { backgroundColor: colors.primary + "CC" },
           ]}
           onPress={() => {
             // Fechar o swipeable após a ação
@@ -199,7 +199,7 @@ const MealCardComponent = ({
         </TouchableOpacity>
       </View>
     ),
-    [meal.color, navigateToFoodDetails]
+    [colors.primary, navigateToFoodDetails]
   );
 
   // Função para renderizar as ações de deslize à direita para o card de refeição
@@ -304,6 +304,62 @@ const MealCardComponent = ({
     ]
   );
 
+  // Função auxiliar para formatar a descrição da porção de forma mais natural
+  const formatPortionDescription = useCallback(
+    (food: Food) => {
+      // Se já temos uma descrição de porção formatada, usar
+      if (food.portionDescription) {
+        // Verificar se é um formato de tipo "2x 50g" e se o alimento parece ser baseado em unidades
+        const isMultipleFormat = food.portionDescription.includes("x ");
+        const foodName = food.name.toLowerCase();
+        const isCommonUnitFood =
+          foodName.includes("ovo") ||
+          foodName.includes("cookie") ||
+          foodName.includes("banana") ||
+          foodName.includes("maçã") ||
+          foodName.includes("maca") ||
+          foodName.includes("pão") ||
+          foodName.includes("pera") ||
+          foodName.includes("bolacha") ||
+          foodName.includes("fatia") ||
+          foodName.includes("unidade");
+
+        // Se for um formato "2x algo"
+        if (isMultipleFormat) {
+          // Extrair o multiplicador (número antes do 'x')
+          const multiplier = parseFloat(food.portionDescription.split("x ")[0]);
+          const restOfDescription = food.portionDescription.split("x ")[1];
+
+          // Se for um alimento baseado em unidades
+          if (isCommonUnitFood) {
+            // Determinar a unidade baseada no nome do alimento
+            let unitName = "unidade";
+            if (foodName.includes("fatia")) unitName = "fatia";
+            else if (foodName.includes("pão")) unitName = "unidade";
+
+            // Retornar formato natural: "2 unidades" em vez de "2x 50g"
+            return `${multiplier} ${unitName}${multiplier !== 1 ? "s" : ""}`;
+          }
+          // Se for baseado em gramas (exemplo: "2x 100g")
+          else if (restOfDescription && restOfDescription.includes("g")) {
+            // Extrair o valor em gramas (número antes do 'g')
+            const gramsValue = parseFloat(restOfDescription.replace("g", ""));
+            // Calcular o total em gramas (multiplicador x valor)
+            const totalGrams = multiplier * gramsValue;
+            // Retornar o total em gramas: "200g" em vez de "2x 100g"
+            return `${totalGrams}g`;
+          }
+        }
+
+        return food.portionDescription;
+      }
+
+      // Fallback para o formato padrão
+      return `${food.portion}${t("nutrition.units.gram")}`;
+    },
+    [t]
+  );
+
   const renderFoodItem = useCallback(
     (food: Food, foodIndex: number) => (
       <Swipeable
@@ -351,9 +407,8 @@ const MealCardComponent = ({
                 <Text
                   style={[styles.foodPortion, { color: colors.text + "80" }]}
                 >
-                  {food.portionDescription ||
-                    `${food.portion}${t("nutrition.units.gram")}`}{" "}
-                  • {food.calories} {t("nutrition.units.kcal")}
+                  {formatPortionDescription(food)} • {food.calories}{" "}
+                  {t("nutrition.units.kcal")}
                 </Text>
               </View>
             </View>
@@ -388,6 +443,7 @@ const MealCardComponent = ({
       t,
       activeSwipeable,
       handleSwipeableOpen,
+      formatPortionDescription,
     ]
   );
 

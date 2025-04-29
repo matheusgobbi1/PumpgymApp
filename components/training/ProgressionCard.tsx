@@ -67,66 +67,80 @@ export default function ProgressionCard({
     set: ExerciseSet,
     isNew: boolean = false,
     previousSet?: ExerciseSet
-  ) => (
-    <View
-      key={set.id}
-      style={[
-        styles.setRow,
-        theme === "dark" && { borderTopColor: colors.border },
-      ]}
-    >
-      <View style={styles.setCellContainer}>
-        <Text style={[styles.setCell, { color: colors.text }]}>
-          {set.weight}kg
-          {isNew &&
-            previousSet &&
-            calculateDifference(set.weight, previousSet.weight).value !== 0 && (
-              <Text style={[styles.diffText, { color: workoutColor }]}>
-                {" "}
-                {
-                  calculateDifference(set.weight, previousSet.weight)
-                    .formattedValue
-                }
-              </Text>
-            )}
-        </Text>
-      </View>
+  ) => {
+    // Verificar se é exercício de peso corporal
+    const isBodyweight = set.weight === 0 || set.isBodyweightExercise;
 
-      <View style={styles.setCellContainer}>
-        <Text style={[styles.setCell, { color: colors.text }]}>
-          {set.reps}
-          {isNew &&
-            previousSet &&
-            calculateDifference(set.reps, previousSet.reps).value !== 0 && (
-              <Text style={[styles.diffText, { color: workoutColor }]}>
-                {" "}
-                {calculateDifference(set.reps, previousSet.reps).formattedValue}
-              </Text>
-            )}
-        </Text>
-      </View>
+    return (
+      <View
+        key={set.id}
+        style={[
+          styles.setRow,
+          theme === "dark" && { borderTopColor: colors.border },
+        ]}
+      >
+        <View style={styles.setCellContainer}>
+          <Text style={[styles.setCell, { color: colors.text }]}>
+            {isBodyweight
+              ? t("exercise.bodyweight.short", { defaultValue: "PC" })
+              : `${set.weight}kg`}
+            {isNew &&
+              previousSet &&
+              !isBodyweight && // Não mostrar diferença para exercícios bodyweight
+              calculateDifference(set.weight, previousSet.weight).value !==
+                0 && (
+                <Text style={[styles.diffText, { color: workoutColor }]}>
+                  {" "}
+                  {
+                    calculateDifference(set.weight, previousSet.weight)
+                      .formattedValue
+                  }
+                </Text>
+              )}
+          </Text>
+        </View>
 
-      <View style={styles.setCellContainer}>
-        <Text style={[styles.setCell, { color: colors.text }]}>
-          {set.restTime || 60}s
-          {isNew &&
-            previousSet &&
-            calculateDifference(set.restTime || 60, previousSet.restTime || 60)
-              .value !== 0 && (
-              <Text style={[styles.diffText, { color: workoutColor }]}>
-                {" "}
-                {
-                  calculateDifference(
-                    set.restTime || 60,
-                    previousSet.restTime || 60
-                  ).formattedValue
-                }
-              </Text>
-            )}
-        </Text>
+        <View style={styles.setCellContainer}>
+          <Text style={[styles.setCell, { color: colors.text }]}>
+            {set.reps}
+            {isNew &&
+              previousSet &&
+              calculateDifference(set.reps, previousSet.reps).value !== 0 && (
+                <Text style={[styles.diffText, { color: workoutColor }]}>
+                  {" "}
+                  {
+                    calculateDifference(set.reps, previousSet.reps)
+                      .formattedValue
+                  }
+                </Text>
+              )}
+          </Text>
+        </View>
+
+        <View style={styles.setCellContainer}>
+          <Text style={[styles.setCell, { color: colors.text }]}>
+            {set.restTime || 60}s
+            {isNew &&
+              previousSet &&
+              calculateDifference(
+                set.restTime || 60,
+                previousSet.restTime || 60
+              ).value !== 0 && (
+                <Text style={[styles.diffText, { color: workoutColor }]}>
+                  {" "}
+                  {
+                    calculateDifference(
+                      set.restTime || 60,
+                      previousSet.restTime || 60
+                    ).formattedValue
+                  }
+                </Text>
+              )}
+          </Text>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const toggleExpanded = () => {
     setExpanded(!expanded);

@@ -157,6 +157,52 @@ const removeAccents = (text: string) => {
     .toLowerCase();
 };
 
+// Função para formatar corretamente a descrição da porção
+const formatPortionDescription = (food: any): string => {
+  if (!food.portionDescription) {
+    return `${food.portion}g`;
+  }
+
+  // Verificar se a descrição da porção está no formato "Nx algo"
+  const isMultipleFormat = food.portionDescription.includes("x ");
+  if (!isMultipleFormat) {
+    // Se não for no formato multiplicado, manter o formato original
+    return food.portionDescription;
+  }
+
+  // Extrair partes da descrição
+  const parts = food.portionDescription.split("x ");
+  const multiplier = parseFloat(parts[0]);
+  const description = parts[1];
+
+  // Verificar se é unidade ou peso
+  const isUnitBased =
+    food.name
+      .toLowerCase()
+      .match(/(ovo|cookie|banana|maçã|maca|pão|pera|bolacha|fatia|unidade)/i) ||
+    description.toLowerCase().match(/(unidade|pacote|embalagem|pote|fatia)/i);
+
+  if (isUnitBased) {
+    // Para unidades, manter formato "N unidades"
+    let unitName = "unidade";
+    if (description.toLowerCase().includes("fatia")) {
+      unitName = "fatia";
+    } else if (description.match(/pacote|embalagem|pote/i)) {
+      unitName = description.toLowerCase().replace(/s$/, ""); // Remover 's' se houver
+    }
+
+    return `${multiplier} ${unitName}${multiplier > 1 ? "s" : ""}`;
+  } else if (description.includes("g")) {
+    // Para gramas, calcular o total
+    const gramsValue = parseFloat(description.replace("g", ""));
+    const totalGrams = multiplier * gramsValue;
+    return `${totalGrams}g`;
+  }
+
+  // Para outros casos, manter o formato original
+  return food.portionDescription;
+};
+
 // Item de alimento recente
 const RecentFoodItem = React.memo(
   ({
@@ -202,7 +248,7 @@ const RecentFoodItem = React.memo(
           </Text>
           <Text style={[styles.recentFoodMeta, { color: colors.text + "80" }]}>
             {food.portionDescription
-              ? `${food.portionDescription} • ${food.calories} kcal`
+              ? `${formatPortionDescription(food)} • ${food.calories} kcal`
               : `${food.portion}g • ${food.calories} kcal`}
           </Text>
         </View>
@@ -452,30 +498,113 @@ export default function AddFoodScreen() {
     }) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      const newFood: Food = {
-        id: uuidv4(),
-        name: food.name,
-        calories: food.calories,
-        protein: food.protein,
-        carbs: food.carbs,
-        fat: food.fat,
-        portion: food.portion,
-      };
+      // Verificar se já existe um alimento com este nome na refeição atual
+      const currentFoods = meals[selectedDate]?.[mealId] || [];
+      const existingFood = currentFoods.find(
+        (item) => item.name.toLowerCase() === food.name.toLowerCase()
+      );
 
-      // Adicionar o alimento à refeição
-      addFoodToMeal(mealId, newFood);
+      if (existingFood) {
+        // Se já existe, incrementar a porção em vez de adicionar um novo
+        const updatedFood = {
+          ...existingFood,
+          portion: existingFood.portion + food.portion,
+          calories: Math.round(
+            (existingFood.calories / existingFood.portion) *
+              (existingFood.portion + food.portion)
+          ),
+          protein: parseFloat(
+            (
+              (existingFood.protein / existingFood.portion) *
+              (existingFood.portion + food.portion)
+            ).toFixed(1)
+          ),
+          carbs: parseFloat(
+            (
+              (existingFood.carbs / existingFood.portion) *
+              (existingFood.portion + food.portion)
+            ).toFixed(1)
+          ),
+          fat: parseFloat(
+            (
+              (existingFood.fat / existingFood.portion) *
+              (existingFood.portion + food.portion)
+            ).toFixed(1)
+          ),
+        };
 
-      // Adicionar ao histórico de busca
-      await addToSearchHistory(newFood);
+        // Atualizar a descrição de porção, se existir
+        if (existingFood.portionDescription) {
+          const isMultipleFormat =
+            existingFood.portionDescription.includes("x ");
+          const isUnitBased = existingFood.name
+            .toLowerCase()
+            .match(
+              /(ovo|cookie|banana|maçã|maca|pão|pera|bolacha|fatia|unidade)/i
+            );
 
-      // Mostrar toast de sucesso
-      showToast({
-        message: `${food.name} ${t("nutrition.addFood.addedToMeal")}`,
-        type: "success",
-        position: "bottom",
-      });
+          if (isMultipleFormat) {
+            // Se já está no formato "2x algo", apenas atualizar o número
+            const parts = existingFood.portionDescription.split("x ");
+            const multiplier = parseFloat(parts[0]);
+            updatedFood.portionDescription = `${multiplier + 1}x ${parts[1]}`;
+          } else if (isUnitBased) {
+            // Se for baseado em unidades, criar formato mais natural
+            let unitName = "unidade";
+            if (existingFood.name.toLowerCase().includes("fatia"))
+              unitName = "fatia";
+
+            updatedFood.portionDescription = `2 ${unitName}s`;
+          } else if (existingFood.portionDescription.includes("g")) {
+            // Se for em gramas, atualizar o valor
+            updatedFood.portionDescription = `${updatedFood.portion}g`;
+          }
+        }
+
+        // Adicionar o alimento atualizado à refeição
+        addFoodToMeal(mealId, updatedFood);
+
+        // Mostrar toast de sucesso com mensagem específica para incremento
+        showToast({
+          message: `${food.name} ${t("nutrition.addFood.portionIncreased")}`,
+          type: "success",
+          position: "bottom",
+        });
+      } else {
+        // Se não existir, adicionar como novo alimento
+        const newFood: Food = {
+          id: uuidv4(),
+          name: food.name,
+          calories: food.calories,
+          protein: food.protein,
+          carbs: food.carbs,
+          fat: food.fat,
+          portion: food.portion,
+        };
+
+        // Adicionar o alimento à refeição
+        addFoodToMeal(mealId, newFood);
+
+        // Adicionar ao histórico de busca
+        await addToSearchHistory(newFood);
+
+        // Mostrar toast de sucesso
+        showToast({
+          message: `${food.name} ${t("nutrition.addFood.addedToMeal")}`,
+          type: "success",
+          position: "bottom",
+        });
+      }
     },
-    [mealId, addFoodToMeal, addToSearchHistory, showToast, t]
+    [
+      mealId,
+      addFoodToMeal,
+      addToSearchHistory,
+      showToast,
+      t,
+      meals,
+      selectedDate,
+    ]
   );
 
   // Função para adicionar alimento da pesquisa diretamente
@@ -494,31 +623,133 @@ export default function AddFoodScreen() {
         fat: Math.round(preferredServing.fat * 10) / 10,
       };
 
-      const newFood: Food = {
-        id: uuidv4(),
-        name: food.food_name,
-        calories: calculatedNutrients.calories,
-        protein: calculatedNutrients.protein,
-        carbs: calculatedNutrients.carbs,
-        fat: calculatedNutrients.fat,
-        portion: preferredServing.metric_serving_amount || 100,
-        portionDescription: preferredServing.serving_description,
-      };
+      // Verificar se já existe um alimento com este nome na refeição atual
+      const currentFoods = meals[selectedDate]?.[mealId] || [];
+      const existingFood = currentFoods.find(
+        (item) => item.name.toLowerCase() === food.food_name.toLowerCase()
+      );
 
-      // Adicionar o alimento à refeição
-      addFoodToMeal(mealId, newFood);
+      if (existingFood) {
+        // Se já existe, incrementar a porção em vez de adicionar um novo
+        const newPortion = preferredServing.metric_serving_amount || 100;
+        const updatedFood = {
+          ...existingFood,
+          portion: existingFood.portion + newPortion,
+          calories: Math.round(
+            (existingFood.calories / existingFood.portion) *
+              (existingFood.portion + newPortion)
+          ),
+          protein: parseFloat(
+            (
+              (existingFood.protein / existingFood.portion) *
+              (existingFood.portion + newPortion)
+            ).toFixed(1)
+          ),
+          carbs: parseFloat(
+            (
+              (existingFood.carbs / existingFood.portion) *
+              (existingFood.portion + newPortion)
+            ).toFixed(1)
+          ),
+          fat: parseFloat(
+            (
+              (existingFood.fat / existingFood.portion) *
+              (existingFood.portion + newPortion)
+            ).toFixed(1)
+          ),
+        };
 
-      // Adicionar ao histórico de busca
-      await addToSearchHistory(newFood);
+        // Atualizar a descrição de porção, se existir
+        if (existingFood.portionDescription) {
+          const isMultipleFormat =
+            existingFood.portionDescription.includes("x ");
+          const isUnitBased =
+            existingFood.name
+              .toLowerCase()
+              .match(
+                /(ovo|cookie|banana|maçã|maca|pão|pera|bolacha|fatia|unidade)/i
+              ) ||
+            (preferredServing.serving_description &&
+              (preferredServing.serving_description
+                .toLowerCase()
+                .includes("unidade") ||
+                preferredServing.serving_description
+                  .toLowerCase()
+                  .includes("fatia")));
 
-      // Mostrar toast de sucesso
-      showToast({
-        message: `${food.food_name} ${t("nutrition.addFood.addedToMeal")}`,
-        type: "success",
-        position: "bottom",
-      });
+          if (isMultipleFormat) {
+            // Se já está no formato "2x algo", apenas atualizar o número
+            const parts = existingFood.portionDescription.split("x ");
+            const multiplier = parseFloat(parts[0]);
+            updatedFood.portionDescription = `${multiplier + 1}x ${parts[1]}`;
+          } else if (isUnitBased) {
+            // Se for baseado em unidades, criar formato mais natural
+            let unitName = "unidade";
+            if (
+              existingFood.name.toLowerCase().includes("fatia") ||
+              (preferredServing.serving_description &&
+                preferredServing.serving_description
+                  .toLowerCase()
+                  .includes("fatia"))
+            ) {
+              unitName = "fatia";
+            }
+
+            updatedFood.portionDescription = `2 ${unitName}s`;
+          } else if (existingFood.portionDescription.includes("g")) {
+            // Se for em gramas, atualizar o valor
+            updatedFood.portionDescription = `${updatedFood.portion}g`;
+          }
+        }
+
+        // Adicionar o alimento atualizado à refeição
+        addFoodToMeal(mealId, updatedFood);
+
+        // Mostrar toast de sucesso com mensagem específica para incremento
+        showToast({
+          message: `${food.food_name} ${t(
+            "nutrition.addFood.portionIncreased"
+          )}`,
+          type: "success",
+          position: "bottom",
+        });
+      } else {
+        // Se não existir, adicionar como novo alimento
+        const newFood: Food = {
+          id: uuidv4(),
+          name: food.food_name,
+          calories: calculatedNutrients.calories,
+          protein: calculatedNutrients.protein,
+          carbs: calculatedNutrients.carbs,
+          fat: calculatedNutrients.fat,
+          portion: preferredServing.metric_serving_amount || 100,
+          portionDescription: preferredServing.serving_description,
+        };
+
+        // Adicionar o alimento à refeição
+        addFoodToMeal(mealId, newFood);
+
+        // Adicionar ao histórico de busca
+        await addToSearchHistory(newFood);
+
+        // Mostrar toast de sucesso
+        showToast({
+          message: `${food.food_name} ${t("nutrition.addFood.addedToMeal")}`,
+          type: "success",
+          position: "bottom",
+        });
+      }
     },
-    [mealId, addFoodToMeal, addToSearchHistory, showToast, t]
+    [
+      mealId,
+      addFoodToMeal,
+      addToSearchHistory,
+      showToast,
+      t,
+      getPreferredServing,
+      meals,
+      selectedDate,
+    ]
   );
 
   // Função para obter a porção preferida para exibição
@@ -670,6 +901,7 @@ export default function AddFoodScreen() {
         foodId: tempFoodId,
         mealId,
         mealName,
+        mealColor,
         // Passar dados adicionais para que a tela de detalhes possa exibir mesmo sem buscar na API
         foodName: food.name,
         calories: food.calories,

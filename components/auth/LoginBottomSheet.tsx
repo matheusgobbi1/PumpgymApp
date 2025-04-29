@@ -43,6 +43,7 @@ import { handleLoginError } from "../../utils/errorHandler";
 import { useRouter } from "expo-router";
 import ForgotPasswordModal from "./ForgotPasswordModal";
 import { useToast } from "../../components/common/ToastContext";
+import Constants from "expo-constants";
 
 const { width, height } = Dimensions.get("window");
 
@@ -66,7 +67,7 @@ const LoginBottomSheet = ({
   const { theme } = useTheme();
   const colors = Colors[theme];
   const insets = useSafeAreaInsets();
-  const { login } = useAuth();
+  const { login, loginWithApple } = useAuth();
   const { t } = useTranslation();
   const router = useRouter();
   const { showToast } = useToast();
@@ -96,6 +97,9 @@ const LoginBottomSheet = ({
     email: 10,
     password: 100, // valores aproximados, ajuste conforme necessário
   });
+
+  // Verificar se estamos no Expo Go para exibir mensagem adequada
+  const isExpoGo = Constants.executionEnvironment === "standalone";
 
   // Efeito para controlar a abertura e fechamento do bottom sheet
   useEffect(() => {
@@ -288,14 +292,43 @@ const LoginBottomSheet = ({
     }
   };
 
-  const handleGoogleLogin = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Implementar login com Google
-  };
+  const handleAppleLogin = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-  const handleAppleLogin = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Implementar login com Apple
+      // Verificar se estamos em modo de desenvolvimento Expo Go
+      if (isExpoGo) {
+        showToast({
+          message: "Login com Apple só funciona em builds nativos do app",
+          type: "warning",
+          duration: 4000,
+        });
+        return;
+      }
+
+      // Verificar se o dispositivo é Android
+      if (Platform.OS === "android") {
+        showToast({
+          message:
+            "Login com Apple não está disponível em dispositivos Android",
+          type: "info",
+          duration: 4000,
+        });
+        return;
+      }
+
+      setLoading(true);
+      await loginWithApple();
+    } catch (err) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showToast({
+        message: handleLoginError(err),
+        type: "error",
+        duration: 4000,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Função para atualizar o email sem causar o aviso do Reanimated
@@ -639,21 +672,23 @@ const LoginBottomSheet = ({
             {/* Botões de login social */}
             <View style={styles.socialButtonsContainer}>
               <TouchableOpacity
-                style={[styles.socialButton, styles.appleButton]}
+                style={[
+                  styles.socialButton,
+                  styles.appleButton,
+                  Platform.OS === "android" && styles.appleButtonDisabled,
+                ]}
                 onPress={handleAppleLogin}
-                activeOpacity={0.8}
+                activeOpacity={Platform.OS === "android" ? 1 : 0.8}
               >
                 <FontAwesome name="apple" size={20} color="#FFFFFF" />
                 <Text style={styles.socialButtonText}>Apple</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.socialButton, styles.googleButton]}
-                onPress={handleGoogleLogin}
-                activeOpacity={0.8}
-              >
-                <FontAwesome name="google" size={20} color="#FFFFFF" />
-                <Text style={styles.socialButtonText}>Google</Text>
+                {Platform.OS === "android" && (
+                  <View style={styles.androidDisabledBadge}>
+                    <Text style={styles.androidDisabledBadgeText}>
+                      iOS only
+                    </Text>
+                  </View>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -794,8 +829,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   socialButtonsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
   },
   socialButton: {
@@ -804,19 +839,32 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     height: 48,
     borderRadius: 24,
-    width: "48%",
+    width: "100%",
   },
   appleButton: {
     backgroundColor: "#000000",
   },
-  googleButton: {
-    backgroundColor: "#DB4437",
+  appleButtonDisabled: {
+    backgroundColor: "#333333",
+    opacity: 0.7,
   },
   socialButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 12,
+  },
+  androidDisabledBadge: {
+    backgroundColor: "#999",
+    borderRadius: 12,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    marginLeft: 4,
+  },
+  androidDisabledBadgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
   },
 });
 

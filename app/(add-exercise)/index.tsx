@@ -278,7 +278,11 @@ const RecentExerciseItem = React.memo(
                 } ${exercise.cardioIntensity || 5}/10`
               : `${exercise.sets?.length || 0} séries • ${
                   exercise.sets?.[0]?.reps || 0
-                } reps • ${exercise.sets?.[0]?.weight || 0}kg`}
+                } reps • ${
+                  exercise.isBodyweightExercise
+                    ? t("exercise.bodyweight.short")
+                    : `${exercise.sets?.[0]?.weight || 0}kg`
+                }`}
           </Text>
         </View>
         <TouchableOpacity
@@ -305,6 +309,7 @@ const RecentExerciseItem = React.memo(
               notes: exercise.notes,
               category: exercise.category,
               completed: false,
+              isBodyweightExercise: exercise.isBodyweightExercise,
               sets:
                 exercise.category === "cardio"
                   ? []
@@ -314,6 +319,7 @@ const RecentExerciseItem = React.memo(
                       weight: set.weight,
                       restTime: set.restTime || 60,
                       completed: false,
+                      isBodyweightExercise: exercise.isBodyweightExercise,
                     })),
               // Copiar configurações de cardio se for um exercício de cardio
               cardioDuration:
@@ -403,6 +409,9 @@ const SearchResultItem = React.memo(
           >
             {t(`exercises.muscles.${exercise.muscle}`)} •{" "}
             {t(`exercises.equipment.${exercise.equipment}`)}
+            {exercise.isBodyweightExercise
+              ? " • " + t("exercise.bodyweight")
+              : ""}
           </Text>
         </View>
         <TouchableOpacity
@@ -428,6 +437,7 @@ const SearchResultItem = React.memo(
               name: exerciseName,
               category: exercise.category,
               notes: `${exercise.muscle} - ${exercise.equipment}`,
+              isBodyweightExercise: exercise.isBodyweightExercise,
               sets:
                 exercise.category === "cardio"
                   ? []
@@ -435,23 +445,26 @@ const SearchResultItem = React.memo(
                       {
                         id: `set-${Date.now()}-1`,
                         reps: 12,
-                        weight: 10,
+                        weight: exercise.isBodyweightExercise ? 0 : 10,
                         completed: false,
                         restTime: 60,
+                        isBodyweightExercise: exercise.isBodyweightExercise,
                       },
                       {
                         id: `set-${Date.now()}-2`,
                         reps: 12,
-                        weight: 10,
+                        weight: exercise.isBodyweightExercise ? 0 : 10,
                         completed: false,
                         restTime: 60,
+                        isBodyweightExercise: exercise.isBodyweightExercise,
                       },
                       {
                         id: `set-${Date.now()}-3`,
                         reps: 12,
-                        weight: 10,
+                        weight: exercise.isBodyweightExercise ? 0 : 10,
                         completed: false,
                         restTime: 60,
+                        isBodyweightExercise: exercise.isBodyweightExercise,
                       },
                     ],
               completed: false,
@@ -600,6 +613,7 @@ export default function AddExerciseScreen() {
         name: exerciseName,
         category: exercise.category,
         notes: `${exercise.muscle} - ${exercise.equipment}`,
+        isBodyweightExercise: exercise.isBodyweightExercise,
         sets:
           exercise.category === "cardio"
             ? []
@@ -607,23 +621,26 @@ export default function AddExerciseScreen() {
                 {
                   id: `set-${Date.now()}-1`,
                   reps: 12,
-                  weight: 10,
+                  weight: exercise.isBodyweightExercise ? 0 : 10,
                   completed: false,
                   restTime: 60,
+                  isBodyweightExercise: exercise.isBodyweightExercise,
                 },
                 {
                   id: `set-${Date.now()}-2`,
                   reps: 12,
-                  weight: 10,
+                  weight: exercise.isBodyweightExercise ? 0 : 10,
                   completed: false,
                   restTime: 60,
+                  isBodyweightExercise: exercise.isBodyweightExercise,
                 },
                 {
                   id: `set-${Date.now()}-3`,
                   reps: 12,
-                  weight: 10,
+                  weight: exercise.isBodyweightExercise ? 0 : 10,
                   completed: false,
                   restTime: 60,
+                  isBodyweightExercise: exercise.isBodyweightExercise,
                 },
               ],
         completed: false,
@@ -674,6 +691,9 @@ export default function AddExerciseScreen() {
             exerciseId: exercise.id,
             workoutId,
             workoutColor,
+            isBodyweightExercise: exercise.isBodyweightExercise
+              ? "true"
+              : "false",
           },
         });
       }

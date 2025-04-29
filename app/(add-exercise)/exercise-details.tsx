@@ -35,6 +35,7 @@ interface ExerciseSet {
   toFailure?: boolean;
   repsInReserve?: number;
   perceivedEffort?: number;
+  isBodyweightExercise?: boolean;
 }
 
 // Componente para o esqueleto de carregamento
@@ -72,17 +73,25 @@ const SetCard = ({
   onUpdate,
   onRemove,
   color,
+  isBodyweightExercise: parentIsBodyweightExercise,
 }: {
   set: ExerciseSet;
   index: number;
   onUpdate: (updatedSet: ExerciseSet) => void;
   onRemove: () => void;
   color: string;
+  isBodyweightExercise?: boolean;
 }) => {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
+
+  // Use o valor de isBodyweightExercise da série individual com prioridade, ou use o valor do pai se não estiver definido
+  const isBodyweightExercise =
+    set.isBodyweightExercise !== undefined
+      ? set.isBodyweightExercise
+      : parentIsBodyweightExercise;
 
   // Referências para os inputs
   const repsInputRef = useRef<TextInput>(null);
@@ -120,7 +129,11 @@ const SetCard = ({
       ? weight.toString().replace(".", ",")
       : weight.toString();
     setWeightInput(displayValue);
-    onUpdate({ ...set, weight });
+    onUpdate({
+      ...set,
+      weight,
+      isBodyweightExercise, // Garantir que a propriedade isBodyweightExercise seja preservada
+    });
   };
 
   // Função para atualizar o tempo de descanso
@@ -139,13 +152,18 @@ const SetCard = ({
       ...set,
       repsInReserve: value,
       toFailure: isFailure,
+      isBodyweightExercise, // Garantir que a propriedade isBodyweightExercise seja preservada
     });
   };
 
   // Função para atualizar percepção de esforço com slider
   const handlePerceivedEffortChange = (value: number) => {
     setPerceivedEffort(value);
-    onUpdate({ ...set, perceivedEffort: value });
+    onUpdate({
+      ...set,
+      perceivedEffort: value,
+      isBodyweightExercise, // Garantir que a propriedade isBodyweightExercise seja preservada
+    });
   };
 
   // Função para validar e atualizar as repetições a partir da entrada de texto
@@ -157,7 +175,11 @@ const SetCard = ({
     if (!isNaN(numValue)) {
       // Limitar entre 1 e 50
       const validReps = Math.min(50, Math.max(1, numValue));
-      onUpdate({ ...set, reps: validReps });
+      onUpdate({
+        ...set,
+        reps: validReps,
+        isBodyweightExercise, // Garantir que a propriedade isBodyweightExercise seja preservada
+      });
     }
   };
 
@@ -172,7 +194,11 @@ const SetCard = ({
     if (!isNaN(numValue)) {
       // Limitar entre 0 e 500
       const validWeight = Math.min(500, Math.max(0, numValue));
-      onUpdate({ ...set, weight: validWeight });
+      onUpdate({
+        ...set,
+        weight: validWeight,
+        isBodyweightExercise,
+      });
     }
   };
 
@@ -185,7 +211,11 @@ const SetCard = ({
     if (!isNaN(numValue)) {
       // Limitar entre 60 e 300 segundos (5 minutos)
       const validRestTime = Math.min(300, Math.max(60, numValue));
-      onUpdate({ ...set, restTime: validRestTime });
+      onUpdate({
+        ...set,
+        restTime: validRestTime,
+        isBodyweightExercise, // Garantir que a propriedade isBodyweightExercise seja preservada
+      });
     }
   };
 
@@ -199,12 +229,20 @@ const SetCard = ({
       if (isNaN(numValue) || numValue < 1) {
         // Se for inválido, resetar para 1
         setRepsInput("1");
-        onUpdate({ ...set, reps: 1 });
+        onUpdate({
+          ...set,
+          reps: 1,
+          isBodyweightExercise,
+        });
       } else {
         // Limitar entre 1 e 50
         const validReps = Math.min(50, Math.max(1, numValue));
         setRepsInput(validReps.toString());
-        onUpdate({ ...set, reps: validReps });
+        onUpdate({
+          ...set,
+          reps: validReps,
+          isBodyweightExercise,
+        });
       }
     } else if (type === "weight") {
       // Substituir vírgula por ponto para processamento correto
@@ -213,7 +251,11 @@ const SetCard = ({
       if (isNaN(numValue) || numValue < 0) {
         // Se for inválido, resetar para 0
         setWeightInput("0");
-        onUpdate({ ...set, weight: 0 });
+        onUpdate({
+          ...set,
+          weight: 0,
+          isBodyweightExercise,
+        });
       } else {
         // Limitar entre 0 e 500
         const validWeight = Math.min(500, Math.max(0, numValue));
@@ -222,19 +264,31 @@ const SetCard = ({
           ? validWeight.toFixed(1).replace(".", ",")
           : validWeight.toFixed(1);
         setWeightInput(displayValue);
-        onUpdate({ ...set, weight: validWeight });
+        onUpdate({
+          ...set,
+          weight: validWeight,
+          isBodyweightExercise,
+        });
       }
     } else if (type === "restTime") {
       const numValue = parseInt(restTimeInput);
       if (isNaN(numValue) || numValue < 60) {
         // Se for inválido, resetar para 60 segundos
         setRestTimeInput("60");
-        onUpdate({ ...set, restTime: 60 });
+        onUpdate({
+          ...set,
+          restTime: 60,
+          isBodyweightExercise,
+        });
       } else {
         // Limitar entre 60 e 300 segundos (5 minutos)
         const validRestTime = Math.min(300, Math.max(60, numValue));
         setRestTimeInput(validRestTime.toString());
-        onUpdate({ ...set, restTime: validRestTime });
+        onUpdate({
+          ...set,
+          restTime: validRestTime,
+          isBodyweightExercise,
+        });
       }
     }
   };
@@ -288,7 +342,10 @@ const SetCard = ({
             <Text
               style={[styles.setSummaryText, { color: colors.text + "80" }]}
             >
-              {set.reps} {t("exercise.reps")} × {set.weight} kg
+              {set.reps} {t("exercise.reps")} ×{" "}
+              {isBodyweightExercise || set.weight === 0
+                ? t("exercise.bodyweight.short", { defaultValue: "PC" })
+                : `${set.weight} kg`}
               {toFailure && (
                 <Text style={[styles.failureIndicator, { color: color }]}>
                   {" "}
@@ -416,7 +473,7 @@ const SetCard = ({
                 </View>
               </MotiView>
 
-              {/* Peso */}
+              {/* Peso - Mostrar controle para exercícios normais ou texto "Peso Corporal" para exercícios de peso corporal */}
               <MotiView
                 from={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -428,50 +485,76 @@ const SetCard = ({
                     {t("exercise.weight")}
                   </Text>
                 </View>
-                <View
-                  style={[
-                    styles.setMetricControls,
-                    {
-                      backgroundColor: colors.background + "80",
-                      borderRadius: 10,
-                    },
-                  ]}
-                >
-                  <TouchableOpacity
-                    style={[
-                      styles.setMetricButton,
-                      { backgroundColor: color + "15" },
-                    ]}
-                    onPress={() =>
-                      handleWeightChange(Math.max(0, set.weight - 2.5))
-                    }
-                  >
-                    <Ionicons name="remove" size={18} color={color} />
-                  </TouchableOpacity>
 
-                  <TextInput
-                    ref={weightInputRef}
-                    style={[styles.setMetricValue, { color: colors.text }]}
-                    value={weightInput}
-                    onChangeText={handleWeightInputChange}
-                    onBlur={() => handleInputBlur("weight")}
-                    keyboardType="decimal-pad"
-                    maxLength={7}
-                    selectTextOnFocus
-                  />
-
-                  <TouchableOpacity
+                {isBodyweightExercise ? (
+                  <View
                     style={[
-                      styles.setMetricButton,
-                      { backgroundColor: color + "15" },
+                      styles.bodyweightContainer,
+                      {
+                        backgroundColor: colors.background + "80",
+                        borderRadius: 10,
+                        padding: 6,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        height: 48,
+                      },
                     ]}
-                    onPress={() =>
-                      handleWeightChange(Math.min(500, set.weight + 2.5))
-                    }
                   >
-                    <Ionicons name="add" size={18} color={color} />
-                  </TouchableOpacity>
-                </View>
+                    <Text
+                      style={[
+                        styles.bodyweightText,
+                        { color: colors.text, fontWeight: "600", fontSize: 16 },
+                      ]}
+                    >
+                      {t("exercise.bodyweight")}
+                    </Text>
+                  </View>
+                ) : (
+                  <View
+                    style={[
+                      styles.setMetricControls,
+                      {
+                        backgroundColor: colors.background + "80",
+                        borderRadius: 10,
+                      },
+                    ]}
+                  >
+                    <TouchableOpacity
+                      style={[
+                        styles.setMetricButton,
+                        { backgroundColor: color + "15" },
+                      ]}
+                      onPress={() =>
+                        handleWeightChange(Math.max(0, set.weight - 2.5))
+                      }
+                    >
+                      <Ionicons name="remove" size={18} color={color} />
+                    </TouchableOpacity>
+
+                    <TextInput
+                      ref={weightInputRef}
+                      style={[styles.setMetricValue, { color: colors.text }]}
+                      value={weightInput}
+                      onChangeText={handleWeightInputChange}
+                      onBlur={() => handleInputBlur("weight")}
+                      keyboardType="decimal-pad"
+                      maxLength={7}
+                      selectTextOnFocus
+                    />
+
+                    <TouchableOpacity
+                      style={[
+                        styles.setMetricButton,
+                        { backgroundColor: color + "15" },
+                      ]}
+                      onPress={() =>
+                        handleWeightChange(Math.min(500, set.weight + 2.5))
+                      }
+                    >
+                      <Ionicons name="add" size={18} color={color} />
+                    </TouchableOpacity>
+                  </View>
+                )}
               </MotiView>
             </View>
           </MotiView>
@@ -882,6 +965,7 @@ const ExerciseDetailsScreen = () => {
   const workoutColor = (params.workoutColor as string) || colors.primary;
   const mode = params.mode as string;
   const exerciseDataParam = params.exerciseData as string;
+  const urlIsBodyweightExercise = params.isBodyweightExercise as string;
   // Verificar se estamos vindo da tela de histórico de exercícios recentes
   const fromRecent = params.fromRecent === "true";
 
@@ -902,6 +986,12 @@ const ExerciseDetailsScreen = () => {
   // Estados adicionais para cardio
   const [cardioDuration, setCardioDuration] = useState(30);
   const [cardioIntensity, setCardioIntensity] = useState(5);
+
+  // Adicionar um estado para rastrear se o exercício é de peso corporal
+  // Inicializar com o valor da URL se disponível
+  const [isBodyweightExercise, setIsBodyweightExercise] = useState(
+    urlIsBodyweightExercise === "true"
+  );
 
   // Verificar se é um exercício personalizado
   const isCustomExercise = !exercise && customName;
@@ -925,8 +1015,17 @@ const ExerciseDetailsScreen = () => {
             setNotes(exerciseData.notes);
           }
 
+          // Definir o estado de exercício de peso corporal
+          const isBodyweight = !!exerciseData.isBodyweightExercise;
+          setIsBodyweightExercise(isBodyweight);
+
           if (exerciseData.sets && exerciseData.sets.length > 0) {
-            setSets(exerciseData.sets);
+            // Garantir que todas as séries tenham a propriedade isBodyweightExercise
+            const updatedSets = exerciseData.sets.map((set: ExerciseSet) => ({
+              ...set,
+              isBodyweightExercise: isBodyweight,
+            }));
+            setSets(updatedSets);
           } else if (exerciseData.category !== "cardio") {
             // Adicionar uma série inicial se não for cardio
             addNewSet();
@@ -942,12 +1041,33 @@ const ExerciseDetailsScreen = () => {
             const dbExercise = getExerciseById(exerciseId);
             if (dbExercise) {
               setExercise(dbExercise);
+
+              // Manter a informação de isBodyweightExercise do exerciseData que veio do WorkoutContext
+              // apenas usar o valor do banco de dados se não existir no exerciseData
+              const shouldBeBodyweight =
+                exerciseData.isBodyweightExercise !== undefined
+                  ? !!exerciseData.isBodyweightExercise
+                  : !!dbExercise.isBodyweightExercise;
+
+              setIsBodyweightExercise(shouldBeBodyweight);
+
+              // Atualizar todas as séries com a informação correta de isBodyweightExercise
+              if (exerciseData.sets && exerciseData.sets.length > 0) {
+                setSets((prevSets) =>
+                  prevSets.map((set: ExerciseSet) => ({
+                    ...set,
+                    isBodyweightExercise: shouldBeBodyweight,
+                  }))
+                );
+              }
             }
           }
 
           setIsLoading(false);
           return;
-        } catch (error) {}
+        } catch (error) {
+          console.error("Erro ao analisar os dados do exercício:", error);
+        }
       }
 
       // Fluxo normal se não estivermos editando
@@ -957,7 +1077,13 @@ const ExerciseDetailsScreen = () => {
 
         if (exerciseData) {
           setExercise(exerciseData);
-          setNotes(`${exerciseData.muscle} - ${exerciseData.equipment}`);
+          setNotes("");
+
+          // Usar isBodyweightExercise do exercício do banco de dados ou da URL
+          const isBodyweight =
+            urlIsBodyweightExercise === "true" ||
+            !!exerciseData.isBodyweightExercise;
+          setIsBodyweightExercise(isBodyweight);
 
           // Adicionar uma série inicial
           addNewSet();
@@ -967,6 +1093,7 @@ const ExerciseDetailsScreen = () => {
         addNewSet();
       }
     } catch (error) {
+      console.error("Erro ao carregar detalhes do exercício:", error);
     } finally {
       setIsLoading(false);
     }
@@ -982,11 +1109,12 @@ const ExerciseDetailsScreen = () => {
     const newSet: ExerciseSet = {
       id: `set-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       reps: 12,
-      weight: 10,
+      weight: isBodyweightExercise ? 0 : 10,
       restTime: 60,
       toFailure: false,
       repsInReserve: 2,
       perceivedEffort: 3,
+      isBodyweightExercise: isBodyweightExercise,
     };
 
     setSets((prevSets) => [...prevSets, newSet]);
@@ -1006,6 +1134,7 @@ const ExerciseDetailsScreen = () => {
       const newSet: ExerciseSet = {
         ...lastSet,
         id: `set-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        isBodyweightExercise: isBodyweightExercise,
       };
 
       // Feedback tátil
@@ -1019,7 +1148,11 @@ const ExerciseDetailsScreen = () => {
   const updateSet = (index: number, updatedSet: ExerciseSet) => {
     setSets((prevSets) => {
       const newSets = [...prevSets];
-      newSets[index] = updatedSet;
+      // Garantir que a propriedade isBodyweightExercise seja mantida
+      newSets[index] = {
+        ...updatedSet,
+        isBodyweightExercise: isBodyweightExercise,
+      };
       return newSets;
     });
   };
@@ -1058,6 +1191,12 @@ const ExerciseDetailsScreen = () => {
     // Feedback tátil
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
+    // Verificar se o exercício está no banco de dados para obter a informação isBodyweightExercise
+    let dbExerciseData = undefined;
+    if (exerciseId) {
+      dbExerciseData = getExerciseById(exerciseId);
+    }
+
     // Criar o objeto de exercício
     const newExercise: Exercise = {
       id: mode === "edit" && exerciseId ? exerciseId : `exercise-${Date.now()}`,
@@ -1073,6 +1212,7 @@ const ExerciseDetailsScreen = () => {
         exercise?.category === "cardio" ? cardioDuration : undefined,
       cardioIntensity:
         exercise?.category === "cardio" ? cardioIntensity : undefined,
+      isBodyweightExercise: isBodyweightExercise,
     };
 
     // Se estamos editando, atualizar o exercício existente
@@ -1128,8 +1268,6 @@ const ExerciseDetailsScreen = () => {
             styles.header,
             { backgroundColor: colors.background },
             mode === "edit" && { paddingTop: Platform.OS === "ios" ? 0 : 16 },
-            // Adicionar padding extra quando vem da tela de recentes
-            fromRecent && { paddingTop: Platform.OS === "ios" ? 16 : 24 },
           ]}
         >
           <TouchableOpacity
@@ -1152,8 +1290,6 @@ const ExerciseDetailsScreen = () => {
           contentContainerStyle={[
             styles.scrollViewContent,
             mode === "edit" && styles.scrollViewContentEdit,
-            // Adicionar padding extra no topo para o conteúdo quando vem da tela de recentes
-            fromRecent && { paddingTop: 16 },
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -1347,24 +1483,7 @@ const ExerciseDetailsScreen = () => {
                   )}
                 </View>
 
-                {exercise?.category === "cardio" ? (
-                  <MotiView
-                    from={{ opacity: 0, translateY: 20 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    transition={{
-                      type: "spring",
-                      damping: 15,
-                      delay: 300,
-                    }}
-                  >
-                    <CardioCard
-                      duration={cardioDuration}
-                      intensity={cardioIntensity}
-                      onUpdate={updateCardioSettings}
-                      color={workoutColor}
-                    />
-                  </MotiView>
-                ) : (
+                {exercise?.category !== "cardio" ? (
                   <View
                     style={[
                       styles.setsContainer,
@@ -1391,10 +1510,28 @@ const ExerciseDetailsScreen = () => {
                           }
                           onRemove={() => removeSet(index)}
                           color={workoutColor}
+                          isBodyweightExercise={isBodyweightExercise}
                         />
                       </MotiView>
                     ))}
                   </View>
+                ) : (
+                  <MotiView
+                    from={{ opacity: 0, translateY: 20 }}
+                    animate={{ opacity: 1, translateY: 0 }}
+                    transition={{
+                      type: "spring",
+                      damping: 15,
+                      delay: 300,
+                    }}
+                  >
+                    <CardioCard
+                      duration={cardioDuration}
+                      intensity={cardioIntensity}
+                      onUpdate={updateCardioSettings}
+                      color={workoutColor}
+                    />
+                  </MotiView>
                 )}
 
                 <View style={styles.notesContainer}>
@@ -2051,5 +2188,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 1,
     elevation: 1,
+  },
+  bodyweightContainer: {
+    height: 48,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  bodyweightText: {
+    fontSize: 16,
   },
 });

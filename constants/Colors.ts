@@ -20,7 +20,7 @@ export default {
     info: "#FFD54F", // Amarelo suave
     light: "#F8F9FA", // Branco levemente acinzentado
     dark: "#212529", // Preto suave
-    border: "#DADADA", // Borda mais visível para o tema claro
+    border: "#rgb(241, 241, 241)", // Borda mais visível para o tema claro
     card: "rgba(0, 0, 0, 0.02)", // Card com sombra sutil
 
     // Cores para gráficos com base monocromática
@@ -48,7 +48,7 @@ export default {
     info: "#FFE082", // Amarelo suave néon
     light: "#181818", // Cinza mais escuro para cards
     dark: "#0A0A0A", // Preto profundo
-    border: "#444444", // Borda mais visível para o tema escuro
+    border: "#rgba(255, 255, 255, 0.03)", // Borda mais visível para o tema escuro
     card: "rgba(255, 255, 255, 0.05)", // Card com brilho sutil
 
     // Cores para gráficos com base monocromática

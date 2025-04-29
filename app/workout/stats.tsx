@@ -241,12 +241,18 @@ export default function WorkoutStatsModal() {
     let currentTotalReps = 0;
     let currentTotalWeight = 0;
     let currentMaxWeight = 0;
+    const isBodyweightExercise =
+      exercise.isBodyweightExercise ||
+      (currentSets.length > 0 && currentSets.every((set) => set.weight === 0));
 
     currentSets.forEach((set: { reps: number; weight: number }) => {
       currentTotalReps += set.reps;
-      currentTotalWeight += set.weight * set.reps;
-      if (set.weight > currentMaxWeight) {
-        currentMaxWeight = set.weight;
+      // Não contar o peso para exercícios de peso corporal
+      if (!isBodyweightExercise) {
+        currentTotalWeight += set.weight * set.reps;
+        if (set.weight > currentMaxWeight) {
+          currentMaxWeight = set.weight;
+        }
       }
     });
 
@@ -263,25 +269,42 @@ export default function WorkoutStatsModal() {
     if (hasPrevious) {
       const previousSets = previousExercise.sets || [];
       previousTotalSets = previousSets.length;
+      const isPreviousBodyweight =
+        previousExercise.isBodyweightExercise ||
+        (previousSets.length > 0 &&
+          previousSets.every((set) => set.weight === 0));
 
       previousSets.forEach((set: { reps: number; weight: number }) => {
         previousTotalReps += set.reps;
-        previousTotalWeight += set.weight * set.reps;
-        if (set.weight > previousMaxWeight) {
-          previousMaxWeight = set.weight;
+        // Não contar o peso para exercícios de peso corporal
+        if (!isPreviousBodyweight) {
+          previousTotalWeight += set.weight * set.reps;
+          if (set.weight > previousMaxWeight) {
+            previousMaxWeight = set.weight;
+          }
         }
       });
 
       // Calcular progresso
-      volumeProgress =
-        previousTotalWeight > 0
-          ? calculateProgress(currentTotalWeight, previousTotalWeight)
-          : 0;
+      if (!isBodyweightExercise && !isPreviousBodyweight) {
+        // Para exercícios que não são de peso corporal, calcular progresso normal
+        volumeProgress =
+          previousTotalWeight > 0
+            ? calculateProgress(currentTotalWeight, previousTotalWeight)
+            : 0;
 
-      maxWeightProgress =
-        previousMaxWeight > 0
-          ? calculateProgress(currentMaxWeight, previousMaxWeight)
-          : 0;
+        maxWeightProgress =
+          previousMaxWeight > 0
+            ? calculateProgress(currentMaxWeight, previousMaxWeight)
+            : 0;
+      } else if (isBodyweightExercise && isPreviousBodyweight) {
+        // Para exercícios de peso corporal, o progresso é apenas baseado em repetições
+        volumeProgress =
+          previousTotalReps > 0
+            ? calculateProgress(currentTotalReps, previousTotalReps)
+            : 0;
+        maxWeightProgress = 0; // Não há progresso de peso máximo para exercícios de peso corporal
+      }
     }
 
     // Determinar a principal métrica de progresso
