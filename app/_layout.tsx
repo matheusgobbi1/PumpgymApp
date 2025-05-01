@@ -16,10 +16,6 @@ import { ReminderProvider } from "../context/ReminderContext";
 import { LanguageProvider } from "../context/LanguageContext";
 import { MealProvider } from "../context/MealContext";
 import { NotificationProvider } from "../context/NotificationContext";
-import {
-  AchievementProvider,
-  useAchievements,
-} from "../context/AchievementContext";
 import { ToastProvider } from "../components/common/ToastContext";
 import "../i18n"; // Importando a configuração i18n
 import i18n, { getLanguageStatus } from "../i18n"; // Importar getLanguageStatus para depuração
@@ -31,7 +27,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 import NotificationService from "../services/NotificationService";
-import AchievementUnlockedToast from "../components/achievements/AchievementUnlockedToast";
 
 // Configurar como as notificações serão tratadas quando o app estiver em segundo plano
 Notifications.setNotificationHandler({
@@ -148,13 +143,11 @@ export default function RootLayout() {
                   <WorkoutProvider>
                     <MealProvider>
                       <NutritionProvider>
-                        <AchievementProvider>
-                          <ReminderProvider>
-                            <ToastProvider>
-                              <AppContent />
-                            </ToastProvider>
-                          </ReminderProvider>
-                        </AchievementProvider>
+                        <ReminderProvider>
+                          <ToastProvider>
+                            <AppContent />
+                          </ToastProvider>
+                        </ReminderProvider>
                       </NutritionProvider>
                     </MealProvider>
                   </WorkoutProvider>
@@ -166,191 +159,6 @@ export default function RootLayout() {
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
-}
-
-// Componente para gerenciar notificações de conquistas
-function AchievementNotificationManager() {
-  const { recentlyUnlocked, achievements, markUnlockedAsViewed } =
-    useAchievements();
-  const router = useRouter();
-  const [currentNotification, setCurrentNotification] = useState<any>(null);
-  const [shownNotifications, setShownNotifications] = useState<Set<string>>(
-    new Set()
-  );
-  const [isInitialRender, setIsInitialRender] = useState(true);
-  const prevRecentlyUnlockedLength = useRef(0);
-  const initialCheckDone = useRef(false);
-
-  // Carregar notificações já mostradas anteriormente
-  useEffect(() => {
-    const loadShownNotifications = async () => {
-      try {
-        const shownKey = "@pumpgym_shown_notifications";
-        const shown = await AsyncStorage.getItem(shownKey);
-        if (shown) {
-          const shownIds = JSON.parse(shown) as string[];
-          setShownNotifications(new Set(shownIds));
-        }
-      } catch (error) {
-        console.error("Erro ao carregar notificações exibidas:", error);
-      }
-    };
-
-    loadShownNotifications();
-  }, []);
-
-  // Salvar notificações mostradas (sem marcar como visualizadas)
-  const saveShownNotification = async (id: string) => {
-    try {
-      const updatedShown = new Set(shownNotifications).add(id);
-      const shownKey = "@pumpgym_shown_notifications";
-      await AsyncStorage.setItem(
-        shownKey,
-        JSON.stringify(Array.from(updatedShown))
-      );
-      setShownNotifications(updatedShown);
-    } catch (error) {
-      console.error("Erro ao salvar notificações exibidas:", error);
-    }
-  };
-
-  // Verificar se é o primeiro carregamento do app ou um reload
-  useEffect(() => {
-    const checkFirstLoad = async () => {
-      try {
-        const lastSessionKey = "@pumpgym_last_session";
-        const currentSession = Date.now().toString();
-        const lastSession = await AsyncStorage.getItem(lastSessionKey);
-
-        // Se já houve uma sessão recente (menos de 1 minuto atrás), consideramos um reload
-        const isReload =
-          lastSession && Date.now() - parseInt(lastSession) < 60000;
-
-        // Atualizar a última sessão
-        await AsyncStorage.setItem(lastSessionKey, currentSession);
-
-        // Se for reload, não mostrar notificações
-        if (isReload) {
-          setIsInitialRender(false);
-        } else {
-          // Dar um tempo mais curto para os contexts carregarem
-          setTimeout(() => {
-            setIsInitialRender(false);
-          }, 500); // Reduzido de 2000ms para 500ms
-        }
-      } catch (error) {
-        setIsInitialRender(false);
-      }
-    };
-
-    checkFirstLoad();
-  }, []);
-
-  // Verificação inicial para conquistas não visualizadas
-  useEffect(() => {
-    if (
-      isInitialRender &&
-      recentlyUnlocked.length > 0 &&
-      !initialCheckDone.current
-    ) {
-      // Verificar se há conquistas não visualizadas e não mostradas ainda
-      const hasUnviewed = recentlyUnlocked.some(
-        (item) => !item.viewed && !shownNotifications.has(item.id)
-      );
-
-      if (hasUnviewed) {
-        // Reduzir o tempo de espera para 100ms, apenas para garantir carregamento dos outros componentes
-        setTimeout(() => {
-          setIsInitialRender(false);
-          initialCheckDone.current = true;
-        }, 100);
-      }
-    }
-  }, [recentlyUnlocked, isInitialRender, shownNotifications]);
-
-  // Reagir a mudanças na lista recentlyUnlocked
-  useEffect(() => {
-    // Se houver novas conquistas não visualizadas
-    if (
-      recentlyUnlocked.length > prevRecentlyUnlockedLength.current &&
-      !currentNotification
-    ) {
-      // Se estamos na renderização inicial, forçar a finalização do estado inicial
-      if (isInitialRender) {
-        setIsInitialRender(false);
-      }
-    }
-
-    prevRecentlyUnlockedLength.current = recentlyUnlocked.length;
-  }, [recentlyUnlocked, currentNotification, isInitialRender]);
-
-  // Mostrar toast para a primeira conquista não visualizada
-  useEffect(() => {
-    // Não mostrar notificações se for um reload ou durante a renderização inicial
-    if (recentlyUnlocked.length === 0 || currentNotification || isInitialRender)
-      return;
-
-    // Encontrar a primeira conquista não visualizada que ainda não foi mostrada como notificação
-    const unviewed = recentlyUnlocked.find(
-      (item) => !item.viewed && !shownNotifications.has(item.id)
-    );
-
-    if (!unviewed) return;
-
-    // Buscar os detalhes da conquista
-    const achievement = achievements.find((a) => a.id === unviewed.id);
-    if (!achievement) return;
-
-    // Marcar como notificação já exibida, sem afetar o estado de visualização
-    saveShownNotification(unviewed.id);
-
-    // Configurar a notificação
-    setCurrentNotification({
-      id: unviewed.id,
-      title: unviewed.id,
-      description: achievement.description,
-      icon: achievement.icon,
-      color: achievement.badgeColor,
-      points: achievement.fitPoints,
-      uniqueKey: `${unviewed.id}-${Date.now()}`, // Garantir chave única
-    });
-  }, [
-    recentlyUnlocked,
-    currentNotification,
-    achievements,
-    shownNotifications,
-    isInitialRender,
-  ]);
-
-  // Funções para lidar com interações do usuário
-  const handleToastPress = () => {
-    // Navegar para a tela de conquistas
-    router.push("/achievements-modal");
-
-    // Apenas fechar o toast, sem marcar como visualizada
-    // A visualização ocorrerá quando o usuário clicar na conquista na tela de conquistas
-    setCurrentNotification(null);
-  };
-
-  const handleToastDismiss = () => {
-    // Apenas fechar o toast, sem marcar como visualizada
-    // A visualização ocorrerá quando o usuário clicar na conquista na tela de conquistas
-    setCurrentNotification(null);
-  };
-
-  // Renderizar o toast se houver uma notificação
-  return currentNotification ? (
-    <AchievementUnlockedToast
-      key={currentNotification.uniqueKey}
-      title={currentNotification.title}
-      description={currentNotification.description}
-      icon={currentNotification.icon}
-      color={currentNotification.color}
-      points={currentNotification.points}
-      onPress={handleToastPress}
-      onDismiss={handleToastDismiss}
-    />
-  ) : null;
 }
 
 function AppContent() {
@@ -385,9 +193,6 @@ function AppContent() {
       {/* Configuração da StatusBar para Android e iOS */}
       <StatusBar style={theme === "dark" ? "light" : "dark"} />
       <RNStatusBar backgroundColor={colors.background} translucent={true} />
-
-      {/* Componente para mostrar notificações de conquistas */}
-      <AchievementNotificationManager />
 
       <Stack
         screenOptions={{

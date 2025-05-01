@@ -17,7 +17,7 @@ import WorkoutProgressChart from "../../components/home/WorkoutProgressChart";
 import WeightProgressChart from "../../components/home/WeightProgressChart";
 import HealthStepsCard from "../../components/home/HealthStepsCard";
 import WaterIntakeCard from "../../components/home/WaterIntakeCard";
-import AchievementsCard from "../../components/achievements/AchievementsCard";
+import ConsistencyScoreCard from "../../components/home/ConsistencyScoreCard";
 import AchievementBadge from "../../components/achievements/AchievementBadge";
 import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
@@ -29,7 +29,6 @@ import { useTranslation } from "react-i18next";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KEYS } from "../../constants/keys";
 import { useAuth } from "../../context/AuthContext";
-import { useAchievements } from "../../context/AchievementContext";
 import FitLevelBadge from "../../components/home/FitLevelBadge";
 
 const { width } = Dimensions.get("window");
@@ -38,7 +37,7 @@ const { width } = Dimensions.get("window");
 const MemoizedDailyReminders = React.memo(DailyReminders);
 const MemoizedHealthStepsCard = React.memo(HealthStepsCard);
 const MemoizedWaterIntakeCard = React.memo(WaterIntakeCard);
-const MemoizedAchievementsCard = React.memo(AchievementsCard);
+const MemoizedConsistencyScoreCard = React.memo(ConsistencyScoreCard);
 
 // Definir tipos para as props do componente memorizado
 interface ProgressChartsProps {
@@ -83,7 +82,6 @@ export default function HomeScreen() {
     useState(false);
   const { workouts } = useWorkoutContext();
   const { user } = useAuth();
-  const { updateAchievementProgress, checkAchievements } = useAchievements();
   const [currentSteps, setCurrentSteps] = useState<number | null>(null);
 
   // Inicializar a UI após a renderização inicial
@@ -163,9 +161,9 @@ export default function HomeScreen() {
   // Atualizar o streak no context de conquistas quando for calculado
   useEffect(() => {
     if (streak > 0) {
-      updateAchievementProgress("streak_days", streak);
+      // updateAchievementProgress("streak_days", streak);
     }
-  }, [streak, updateAchievementProgress]);
+  }, [streak]);
 
   // Calcular consistência de água (últimos 14 dias)
   const waterConsistency = useMemo(() => {
@@ -227,12 +225,12 @@ export default function HomeScreen() {
     if (isUIReady) {
       // Pequeno delay para evitar congestionamento na inicialização
       const timer = setTimeout(() => {
-        checkAchievements();
+        // checkAchievements();
       }, 1000);
 
       return () => clearTimeout(timer);
     }
-  }, [isUIReady, checkAchievements]);
+  }, [isUIReady]);
 
   // Lidar com a mudança de aba e carregar progresso sob demanda
   const handleTabChange = useCallback(
@@ -295,6 +293,7 @@ export default function HomeScreen() {
     handleWeightChartPress,
     router,
     isUIReady,
+    isProgressTabInitialized,
   ]);
 
   // Renderização condicional dos componentes de lembretes
@@ -308,9 +307,9 @@ export default function HomeScreen() {
           { display: activeTab === "lembretes" ? "flex" : "none" },
         ]}
       >
-        {/* Cartão de conquistas - substitui o ConsistencyScoreCard */}
+        {/* Cartão de consistência - substitui o AchievementsCard */}
         <View style={styles.cardContainer}>
-          <MemoizedAchievementsCard onPress={handleAchievementsPress} />
+          <MemoizedConsistencyScoreCard steps={currentSteps} />
         </View>
         <MemoizedDailyReminders />
 
@@ -324,7 +323,7 @@ export default function HomeScreen() {
         </View>
       </View>
     );
-  }, [activeTab, handleAchievementsPress, isUIReady]);
+  }, [activeTab, isUIReady, currentSteps]);
 
   // Calcular a altura combinada do header e das abas
   const headerHeight = Platform.OS === "ios" ? 70 : 60;
@@ -413,7 +412,7 @@ export default function HomeScreen() {
           contentContainerStyle={[
             styles.scrollContent,
             // Adicionar padding top para compensar header e abas
-            { paddingTop: totalHeaderAndTabsHeight + 5}, // +16 de padding original
+            { paddingTop: totalHeaderAndTabsHeight + 5 }, // +16 de padding original
           ]}
           showsVerticalScrollIndicator={false}
         >

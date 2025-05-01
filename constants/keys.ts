@@ -16,24 +16,5 @@ export const KEYS = {
   AVAILABLE_WORKOUT_TYPES: "pumpgym_available_workout_types",
   TRAINING_GOALS: "pumpgym_training_goals",
   WATER_INTAKE: "pumpgym_water_intake",
-  WATER_GOAL_DAYS: "pumpgym_water_goal_days",
-  LAST_WATER_GOAL_DAY: "pumpgym_last_water_goal_day",
   STEPS_COUNT: "pumpgym_steps_count",
-  ACHIEVEMENTS: "pumpgym_achievements",
-  ACHIEVEMENTS_PROGRESS: "pumpgym_achievements_progress",
-  RECENTLY_UNLOCKED_ACHIEVEMENTS: "pumpgym_recently_unlocked_achievements",
-  FITPOINTS: "pumpgym_fitpoints",
-  FITLEVEL: "pumpgym_fitlevel",
-  CALORIC_GOAL_DAYS: "pumpgym_caloric_goal_days",
-  LAST_CALORIC_GOAL_DAY: "pumpgym_last_caloric_goal_day",
-  ACTIVITY_STREAK: "pumpgym_activity_streak",
-  LAST_ACTIVE_DAY: "pumpgym_last_active_day",
-  PROTEIN_GOAL_DAYS: "proteinGoalDays",
-  LAST_PROTEIN_GOAL_CHECK_DATE: "lastProteinGoalCheckDate",
-  // Novas chaves para contagem de progressão aplicada
-  APPLIED_PROGRESSION_COUNT: "appliedProgressionCount",
-  LAST_PROGRESSION_APPLIED_CHECK_DATE: "lastProgressionAppliedCheckDate",
-  // Nova chave para rastrear a última vez que a verificação de progressão foi processada
-  LAST_PROCESSED_PROGRESSION_APPLIED_DATE:
-    "lastProcessedProgressionAppliedDate",
 };

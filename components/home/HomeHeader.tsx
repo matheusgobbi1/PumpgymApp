@@ -6,7 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import ContextMenu, { MenuAction } from "../shared/ContextMenu";
 import { useTranslation } from "react-i18next";
 import { useDateLocale } from "../../hooks/useDateLocale";
-import FitLevelBadge from "./FitLevelBadge";
+// import FitLevelBadge from "./FitLevelBadge"; // Remover import
 
 const { width } = Dimensions.get("window");
 
@@ -14,7 +14,7 @@ type IconType = "ionicons" | "material";
 
 interface HomeHeaderProps {
   title?: string;
-  onFitLevelPress?: () => void;
+  // onFitLevelPress?: () => void; // Remover prop
   iconName?: string;
   iconType?: IconType;
   iconColor?: string;
@@ -22,12 +22,12 @@ interface HomeHeaderProps {
   showContextMenu?: boolean;
   menuActions?: MenuAction[];
   menuVisible?: boolean;
-  showFitLevelBadge?: boolean;
+  showFitLevelBadge?: boolean; // Manter prop caso queira reativar, mas não será usada agora
 }
 
 export default function HomeHeader({
   title,
-  onFitLevelPress,
+  // onFitLevelPress,
   iconName = "fire",
   iconType = "material",
   iconColor,
@@ -35,7 +35,7 @@ export default function HomeHeader({
   showContextMenu = false,
   menuActions = [],
   menuVisible = true,
-  showFitLevelBadge = true,
+  showFitLevelBadge = true, // Manter prop caso queira reativar, mas não será usada agora
 }: HomeHeaderProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
@@ -112,7 +112,7 @@ export default function HomeHeader({
         </View>
 
         <View style={styles.rightContainer}>
-          {showFitLevelBadge && (
+          {/* {showFitLevelBadge && ( // Comentar ou remover esta seção
             <View style={styles.fitLevelContainer}>
               <FitLevelBadge
                 size="small"
@@ -120,7 +120,7 @@ export default function HomeHeader({
                 onPress={onFitLevelPress}
               />
             </View>
-          )}
+          )} */}
 
           {showContextMenu && (
             <View style={styles.menuContainer}>
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     paddingRight: 20,
   },
   fitLevelContainer: {
-    marginRight: 0,
+    // marginRight: 0, // Remover ou manter, dependendo do layout desejado
   },
   menuContainer: {
     padding: 4,
