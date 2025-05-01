@@ -670,6 +670,7 @@ const LoginBottomSheet = ({
             </View>
 
             {/* Botões de login social */}
+            {/*
             <View style={styles.socialButtonsContainer}>
               <TouchableOpacity
                 style={[
@@ -691,6 +692,7 @@ const LoginBottomSheet = ({
                 )}
               </TouchableOpacity>
             </View>
+            */}
           </View>
         </ScrollView>
       </View>

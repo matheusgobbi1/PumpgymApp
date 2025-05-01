@@ -182,19 +182,12 @@ export default function AchievementsModal() {
       setSelectedAchievement(achievement);
       setDetailsModalVisible(true);
 
-      // Reduz a intensidade do feedback tátil
-      requestAnimationFrame(() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      });
-
       // Marcar como visualizada se foi desbloqueada recentemente
       if (
         isAchievementUnlocked(achievement.id) &&
         isRecentlyUnlocked(achievement.id)
       ) {
-        requestAnimationFrame(() => {
-          markUnlockedAsViewed(achievement.id);
-        });
+        markUnlockedAsViewed(achievement.id);
       }
     },
     [isAchievementUnlocked, isRecentlyUnlocked, markUnlockedAsViewed]
@@ -331,25 +324,19 @@ export default function AchievementsModal() {
           </ScrollView>
         </View>
 
-        {/* Lista de conquistas */}
-        <ScrollView
+        {/* Lista de conquistas com FlatList */}
+        <FlatList
+          data={filteredAchievements}
+          renderItem={renderAchievementItem}
+          keyExtractor={(item) => item.id}
+          numColumns={4}
+          contentContainerStyle={styles.listContentContainer}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
           removeClippedSubviews={true}
-        >
-          {/* Exibir as conquistas */}
-          <View style={styles.contentInnerContainer}>
-            <View style={styles.achievementsGrid}>
-              {filteredAchievements.map((achievement) => (
-                <React.Fragment key={achievement.id}>
-                  {renderAchievementItem({ item: achievement })}
-                </React.Fragment>
-              ))}
-            </View>
-          </View>
-
-          {/* Estaria vazio? */}
-          {filteredAchievements.length === 0 && (
+          initialNumToRender={12}
+          maxToRenderPerBatch={8}
+          windowSize={10}
+          ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <MaterialCommunityIcons
                 name="trophy-outline"
@@ -360,8 +347,8 @@ export default function AchievementsModal() {
                 {t("achievements.no_achievements")}
               </Text>
             </View>
-          )}
-        </ScrollView>
+          }
+        />
 
         {/* Modal de detalhes da conquista */}
         <AchievementDetailsModal
@@ -441,15 +428,22 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 30,
   },
+  listContentContainer: {
+    paddingHorizontal: 15,
+    paddingTop: 10,
+    paddingBottom: 30,
+  },
   contentInnerContainer: {
     paddingHorizontal: 18,
     paddingTop: 10,
   },
   emptyContainer: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 50,
     paddingHorizontal: 20,
+    marginTop: 50,
   },
   emptyText: {
     fontSize: 16,

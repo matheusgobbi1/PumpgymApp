@@ -552,6 +552,7 @@ export default function CompleteRegistrationScreen() {
                         />
                       </View>
 
+                      {/*
                       <View style={styles.socialButtonsContainer}>
                         <TouchableOpacity
                           key={`apple-button-${theme}`}
@@ -580,6 +581,7 @@ export default function CompleteRegistrationScreen() {
                           )}
                         </TouchableOpacity>
                       </View>
+                      */}
                     </View>
                   </MotiView>
                 )}

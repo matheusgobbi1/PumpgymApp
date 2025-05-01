@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect } from "react";
+import React, { memo, useCallback, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -53,9 +53,7 @@ function AchievementDetailsModal({
 
   // Hooks para manipulação de dados
   const handleClose = useCallback(() => {
-    requestAnimationFrame(() => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onClose();
   }, [onClose]);
 
@@ -80,36 +78,9 @@ function AchievementDetailsModal({
     };
   });
 
-  // Se não tiver conquista selecionada, não renderiza nada
-  if (!achievement) return null;
-
-  const isSecret = achievement.hidden && !isUnlocked;
-
-  // Obter o nome e descrição traduzidos da conquista
-  const getAchievementName = () => {
-    if (isSecret) return "???";
-    return t(
-      `achievements.database.achievements.${achievement.id}.name`,
-      achievement.name
-    );
-  };
-
-  const getAchievementDescription = () => {
-    if (isSecret) return t("achievements.secret");
-    return t(
-      `achievements.database.achievements.${achievement.id}.description`,
-      achievement.description
-    );
-  };
-
-  // Obter a tradução para a raridade
-  const getRarityTranslation = (rarity: string): string => {
-    return t(`achievements.rarities.${rarity}`);
-  };
-
-  // Função para obter o gradiente com base na raridade
-  const getRarityGradient = () => {
-    if (!isUnlocked) return null;
+  // Função para obter o gradiente com base na raridade (memoizado)
+  const rarityGradientElement = useMemo(() => {
+    if (!achievement || !isUnlocked) return null;
 
     // Simplificando gradientes para melhorar o desempenho
     switch (achievement.rarity) {
@@ -189,6 +160,33 @@ function AchievementDetailsModal({
       default:
         return null;
     }
+  }, [achievement, isUnlocked, theme]); // Dependências: achievement, isUnlocked, theme
+
+  // Se não tiver conquista selecionada, não renderiza nada
+  if (!achievement) return null;
+
+  const isSecret = achievement.hidden && !isUnlocked;
+
+  // Obter o nome e descrição traduzidos da conquista
+  const getAchievementName = () => {
+    if (isSecret) return "???";
+    return t(
+      `achievements.database.achievements.${achievement.id}.name`,
+      achievement.name
+    );
+  };
+
+  const getAchievementDescription = () => {
+    if (isSecret) return t("achievements.secret");
+    return t(
+      `achievements.database.achievements.${achievement.id}.description`,
+      achievement.description
+    );
+  };
+
+  // Obter a tradução para a raridade
+  const getRarityTranslation = (rarity: string): string => {
+    return t(`achievements.rarities.${rarity}`);
   };
 
   return (
@@ -225,7 +223,7 @@ function AchievementDetailsModal({
           from={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ type: "timing", duration: 200 }}
+          transition={{ type: "timing", duration: 150 }}
           style={[
             styles.modalContent,
             {
@@ -248,7 +246,7 @@ function AchievementDetailsModal({
           ]}
         >
           {/* Gradiente de fundo específico da raridade */}
-          {getRarityGradient()}
+          {rarityGradientElement}
 
           {/* Efeito de brilho adicional apenas para o lendário */}
           {isUnlocked && achievement.rarity === "legendary" && (
