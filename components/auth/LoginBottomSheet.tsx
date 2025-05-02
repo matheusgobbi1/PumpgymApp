@@ -1,18 +1,14 @@
 import React, {
   useRef,
   useCallback,
-  useMemo,
   useState,
   useEffect,
-  forwardRef,
-  useImperativeHandle,
 } from "react";
 import {
   StyleSheet,
   View,
   Text,
   TouchableOpacity,
-  KeyboardAvoidingView,
   Platform,
   TextInput,
   ActivityIndicator,
@@ -26,18 +22,15 @@ import {
   NativeScrollEvent,
 } from "react-native";
 import Colors from "../../constants/Colors";
-import { Ionicons, FontAwesome } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import BottomSheet, {
   BottomSheetBackdrop,
-  BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { validateLogin } from "../../utils/validations";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MotiView } from "moti";
 import { useTranslation } from "react-i18next";
 import { handleLoginError } from "../../utils/errorHandler";
 import { useRouter } from "expo-router";
@@ -78,7 +71,7 @@ const LoginBottomSheet = ({
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [snapPoints, setSnapPoints] = useState<(string | number)[]>([
-    "60%",
+    "50%",
     "75%",
   ]);
 
@@ -640,57 +633,6 @@ const LoginBottomSheet = ({
                 )}
               </TouchableOpacity>
             </View>
-
-            {/* Separador */}
-            <View style={styles.dividerContainer}>
-              <View
-                style={[
-                  styles.divider,
-                  {
-                    backgroundColor: theme === "dark" ? "#444" : "#e0e0e0",
-                  },
-                ]}
-              />
-              <Text
-                style={[
-                  styles.dividerText,
-                  { color: theme === "dark" ? "#999" : "#666" },
-                ]}
-              >
-                {t("login.bottomSheet.orContinueWith")}
-              </Text>
-              <View
-                style={[
-                  styles.divider,
-                  {
-                    backgroundColor: theme === "dark" ? "#444" : "#e0e0e0",
-                  },
-                ]}
-              />
-            </View>
-
-            {/* Botões de login social */}
-            <View style={styles.socialButtonsContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.socialButton,
-                  styles.appleButton,
-                  Platform.OS === "android" && styles.appleButtonDisabled,
-                ]}
-                onPress={handleAppleLogin}
-                activeOpacity={Platform.OS === "android" ? 1 : 0.8}
-              >
-                <FontAwesome name="apple" size={20} color="#FFFFFF" />
-                <Text style={styles.socialButtonText}>Apple</Text>
-                {Platform.OS === "android" && (
-                  <View style={styles.androidDisabledBadge}>
-                    <Text style={styles.androidDisabledBadgeText}>
-                      iOS only
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </View>
           </View>
         </ScrollView>
       </View>
@@ -814,57 +756,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     letterSpacing: 1,
-  },
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    marginHorizontal: 10,
-    fontSize: 14,
-  },
-  socialButtonsContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  socialButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    height: 48,
-    borderRadius: 24,
-    width: "100%",
-  },
-  appleButton: {
-    backgroundColor: "#000000",
-  },
-  appleButtonDisabled: {
-    backgroundColor: "#333333",
-    opacity: 0.7,
-  },
-  socialButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 12,
-  },
-  androidDisabledBadge: {
-    backgroundColor: "#999",
-    borderRadius: 12,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    marginLeft: 4,
-  },
-  androidDisabledBadgeText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "bold",
   },
 });
 

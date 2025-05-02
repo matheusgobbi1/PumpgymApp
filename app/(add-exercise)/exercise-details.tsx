@@ -1703,7 +1703,7 @@ const styles = StyleSheet.create({
   },
   exerciseName: {
     fontSize: 24,
-    fontWeight: "700",
+    fontFamily: "Anton-Regular",
     textAlign: "center",
     marginBottom: 16,
     letterSpacing: -0.5,
@@ -1744,7 +1744,7 @@ const styles = StyleSheet.create({
   },
   exerciseDetailTagText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: "Anton-Regular",
   },
   descriptionContainer: {
     marginHorizontal: 20,

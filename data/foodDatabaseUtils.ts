@@ -1,6 +1,7 @@
 import { FoodData } from "../types/food";
 import { combinedFoodDatabase } from "./foodDatabase";
 import { FoodResponse, FoodItem, FoodServing } from "../types/food";
+import i18n from "../i18n";
 
 // Função para remover acentos de um texto
 const removeAccents = (text: string) => {
@@ -40,6 +41,16 @@ const _foodsByCategory = (() => {
 
 // Função otimizada para extrair todas as categorias únicas
 export const getFoodCategories = (): string[] => {
+  const currentLanguage = i18n.language; // Obter idioma atual
+
+  if (currentLanguage === "en-US") {
+    // Traduzir categorias usando o arquivo de tradução i18n
+    return _uniqueFoodCategories.map((category) =>
+      i18n.t(`foodCategories.${category}`, { defaultValue: category })
+    );
+  }
+
+  // Retornar categorias originais para português e outros idiomas
   return _uniqueFoodCategories;
 };
 
@@ -49,11 +60,43 @@ export const getFoodsByCategory = (category: string): FoodData[] => {
     return combinedFoodDatabase;
   }
 
+  const currentLanguage = i18n.language;
+
+  // Se o idioma for inglês e a categoria estiver em inglês, precisamos encontrar a categoria equivalente em português
+  if (currentLanguage === "en-US") {
+    // Criar um mapa invertido das traduções
+    const invertedTranslations = new Map<string, string>();
+
+    // Para cada categoria em português existente no sistema
+    for (const ptCategory of _uniqueFoodCategories) {
+      // Obter a tradução para inglês
+      const enCategory = i18n.t(`foodCategories.${ptCategory}`, {
+        defaultValue: ptCategory,
+      });
+      // Armazenar no mapa invertido
+      invertedTranslations.set(enCategory, ptCategory);
+    }
+
+    // Verificar se a categoria em inglês tem um equivalente em português
+    const portugueseCategory = invertedTranslations.get(category);
+
+    if (portugueseCategory) {
+      return _foodsByCategory.get(portugueseCategory) || [];
+    }
+  }
+
   return _foodsByCategory.get(category) || [];
 };
 
 // Função para converter FoodData para FoodItem
 export const convertFoodDataToFoodItem = (food: FoodData): FoodItem => {
+  // Priorizar food.name se existir, senão buscar tradução
+  const foodName = food.name
+    ? food.name
+    : i18n.t(`foods.${food.id}`, {
+        defaultValue: food.id, // Fallback para o ID se não houver nome nem tradução
+      });
+
   // Criar servings a partir das measures
   const servings: FoodServing[] = food.measures.map((measure) => ({
     serving_id: measure.id,
@@ -122,8 +165,12 @@ export const convertFoodDataToFoodItem = (food: FoodData): FoodItem => {
 
   return {
     food_id: food.id,
-    food_name: food.name,
-    food_type: food.category || "Generic foods",
+    food_name: foodName, // Usar o nome definido acima
+    food_type: food.category
+      ? i18n.t(`foodCategories.${food.category}`, {
+          defaultValue: food.category,
+        })
+      : "Generic foods",
     food_url: "",
     brand_name: food.brandName,
     servings: reorderedServings,
@@ -135,35 +182,62 @@ export const searchFoodsMockup = (
   query: string,
   category?: string
 ): FoodResponse => {
+  const databaseToSearch = category
+    ? getFoodsByCategory(category)
+    : combinedFoodDatabase;
+
   if (!query || query.trim() === "") {
-    if (category) {
-      // Se não houver consulta, mas houver categoria, retornar todos os alimentos da categoria
-      const foodsByCategory = getFoodsByCategory(category);
-      const items = foodsByCategory.map((food) =>
-        convertFoodDataToFoodItem(food)
-      );
-      return { items };
-    }
-    return { items: [] };
+    // Se não houver consulta, retornar todos os alimentos da categoria ou base de dados
+    const items = databaseToSearch.map((food) =>
+      convertFoodDataToFoodItem(food)
+    );
+    return { items };
   }
 
   const normalizedQuery = removeAccents(query.trim());
-  // Dividir a consulta em palavras-chave individuais
   const keywords = normalizedQuery
     .split(/\s+/)
     .filter((keyword) => keyword.length > 1);
 
-  // Buscar alimentos que contenham todas as palavras-chave no nome, em qualquer ordem
-  let results = combinedFoodDatabase.filter((food) => {
-    const normalizedName = removeAccents(food.name);
-    // Verificar se todas as palavras-chave estão presentes no nome do alimento
-    return keywords.every((keyword) => normalizedName.includes(keyword));
-  });
+  // Buscar alimentos que contenham todas as palavras-chave no nome original OU no nome traduzido
+  let results = databaseToSearch.filter((food) => {
+    let matched = false;
 
-  // Se houver uma categoria selecionada, filtrar por categoria
-  if (category) {
-    results = results.filter((food) => food.category === category);
-  }
+    // 1. Verificar no nome original (se existir)
+    if (food.name) {
+      const normalizedOriginalName = removeAccents(food.name);
+      if (
+        keywords.every((keyword) => normalizedOriginalName.includes(keyword))
+      ) {
+        matched = true;
+      }
+    }
+
+    // 2. Se não deu match no original (ou se não tinha nome original), verificar na tradução
+    if (!matched) {
+      const translatedName = i18n.t(`foods.${food.id}`, { defaultValue: "" });
+      if (translatedName) {
+        const normalizedTranslatedName = removeAccents(translatedName);
+        if (
+          keywords.every((keyword) =>
+            normalizedTranslatedName.includes(keyword)
+          )
+        ) {
+          matched = true;
+        }
+      }
+    }
+
+    // 3. (Opcional, como fallback) Se ainda não deu match, verificar no ID
+    // if (!matched) {
+    //   const normalizedId = removeAccents(food.id);
+    //   if (keywords.every((keyword) => normalizedId.includes(keyword))) {
+    //      matched = true;
+    //    }
+    // }
+
+    return matched;
+  });
 
   // Converter para o formato FoodItem
   const items = results.map((food) => convertFoodDataToFoodItem(food));

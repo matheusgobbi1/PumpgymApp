@@ -244,7 +244,7 @@ const RecentFoodItem = React.memo(
       >
         <View style={styles.recentFoodInfo}>
           <Text style={[styles.recentFoodName, { color: colors.text }]}>
-            {food.name}
+            {t(`foods.${food.id}`, { defaultValue: food.name })}
           </Text>
           <Text style={[styles.recentFoodMeta, { color: colors.text + "80" }]}>
             {food.portionDescription
@@ -275,6 +275,7 @@ const SearchResultItem = React.memo(
     handleFoodSelect,
     handleQuickAddFromSearch,
     getServingDescription,
+    t,
   }: {
     result: FoodItem;
     index: number;
@@ -284,6 +285,7 @@ const SearchResultItem = React.memo(
     handleFoodSelect: Function;
     handleQuickAddFromSearch: Function;
     getServingDescription: Function;
+    t: Function;
   }) => (
     <MotiView
       key={`${result.food_id}_${index}_${theme}`}
@@ -305,7 +307,7 @@ const SearchResultItem = React.memo(
       >
         <View style={styles.foodInfo}>
           <Text style={[styles.foodName, { color: colors.text }]}>
-            {result.food_name}
+            {t(`foods.${result.food_id}`, { defaultValue: result.food_name })}
           </Text>
           <Text style={[styles.foodCategory, { color: colors.text + "80" }]}>
             {getServingDescription(result)}
@@ -489,6 +491,7 @@ export default function AddFoodScreen() {
   // Função para adicionar alimento diretamente
   const handleQuickAdd = useCallback(
     async (food: {
+      id: string;
       name: string;
       portion: number;
       calories: number;
@@ -508,6 +511,9 @@ export default function AddFoodScreen() {
         // Se já existe, incrementar a porção em vez de adicionar um novo
         const updatedFood = {
           ...existingFood,
+          name: t(`foods.${existingFood.id}`, {
+            defaultValue: existingFood.name,
+          }),
           portion: existingFood.portion + food.portion,
           calories: Math.round(
             (existingFood.calories / existingFood.portion) *
@@ -566,7 +572,9 @@ export default function AddFoodScreen() {
 
         // Mostrar toast de sucesso com mensagem específica para incremento
         showToast({
-          message: `${food.name} ${t("nutrition.addFood.portionIncreased")}`,
+          message: `${updatedFood.name} ${t(
+            "nutrition.addFood.portionIncreased"
+          )}`,
           type: "success",
           position: "bottom",
         });
@@ -574,7 +582,7 @@ export default function AddFoodScreen() {
         // Se não existir, adicionar como novo alimento
         const newFood: Food = {
           id: uuidv4(),
-          name: food.name,
+          name: t(`foods.${food.id}`, { defaultValue: food.name }),
           calories: food.calories,
           protein: food.protein,
           carbs: food.carbs,
@@ -590,7 +598,7 @@ export default function AddFoodScreen() {
 
         // Mostrar toast de sucesso
         showToast({
-          message: `${food.name} ${t("nutrition.addFood.addedToMeal")}`,
+          message: `${newFood.name} ${t("nutrition.addFood.addedToMeal")}`,
           type: "success",
           position: "bottom",
         });
@@ -605,6 +613,52 @@ export default function AddFoodScreen() {
       meals,
       selectedDate,
     ]
+  );
+
+  // Função para obter a porção preferida para exibição
+  const getPreferredServing = useCallback(
+    (servings: FoodServing[]): FoodServing => {
+      if (!servings || servings.length === 0) {
+        // Fallback para uma porção padrão se não houver nenhuma
+        return {
+          serving_id: "default",
+          serving_description: "100g",
+          metric_serving_amount: 100,
+          metric_serving_unit: "g",
+          calories: 0,
+          protein: 0,
+          fat: 0,
+          carbohydrate: 0,
+        };
+      }
+
+      // Verificar se há uma porção de embalagem (como "1 unidade", "1 pacote", etc.)
+      const packageServing = servings.find(
+        (serving) =>
+          serving.serving_description.toLowerCase().includes("unidade") ||
+          serving.serving_description.toLowerCase().includes("pacote") ||
+          serving.serving_description.toLowerCase().includes("embalagem") ||
+          serving.serving_description.toLowerCase().includes("pote") ||
+          serving.serving_description.toLowerCase().includes("garrafa") ||
+          serving.serving_description.toLowerCase().includes("lata") ||
+          serving.serving_description.toLowerCase().includes("copo") ||
+          serving.serving_description.toLowerCase().includes("bar") ||
+          serving.serving_description.toLowerCase().includes("piece") ||
+          serving.serving_description.toLowerCase().includes("clara") ||
+          serving.serving_description.toLowerCase().includes("fatia") ||
+          (serving.serving_description.toLowerCase().includes("g") &&
+            !serving.serving_description.toLowerCase().includes("100g"))
+      );
+
+      // Se encontrou uma porção de embalagem, use-a
+      if (packageServing) {
+        return packageServing;
+      }
+
+      // Caso contrário, use a primeira porção (geralmente 100g)
+      return servings[0];
+    },
+    []
   );
 
   // Função para adicionar alimento da pesquisa diretamente
@@ -634,6 +688,9 @@ export default function AddFoodScreen() {
         const newPortion = preferredServing.metric_serving_amount || 100;
         const updatedFood = {
           ...existingFood,
+          name: t(`foods.${existingFood.id}`, {
+            defaultValue: existingFood.name,
+          }),
           portion: existingFood.portion + newPortion,
           calories: Math.round(
             (existingFood.calories / existingFood.portion) *
@@ -707,7 +764,7 @@ export default function AddFoodScreen() {
 
         // Mostrar toast de sucesso com mensagem específica para incremento
         showToast({
-          message: `${food.food_name} ${t(
+          message: `${updatedFood.name} ${t(
             "nutrition.addFood.portionIncreased"
           )}`,
           type: "success",
@@ -717,7 +774,7 @@ export default function AddFoodScreen() {
         // Se não existir, adicionar como novo alimento
         const newFood: Food = {
           id: uuidv4(),
-          name: food.food_name,
+          name: t(`foods.${food.food_id}`, { defaultValue: food.food_name }),
           calories: calculatedNutrients.calories,
           protein: calculatedNutrients.protein,
           carbs: calculatedNutrients.carbs,
@@ -734,7 +791,7 @@ export default function AddFoodScreen() {
 
         // Mostrar toast de sucesso
         showToast({
-          message: `${food.food_name} ${t("nutrition.addFood.addedToMeal")}`,
+          message: `${newFood.name} ${t("nutrition.addFood.addedToMeal")}`,
           type: "success",
           position: "bottom",
         });
@@ -750,52 +807,6 @@ export default function AddFoodScreen() {
       meals,
       selectedDate,
     ]
-  );
-
-  // Função para obter a porção preferida para exibição
-  const getPreferredServing = useCallback(
-    (servings: FoodServing[]): FoodServing => {
-      if (!servings || servings.length === 0) {
-        // Fallback para uma porção padrão se não houver nenhuma
-        return {
-          serving_id: "default",
-          serving_description: "100g",
-          metric_serving_amount: 100,
-          metric_serving_unit: "g",
-          calories: 0,
-          protein: 0,
-          fat: 0,
-          carbohydrate: 0,
-        };
-      }
-
-      // Verificar se há uma porção de embalagem (como "1 unidade", "1 pacote", etc.)
-      const packageServing = servings.find(
-        (serving) =>
-          serving.serving_description.toLowerCase().includes("unidade") ||
-          serving.serving_description.toLowerCase().includes("pacote") ||
-          serving.serving_description.toLowerCase().includes("embalagem") ||
-          serving.serving_description.toLowerCase().includes("pote") ||
-          serving.serving_description.toLowerCase().includes("garrafa") ||
-          serving.serving_description.toLowerCase().includes("lata") ||
-          serving.serving_description.toLowerCase().includes("copo") ||
-          serving.serving_description.toLowerCase().includes("bar") ||
-          serving.serving_description.toLowerCase().includes("piece") ||
-          serving.serving_description.toLowerCase().includes("clara") ||
-          serving.serving_description.toLowerCase().includes("fatia") ||
-          (serving.serving_description.toLowerCase().includes("g") &&
-            !serving.serving_description.toLowerCase().includes("100g"))
-      );
-
-      // Se encontrou uma porção de embalagem, use-a
-      if (packageServing) {
-        return packageServing;
-      }
-
-      // Caso contrário, use a primeira porção (geralmente 100g)
-      return servings[0];
-    },
-    []
   );
 
   // Função para exibir a descrição da porção de forma amigável
@@ -876,11 +887,13 @@ export default function AddFoodScreen() {
   // Função para gerar um ID temporário para o alimento baseado no nome
   const generateTempFoodId = (foodName: string) => {
     // Remover espaços e caracteres especiais e converter para minúsculas
-    return foodName.toLowerCase().replace(/[^a-z0-9]/g, "") + "_temp";
+    const normalizedName = foodName.toLowerCase().replace(/[^a-z0-9]/g, "");
+    return normalizedName + "_temp";
   };
 
   // Função para navegar para a tela de detalhes do alimento
   const navigateToFoodDetails = (food: {
+    id: string;
     name: string;
     portion: number;
     calories: number;
@@ -903,7 +916,7 @@ export default function AddFoodScreen() {
         mealName,
         mealColor,
         // Passar dados adicionais para que a tela de detalhes possa exibir mesmo sem buscar na API
-        foodName: food.name,
+        foodName: t(`foods.${food.id}`, { defaultValue: food.name }),
         calories: food.calories,
         protein: food.protein,
         carbs: food.carbs,
@@ -974,6 +987,7 @@ export default function AddFoodScreen() {
           handleFoodSelect={handleFoodSelect}
           handleQuickAddFromSearch={handleQuickAddFromSearch}
           getServingDescription={getServingDescription}
+          t={t}
         />
       );
     });
@@ -1144,7 +1158,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontFamily: "Anton-Regular",
   },
   headerSubtitle: {
     fontSize: 14,

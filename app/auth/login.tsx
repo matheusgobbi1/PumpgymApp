@@ -25,6 +25,8 @@ import LoginBottomSheet from "../../components/auth/LoginBottomSheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "../../context/LanguageContext";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 
 const { width, height } = Dimensions.get("window");
 
@@ -86,133 +88,121 @@ export default function LoginScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
-      <View style={styles.container}>
+      <LinearGradient colors={["#000000", "#333333"]} style={styles.container}>
         <StatusBar
           barStyle="light-content"
           translucent
           backgroundColor="transparent"
         />
 
-        {/* Background Image */}
-        <ImageBackground
-          source={require("../../assets/images/fitness-background.jpeg")}
-          style={styles.backgroundImage}
-          resizeMode="cover"
+        {/* Conteúdo principal */}
+        <View
+          style={[
+            styles.content,
+            {
+              paddingTop: insets.top + 20,
+              paddingBottom: insets.bottom + 20,
+            },
+          ]}
         >
-          {/* Overlay para escurecer a imagem */}
-          <View style={styles.overlay} />
-
-          {/* Conteúdo principal */}
-          <View
-            style={[
-              styles.content,
-              {
-                paddingTop: insets.top + 20,
-                paddingBottom: insets.bottom + 20,
-              },
-            ]}
-          >
-            {/* Logo e Nome do App junto com botão de idioma */}
-            <View style={styles.headerContainer}>
-              <Animated.View
-                entering={FadeInDown.delay(100).duration(1000)}
-                style={styles.logoContainer}
-              >
-                <Text style={styles.appName}>{t("login.appName")}</Text>
-              </Animated.View>
-
-              <Animated.View
-                entering={FadeIn.delay(700).duration(500)}
-                style={styles.languageToggleContainer}
-              >
-                <TouchableOpacity
-                  style={styles.languageToggleButton}
-                  onPress={toggleLanguage}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.languageText}>
-                    {currentLanguage === "pt-BR" ? "🇧🇷" : "🇺🇸"}
-                  </Text>
-                </TouchableOpacity>
-              </Animated.View>
-            </View>
-
-            {/* Espaço vazio para dar mais destaque à imagem de fundo */}
-            <View style={styles.spacer} />
-
-            {/* Texto e Botões */}
-            <View style={styles.bottomContainer}>
-              {/* Texto central */}
-              <Animated.View
-                entering={FadeInDown.delay(200).duration(1000)}
-                style={styles.centralTextContainer}
-              >
-                <Text style={styles.titleText}>{t("login.title")}</Text>
-                <Text style={styles.subtitleText}>{t("login.subtitle")}</Text>
-              </Animated.View>
-
-              {/* Botões */}
-              <View style={styles.buttonsContainer}>
-                <AnimatedTouchableOpacity
-                  entering={FadeInUp.delay(400).duration(800)}
-                  style={[styles.button, styles.primaryButton]}
-                  onPress={handleStartAnonymously}
-                  activeOpacity={0.8}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
-                  ) : (
-                    <Text style={styles.buttonText}>{t("login.startNow")}</Text>
-                  )}
-                </AnimatedTouchableOpacity>
-
-                <AnimatedTouchableOpacity
-                  entering={FadeInUp.delay(500).duration(800)}
-                  style={styles.loginLink}
-                  onPress={handleOpenBottomSheet}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.loginLinkText}>
-                    {t("login.alreadyHaveAccount")}{" "}
-                    <Text style={styles.loginLinkHighlight}>
-                      {t("login.signIn")}
-                    </Text>
-                  </Text>
-                </AnimatedTouchableOpacity>
-              </View>
-            </View>
-
-            {/* Texto de rodapé */}
+          {/* Logo e Nome do App junto com botão de idioma */}
+          <View style={styles.headerContainer}>
             <Animated.View
-              entering={FadeIn.delay(600).duration(800)}
-              style={styles.footerContainer}
+              entering={FadeInDown.delay(100).duration(1000)}
+              style={styles.logoContainer}
             >
-              <Text style={styles.footerText}>
-                {t("login.termsAndPolicy")}{" "}
-                <Text
-                  style={styles.footerLink}
-                  onPress={() => router.push("/terms-of-use")}
-                >
-                  {t("login.termsOfUse")}
-                </Text>{" "}
-                {t("login.and")}{" "}
-                <Text
-                  style={styles.footerLink}
-                  onPress={() => router.push("/privacy-policy")}
-                >
-                  {t("login.privacyPolicy")}
-                </Text>
-              </Text>
+              <Text style={styles.appName}>{t("login.appName")}</Text>
+            </Animated.View>
+
+            <Animated.View
+              entering={FadeIn.delay(700).duration(500)}
+              style={styles.languageToggleContainer}
+            >
+              <TouchableOpacity
+                style={styles.languageToggleButton}
+                onPress={toggleLanguage}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="language-outline" size={22} color="#FFFFFF" />
+              </TouchableOpacity>
             </Animated.View>
           </View>
-        </ImageBackground>
+
+          {/* Espaço vazio para dar mais destaque à imagem de fundo */}
+          <View style={styles.spacer} />
+
+          {/* Texto e Botões */}
+          <View style={styles.bottomContainer}>
+            {/* Texto central */}
+            <Animated.View
+              entering={FadeInDown.delay(200).duration(1000)}
+              style={styles.centralTextContainer}
+            >
+              {/* Título dividido em duas linhas com estilo condicional */}
+              <Text
+                style={[
+                  styles.titleText,
+                  currentLanguage === "pt-BR" && { fontSize: 76 }, // Tamanho menor para PT-BR
+                ]}
+              >
+                {t("login.titleLine1")}
+              </Text>
+              <Text
+                style={[
+                  styles.titleTextLarge,
+                  currentLanguage === "pt-BR" && {
+                    fontSize: 81,
+                    lineHeight: 90,
+                  },
+                ]}
+              >
+                {t("login.titleLine2")}
+              </Text>
+              <Text style={styles.subtitleText}>{t("login.subtitle")}</Text>
+            </Animated.View>
+
+            {/* Botões */}
+            <View style={styles.buttonsContainer}>
+              <AnimatedTouchableOpacity
+                entering={FadeInUp.delay(400).duration(800)}
+                style={[
+                  styles.button,
+                  styles.primaryButton,
+                  { borderColor: colors.tabborder },
+                ]}
+                onPress={handleStartAnonymously}
+                activeOpacity={0.8}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.buttonText}>{t("login.startNow")}</Text>
+                )}
+              </AnimatedTouchableOpacity>
+
+              <AnimatedTouchableOpacity
+                entering={FadeInUp.delay(500).duration(800)}
+                style={styles.loginLink}
+                onPress={handleOpenBottomSheet}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.loginLinkText}>
+                  {t("login.alreadyHaveAccount")}{" "}
+                  <Text style={styles.loginLinkHighlight}>
+                    {t("login.signIn")}
+                  </Text>
+                </Text>
+              </AnimatedTouchableOpacity>
+            </View>
+          </View>
+        </View>
 
         {/* Login Bottom Sheet */}
         <LoginBottomSheet
           bottomSheetIndex={bottomSheetIndex}
           setBottomSheetIndex={setBottomSheetIndex}
         />
-      </View>
+      </LinearGradient>
     </TouchableWithoutFeedback>
   );
 }
@@ -220,16 +210,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
-  },
-  backgroundImage: {
-    flex: 1,
-    width: width,
-    height: height,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.55)", // Overlay mais leve para destacar a imagem
   },
   content: {
     flex: 1,
@@ -244,26 +224,40 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   centralTextContainer: {
-    marginBottom: 24,
+    marginBottom: 48,
+    alignItems: "center",
   },
   titleText: {
     color: "#FFFFFF",
-    fontSize: 31,
-    fontWeight: "200",
-    letterSpacing: 0.1,
+    fontSize: 78,
+    fontFamily: "Anton",
+    textTransform: "uppercase",
+    letterSpacing: 0,
     textAlign: "center",
-    marginBottom: 10,
-    textShadowColor: "rgba(0, 0, 0, 0.75)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    marginBottom: -15,
+    textShadowColor: "rgba(0, 0, 0, 0.6)",
+  },
+  titleTextLarge: {
+    color: "#FFFFFF",
+    fontSize: 92,
+    fontFamily: "Anton",
+    textTransform: "uppercase",
+    letterSpacing: 0,
+    textAlign: "center",
+    lineHeight: 110,
+    marginTop: 0,
+    marginBottom: 0,
+    textShadowColor: "rgba(0, 0, 0, 0.8)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 5,
   },
   subtitleText: {
     color: "rgba(255, 255, 255, 0.9)",
-    fontSize: 16,
-    fontWeight: "200",
+    fontSize: 24,
+    fontFamily: "PlayfairDisplay-Italic",
     textAlign: "center",
     maxWidth: "100%",
-    lineHeight: 22,
+    lineHeight: 24,
     textShadowColor: "rgba(0, 0, 0, 0.7)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
@@ -271,26 +265,31 @@ const styles = StyleSheet.create({
   },
   buttonsContainer: {
     width: "100%",
-    gap: 8, // Reduzindo o espaçamento para aproximar os botões
+    gap: 4, // Reduzindo o espaçamento entre os botões/links
     alignItems: "center",
   },
   button: {
-    height: 56,
+    height: 60,
     width: "100%",
-    borderRadius: 28,
+    borderRadius: 30,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
+    shadowOpacity: 0.9,
+    shadowRadius: 10,
+    elevation: 10,
   },
   primaryButton: {
-    backgroundColor: "#000000",
-    borderWidth: 1,
-    borderColor: "#333333",
+    backgroundColor: "transparent",
+    borderWidth: 3,
+    height: 60,
+    shadowColor: "#FFFFFF",
+    shadowOffset: { width: 0, height: 0},
+    shadowOpacity: 1,
+    shadowRadius: 18,
+    elevation: 5,
   },
   buttonText: {
     color: "#FFFFFF",
@@ -314,21 +313,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "bold",
   },
-  footerContainer: {
-    marginBottom: 10,
-    alignItems: "center",
-  },
-  footerText: {
-    color: "rgba(255, 255, 255, 0.7)",
-    fontSize: 12,
-    textAlign: "center",
-    fontWeight: "200",
-  },
-  footerLink: {
-    color: "#FFFFFF",
-    fontWeight: "500",
-    textDecorationLine: "underline",
-  },
   headerContainer: {
     flexDirection: "row",
     width: "100%",
@@ -344,7 +328,8 @@ const styles = StyleSheet.create({
   appName: {
     color: "#FFFFFF",
     fontSize: 28,
-    fontWeight: "600",
+    fontFamily: "PlayfairDisplay",
+    textTransform: "uppercase",
     textShadowColor: "rgba(0, 0, 0, 0.75)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
@@ -362,8 +347,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.3)",
-  },
-  languageText: {
-    fontSize: 18,
   },
 });

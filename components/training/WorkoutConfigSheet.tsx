@@ -1086,9 +1086,10 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 35,
     fontWeight: "bold",
     marginBottom: 8,
+    fontFamily: "Anton",
   },
   subtitle: {
     fontSize: 16,

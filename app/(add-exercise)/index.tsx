@@ -319,7 +319,6 @@ const RecentExerciseItem = React.memo(
                       weight: set.weight,
                       restTime: set.restTime || 60,
                       completed: false,
-                      isBodyweightExercise: exercise.isBodyweightExercise,
                     })),
               // Copiar configurações de cardio se for um exercício de cardio
               cardioDuration:
@@ -448,7 +447,6 @@ const SearchResultItem = React.memo(
                         weight: exercise.isBodyweightExercise ? 0 : 10,
                         completed: false,
                         restTime: 60,
-                        isBodyweightExercise: exercise.isBodyweightExercise,
                       },
                       {
                         id: `set-${Date.now()}-2`,
@@ -456,7 +454,6 @@ const SearchResultItem = React.memo(
                         weight: exercise.isBodyweightExercise ? 0 : 10,
                         completed: false,
                         restTime: 60,
-                        isBodyweightExercise: exercise.isBodyweightExercise,
                       },
                       {
                         id: `set-${Date.now()}-3`,
@@ -464,7 +461,6 @@ const SearchResultItem = React.memo(
                         weight: exercise.isBodyweightExercise ? 0 : 10,
                         completed: false,
                         restTime: 60,
-                        isBodyweightExercise: exercise.isBodyweightExercise,
                       },
                     ],
               completed: false,
@@ -624,7 +620,6 @@ export default function AddExerciseScreen() {
                   weight: exercise.isBodyweightExercise ? 0 : 10,
                   completed: false,
                   restTime: 60,
-                  isBodyweightExercise: exercise.isBodyweightExercise,
                 },
                 {
                   id: `set-${Date.now()}-2`,
@@ -632,7 +627,6 @@ export default function AddExerciseScreen() {
                   weight: exercise.isBodyweightExercise ? 0 : 10,
                   completed: false,
                   restTime: 60,
-                  isBodyweightExercise: exercise.isBodyweightExercise,
                 },
                 {
                   id: `set-${Date.now()}-3`,
@@ -640,7 +634,6 @@ export default function AddExerciseScreen() {
                   weight: exercise.isBodyweightExercise ? 0 : 10,
                   completed: false,
                   restTime: 60,
-                  isBodyweightExercise: exercise.isBodyweightExercise,
                 },
               ],
         completed: false,
@@ -884,7 +877,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontFamily: "Anton-Regular",
   },
   headerSubtitle: {
     fontSize: 14,

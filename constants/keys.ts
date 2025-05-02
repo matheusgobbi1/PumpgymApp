@@ -17,4 +17,5 @@ export const KEYS = {
   TRAINING_GOALS: "pumpgym_training_goals",
   WATER_INTAKE: "pumpgym_water_intake",
   STEPS_COUNT: "pumpgym_steps_count",
+  LAST_PROGRESSION_APPLIED_CHECK_DATE: "pumpgym_last_progression_check_date",
 };

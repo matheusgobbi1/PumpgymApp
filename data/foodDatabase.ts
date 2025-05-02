@@ -4,7 +4,7 @@ import { tacoFoods } from "./tacoDatabase";
 import { brandedFoods } from "./brandedFoods";
 
 // Banco de dados de alimentos comuns
-export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
+export const foodDatabase: FoodData[] = [
   // Frutas
   {
     id: "food_banana",
@@ -83,7 +83,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_acai",
-    name: "Açaí",
     category: "Frutas",
     nutrients: {
       calories: 70,
@@ -108,7 +107,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_abacaxi",
-    name: "Abacaxi",
     category: "Frutas",
     nutrients: {
       calories: 50,
@@ -133,7 +131,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_manga",
-    name: "Manga",
     category: "Frutas",
     nutrients: {
       calories: 60,
@@ -158,7 +155,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_goiaba",
-    name: "Goiaba",
     category: "Frutas",
     nutrients: {
       calories: 68,
@@ -182,7 +178,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_mamao",
-    name: "Mamão",
     category: "Frutas",
     nutrients: {
       calories: 43,
@@ -206,7 +201,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_melao",
-    name: "Melão",
     category: "Frutas",
     nutrients: {
       calories: 34,
@@ -230,7 +224,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_morango",
-    name: "Morango",
     category: "Frutas",
     nutrients: {
       calories: 32,
@@ -254,7 +247,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_uva",
-    name: "Uva",
     category: "Frutas",
     nutrients: {
       calories: 69,
@@ -280,7 +272,7 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   // Verduras e Legumes
   {
     id: "food_alface",
-    name: "Alface",
+    name: "Alface Crespa",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 15,
@@ -330,7 +322,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_cenoura",
-    name: "Cenoura",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 41,
@@ -355,7 +346,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_mandioca",
-    name: "Mandioca",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 160,
@@ -379,7 +369,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_batata_doce",
-    name: "Batata Doce",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 86,
@@ -403,7 +392,7 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_brocolis",
-    name: "Brócolis",
+    name: "Brócolis Cozido",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 34,
@@ -428,7 +417,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_couve_flor",
-    name: "Couve-flor",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 25,
@@ -453,7 +441,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_pepino",
-    name: "Pepino",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 15,
@@ -478,7 +465,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_batata",
-    name: "Batata",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 77,
@@ -505,7 +491,7 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   // Carnes
   {
     id: "food_frango_peito",
-    name: "Peito de Frango",
+    name: "Peito de Frango Grelhado",
     category: "Carnes",
     nutrients: {
       calories: 165,
@@ -530,7 +516,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_carne_bovina",
-    name: "Carne Bovina (Patinho)",
     category: "Carnes",
     nutrients: {
       calories: 187,
@@ -555,7 +540,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_picanha",
-    name: "Picanha",
     category: "Carnes",
     nutrients: {
       calories: 290,
@@ -579,7 +563,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_linguica",
-    name: "Linguiça Calabresa",
     category: "Carnes",
     nutrients: {
       calories: 320,
@@ -605,7 +588,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   // Grãos e Cereais
   {
     id: "food_arroz_branco",
-    name: "Arroz Branco",
     category: "Grãos e Cereais",
     nutrients: {
       calories: 130,
@@ -630,7 +612,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_feijao_preto",
-    name: "Feijão Preto",
     category: "Grãos e Cereais",
     nutrients: {
       calories: 132,
@@ -655,7 +636,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_feijao_carioca",
-    name: "Feijão Carioca",
     category: "Grãos e Cereais",
     nutrients: {
       calories: 128,
@@ -680,7 +660,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_farofa",
-    name: "Farofa",
     category: "Grãos e Cereais",
     nutrients: {
       calories: 398,
@@ -706,7 +685,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   // Laticínios
   {
     id: "food_queijo_minas",
-    name: "Queijo Minas",
     category: "Laticínios",
     nutrients: {
       calories: 264,
@@ -731,7 +709,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_requeijao",
-    name: "Requeijão",
     category: "Laticínios",
     nutrients: {
       calories: 290,
@@ -758,7 +735,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   // Pratos Típicos
   {
     id: "food_feijoada",
-    name: "Feijoada",
     category: "Pratos Típicos",
     nutrients: {
       calories: 360,
@@ -782,7 +758,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_moqueca",
-    name: "Moqueca de Peixe",
     category: "Pratos Típicos",
     nutrients: {
       calories: 185,
@@ -806,7 +781,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_acaraje",
-    name: "Acarajé",
     category: "Pratos Típicos",
     nutrients: {
       calories: 280,
@@ -830,7 +804,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_pao_de_queijo",
-    name: "Pão de Queijo",
     category: "Pratos Típicos",
     nutrients: {
       calories: 300,
@@ -854,7 +827,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_coxinha",
-    name: "Coxinha",
     category: "Pratos Típicos",
     nutrients: {
       calories: 290,
@@ -878,7 +850,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_brigadeiro",
-    name: "Brigadeiro",
     category: "Pratos Típicos",
     nutrients: {
       calories: 130,
@@ -902,7 +873,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_tapioca",
-    name: "Tapioca",
     category: "Pratos Típicos",
     nutrients: {
       calories: 130,
@@ -926,7 +896,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_acai_bowl",
-    name: "Tigela de Açaí",
     category: "Pratos Típicos",
     nutrients: {
       calories: 210,
@@ -950,7 +919,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_guarana",
-    name: "Guaraná",
     category: "Bebidas",
     nutrients: {
       calories: 38,
@@ -976,7 +944,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   // Mix de Legumes e Saladas
   {
     id: "food_mix_legumes",
-    name: "Mix de Legumes",
     category: "Saladas e Mix",
     nutrients: {
       calories: 45,
@@ -1005,7 +972,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_salada_mista",
-    name: "Salada Mista",
     category: "Saladas e Mix",
     nutrients: {
       calories: 20,
@@ -1034,7 +1000,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_rucula",
-    name: "Rúcula",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 25,
@@ -1059,7 +1024,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_espinafre",
-    name: "Espinafre",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 23,
@@ -1084,7 +1048,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_couve",
-    name: "Couve",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 33,
@@ -1109,7 +1072,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_abobrinha",
-    name: "Abobrinha",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 17,
@@ -1134,7 +1096,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_berinjela",
-    name: "Berinjela",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 25,
@@ -1159,7 +1120,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_chuchu",
-    name: "Chuchu",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 19,
@@ -1184,7 +1144,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_quiabo",
-    name: "Quiabo",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 33,
@@ -1209,7 +1168,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_pimentao",
-    name: "Pimentão",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 20,
@@ -1234,7 +1192,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_salada_cesar",
-    name: "Salada Caesar",
     category: "Saladas e Mix",
     nutrients: {
       calories: 130,
@@ -1263,7 +1220,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_mix_folhas_verdes",
-    name: "Mix de Folhas Verdes",
     category: "Saladas e Mix",
     nutrients: {
       calories: 18,
@@ -1288,7 +1244,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_salada_tropical",
-    name: "Salada Tropical",
     category: "Saladas e Mix",
     nutrients: {
       calories: 45,
@@ -1312,7 +1267,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_legumes_cozidos",
-    name: "Legumes Cozidos Mistos",
     category: "Saladas e Mix",
     nutrients: {
       calories: 55,
@@ -1336,7 +1290,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_vagem",
-    name: "Vagem",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 31,
@@ -1360,7 +1313,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_milho_verde",
-    name: "Milho Verde",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 96,
@@ -1384,7 +1336,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_ervilha",
-    name: "Ervilha",
     category: "Verduras e Legumes",
     nutrients: {
       calories: 81,
@@ -1410,7 +1361,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   // Óleos e Gorduras
   {
     id: "food_azeite",
-    name: "Azeite de Oliva",
     category: "Óleos e Gorduras",
     nutrients: {
       calories: 884,
@@ -1439,7 +1389,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_hot_roll",
-    name: "Hot Roll",
     nutrients: {
       calories: 175,
       protein: 3.8,
@@ -1468,7 +1417,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_uramaki",
-    name: "Uramaki",
     nutrients: {
       calories: 170,
       protein: 6.0,
@@ -1492,7 +1440,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_temaki_salmao",
-    name: "Temaki de Salmão",
     nutrients: {
       calories: 174,
       protein: 6.67,
@@ -1516,7 +1463,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_sushi_salmao",
-    name: "Niguiri de Salmão",
     nutrients: {
       calories: 146,
       protein: 5.8,
@@ -1540,7 +1486,6 @@ export const foodDatabase: (FoodData & { alternatives?: string[] })[] = [
   },
   {
     id: "food_sashimi_salmao",
-    name: "Sashimi de Salmão",
     nutrients: {
       calories: 208,
       protein: 22.0,

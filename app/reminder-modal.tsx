@@ -934,7 +934,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontFamily: "Anton-Regular",
     letterSpacing: -0.5,
   },
   closeButton: {

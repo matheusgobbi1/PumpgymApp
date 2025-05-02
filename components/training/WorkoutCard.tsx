@@ -28,7 +28,6 @@ import { useWorkoutContext } from "../../context/WorkoutContext";
 import Colors from "../../constants/Colors";
 import { Exercise } from "../../context/WorkoutContext";
 import { useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../../context/AuthContext";
 import ConfirmationModal from "../ui/ConfirmationModal";
 import { useTranslation } from "react-i18next";
@@ -944,22 +943,26 @@ export default function WorkoutCard({
                 </View>
               ) : (
                 <View style={styles.emptyContainer}>
-                  <LinearGradient
-                    colors={[colors.light, colors.background]}
-                    style={styles.emptyGradient}
-                  >
-                    <Ionicons
-                      name="barbell-outline"
-                      size={20}
-                      color={colors.text + "30"}
-                      style={{ marginBottom: 6 }}
-                    />
+                  <View style={styles.emptyContent}>
+                    <View style={[styles.emptyIconContainer]}>
+                      <MaterialCommunityIcons
+                        name="weight-lifter"
+                        size={30}
+                        color={colors.primary}
+                      />
+                    </View>
+                    <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                      {t("training.emptyWorkoutTitle")}
+                    </Text>
                     <Text
-                      style={[styles.emptyText, { color: colors.text + "50" }]}
+                      style={[
+                        styles.emptyDescription,
+                        { color: colors.text + "80" },
+                      ]}
                     >
                       {t("training.addFirstExercise")}
                     </Text>
-                  </LinearGradient>
+                  </View>
                 </View>
               )}
             </View>
@@ -1277,22 +1280,38 @@ const styles = StyleSheet.create({
   },
   exercisesList: {
     marginVertical: 0,
-    marginHorizontal: -16, // Ajustado para o novo padding do card
+    marginHorizontal: -16,
   },
   emptyContainer: {
-    marginVertical: 12,
-    borderRadius: 10,
-    overflow: "hidden",
+    paddingVertical: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
   },
-  emptyGradient: {
-    padding: 16,
+  emptyContent: {
     alignItems: "center",
     justifyContent: "center",
   },
-  emptyText: {
-    fontSize: 13,
+  emptyIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontFamily: "Anton-Regular",
+    textTransform: "uppercase",
     textAlign: "center",
+    letterSpacing: -0.5,
+  },
+  emptyDescription: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 22,
     opacity: 0.8,
+    letterSpacing: -0.2,
   },
   swipeAction: {
     justifyContent: "center",

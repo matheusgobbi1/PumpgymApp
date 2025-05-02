@@ -15,7 +15,7 @@ export interface FoodNutrients {
 // Interface para o banco de dados local de alimentos
 export interface FoodData {
   id: string;
-  name: string;
+  name?: string;
   nutrients: FoodNutrients;
   measures: {
     id: string;
@@ -25,6 +25,7 @@ export interface FoodData {
   }[];
   brandName?: string;
   category?: string;
+  alternatives?: string[];
 }
 
 // Interface para alimentos

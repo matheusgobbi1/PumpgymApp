@@ -452,16 +452,17 @@ export default function ConsistencyScoreCard({
         ]}
       >
         <View style={styles.emptyContainer}>
-          <View style={styles.emptyGradient}>
+          <View style={styles.emptyContent}>
             <View
               style={[
                 styles.emptyIconContainer,
-                { backgroundColor: colors.primary + "20" },
+                // Ajustar background se necessário, ou remover se não for usado como em DailyReminders
+                // { backgroundColor: colors.primary + "20" },
               ]}
             >
               <MaterialCommunityIcons
                 name="chart-timeline-variant"
-                size={40}
+                size={30} // Ajustado para 30 como em DailyReminders
                 color={colors.primary}
               />
             </View>
@@ -474,6 +475,7 @@ export default function ConsistencyScoreCard({
             >
               {t("consistency.empty_state_description")}
             </Text>
+            {/* Remover o botão, pois não existe no DailyReminders */}
           </View>
         </View>
       </View>
@@ -861,34 +863,29 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   emptyContainer: {
-    overflow: "hidden",
-    borderRadius: 16,
-  },
-  emptyGradient: {
-    padding: 30,
+    flex: 1, // Adicionado para centralizar verticalmente
+    paddingVertical: 20, // Ajustado para combinar
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "transparent",
+    marginHorizontal: 16, // Adicionado para corresponder
+  },
+  // Adicionado estilo emptyContent para agrupar
+  emptyContent: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20, // Adicionado para corresponder
   },
   emptyIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 60, // Ajustado para 60
+    height: 60, // Ajustado para 60
+    borderRadius: 30, // Ajustado para 30
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
   },
   emptyTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 12,
+    fontSize: 20, // Ajustado para 20
+    fontFamily: "Anton-Regular",
+    textTransform: "uppercase",
     textAlign: "center",
     letterSpacing: -0.5,
   },
@@ -896,31 +893,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     lineHeight: 22,
-    paddingHorizontal: 24,
+    // Remover paddingHorizontal, pois está no emptyContent
     marginBottom: 0,
     letterSpacing: -0.2,
-  },
-  startTrackingButton: {
-    paddingHorizontal: 28,
-    paddingVertical: 14,
-    borderRadius: 30,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-    elevation: 4,
-  },
-  startTrackingButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 15,
-    letterSpacing: -0.3,
+    opacity: 0.8, // Adicionado para corresponder
   },
   modalOverlay: {
     flex: 1,

@@ -188,7 +188,7 @@ export default function FoodAlternativesModal({
               style={[styles.alternativeNameModal, { color: colors.text }]}
               numberOfLines={1}
             >
-              {item.name}
+              {t(`foods.${item.id}`, { defaultValue: item.name })}
             </Text>
             <Text
               style={[styles.alternativeInfoModal, { color: colors.secondary }]}
@@ -311,7 +311,7 @@ export default function FoodAlternativesModal({
               </View>
               <View style={styles.currentFoodInfo}>
                 <Text style={[styles.currentFoodName, { color: colors.text }]}>
-                  {food.name}
+                  {t(`foods.${food.id}`, { defaultValue: food.name })}
                 </Text>
                 <Text
                   style={[

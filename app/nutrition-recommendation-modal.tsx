@@ -1129,7 +1129,7 @@ export default function NutritionRecommendationModal() {
                   onPress={handleClose}
                   disabled={loading || applying}
                 >
-                  <Ionicons name="chevron-down" size={24} color="#FFF" />
+                  <Ionicons name="chevron-down" size={28} color="#FFF" />
                 </TouchableOpacity>
 
                 <Animated.Text
@@ -1516,7 +1516,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 12,
     paddingTop: 8,
     paddingBottom: 4,
     minHeight: 50,
@@ -1558,7 +1557,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   headerGradient: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 8,
   },
   gradientContent: {
     alignItems: "center",

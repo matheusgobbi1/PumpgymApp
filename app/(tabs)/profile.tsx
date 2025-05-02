@@ -151,8 +151,8 @@ export default function Profile() {
         {/* Header posicionado absolutamente no topo */}
         <View style={styles.headerWrapper}>
           <HomeHeader
-            title={user?.email || t("common.user")}
-            onFitLevelPress={() => router.push("/achievements-modal")}
+            title={t("profile.header.title")}
+          
           />
         </View>
 

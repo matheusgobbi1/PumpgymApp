@@ -18,7 +18,10 @@ import { useTheme } from "../../context/ThemeContext";
 import Input from "../../components/common/Input";
 import Button from "../../components/common/Button";
 import { useAuth } from "../../context/AuthContext";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { MotiView, MotiText, AnimatePresence } from "moti";
 import * as Haptics from "expo-haptics";
@@ -43,6 +46,7 @@ export default function CompleteRegistrationScreen() {
   const colors = Colors[theme];
   const { completeAnonymousRegistration, isAnonymous, loginWithApple } =
     useAuth();
+  const insets = useSafeAreaInsets();
 
   // Referência para o ScrollView
   const scrollViewRef = useRef<ScrollView>(null);
@@ -522,64 +526,6 @@ export default function CompleteRegistrationScreen() {
                           color={theme === "dark" ? "black" : "white"}
                         />
                       </TouchableOpacity>
-
-                      <View style={styles.dividerContainer}>
-                        <View
-                          style={[
-                            styles.divider,
-                            {
-                              backgroundColor:
-                                theme === "dark" ? "#444" : "#e0e0e0",
-                            },
-                          ]}
-                        />
-                        <Text
-                          style={[
-                            styles.dividerText,
-                            { color: theme === "dark" ? "#aaa" : "#888" },
-                          ]}
-                        >
-                          {t("completeRegistration.socialAuth.continueWith")}
-                        </Text>
-                        <View
-                          style={[
-                            styles.divider,
-                            {
-                              backgroundColor:
-                                theme === "dark" ? "#444" : "#e0e0e0",
-                            },
-                          ]}
-                        />
-                      </View>
-
-                      <View style={styles.socialButtonsContainer}>
-                        <TouchableOpacity
-                          key={`apple-button-${theme}`}
-                          style={[
-                            styles.socialButton,
-                            {
-                              backgroundColor:
-                                theme === "dark" ? "#333" : "#f5f5f5",
-                              borderColor:
-                                theme === "dark" ? "#444" : "#e0e0e0",
-                            },
-                            Platform.OS === "android" &&
-                              styles.socialButtonDisabled,
-                          ]}
-                          onPress={() => handleSocialLogin("Apple")}
-                        >
-                          <Ionicons
-                            name="logo-apple"
-                            size={20}
-                            color={theme === "dark" ? "#fff" : "#000"}
-                          />
-                          {Platform.OS === "android" && (
-                            <View style={styles.iosOnlyBadge}>
-                              <Text style={styles.iosOnlyText}>iOS</Text>
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      </View>
                     </View>
                   </MotiView>
                 )}
@@ -733,27 +679,39 @@ export default function CompleteRegistrationScreen() {
                 )}
               </AnimatePresence>
             </View>
-
-            <View style={styles.termsContainer}>
-              <Text
-                style={[
-                  styles.termsText,
-                  { color: theme === "dark" ? "#aaa" : "#888" },
-                ]}
-              >
-                {t("completeRegistration.terms.agreement")}{" "}
-                <Text style={[styles.termsLink, { color: colors.primary }]}>
-                  {t("completeRegistration.terms.termsOfService")}
-                </Text>{" "}
-                {t("completeRegistration.terms.and")}{" "}
-                <Text style={[styles.termsLink, { color: colors.primary }]}>
-                  {t("completeRegistration.terms.privacyPolicy")}
-                </Text>
-              </Text>
-            </View>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Texto dos Termos movido para baixo, fora do ScrollView */}
+      <View
+        style={[
+          styles.footerTermsContainer,
+          { paddingBottom: Math.max(insets.bottom, 16) },
+        ]}
+      >
+        <Text
+          style={[
+            styles.termsText,
+            { color: theme === "dark" ? "#aaa" : "#888" },
+          ]}
+        >
+          {t("completeRegistration.terms.agreement")}{" "}
+          <Text
+            style={[styles.termsLink, { color: colors.primary }]}
+            onPress={() => router.push("/terms-of-use")}
+          >
+            {t("completeRegistration.terms.termsOfService")}
+          </Text>{" "}
+          {t("completeRegistration.terms.and")}{" "}
+          <Text
+            style={[styles.termsLink, { color: colors.primary }]}
+            onPress={() => router.push("/privacy-policy")}
+          >
+            {t("completeRegistration.terms.privacyPolicy")}
+          </Text>
+        </Text>
+      </View>
     </SafeAreaView>
   );
 }
@@ -765,6 +723,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 24,
+    paddingBottom: 80, // Adiciona espaço no final do scroll para não sobrepor os termos
   },
   header: {
     alignItems: "center",
@@ -775,6 +734,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 12,
+    fontFamily: "Anton-Regular",
   },
   subtitle: {
     fontSize: 16,
@@ -863,33 +823,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 24,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    paddingHorizontal: 16,
-    fontSize: 14,
-  },
-  socialButtonsContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 16,
-  },
-  socialButton: {
-    width: "80%",
-    height: 56,
-    borderRadius: 28,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-  },
   buttonRow: {
     flexDirection: "row",
     gap: 12,
@@ -947,11 +880,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
   },
-  termsContainer: {
-    marginTop: 8,
-    marginBottom: 16,
-    alignItems: "center",
-  },
   termsText: {
     fontSize: 12,
     textAlign: "center",
@@ -960,22 +888,12 @@ const styles = StyleSheet.create({
   },
   termsLink: {
     fontWeight: "bold",
+    textDecorationLine: "underline", // Adiciona sublinhado para indicar link
   },
-  socialButtonDisabled: {
-    backgroundColor: "#e0e0e0",
-    borderColor: "#e0e0e0",
-  },
-  iosOnlyBadge: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    backgroundColor: "#007bff",
-    borderRadius: 12,
-    padding: 2,
-  },
-  iosOnlyText: {
-    fontSize: 10,
-    fontWeight: "bold",
-    color: "white",
+  footerTermsContainer: {
+    // Novo estilo para o container fixo no rodapé
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    alignItems: "center",
   },
 });

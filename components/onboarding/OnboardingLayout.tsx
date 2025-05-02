@@ -277,6 +277,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     marginBottom: 12,
+    fontFamily: "Anton-Regular",
   },
   subtitle: {
     fontSize: 16,

@@ -49,29 +49,29 @@ export interface FatSecretFoodDetails {
 // Função para obter token de acesso
 export async function getFatSecretToken(): Promise<string> {
   try {
-    
     // Criar credenciais Basic Auth usando btoa (Base64) em vez de Buffer
     const credentialsString = `${FATSECRET_CONFIG.CLIENT_ID}:${FATSECRET_CONFIG.CLIENT_SECRET}`;
     const credentials = btoa(credentialsString);
-    
+
     const params = new URLSearchParams({
       grant_type: "client_credentials",
       scope: "basic",
     });
-    
+
     const response = await fetch(FATSECRET_CONFIG.AUTH_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        "Authorization": `Basic ${credentials}`,
+        Authorization: `Basic ${credentials}`,
       },
       body: params.toString(),
     });
 
-    
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Erro ao obter token de acesso: ${response.status} - ${errorText}`);
+      throw new Error(
+        `Erro ao obter token de acesso: ${response.status} - ${errorText}`
+      );
     }
 
     const data = await response.json();
@@ -87,4 +87,3 @@ if (!FATSECRET_CONFIG.CLIENT_ID || !FATSECRET_CONFIG.CLIENT_SECRET) {
     "As variáveis de ambiente EXPO_PUBLIC_FATSECRET_CLIENT_ID e EXPO_PUBLIC_FATSECRET_CLIENT_SECRET são obrigatórias."
   );
 }
-

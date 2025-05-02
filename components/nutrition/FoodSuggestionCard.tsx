@@ -528,12 +528,15 @@ export default function FoodSuggestionCard({
 
   // Ícone por categoria de alimento
   const getFoodIcon = (foodItem: FoodSuggestion = food) => {
-    // Identificar o tipo de alimento pelo ID e nome para maior abrangência
+    // Identificar o tipo de alimento pelo ID e nome (traduzido) para maior abrangência
     const foodId = foodItem.id.toLowerCase();
-    const foodName = foodItem.name.toLowerCase();
+    // Obter o nome traduzido, com fallback para o nome original
+    const translatedFoodName = t(`foods.${foodItem.id}`, {
+      defaultValue: foodItem.name,
+    }).toLowerCase();
 
-    // 1. Itens específicos primeiro
-    if (foodId.includes("whey") || foodName.includes("whey")) {
+    // 1. Itens específicos primeiro (usando ID e nome traduzido)
+    if (foodId.includes("whey") || translatedFoodName.includes("whey")) {
       return (
         <MaterialCommunityIcons
           name="shaker-outline"
@@ -543,23 +546,23 @@ export default function FoodSuggestionCard({
       );
     } else if (
       foodId.includes("macarrao") ||
-      foodName.includes("macarrão") ||
-      foodName.includes("macarrao") ||
-      foodName.includes("pasta")
+      translatedFoodName.includes("macarrão") ||
+      translatedFoodName.includes("macarrao") ||
+      translatedFoodName.includes("pasta")
     ) {
       return (
         <MaterialCommunityIcons name="pasta" size={20} color={mealColor} />
       );
     } else if (
       foodId.includes("arroz") ||
-      foodName.includes("arroz") ||
-      foodName.includes("rice")
+      translatedFoodName.includes("arroz") ||
+      translatedFoodName.includes("rice")
     ) {
       return <MaterialCommunityIcons name="rice" size={20} color={mealColor} />;
     } else if (
-      foodId.includes("batata") || // Mantendo "batata" na verificação
-      foodName.includes("batata") ||
-      foodName.includes("potato")
+      foodId.includes("batata") ||
+      translatedFoodName.includes("batata") ||
+      translatedFoodName.includes("potato")
     ) {
       return (
         <MaterialCommunityIcons name="carrot" size={20} color={mealColor} />
@@ -570,30 +573,30 @@ export default function FoodSuggestionCard({
       foodId.includes("file") ||
       foodId.includes("carne") ||
       foodId.includes("bife") ||
-      foodName.includes("frango") ||
-      foodName.includes("carne") ||
-      foodName.includes("bife") ||
-      foodName.includes("filé") ||
-      foodName.includes("file")
+      translatedFoodName.includes("frango") ||
+      translatedFoodName.includes("carne") ||
+      translatedFoodName.includes("bife") ||
+      translatedFoodName.includes("filé") ||
+      translatedFoodName.includes("file")
     ) {
       return <FontAwesome5 name="drumstick-bite" size={18} color={mealColor} />;
     } else if (
       foodId.includes("peixe") ||
       foodId.includes("salmao") ||
-      foodName.includes("peixe") ||
-      foodName.includes("salmão") ||
-      foodName.includes("tilápia") ||
-      foodName.includes("tilapia") ||
-      foodName.includes("bacalhau") ||
-      foodName.includes("atum")
+      translatedFoodName.includes("peixe") ||
+      translatedFoodName.includes("salmão") ||
+      translatedFoodName.includes("tilápia") ||
+      translatedFoodName.includes("tilapia") ||
+      translatedFoodName.includes("bacalhau") ||
+      translatedFoodName.includes("atum")
     ) {
       return <FontAwesome5 name="fish" size={18} color={mealColor} />;
-    } else if (foodId.includes("ovo") || foodName.includes("ovo")) {
+    } else if (foodId.includes("ovo") || translatedFoodName.includes("ovo")) {
       return <FontAwesome5 name="egg" size={18} color={mealColor} />;
     } else if (
       foodId.includes("iogurte_desnatado") ||
-      foodName.includes("iogurte desnatado") ||
-      foodName.includes("leite desnatado")
+      translatedFoodName.includes("iogurte desnatado") ||
+      translatedFoodName.includes("leite desnatado")
     ) {
       return (
         <FontAwesome5
@@ -603,13 +606,16 @@ export default function FoodSuggestionCard({
           style={{ opacity: 0.9 }}
         />
       );
-    } else if (foodId.includes("iogurte") || foodName.includes("iogurte")) {
+    } else if (
+      foodId.includes("iogurte") ||
+      translatedFoodName.includes("iogurte")
+    ) {
       return <FontAwesome5 name="glass-whiskey" size={18} color={mealColor} />;
     } else if (
       foodId.includes("requeijao") ||
       foodId.includes("queijo") ||
-      foodName.includes("requeijão") ||
-      foodName.includes("queijo")
+      translatedFoodName.includes("requeijão") ||
+      translatedFoodName.includes("queijo")
     ) {
       return (
         <MaterialCommunityIcons name="cheese" size={18} color={mealColor} />
@@ -618,9 +624,9 @@ export default function FoodSuggestionCard({
       foodId.includes("castanha") ||
       foodId.includes("amendoim") ||
       foodId.includes("pasta_amendoim") ||
-      foodName.includes("castanha") ||
-      foodName.includes("amendoim") ||
-      foodName.includes("pasta de amendoim")
+      translatedFoodName.includes("castanha") ||
+      translatedFoodName.includes("amendoim") ||
+      translatedFoodName.includes("pasta de amendoim")
     ) {
       return (
         <MaterialCommunityIcons name="peanut" size={20} color={mealColor} />
@@ -628,18 +634,18 @@ export default function FoodSuggestionCard({
     } else if (
       foodId.includes("azeite") ||
       foodId.includes("oleo") ||
-      foodName.includes("azeite") ||
-      foodName.includes("óleo") ||
-      foodName.includes("oleo")
+      translatedFoodName.includes("azeite") ||
+      translatedFoodName.includes("óleo") ||
+      translatedFoodName.includes("oleo")
     ) {
       return <MaterialCommunityIcons name="oil" size={20} color={mealColor} />;
     }
 
-    // 2. Categorias mais amplas
+    // 2. Categorias mais amplas (usando ID e nome traduzido)
     else if (
       foodId.includes("pao") ||
-      foodName.includes("pão") ||
-      foodName.includes("pao")
+      translatedFoodName.includes("pão") ||
+      translatedFoodName.includes("pao")
     ) {
       return (
         <MaterialCommunityIcons name="baguette" size={18} color={mealColor} />
@@ -648,10 +654,10 @@ export default function FoodSuggestionCard({
       foodId.includes("aveia") ||
       foodId.includes("granola") ||
       foodId.includes("chia") ||
-      foodName.includes("aveia") ||
-      foodName.includes("granola") ||
-      foodName.includes("chia") ||
-      foodName.includes("cereal")
+      translatedFoodName.includes("aveia") ||
+      translatedFoodName.includes("granola") ||
+      translatedFoodName.includes("chia") ||
+      translatedFoodName.includes("cereal")
     ) {
       return (
         <MaterialCommunityIcons name="grain" size={20} color={mealColor} />
@@ -660,21 +666,21 @@ export default function FoodSuggestionCard({
       foodId.includes("banana") ||
       foodId.includes("maca") ||
       foodId.includes("fruta") ||
-      foodName.includes("banana") ||
-      foodName.includes("maçã") ||
-      foodName.includes("maca") ||
-      foodName.includes("fruta") ||
-      foodName.includes("mamão") ||
-      foodName.includes("mamao")
+      translatedFoodName.includes("banana") ||
+      translatedFoodName.includes("maçã") ||
+      translatedFoodName.includes("maca") ||
+      translatedFoodName.includes("fruta") ||
+      translatedFoodName.includes("mamão") ||
+      translatedFoodName.includes("mamao")
     ) {
       return <FontAwesome5 name="apple-alt" size={18} color={mealColor} />;
     } else if (
       foodId.includes("legumes") ||
       foodId.includes("salada") ||
-      foodName.includes("legumes") ||
-      foodName.includes("salada") ||
-      foodName.includes("verdura") ||
-      foodName.includes("folhas")
+      translatedFoodName.includes("legumes") ||
+      translatedFoodName.includes("salada") ||
+      translatedFoodName.includes("verdura") ||
+      translatedFoodName.includes("folhas")
     ) {
       return <MaterialCommunityIcons name="leaf" size={20} color={mealColor} />;
     }
@@ -773,7 +779,7 @@ export default function FoodSuggestionCard({
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
-                  {food.name}
+                  {t(`foods.${food.id}`, { defaultValue: food.name })}
                 </Text>
 
                 {/* Subtítulo formatado de acordo com o tipo de medida */}

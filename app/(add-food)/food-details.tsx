@@ -754,7 +754,9 @@ export default function FoodDetailsScreen() {
 
     const newFood = {
       id: isEditMode && foodId ? foodId : uuidv4(),
-      name: food ? food.food_name : foodName,
+      name: t(`foods.${food?.food_id || foodId}`, {
+        defaultValue: food ? food.food_name : foodName,
+      }),
       calories: calculatedNutrients.calories,
       protein: calculatedNutrients.protein,
       carbs: calculatedNutrients.carbs,
@@ -775,7 +777,7 @@ export default function FoodDetailsScreen() {
       // Mostrar toast de atualização
       showToast({
         message: t("nutrition.foodDetails.updatedSuccess", {
-          defaultValue: `${newFood.name} atualizado com sucesso`,
+          defaultValue: `${newFood.name} ${t("common.updatedSuccess")}`,
         }),
         type: "success",
         duration: 3000,
@@ -788,7 +790,7 @@ export default function FoodDetailsScreen() {
       // Mostrar toast de adição
       showToast({
         message: t("nutrition.addFood.addedSuccess", {
-          defaultValue: `${newFood.name} adicionado à refeição`,
+          defaultValue: `${newFood.name} ${t("common.addedSuccess")}`,
         }),
         type: "success",
         duration: 3000,
@@ -884,7 +886,9 @@ export default function FoodDetailsScreen() {
                 ]}
               >
                 <Text style={[styles.foodName, { color: colors.text }]}>
-                  {food.food_name}
+                  {t(`foods.${food.food_id || foodId}`, {
+                    defaultValue: food.food_name,
+                  })}
                 </Text>
               </View>
 
@@ -1366,7 +1370,7 @@ const styles = StyleSheet.create({
   },
   foodName: {
     fontSize: 22,
-    fontWeight: "800",
+    fontFamily: "Anton-Regular",
     textAlign: "center",
     letterSpacing: -0.5,
   },

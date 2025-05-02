@@ -1884,11 +1884,11 @@ export const tacoFoods: (FoodData & {
     alternatives: ["taco_001", "taco_002", "food_quinoa"],
   },
 
-  // Sementes e Oleaginosas
+  //  Oleaginosas
   {
     id: "taco_074",
     name: "Semente de chia",
-    category: "Sementes e Oleaginosas",
+    category: "Oleaginosas",
     nutrients: {
       calories: 486,
       protein: 16.5,
@@ -1918,7 +1918,7 @@ export const tacoFoods: (FoodData & {
   {
     id: "taco_075",
     name: "Semente de linhaça",
-    category: "Sementes e Oleaginosas",
+    category: "Oleaginosas",
     nutrients: {
       calories: 495,
       protein: 14.1,

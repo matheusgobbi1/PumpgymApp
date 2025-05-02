@@ -1,135 +1,49 @@
-import React, { useMemo } from "react";
-import { View, Text, StyleSheet, Platform, Dimensions } from "react-native";
+import React from "react";
+import { View, Text, StyleSheet, Platform } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
-import { useAuth } from "../../context/AuthContext";
 import ContextMenu, { MenuAction } from "../shared/ContextMenu";
-import { useTranslation } from "react-i18next";
-import { useDateLocale } from "../../hooks/useDateLocale";
-// import FitLevelBadge from "./FitLevelBadge"; // Remover import
-
-const { width } = Dimensions.get("window");
-
-type IconType = "ionicons" | "material";
 
 interface HomeHeaderProps {
   title?: string;
-  // onFitLevelPress?: () => void; // Remover prop
-  iconName?: string;
-  iconType?: IconType;
-  iconColor?: string;
-  iconBackgroundColor?: string;
   showContextMenu?: boolean;
   menuActions?: MenuAction[];
   menuVisible?: boolean;
-  showFitLevelBadge?: boolean; // Manter prop caso queira reativar, mas não será usada agora
 }
 
 export default function HomeHeader({
   title,
-  // onFitLevelPress,
-  iconName = "fire",
-  iconType = "material",
-  iconColor,
-  iconBackgroundColor,
   showContextMenu = false,
   menuActions = [],
   menuVisible = true,
-  showFitLevelBadge = true, // Manter prop caso queira reativar, mas não será usada agora
 }: HomeHeaderProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
-  const { user } = useAuth();
-  const { t, i18n } = useTranslation();
-  const { formatDateWithWeekday } = useDateLocale();
-
-  // Usar useMemo para calcular saudação baseada na hora do dia
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) {
-      return t("home.greeting.morning");
-    } else if (hour >= 12 && hour < 18) {
-      return t("home.greeting.afternoon");
-    } else {
-      return t("home.greeting.evening");
-    }
-  }, [t]);
-
-  // Usar useMemo para formatar a data atual usando a função centralizada
-  const currentDate = useMemo(() => {
-    const today = new Date();
-    return formatDateWithWeekday(today);
-  }, [formatDateWithWeekday]); // Depende do hook que já observa mudanças de idioma
-
-  // Memoize o nome do usuário para garantir consistência
-  const userName = useMemo(() => {
-    return user?.displayName?.split(" ")[0] || t("common.user");
-  }, [user?.displayName, t]);
 
   return (
     <View
       style={[styles.container, { backgroundColor: `${colors.background}E0` }]}
     >
       <View style={styles.content}>
-        <View style={styles.userInfo}>
-          <View style={styles.greetingRow}>
-            <Text
-              style={[styles.greeting, { color: colors.text, opacity: 0.6 }]}
-              numberOfLines={1}
-            >
-              {greeting},
-            </Text>
-            <Text
-              style={[styles.userName, { color: colors.text }]}
-              numberOfLines={1}
-            >
-              {userName}
-            </Text>
-          </View>
-
+        <View style={styles.titleWrapper}>
           {title ? (
-            <View style={styles.subtitleContainer}>
-              <Text
-                style={[
-                  styles.titleText,
-                  { color: colors.primary, fontWeight: "600", opacity: 1 },
-                ]}
-                numberOfLines={1}
-              >
-                {title}
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.subtitleContainer}>
-              <Text
-                style={[styles.dateText, { color: colors.primary }]}
-                numberOfLines={1}
-              >
-                {currentDate}
-              </Text>
-            </View>
-          )}
+            <Text
+              style={[styles.titleText, { color: colors.primary }]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {title}
+            </Text>
+          ) : null}
         </View>
 
-        <View style={styles.rightContainer}>
-          {/* {showFitLevelBadge && ( // Comentar ou remover esta seção
-            <View style={styles.fitLevelContainer}>
-              <FitLevelBadge
-                size="small"
-                showLevel={false}
-                onPress={onFitLevelPress}
-              />
-            </View>
-          )} */}
-
+        <View style={styles.menuWrapper}>
           {showContextMenu && (
-            <View style={styles.menuContainer}>
-              <ContextMenu
-                actions={menuActions}
-                isVisible={menuVisible}
-                inHeader={true}
-              />
-            </View>
+            <ContextMenu
+              actions={menuActions}
+              isVisible={menuVisible}
+              inHeader={true}
+            />
           )}
         </View>
       </View>
@@ -140,65 +54,30 @@ export default function HomeHeader({
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    paddingTop: Platform.OS === "ios" ? 10 : 10,
-    paddingBottom: 20,
-    height: Platform.OS === "ios" ? 70 : 60, // Garantir altura fixa
+    paddingBottom: 10,
+    paddingHorizontal: 15,
+    height: Platform.OS === "ios" ? 65 : 55,
   },
   content: {
+    flex: 1,
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
     height: "100%",
+    position: "relative",
   },
-  userInfo: {
-    flex: 1,
-    height: 60, // Altura fixa para a área de informações
-    justifyContent: "center",
-    paddingLeft: 20,
-  },
-  greetingRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    flexWrap: "wrap",
-    height: 26, // Altura fixa para a linha de saudação
-  },
-  greeting: {
-    fontSize: 13,
-    fontWeight: "500",
-    marginRight: 5,
-  },
-  userName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    letterSpacing: -0.5,
-  },
-  subtitleContainer: {
-    height: 20, // Altura fixa para o subtítulo
+  titleWrapper: {
     justifyContent: "center",
   },
   titleText: {
-    fontSize: 16,
-    fontWeight: "500",
+    fontSize: 30,
+    fontFamily: "Anton-Regular",
+    textTransform: "uppercase",
+    fontWeight: "bold",
+    textAlign: "center",
   },
-  dateText: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  rightContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    height: 50, // Altura fixa para o lado direito
-    minWidth: 50, // Garantir espaço mínimo mesmo sem elementos
-    paddingRight: 20,
-  },
-  fitLevelContainer: {
-    // marginRight: 0, // Remover ou manter, dependendo do layout desejado
-  },
-  menuContainer: {
-    padding: 4,
-    height: 50,
-    width: 50,
-    alignItems: "center",
-    justifyContent: "center",
+  menuWrapper: {
+    position: "absolute",
+    right: -5,
   },
 });

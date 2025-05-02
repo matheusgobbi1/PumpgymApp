@@ -21,6 +21,7 @@ export default {
     light: "#F8F9FA", // Branco levemente acinzentado
     dark: "#212529", // Preto suave
     border: "#rgb(241, 241, 241)", // Borda mais visível para o tema claro
+    tabborder: "#rgb(224, 224, 224)", // Borda mais visível para o tema escuro
     card: "rgba(0, 0, 0, 0.02)", // Card com sombra sutil
 
     // Cores para gráficos com base monocromática
@@ -49,6 +50,7 @@ export default {
     light: "#181818", // Cinza mais escuro para cards
     dark: "#0A0A0A", // Preto profundo
     border: "#rgba(255, 255, 255, 0.03)", // Borda mais visível para o tema escuro
+    tabborder: "#rgba(255, 255, 255, 0.05)", // Borda mais visível para o tema escuro
     card: "rgba(255, 255, 255, 0.05)", // Card com brilho sutil
 
     // Cores para gráficos com base monocromática

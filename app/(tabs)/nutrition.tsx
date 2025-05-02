@@ -341,9 +341,9 @@ export default function NutritionScreen() {
     return hasMealTypesConfigured && configuredMealTypes.length > 0;
   }, [hasMealTypesConfigured, configuredMealTypes]);
 
-  // Calcular alturas
-  const headerHeight = Platform.OS === "ios" ? 70 : 60; // Altura do HomeHeader
-  const calendarHeight = 70; // Altura ajustada do Calendário
+  // Calcular alturas corretas
+  const headerHeight = Platform.OS === "ios" ? 65 : 55; // Altura exata do HomeHeader
+  const calendarHeight = 70; // Altura exata do Calendar
 
   // Renderizar os modais baseados no modalInfo
   const renderModals = () => {
@@ -450,8 +450,8 @@ export default function NutritionScreen() {
             style={styles.scrollView}
             contentContainerStyle={[
               styles.scrollViewContent,
-              // Padding top = altura do header + altura do calendário + padding reduzido
-              { paddingTop: headerHeight + calendarHeight + 8 },
+              // Padding top = altura EXATA do header + altura EXATA do calendário
+              { paddingTop: headerHeight + calendarHeight }, // Sem offset adicional
             ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -479,8 +479,8 @@ export default function NutritionScreen() {
           style={styles.scrollView}
           contentContainerStyle={[
             styles.scrollViewContent,
-            // Padding top = altura do header + altura do calendário + padding reduzido
-            { paddingTop: headerHeight + calendarHeight + 8 },
+            // Padding top = altura EXATA do header + altura EXATA do calendário
+            { paddingTop: headerHeight + calendarHeight }, // Sem offset adicional
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -529,8 +529,6 @@ export default function NutritionScreen() {
             showContextMenu={true}
             menuActions={menuActions}
             menuVisible={isMenuVisible}
-            onFitLevelPress={() => router.push("/achievements-modal")}
-            showFitLevelBadge={!shouldShowEmptyState}
           />
         </View>
 

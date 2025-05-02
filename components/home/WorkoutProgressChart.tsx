@@ -291,7 +291,7 @@ export default function WorkoutProgressChart({
   );
 
   // Altura constante para evitar o efeito de "piscada"
-  const fixedHeight = !hasExercises ? 190 : 260;
+  const fixedHeight = !hasExercises ? 220 : 260;
 
   // Memoizar as funções de cálculo para evitar recriações
   const calculateVolume = useCallback((exercise: Exercise) => {
@@ -1204,22 +1204,24 @@ export default function WorkoutProgressChart({
               {/* Conteúdo principal */}
               {!hasExercises ? (
                 <View style={styles.emptyContainer}>
-                  <LinearGradient
-                    colors={[colors.light, colors.background]}
-                    style={styles.emptyGradient}
-                  >
+                  <View style={[styles.emptyIconContainer, ,]}>
                     <Ionicons
                       name="barbell-outline"
-                      size={20}
-                      color={colors.text + "30"}
-                      style={{ marginBottom: 6 }}
+                      size={30}
+                      color={colors.primary}
                     />
-                    <Text
-                      style={[styles.emptyText, { color: colors.text + "50" }]}
-                    >
-                      {t("home.workout.noExercisesToday")}
-                    </Text>
-                  </LinearGradient>
+                  </View>
+                  <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                    {t("home.workout.noExercisesToday")}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.emptyDescription,
+                      { color: colors.text + "80" },
+                    ]}
+                  >
+                    {t("home.workout.addExercisesMessage")}
+                  </Text>
                 </View>
               ) : (
                 <>
@@ -1618,19 +1620,30 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   emptyContainer: {
-    marginVertical: 12,
-    borderRadius: 10,
-    overflow: "hidden",
-  },
-  emptyGradient: {
-    padding: 16,
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  emptyText: {
-    fontSize: 13,
+  emptyIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontFamily: "Anton-Regular",
+    textTransform: "uppercase",
     textAlign: "center",
+    letterSpacing: -0.5,
+  },
+  emptyDescription: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 22,
     opacity: 0.8,
+    letterSpacing: -0.2,
   },
   progressContainer: {
     width: "100%",
@@ -1716,6 +1729,7 @@ const styles = StyleSheet.create({
   },
   pressableArea: {
     width: "100%",
+    flex: 1,
   },
   expandedSection: {},
   sectionDivider: {

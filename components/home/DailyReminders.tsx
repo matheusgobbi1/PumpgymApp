@@ -65,10 +65,10 @@ export default function DailyReminders() {
   React.useEffect(() => {
     // Valores base
     const headerHeight = 60;
-    const reminderCardHeight = 80;
+    const reminderCardHeight = 60;
     const bottomPadding = 20;
     const dotsHeight = 30;
-    const emptyStateHeight = 180; // Altura padrão para o estado vazio
+    const emptyStateHeight = 220; // Aumentar a altura do estado vazio para 220
 
     // Se não há lembretes, altura mínima
     if (todayReminders.length === 0) {
@@ -419,20 +419,23 @@ export default function DailyReminders() {
           </View>
         ) : todayReminders.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <LinearGradient
-              colors={[colors.light, colors.background]}
-              style={styles.emptyGradient}
-            >
-              <MaterialCommunityIcons
-                name="bell-outline"
-                size={20}
-                color={colors.accentGray}
-                style={{ marginBottom: 6 }}
-              />
-              <Text style={[styles.emptyText, { color: colors.text + "50" }]}>
+            <View style={styles.emptyContent}>
+              <View style={[styles.emptyIconContainer]}>
+                <MaterialCommunityIcons
+                  name="bell-outline"
+                  size={30}
+                  color={colors.primary}
+                />
+              </View>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                {t("dailyReminders.emptyState.title")}
+              </Text>
+              <Text
+                style={[styles.emptyDescription, { color: colors.text + "80" }]}
+              >
                 {t("dailyReminders.emptyState.text")}
               </Text>
-            </LinearGradient>
+            </View>
           </View>
         ) : (
           <View style={styles.remindersContainer}>
@@ -513,7 +516,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+
     paddingHorizontal: 16,
     paddingTop: 16,
   },
@@ -625,20 +628,37 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   emptyContainer: {
-    marginVertical: 12,
-    borderRadius: 10,
-    overflow: "hidden",
-    marginHorizontal: 16,
-  },
-  emptyGradient: {
-    padding: 16,
+    flex: 1,
+    paddingVertical: 1,
     alignItems: "center",
     justifyContent: "center",
+    marginHorizontal: 16,
   },
-  emptyText: {
-    fontSize: 13,
+  emptyContent: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  emptyIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontFamily: "Anton-Regular",
+    textTransform: "uppercase",
     textAlign: "center",
+    letterSpacing: -0.5,
+  },
+  emptyDescription: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 22,
     opacity: 0.8,
+    letterSpacing: -0.2,
   },
   loadingContainer: {
     padding: 15,

@@ -10,12 +10,11 @@ import {
   UIManager,
   LayoutAnimation,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Food, useMeals } from "../../context/MealContext";
 import * as Haptics from "expo-haptics";
 import { Swipeable } from "react-native-gesture-handler";
-import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import { useAuth } from "../../context/AuthContext";
@@ -72,7 +71,7 @@ const MealCardComponent = ({
   const { meals, selectedDate, copyMealFromDate } = useMeals();
   const userId = user?.uid || "no-user";
   const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { nutritionInfo } = useNutrition();
 
   // Removendo os estados de modal daqui, já que serão gerenciados no componente pai
@@ -515,6 +514,13 @@ const MealCardComponent = ({
     } catch (error) {}
   }, [selectedSourceDate, meal.id, copyMealFromDate]);
 
+  console.log("Current Language:", i18n.language);
+  console.log(
+    "Translation for nutrition.addFirstFood:",
+    t("nutrition.addFirstFood")
+  );
+  console.log("Translation for common.cancel:", t("common.cancel"));
+
   return (
     <>
       <Swipeable
@@ -683,22 +689,26 @@ const MealCardComponent = ({
                   key={`empty-container-${meal.id}`}
                   style={styles.emptyContainer}
                 >
-                  <LinearGradient
-                    colors={[colors.light, colors.background]}
-                    style={styles.emptyGradient}
-                  >
-                    <Ionicons
-                      name="restaurant-outline"
-                      size={20}
-                      color={colors.text + "30"}
-                      style={{ marginBottom: 6 }}
-                    />
-                    <Text
-                      style={[styles.emptyText, { color: colors.text + "50" }]}
-                    >
-                      {t("nutrition.addFirstFood")}
+                  <View style={styles.emptyContent}>
+                    <View style={[styles.emptyIconContainer]}>
+                      <MaterialCommunityIcons
+                        name="food-outline"
+                        size={30}
+                        color={colors.primary}
+                      />
+                    </View>
+                    <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                      {t("nutrition.emptyMealTitle")}
                     </Text>
-                  </LinearGradient>
+                    <Text
+                      style={[
+                        styles.emptyDescription,
+                        { color: colors.text + "80" },
+                      ]}
+                    >
+                      {t("nutrition.emptyStateDescription")}
+                    </Text>
+                  </View>
                 </View>
               )}
 
@@ -872,19 +882,35 @@ const styles = StyleSheet.create({
     color: "#000",
   },
   emptyContainer: {
-    marginVertical: 12,
-    borderRadius: 10,
-    overflow: "hidden",
-  },
-  emptyGradient: {
-    padding: 16,
+    paddingVertical: 15,
     alignItems: "center",
     justifyContent: "center",
   },
-  emptyText: {
-    fontSize: 13,
+  emptyContent: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  emptyIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontFamily: "Anton-Regular",
+    textTransform: "uppercase",
     textAlign: "center",
+    letterSpacing: -0.5,
+  },
+  emptyDescription: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 22,
     opacity: 0.8,
+    letterSpacing: -0.2,
   },
   swipeActionContainer: {
     height: "100%",

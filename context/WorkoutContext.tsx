@@ -37,6 +37,7 @@ export interface ExerciseSet {
   toFailure?: boolean; // Indica se a série foi levada até a falha muscular
   repsInReserve?: number; // Número de repetições que ainda poderiam ser feitas (1-5)
   perceivedEffort?: number; // Nível de esforço percebido (1-5)
+  isBodyweightExercise?: boolean; // Adicionado para indicar exercício de peso corporal
 }
 
 // Interface para exercício
@@ -76,7 +77,7 @@ export interface WorkoutType {
 }
 
 // Interface para totais do treino
-interface WorkoutTotals {
+export interface WorkoutTotals {
   totalExercises: number;
   totalSets: number;
   totalVolume: number; // Volume total (peso * reps * sets)

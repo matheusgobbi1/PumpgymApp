@@ -211,7 +211,10 @@ export default function TabLayout() {
     shadowRadius: 4,
     paddingBottom: 0,
     paddingTop: 14,
-    borderTopWidth: 0,
+    borderWidth: 1,
+    borderColor: colors.tabborder,
+    borderTopWidth: 1,
+    borderTopColor: colors.tabborder,
     opacity: tabBarState.opacity,
     transform: [{ translateY: 0 }], // Fixar posição vertical
   };

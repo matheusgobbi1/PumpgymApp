@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from "react";
-import { Stack } from "expo-router";
+import React, { useEffect, useState, useRef, useCallback } from "react";
+import { Stack, SplashScreen } from "expo-router";
 import { Platform, View, StatusBar as RNStatusBar } from "react-native";
 import {
   SafeAreaProvider,
@@ -27,6 +27,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 import NotificationService from "../services/NotificationService";
+import * as Font from "expo-font";
 
 // Configurar como as notificações serão tratadas quando o app estiver em segundo plano
 Notifications.setNotificationHandler({
@@ -41,6 +42,9 @@ export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from "expo-router";
+
+// Evitar que a splash screen desapareça automaticamente
+SplashScreen.preventAutoHideAsync();
 
 // Componente para carregar o idioma antes da renderização da aplicação
 function LanguageInitializer() {
@@ -166,6 +170,21 @@ function AppContent() {
   const colors = Colors[theme];
   const router = useRouter();
 
+  // Carregar fontes
+  const [fontsLoaded, fontError] = Font.useFonts({
+    Anton: require("../assets/fonts/Anton-Regular.ttf"),
+    PlayfairDisplay: require("../assets/fonts/static/PlayfairDisplay-Regular.ttf"),
+    "PlayfairDisplay-Italic": require("../assets/fonts/static/PlayfairDisplay-Italic.ttf"),
+    // Adicione outras fontes aqui se necessário
+  });
+
+  // Usar useCallback para memoizar a função onLayoutRootView
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded || fontError) {
+      await SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
+
   // Verificar se há intenção de abrir um lembrete específico
   useEffect(() => {
     const checkPendingNavigation = async () => {
@@ -188,8 +207,17 @@ function AppContent() {
     checkPendingNavigation();
   }, [router]);
 
+  // Não renderizar nada até que as fontes estejam carregadas
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    // Adicionar onLayout para esconder a splash screen após o layout ser calculado
+    <View
+      style={{ flex: 1, backgroundColor: colors.background }}
+      onLayout={onLayoutRootView}
+    >
       {/* Configuração da StatusBar para Android e iOS */}
       <StatusBar style={theme === "dark" ? "light" : "dark"} />
       <RNStatusBar backgroundColor={colors.background} translucent={true} />
@@ -268,14 +296,7 @@ function AppContent() {
             animationDuration: 200,
           }}
         />
-        <Stack.Screen
-          name="achievements-modal"
-          options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: 200,
-          }}
-        />
+
         <Stack.Screen
           name="(add-exercise)/exercise-details"
           options={({ route }: { route: { params?: { mode?: string } } }) => ({

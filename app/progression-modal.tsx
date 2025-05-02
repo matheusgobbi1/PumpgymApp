@@ -21,6 +21,7 @@ import {
   useWorkoutContext,
   Exercise,
   ExerciseSet,
+  WorkoutTotals,
 } from "../context/WorkoutContext";
 import {
   generateWorkoutProgressionWithHistory,
@@ -35,19 +36,24 @@ import { StatusBar } from "expo-status-bar";
 import { format } from "date-fns";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KEYS } from "../constants/keys";
+import ProgressionSummaryCard from "../components/training/ProgressionSummaryCard";
 
-// Constantes para animação do header
+// Constantes para animação do header e card
 const { width } = Dimensions.get("window");
 const HEADER_MAX_HEIGHT = 180;
 const HEADER_MIN_HEIGHT = 55;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
+const CARD_HEIGHT = 60; // Altura aproximada do card de resumo
 
 export default function ProgressionModal() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = Colors[theme];
-  const { getMultiplePreviousWorkoutsExercises, applyProgressionToWorkout } =
-    useWorkoutContext();
+  const {
+    getMultiplePreviousWorkoutsExercises,
+    applyProgressionToWorkout,
+    getPreviousWorkoutTotals,
+  } = useWorkoutContext();
   const { t } = useTranslation();
 
   // Referência e estado para animação do scroll
@@ -67,6 +73,10 @@ export default function ProgressionModal() {
   const [applying, setApplying] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [historyCount, setHistoryCount] = useState(0);
+  const [previousWorkoutData, setPreviousWorkoutData] = useState<{
+    totals: WorkoutTotals | null;
+    date: string | null;
+  }>({ totals: null, date: null });
 
   // Calculando os valores de animação
   const headerHeight = scrollY.interpolate({
@@ -117,12 +127,17 @@ export default function ProgressionModal() {
 
   const loadSuggestions = async () => {
     setLoading(true);
+    setPreviousWorkoutData({ totals: null, date: null }); // Resetar antes de carregar
     try {
       // Obter múltiplos treinos anteriores (até 4)
       const workoutsHistory = getMultiplePreviousWorkoutsExercises(
         workoutId as string,
         4
       );
+
+      // Obter totais e data do treino mais recente
+      const previousData = getPreviousWorkoutTotals(workoutId as string);
+      setPreviousWorkoutData(previousData);
 
       // Armazenar a quantidade de histórico encontrada
       setHistoryCount(workoutsHistory.length);
@@ -136,26 +151,27 @@ export default function ProgressionModal() {
 
       if (workoutsHistory.length === 0) {
         setSuggestions([]);
-        setLoading(false);
-        return;
+      } else {
+        // Usar o primeiro treino do histórico para as sugestões iniciais
+        const currentExercises = workoutsHistory[0].exercises;
+
+        // Gerar sugestões de progressão usando o histórico completo
+        const progressionSuggestions = generateWorkoutProgressionWithHistory(
+          currentExercises,
+          workoutsHistory
+        );
+
+        // Não pré-selecionar nenhuma sugestão
+        setSelectedExercises([]);
+        setUpdatedSets({});
+
+        // Atualizar estado com as sugestões
+        setSuggestions(progressionSuggestions);
       }
-
-      // Usar o primeiro treino do histórico para as sugestões iniciais
-      const currentExercises = workoutsHistory[0].exercises;
-
-      // Gerar sugestões de progressão usando o histórico completo
-      const progressionSuggestions = generateWorkoutProgressionWithHistory(
-        currentExercises,
-        workoutsHistory
-      );
-
-      // Não pré-selecionar nenhuma sugestão
-      setSelectedExercises([]);
-      setUpdatedSets({});
-
-      // Atualizar estado com as sugestões
-      setSuggestions(progressionSuggestions);
     } catch (error) {
+      console.error("Erro ao carregar sugestões:", error);
+      setSuggestions([]);
+      setPreviousWorkoutData({ totals: null, date: null }); // Garantir estado limpo em caso de erro
     } finally {
       setLoading(false);
     }
@@ -291,7 +307,7 @@ export default function ProgressionModal() {
         style={styles.keyboardAvoidingView}
         keyboardVerticalOffset={Platform.OS === "ios" ? 70 : 0}
       >
-        {/* Header fixo que inclui gradiente */}
+        {/* Header fixo que inclui gradiente e o novo card */}
         <View style={styles.fixedHeaderContainer}>
           {/* Cabeçalho com gradiente colapsável */}
           <Animated.View
@@ -312,7 +328,7 @@ export default function ProgressionModal() {
                   onPress={handleClose}
                   disabled={loading || applying}
                 >
-                  <Ionicons name="chevron-down" size={24} color="#FFF" />
+                  <Ionicons name="chevron-down" size={28} color="#FFF" />
                 </TouchableOpacity>
 
                 <Animated.Text
@@ -337,7 +353,7 @@ export default function ProgressionModal() {
                 >
                   <Ionicons
                     name="information-circle-outline"
-                    size={24}
+                    size={28}
                     color="#FFF"
                   />
                 </TouchableOpacity>
@@ -362,21 +378,37 @@ export default function ProgressionModal() {
                 <Text style={styles.headerGradientTitle}>
                   {workoutName as string}
                 </Text>
-                {previousDate && (
+                {previousWorkoutData.date && (
                   <Text style={styles.headerGradientSubtitle}>
                     {historyCount > 1
-                      ? t("progression.modal.basedOn", {
+                      ? t("progression.modal.basedOnCount", {
                           count: historyCount,
-                          date: formatDate(previousDate),
+                          defaultValue: `Baseado nos últimos ${historyCount} treinos`,
                         })
-                      : t("progression.modal.basedOn_singular", {
-                          date: formatDate(previousDate),
+                      : t("progression.modal.basedOnLast", {
+                          defaultValue: "Baseado no último treino",
                         })}
                   </Text>
                 )}
               </Animated.View>
             </LinearGradient>
           </Animated.View>
+
+          {/* Card de resumo fixo abaixo do header */}
+          {!loading && previousWorkoutData.totals && (
+            <View
+              style={[
+                styles.fixedCardContainer,
+                { backgroundColor: colors.background },
+              ]}
+            >
+              <ProgressionSummaryCard
+                previousWorkoutData={previousWorkoutData}
+                workoutColor={workoutColor as string}
+                theme={theme}
+              />
+            </View>
+          )}
         </View>
 
         <Animated.ScrollView
@@ -384,7 +416,7 @@ export default function ProgressionModal() {
           contentContainerStyle={[
             styles.contentContainer,
             {
-              paddingTop: HEADER_MAX_HEIGHT + 16,
+              paddingTop: HEADER_MAX_HEIGHT + CARD_HEIGHT,
               minHeight: Dimensions.get("window").height * 1.2,
             },
           ]}
@@ -406,7 +438,7 @@ export default function ProgressionModal() {
             </View>
           ) : (
             <>
-              {suggestions.length === 0 ? (
+              {suggestions.length === 0 && !previousWorkoutData.totals ? (
                 <View style={styles.emptyContainer}>
                   <Ionicons
                     name="fitness-outline"
@@ -452,6 +484,23 @@ export default function ProgressionModal() {
                       />
                     ))}
                   </View>
+                  {suggestions.length === 0 && previousWorkoutData.totals && (
+                    <View style={styles.emptyContainer}>
+                      <Ionicons
+                        name="checkmark-circle-outline"
+                        size={40}
+                        color={colors.secondary}
+                      />
+                      <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                        {t("progression.modal.noSuggestions")}
+                      </Text>
+                      <Text
+                        style={[styles.emptyText, { color: colors.secondary }]}
+                      >
+                        {t("progression.modal.noSuggestionsDescription")}
+                      </Text>
+                    </View>
+                  )}
                 </>
               )}
             </>
@@ -573,13 +622,12 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   headerGradient: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 8,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 12,
     paddingTop: 8,
     paddingBottom: 4,
     minHeight: 50,
@@ -646,6 +694,7 @@ const styles = StyleSheet.create({
     padding: 40,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 20,
   },
   emptyTitle: {
     fontSize: 18,
@@ -743,5 +792,15 @@ const styles = StyleSheet.create({
   },
   previousDate: {
     fontSize: 14,
+  },
+  fixedCardContainer: {
+    zIndex: 9,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
 });

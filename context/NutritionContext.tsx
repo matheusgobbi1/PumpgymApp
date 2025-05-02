@@ -18,8 +18,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
 import { SyncService } from "../services/SyncService";
 import { CustomMealDistribution } from "../utils/nutritionDistributionAlgorithm";
-import { format, isToday, subDays } from "date-fns";
-import { useAchievements } from "./AchievementContext";
+import { format, subDays } from "date-fns";
 
 // Chaves para armazenamento no AsyncStorage
 const KEYS = {

@@ -18,7 +18,6 @@ import WeightProgressChart from "../../components/home/WeightProgressChart";
 import HealthStepsCard from "../../components/home/HealthStepsCard";
 import WaterIntakeCard from "../../components/home/WaterIntakeCard";
 import ConsistencyScoreCard from "../../components/home/ConsistencyScoreCard";
-import AchievementBadge from "../../components/achievements/AchievementBadge";
 import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
 import { useRouter } from "expo-router";
@@ -29,7 +28,6 @@ import { useTranslation } from "react-i18next";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KEYS } from "../../constants/keys";
 import { useAuth } from "../../context/AuthContext";
-import FitLevelBadge from "../../components/home/FitLevelBadge";
 
 const { width } = Dimensions.get("window");
 
@@ -325,9 +323,9 @@ export default function HomeScreen() {
     );
   }, [activeTab, isUIReady, currentSteps]);
 
-  // Calcular a altura combinada do header e das abas
-  const headerHeight = Platform.OS === "ios" ? 70 : 60;
-  const tabsHeight = 50; // Estimativa da altura das abas (paddingVertical + fontSize)
+  // Calcular a altura correta do header e das abas
+  const headerHeight = Platform.OS === "ios" ? 65 : 55; // Altura EXATA do HomeHeader atual
+  const tabsHeight = 50; // Estimativa da altura das abas (pode precisar de ajuste se necessário)
   const totalHeaderAndTabsHeight = headerHeight + tabsHeight;
 
   return (
@@ -339,12 +337,12 @@ export default function HomeScreen() {
         {/* Wrapper para posicionamento absoluto */}
         <View style={styles.headerTabsWrapper}>
           <View style={styles.headerWrapper}>
-            <HomeHeader onFitLevelPress={handleFitLevelPress} />
+            <HomeHeader title="FITFOLIO" />
           </View>
           <View
             style={[
               styles.tabsPositioner,
-              { top: headerHeight },
+              { top: headerHeight }, // Usar a altura EXATA do header
               { backgroundColor: `${colors.background}E0` },
             ]}
           >
@@ -412,7 +410,7 @@ export default function HomeScreen() {
           contentContainerStyle={[
             styles.scrollContent,
             // Adicionar padding top para compensar header e abas
-            { paddingTop: totalHeaderAndTabsHeight + 5 }, // +16 de padding original
+            { paddingTop: totalHeaderAndTabsHeight + 5 }, // Manter este cálculo por enquanto
           ]}
           showsVerticalScrollIndicator={false}
         >

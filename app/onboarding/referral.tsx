@@ -37,19 +37,9 @@ export default function ReferralScreen() {
       icon: "logo-instagram",
     },
     {
-      id: "facebook",
-      name: t("onboarding.referral.options.facebook"),
-      icon: "logo-facebook",
-    },
-    {
       id: "tiktok",
       name: t("onboarding.referral.options.tiktok"),
       icon: "logo-tiktok",
-    },
-    {
-      id: "youtube",
-      name: t("onboarding.referral.options.youtube"),
-      icon: "logo-youtube",
     },
     {
       id: "google",

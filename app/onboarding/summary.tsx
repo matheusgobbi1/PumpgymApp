@@ -1260,11 +1260,13 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 36,
     fontWeight: "700",
     marginBottom: 24,
     textAlign: "center",
     letterSpacing: -0.5,
+    fontFamily: "Anton-Regular",
+    textTransform: "uppercase",
   },
   topCardsRow: {
     marginBottom: 24,

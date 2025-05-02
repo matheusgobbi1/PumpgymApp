@@ -15,7 +15,7 @@ import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
-import { Exercise } from "../../context/WorkoutContext";
+import { Exercise, ExerciseSet } from "../../context/WorkoutContext";
 import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -243,7 +243,8 @@ export default function WorkoutStatsModal() {
     let currentMaxWeight = 0;
     const isBodyweightExercise =
       exercise.isBodyweightExercise ||
-      (currentSets.length > 0 && currentSets.every((set) => set.weight === 0));
+      (currentSets.length > 0 &&
+        currentSets.every((set: { weight: number }) => set.weight === 0));
 
     currentSets.forEach((set: { reps: number; weight: number }) => {
       currentTotalReps += set.reps;
@@ -272,7 +273,7 @@ export default function WorkoutStatsModal() {
       const isPreviousBodyweight =
         previousExercise.isBodyweightExercise ||
         (previousSets.length > 0 &&
-          previousSets.every((set) => set.weight === 0));
+          previousSets.every((set: ExerciseSet) => set.weight === 0));
 
       previousSets.forEach((set: { reps: number; weight: number }) => {
         previousTotalReps += set.reps;

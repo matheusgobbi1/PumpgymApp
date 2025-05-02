@@ -268,7 +268,9 @@ export default function FloatingActionButton() {
             changeContentMode("workoutTypes");
           } else {
             toggleExpand();
-            router.push("/training?openWorkoutConfig=true");
+            setTimeout(() => {
+              router.push("/(tabs)/training?openWorkoutConfig=true");
+            }, 150);
           }
         },
       },
@@ -276,7 +278,14 @@ export default function FloatingActionButton() {
         icon: "nutrition-outline" as const,
         label: t("nutrition.menu.newMeal", "Nova Refeição"),
         onPress: () => {
-          changeContentMode("mealTypes");
+          if (mealTypes && mealTypes.length > 0) {
+            changeContentMode("mealTypes");
+          } else {
+            toggleExpand();
+            setTimeout(() => {
+              router.push("/(tabs)/nutrition?openMealConfig=true");
+            }, 150);
+          }
         },
       },
       {
@@ -302,6 +311,7 @@ export default function FloatingActionButton() {
       toggleExpand,
       router,
       nutritionInfo.weight,
+      mealTypes,
     ]
   );
 

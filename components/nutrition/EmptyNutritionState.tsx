@@ -42,20 +42,11 @@ function EmptyNutritionState({
     <View style={styles.container}>
       <View style={styles.emptyContainer}>
         <View style={styles.illustrationContainer}>
-          <LinearGradient
-            colors={[`${colors.primary}40`, `${colors.primary}15`]}
-            style={styles.illustrationGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <View style={styles.iconInnerContainer}>
-              <Ionicons
-                name="restaurant-outline"
-                size={64}
-                color={colors.primary}
-              />
-            </View>
-          </LinearGradient>
+          <Ionicons
+            name="restaurant-outline"
+            size={80}
+            color={colors.primary}
+          />
         </View>
 
         <View>
@@ -66,32 +57,21 @@ function EmptyNutritionState({
 
         <View>
           <Text style={[styles.description, { color: colors.text + "80" }]}>
-            {t("nutrition.emptyState.subtitle")}
+            {t(
+              "nutrition.emptyState.subtitle_fab_instruction_detailed",
+              "Toque no botão "
+            )}
+            <Ionicons name="add-circle" size={16} color={colors.primary} />
+            {t(
+              "nutrition.emptyState.subtitle_fab_instruction_detailed_part2",
+              " abaixo e depois no ícone "
+            )}
+            <Ionicons name="nutrition" size={16} color={colors.primary} />
+            {t(
+              "nutrition.emptyState.subtitle_fab_instruction_detailed_part3",
+              " para configurar suas refeições."
+            )}
           </Text>
-        </View>
-
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={openMealConfig}
-            activeOpacity={0.9}
-          >
-            <LinearGradient
-              colors={[colors.primary, `${colors.primary}DD`]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.buttonGradient}
-            >
-              <Text
-                style={[
-                  styles.buttonText,
-                  { color: theme === "dark" ? "#000000" : "white" },
-                ]}
-              >
-                {t("nutrition.emptyState.configButton")}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -115,31 +95,15 @@ const styles = StyleSheet.create({
   },
   illustrationContainer: {
     marginBottom: 35,
-    borderRadius: 30,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 14,
-    elevation: 10,
-  },
-  illustrationGradient: {
-    width: 130,
-    height: 130,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 30,
-  },
-  iconInnerContainer: {
+    width: 80,
+    height: 80,
     alignItems: "center",
     justifyContent: "center",
   },
   title: {
-    fontSize: 26,
-    fontWeight: "700",
+    fontSize: 33,
+    fontFamily: "Anton-Regular",
+    textTransform: "uppercase",
     textAlign: "center",
     marginBottom: 14,
     letterSpacing: -0.5,
@@ -147,41 +111,10 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 16,
     textAlign: "center",
-    marginBottom: 18,
+    marginBottom: 0,
     maxWidth: 300,
     lineHeight: 22,
     fontWeight: "400",
-  },
-  buttonContainer: {
-    width: "100%",
-    maxWidth: 280,
-    alignItems: "center",
-  },
-  button: {
-    borderRadius: 18,
-    overflow: "hidden",
-    width: "100%",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  buttonGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 18,
-  },
-  buttonText: {
-    fontSize: 17,
-    fontWeight: "600",
-    marginRight: 8,
   },
 });
 

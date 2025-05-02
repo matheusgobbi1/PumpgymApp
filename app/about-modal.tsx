@@ -264,6 +264,8 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "700",
     marginBottom: 4,
+    fontFamily: "PlayfairDisplay",
+    textTransform: "uppercase",
   },
   version: {
     fontSize: 14,

@@ -48,7 +48,7 @@ export default function NutritionProgressChart({
 
   // Efeito para atualizar a altura do card quando expandido/recolhido
   useEffect(() => {
-    const emptyStateHeight = 190;
+    const emptyStateHeight = 220;
     const hasData = !caloriesData.every((cal) => cal === 0);
 
     if (!hasData) {
@@ -569,20 +569,21 @@ export default function NutritionProgressChart({
           </>
         ) : (
           <View style={styles.emptyContainer}>
-            <LinearGradient
-              colors={[colors.light, colors.background]}
-              style={styles.emptyGradient}
-            >
+            <View style={[styles.emptyIconContainer]}>
               <MaterialCommunityIcons
                 name="food-outline"
-                size={20}
-                color={colors.text + "30"}
-                style={{ marginBottom: 6 }}
+                size={30}
+                color={colors.primary}
               />
-              <Text style={[styles.emptyText, { color: colors.text + "50" }]}>
-                {t("home.chart.noNutritionData")}
-              </Text>
-            </LinearGradient>
+            </View>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>
+              {t("home.chart.noNutritionData")}
+            </Text>
+            <Text
+              style={[styles.emptyDescription, { color: colors.text + "80" }]}
+            >
+              {t("nutrition.addFirstFood")}
+            </Text>
           </View>
         )}
       </Pressable>
@@ -826,31 +827,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   emptyContainer: {
-    marginVertical: 12,
-    borderRadius: 10,
-    overflow: "hidden",
-  },
-  emptyGradient: {
-    padding: 16,
     alignItems: "center",
     justifyContent: "center",
   },
-  emptyText: {
-    fontSize: 13,
+  emptyIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontFamily: "Anton-Regular",
+    textTransform: "uppercase",
     textAlign: "center",
+    letterSpacing: -0.5,
+  },
+  emptyDescription: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 22,
     opacity: 0.8,
+    letterSpacing: -0.2,
   },
-  addButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 10,
-    marginTop: 5,
-  },
-  addButtonText: {
-    color: "white",
-    fontWeight: "600",
-    fontSize: 15,
-  },
+
   chartContainer: {
     alignItems: "center",
     marginTop: 8,

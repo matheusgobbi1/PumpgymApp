@@ -3,6 +3,7 @@ import { suggestDietSpecificAlternatives } from "../utils/nutritionDistributionA
 
 // Tipo para definir alternativas para cada alimento
 export interface FoodSuggestion extends FoodData {
+  name: string; // Sobrescrever como obrigatório
   alternatives: string[]; // IDs das alternativas para este alimento
   mealTypes: string[]; // Tipos de refeição onde este alimento é recomendado
 }
