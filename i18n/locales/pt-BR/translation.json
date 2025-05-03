@@ -2216,5 +2216,34 @@
         "totalPoints": "Total de FitPoints"
       }
     }
+  },
+  "paywall": {
+    "title": "Desbloqueie Todos os Recursos",
+    "subtitle": "Melhore sua jornada fitness com recursos premium e obtenha resultados ainda melhores",
+    "trialOffer": "Experimente GRÁTIS por 7 dias!",
+    "features": {
+      "feature1": "Acompanhamento detalhado de macros",
+      "feature2": "Planos de treino personalizados",
+      "feature3": "Estatísticas e progressão avançadas",
+      "feature4": "Lembretes e notificações ilimitados",
+      "feature5": "Sem anúncios e com suporte prioritário"
+    },
+    "monthly": "Mensal",
+    "annual": "Anual",
+    "billedMonthly": "Cobrado mensalmente",
+    "billedAnnually": "Cobrado anualmente",
+    "savePercent": "Economize {{percent}}%",
+    "startTrialButton": "Iniciar período de teste",
+    "restorePurchases": "Restaurar compras",
+    "termsText": "A assinatura será renovada automaticamente. Você pode cancelar a qualquer momento nas configurações da sua conta. Ao continuar, você concorda com nossos Termos de Uso e Política de Privacidade.",
+    "loading": "Carregando opções de assinatura...",
+    "errors": {
+      "noPackages": "Não foi possível carregar os pacotes de assinatura",
+      "loadFailed": "Erro ao carregar as opções de assinatura",
+      "packageNotFound": "Pacote selecionado não encontrado",
+      "purchaseFailed": "Não foi possível concluir a compra",
+      "noSubscriptionsFound": "Nenhuma assinatura encontrada para restaurar",
+      "restoreFailed": "Falha ao restaurar compras"
+    }
   }
 } 

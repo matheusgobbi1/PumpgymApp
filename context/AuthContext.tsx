@@ -56,6 +56,7 @@ import NetInfo from "@react-native-community/netinfo";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
+import Purchases from "react-native-purchases";
 
 // Verificar se estamos em um build nativo ou Expo Go
 const isExpoGo = Constants.executionEnvironment === "standalone";
@@ -92,6 +93,8 @@ interface AuthContextType {
   navigationAttempted: boolean;
   sendPasswordResetEmail: (email: string) => Promise<void>;
   loginWithApple: () => Promise<void>;
+  hasPremiumAccess: boolean;
+  checkPremiumStatus: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -118,12 +121,121 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [navigationLocked, setNavigationLocked] = useState(false);
   const [isRestoringSession, setIsRestoringSession] = useState(true);
   const [navigationAttempted, setNavigationAttempted] = useState(false);
+  const [hasPremiumAccess, setHasPremiumAccess] = useState(false);
   const router = useRouter();
 
   const notifyRegistrationCompleted = () => {
     setRegistrationCompleted(true);
     setTimeout(() => setRegistrationCompleted(false), 1000);
   };
+
+  // Verificar status de assinatura premium
+  const checkPremiumStatus = async (): Promise<boolean> => {
+    try {
+      if (!user) return false;
+      
+      console.log("Verificando status premium para usuário:", user.uid);
+      
+      // Verificar se o usuário já tem status de assinatura no localStorage
+      const premiumStatusKey = `premium_status_${user.uid}`;
+      const storedStatus = await AsyncStorage.getItem(premiumStatusKey);
+      
+      console.log("Status armazenado localmente:", storedStatus);
+      
+      if (storedStatus === 'true') {
+        console.log("Usuário já tem acesso premium (baseado no armazenamento local)");
+        setHasPremiumAccess(true);
+        return true;
+      }
+      
+      // Se não houver status armazenado ou for falso, verificar com o RevenueCat
+      console.log("Buscando informações de assinatura do RevenueCat...");
+      const customerInfo = await Purchases.getCustomerInfo();
+      console.log("Customer info:", JSON.stringify(customerInfo.entitlements.active, null, 2));
+      console.log("Todos os entitlements:", Object.keys(customerInfo.entitlements.all));
+      console.log("Entitlements ativos:", Object.keys(customerInfo.entitlements.active));
+      
+      // Verificar se tem o entitlement "Pro" (não "premium")
+      const hasActiveSubscription = customerInfo.entitlements.active["Pro"] !== undefined;
+      console.log("Tem entitlement 'Pro' ativo?", hasActiveSubscription);
+      
+      // Listar todas as assinaturas ativas
+      if (customerInfo.activeSubscriptions && customerInfo.activeSubscriptions.length > 0) {
+        console.log("Assinaturas ativas:", customerInfo.activeSubscriptions);
+      } else {
+        console.log("Nenhuma assinatura ativa encontrada");
+      }
+      
+      // Verificar compras não consumíveis
+      if (customerInfo.nonSubscriptionTransactions && customerInfo.nonSubscriptionTransactions.length > 0) {
+        console.log("Compras não consumíveis:", customerInfo.nonSubscriptionTransactions);
+      }
+      
+      // Atualizar o estado e salvar no localStorage
+      console.log("Atualizando estado de acesso premium para:", hasActiveSubscription);
+      setHasPremiumAccess(hasActiveSubscription);
+      await AsyncStorage.setItem(premiumStatusKey, hasActiveSubscription ? 'true' : 'false');
+      
+      return hasActiveSubscription;
+    } catch (error) {
+      console.error("Erro ao verificar status premium:", error);
+      if (error instanceof Error) {
+        console.error("Detalhes do erro:", error.message);
+      }
+      return false;
+    }
+  };
+
+  // Inicializar RevenueCat quando tiver um usuário
+  useEffect(() => {
+    const setupRevenueCat = async () => {
+      if (!user) return;
+
+      try {
+        console.log("Iniciando configuração do RevenueCat para usuário:", user.uid);
+        
+        // Verificar configuração atual
+        try {
+          const info = await Purchases.getCustomerInfo();
+          console.log("Info do cliente antes da configuração:", info);
+        } catch (e) {
+          console.log("Nenhuma configuração prévia encontrada");
+        }
+        
+        // Inicializar RevenueCat com o ID do usuário para rastreamento
+        const apiKey = Platform.OS === 'ios' 
+          ? 'appl_UufvsOgsdscZfJrXcQXSkedfBkK' // API key do iOS
+          : 'goog_YOUR_ANDROID_API_KEY'; // API key do Android
+          
+        console.log("Configurando RevenueCat com API key:", apiKey);
+        
+        await Purchases.configure({
+          apiKey: apiKey,
+          appUserID: user.uid,
+          useAmazon: false
+        });
+        
+        console.log("RevenueCat configurado com sucesso");
+        
+        if (__DEV__) {
+          console.log("Ativando logs VERBOSE para RevenueCat");
+          Purchases.setLogLevel(Purchases.LOG_LEVEL.VERBOSE);
+        }
+        
+        // Verificar status de assinatura
+        console.log("Verificando status de assinatura...");
+        const hasAccess = await checkPremiumStatus();
+        console.log("Usuário tem acesso premium?", hasAccess);
+      } catch (error) {
+        console.error("Erro ao configurar RevenueCat:", error);
+        if (error instanceof Error) {
+          console.error("Mensagem de erro:", error.message);
+        }
+      }
+    };
+
+    setupRevenueCat();
+  }, [user]);
 
   const handleNavigation = useCallback(
     async (currentUser: FirebaseUser | null) => {
@@ -155,8 +267,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           const userData = userDoc.data();
           const onboardingCompleted = userData?.onboardingCompleted ?? false;
 
+          // Verificar status de assinatura
+          const hasPremium = await checkPremiumStatus();
+          
           if (!onboardingCompleted) {
             await router.replace("/onboarding/gender");
+          } else if (!hasPremium && !currentUser.isAnonymous) {
+            // Se não tem assinatura premium e não é anônimo, redirecionar para paywall
+            await router.replace("/paywall-modal");
           } else {
             await router.replace("/(tabs)");
           }
@@ -698,8 +816,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsNewUser(true);
         setIsAnonymous(false);
 
-        // Redirecionar explicitamente para o onboarding
-        router.replace("/onboarding/gender");
+        // Após o registro bem-sucedido, redirecionar para o paywall
+        await checkPremiumStatus();
+        
+        // Após criar o usuário, redirecionar para onboarding e, em seguida, para o paywall
+        const isOnline = await OfflineStorage.isOnline();
+        if (isOnline) {
+          await router.replace("/onboarding/gender");
+        }
       } catch (error) {
         // Rethrow para captura externa
         throw error;
@@ -852,8 +976,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsAnonymous(false);
       setIsNewUser(false);
 
-      // Navegar diretamente para a tela principal antes de desbloquear a navegação
-      await router.replace("/(tabs)");
+      // Após o registro bem-sucedido
+      // Configurar RevenueCat com o ID do usuário
+      await Purchases.configure({
+        apiKey: Platform.OS === 'ios' 
+          ? 'appl_YOUR_IOS_API_KEY' // Substituir pelo seu API key do iOS
+          : 'goog_YOUR_ANDROID_API_KEY', // Substituir pelo seu API key do Android
+        appUserID: auth.currentUser!.uid
+      });
+      
+      // Se o usuário não estiver anônimo após o registro, redirecionar para paywall
+      if (auth.currentUser && !auth.currentUser.isAnonymous) {
+        router.replace("/paywall-modal");
+      }
 
       // Notificar que o registro foi concluído após a navegação
       notifyRegistrationCompleted();
@@ -1127,6 +1262,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     navigationAttempted,
     sendPasswordResetEmail,
     loginWithApple,
+    hasPremiumAccess,
+    checkPremiumStatus,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

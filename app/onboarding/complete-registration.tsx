@@ -108,9 +108,9 @@ export default function CompleteRegistrationScreen() {
       setSuccessAnimation(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      // Após a animação de sucesso, redireciona para o app
+      // Após a animação de sucesso, redireciona para o paywall
       setTimeout(() => {
-        // Você pode adicionar navegação aqui se necessário
+        router.push("/paywall-modal");
       }, 1500);
     } catch (err: any) {
       if (err.code === "auth/email-already-in-use") {

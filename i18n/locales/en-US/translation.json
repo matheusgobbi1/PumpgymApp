@@ -104,6 +104,35 @@
     "ok": "OK",
     "add": "Add"
   },
+  "paywall": {
+    "title": "Unlock All Features",
+    "subtitle": "Enhance your fitness journey with premium features and get even better results",
+    "trialOffer": "Try it FREE for 7 days!",
+    "features": {
+      "feature1": "Detailed macro tracking",
+      "feature2": "Personalized workout plans",
+      "feature3": "Advanced stats and progression",
+      "feature4": "Unlimited reminders and notifications",
+      "feature5": "Ad-free experience and priority support"
+    },
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "billedMonthly": "Billed monthly",
+    "billedAnnually": "Billed annually",
+    "savePercent": "Save {{percent}}%",
+    "startTrialButton": "Start free trial",
+    "restorePurchases": "Restore purchases",
+    "termsText": "Subscription will auto-renew. You can cancel anytime in your account settings. By continuing, you agree to our Terms of Use and Privacy Policy.",
+    "loading": "Loading subscription options...",
+    "errors": {
+      "noPackages": "Could not load subscription packages",
+      "loadFailed": "Failed to load subscription options",
+      "packageNotFound": "Selected package not found",
+      "purchaseFailed": "Unable to complete purchase",
+      "noSubscriptionsFound": "No subscriptions found to restore",
+      "restoreFailed": "Failed to restore purchases"
+    }
+  },
   "reminders": {
     "newReminder": "New Reminder",
     "editReminder": "Edit Reminder",

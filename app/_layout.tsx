@@ -512,6 +512,15 @@ function AppContent() {
             animationDuration: 200,
           }}
         />
+        <Stack.Screen
+          name="paywall-modal"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+            animationDuration: 200,
+            gestureEnabled: false,  // Desabilitar gestos para evitar que o usuário feche o paywall
+          }}
+        />
       </Stack>
     </View>
   );
