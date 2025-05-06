@@ -33,6 +33,8 @@ export interface MealType {
   name: string;
   icon: string;
   color?: string;
+  selected?: boolean;
+  isDefault?: boolean;
 }
 
 interface MealTotals {
@@ -69,6 +71,17 @@ interface MealContextType {
 
 const MealContext = createContext<MealContextType | undefined>(undefined);
 
+const DEFAULT_MEAL_TYPES: MealType[] = [
+  {
+    id: "breakfast",
+    name: "Café da Manhã",
+    icon: "sunny-outline",
+    color: "#E53935",
+    selected: false,
+    isDefault: true,
+  },
+];
+
 export function MealProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -77,7 +90,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   const [meals, setMeals] = useState<{
     [date: string]: { [mealId: string]: Food[] };
   }>({});
-  const [mealTypes, setMealTypes] = useState<MealType[]>([]);
+  const [mealTypes, setMealTypes] = useState<MealType[]>(DEFAULT_MEAL_TYPES);
   const [hasMealTypesConfigured, setHasMealTypesConfigured] =
     useState<boolean>(false);
   const [searchHistory, setSearchHistory] = useState<Food[]>([]);
@@ -85,7 +98,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   // Resetar o estado quando o usuário mudar
   const resetState = useCallback(() => {
     setMeals({});
-    setMealTypes([]);
+    setMealTypes(DEFAULT_MEAL_TYPES);
     setHasMealTypesConfigured(false);
     setSearchHistory([]);
   }, []);
@@ -341,7 +354,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       if (!user) return;
 
       // Limpar dados existentes antes de carregar
-      setMealTypes([]);
+      setMealTypes(DEFAULT_MEAL_TYPES);
       setHasMealTypesConfigured(false);
 
       // Primeiro tentar carregar do AsyncStorage
@@ -407,13 +420,13 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
           }
         } catch (firebaseError) {
           // Em caso de erro, garantir que os dados estejam limpos
-          setMealTypes([]);
+          setMealTypes(DEFAULT_MEAL_TYPES);
           setHasMealTypesConfigured(false);
         }
       }
     } catch (error) {
       // Em caso de erro, garantir que os dados estejam limpos
-      setMealTypes([]);
+      setMealTypes(DEFAULT_MEAL_TYPES);
       setHasMealTypesConfigured(false);
     }
   }, [user, setMealTypes, setHasMealTypesConfigured]);
@@ -500,7 +513,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
         setHasMealTypesConfigured(false);
       }
 
-      // Primeiro salvar no AsyncStorage para persistência local
+      // Primeiro salvar no AsyncStorage para persistência local (tipos de refeição)
       if (user) {
         try {
           await AsyncStorage.setItem(
@@ -508,24 +521,53 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
             JSON.stringify(newMealTypes)
           );
         } catch (storageError) {
-          // Ignorar erro de armazenamento local
+          console.error("Erro ao salvar tipos de refeição no AsyncStorage:", storageError);
+          // Ignorar erro de armazenamento local de tipos
         }
 
-        // Depois tentar salvar no Firebase
-        try {
-          await setDoc(
-            doc(db, "users", user.uid, "config", "mealTypes"),
-            { types: newMealTypes },
-            { merge: true }
-          );
+        // *AGORA* salvar os dados de refeições atualizados (com refeições removidas)
+        // para TODAS as datas afetadas no estado local e no Firebase.
+        const finalMealsState = meals; // Obter a referência mais recente do estado
 
-          // Salvar as alterações nas refeições após atualizar os tipos
-          await saveMeals();
-        } catch (firebaseError) {
-          // Ignorar erro de Firebase, dados mantidos localmente
+        // Salvar localmente primeiro para todas as datas no estado atual
+        for (const date of Object.keys(finalMealsState)) {
+            try {
+                await OfflineStorage.saveMealsData(user.uid, date, finalMealsState[date] || {});
+            } catch (localSaveError) {
+                console.warn(`Erro salvando dados de refeição localmente para ${date}:`, localSaveError);
+            }
         }
 
-        // Usar a função global se estiver disponível
+        // Tentar salvar no Firebase para todas as datas (se online e não anônimo)
+        const isOnline = await OfflineStorage.isOnline();
+        if (isOnline && user.uid !== "anonymous") {
+          // Salvar os tipos de refeição no config
+          try {
+            await setDoc(
+              doc(db, "users", user.uid, "config", "mealTypes"),
+              { types: newMealTypes },
+              { merge: true } // Usar merge true pode ser mais seguro aqui
+            );
+          } catch (firebaseConfigError) {
+              console.warn("Erro ao salvar config de tipos de refeição no Firebase:", firebaseConfigError);
+              // Continuar mesmo se a config falhar
+          }
+
+          // Salvar cada data de refeição individualmente no Firebase
+          for (const date of Object.keys(finalMealsState)) {
+              try {
+                  await setDoc(
+                      doc(db, "users", user.uid, "meals", date),
+                      finalMealsState[date] || {} // Salva o estado limpo (ou vazio)
+                  );
+              } catch (firebaseSaveError) {
+                  console.warn(`Erro ao salvar dados de refeição no Firebase para ${date}:`, firebaseSaveError);
+                  // Continuar salvando outras datas mesmo que uma falhe
+              }
+          }
+        }
+
+        // Usar a função global se estiver disponível (manter esta parte)
         if ((global as any).updateNutritionMealTypes) {
           const mealTypeIds = newMealTypes.map((mealType) => mealType.id);
           (global as any).updateNutritionMealTypes(mealTypeIds);
@@ -534,6 +576,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
 
       return true; // Retornar true para indicar sucesso
     } catch (error) {
+      console.error("Erro ao atualizar tipos de refeição:", error); // Adicionar log de erro
       return false; // Retornar false para indicar falha
     }
   };

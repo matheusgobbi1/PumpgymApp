@@ -168,7 +168,6 @@ export default function LoginScreen() {
                 style={[
                   styles.button,
                   styles.primaryButton,
-                  { borderColor: colors.tabborder },
                 ]}
                 onPress={handleStartAnonymously}
                 activeOpacity={0.8}
@@ -176,7 +175,7 @@ export default function LoginScreen() {
                 {loading ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
-                  <Text style={styles.buttonText}>{t("login.startNow")}</Text>
+                  <Text style={styles.primaryButtonText}>{t("login.startNow")}</Text>
                 )}
               </AnimatedTouchableOpacity>
 
@@ -282,20 +281,21 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   primaryButton: {
-    backgroundColor: "transparent",
-    borderWidth: 3,
-    height: 60,
+    backgroundColor: 'transparent',
+    borderWidth: 0.2,
+    borderColor: '#FFFFFF',
     shadowColor: "#FFFFFF",
-    shadowOffset: { width: 0, height: 0},
-    shadowOpacity: 1,
-    shadowRadius: 18,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.7,
+    shadowRadius: 10,
+    elevation: 8,
   },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "600",
-    letterSpacing: 1,
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    letterSpacing: 1.5,
+    fontFamily: 'Anton',
+    textTransform: 'uppercase',
   },
   buttonIcon: {
     marginRight: 8,

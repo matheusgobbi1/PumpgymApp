@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import {
   View,
   StyleSheet,
@@ -9,8 +9,7 @@ import {
   InteractionManager,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import HomeHeader from "../../components/home/HomeHeader";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DailyReminders from "../../components/home/DailyReminders";
 import NutritionProgressChart from "../../components/home/NutritionProgressChart";
 import WorkoutProgressChart from "../../components/home/WorkoutProgressChart";
@@ -24,10 +23,13 @@ import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useWorkoutContext } from "../../context/WorkoutContext";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KEYS } from "../../constants/keys";
 import { useAuth } from "../../context/AuthContext";
+import HomeHeader from "../../components/home/HomeHeader";
+import ScreenTopGradient from "../../components/shared/ScreenTopGradient";
 
 const { width } = Dimensions.get("window");
 
@@ -64,22 +66,26 @@ const MemoizedProgressCharts = React.memo(
   }
 );
 
+// Definir um tipo para as cores do tema
+type ThemeColors = typeof Colors.light; // Ou typeof Colors.dark, a estrutura é a mesma
+
 export default function HomeScreen() {
   const { theme } = useTheme();
-  const colors = Colors[theme];
+  const colors = Colors[theme] as ThemeColors;
   const router = useRouter();
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const { workouts } = useWorkoutContext();
+  const insets = useSafeAreaInsets();
+  const headerTabsWrapperRef = useRef<View>(null);
+  const [headerTabsHeight, setHeaderTabsHeight] = useState(0);
 
-  // Estado para controlar o carregamento
   const [isUIReady, setIsUIReady] = useState(false);
-
   const [activeTab, setActiveTab] = useState<"lembretes" | "progresso">(
     "lembretes"
   );
   const [isProgressTabInitialized, setIsProgressTabInitialized] =
     useState(false);
-  const { workouts } = useWorkoutContext();
-  const { user } = useAuth();
   const [currentSteps, setCurrentSteps] = useState<number | null>(null);
 
   // Inicializar a UI após a renderização inicial
@@ -323,142 +329,136 @@ export default function HomeScreen() {
     );
   }, [activeTab, isUIReady, currentSteps]);
 
-  // Calcular a altura correta do header e das abas
-  const headerHeight = Platform.OS === "ios" ? 65 : 55; // Altura EXATA do HomeHeader atual
-  const tabsHeight = 50; // Estimativa da altura das abas (pode precisar de ajuste se necessário)
-  const totalHeaderAndTabsHeight = headerHeight + tabsHeight;
+  // Função para medir a altura do header + tabs
+  const handleHeaderTabsLayout = (event: any) => {
+    const { height } = event.nativeEvent.layout;
+    if (height > 0 && height !== headerTabsHeight) {
+       setHeaderTabsHeight(height);
+    }
+  };
+
+  const scrollViewPaddingTop = headerTabsHeight > 0 ? headerTabsHeight + 5 : insets.top + 100; // Fallback inicial
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      edges={["top"]}
-    >
-      <View style={[styles.container, { backgroundColor: "transparent" }]}>
-        {/* Wrapper para posicionamento absoluto */}
-        <View style={styles.headerTabsWrapper}>
-          <View style={styles.headerWrapper}>
-            <HomeHeader title="FITFOLIO" />
-          </View>
-          <View
-            style={[
-              styles.tabsPositioner,
-              { top: headerHeight }, // Usar a altura EXATA do header
-              { backgroundColor: `${colors.background}E0` },
-            ]}
-          >
-            {/* Seletor de abas */}
-            <View style={styles.tabContainer}>
-              <Pressable
-                onPress={() => handleTabChange("lembretes")}
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScreenTopGradient />
+      <View
+        ref={headerTabsWrapperRef}
+        style={styles.headerTabsWrapper}
+        onLayout={handleHeaderTabsLayout}
+      >
+        <View style={styles.headerWrapper}>
+          <HomeHeader showDate={true} />
+        </View>
+        <View
+          style={[
+            styles.tabsPositioner,
+            { backgroundColor: `${colors.background}F0` },
+          ]}
+        >
+          <View style={styles.tabContainer}>
+            <Pressable
+              onPress={() => handleTabChange("lembretes")}
+              style={[
+                styles.tabButton,
+                activeTab === "lembretes" && [
+                  styles.activeTabButton,
+                  { borderBottomColor: colors.primary },
+                ],
+              ]}
+            >
+              <Text
                 style={[
-                  styles.tabButton,
-                  activeTab === "lembretes" && [
-                    styles.activeTabButton,
-                    { borderBottomColor: colors.primary },
-                  ],
+                  styles.tabText,
+                  {
+                    color:
+                      colors.text + (activeTab === "lembretes" ? "" : "80"),
+                  },
+                  activeTab === "lembretes" && {
+                    color: colors.primary,
+                    fontWeight: "600",
+                  },
                 ]}
               >
-                <Text
-                  style={[
-                    styles.tabText,
-                    {
-                      color:
-                        colors.text + (activeTab === "lembretes" ? "" : "80"),
-                    },
-                    activeTab === "lembretes" && {
-                      color: colors.primary,
-                      fontWeight: "600",
-                    },
-                  ]}
-                >
-                  {t("home.reminders")}
-                </Text>
-              </Pressable>
+                {t("home.reminders")}
+              </Text>
+            </Pressable>
 
-              <Pressable
-                onPress={() => handleTabChange("progresso")}
+            <Pressable
+              onPress={() => handleTabChange("progresso")}
+              style={[
+                styles.tabButton,
+                activeTab === "progresso" && [
+                  styles.activeTabButton,
+                  { borderBottomColor: colors.primary },
+                ],
+              ]}
+            >
+              <Text
                 style={[
-                  styles.tabButton,
-                  activeTab === "progresso" && [
-                    styles.activeTabButton,
-                    { borderBottomColor: colors.primary },
-                  ],
+                  styles.tabText,
+                  {
+                    color:
+                      colors.text + (activeTab === "progresso" ? "" : "80"),
+                  },
+                  activeTab === "progresso" && {
+                    color: colors.primary,
+                    fontWeight: "600",
+                  },
                 ]}
               >
-                <Text
-                  style={[
-                    styles.tabText,
-                    {
-                      color:
-                        colors.text + (activeTab === "progresso" ? "" : "80"),
-                    },
-                    activeTab === "progresso" && {
-                      color: colors.primary,
-                      fontWeight: "600",
-                    },
-                  ]}
-                >
-                  {t("home.progress")}
-                </Text>
-              </Pressable>
-            </View>
+                {t("home.progress")}
+              </Text>
+            </Pressable>
           </View>
         </View>
-
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            // Adicionar padding top para compensar header e abas
-            { paddingTop: totalHeaderAndTabsHeight + 5 }, // Manter este cálculo por enquanto
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Renderizar as duas abas, mas controlar a visibilidade via CSS */}
-          {renderRemindersContent}
-          {isProgressTabInitialized && renderProgressContent}
-
-          {/* Espaço adicional para garantir que o conteúdo fique acima da bottom tab */}
-          <View style={styles.bottomPadding} />
-        </ScrollView>
       </View>
-    </SafeAreaView>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: scrollViewPaddingTop }, // Usar padding dinâmico
+        ]}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16} // Opcional: melhora performance de scroll events se for usar depois
+      >
+        {renderRemindersContent}
+        {isProgressTabInitialized && renderProgressContent}
+        {/* Adicionar padding inferior para a tab flutuante */}
+        <View style={styles.bottomPadding} />
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    position: "relative", // Necessário para posicionar filhos absolutamente
   },
   headerTabsWrapper: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 10, // Garantir que fique sobre o ScrollView
+    zIndex: 10,
   },
   headerWrapper: {
     // O HomeHeader já tem seu próprio background e padding
   },
   tabsPositioner: {
-    position: "absolute",
     left: 0,
     right: 0,
-    // top é definido inline
   },
   tabContainer: {
     flexDirection: "row",
     paddingHorizontal: 16,
-    // marginBottom removido, o espaçamento é controlado pelo paddingTop do ScrollView
   },
   scrollView: {
     flex: 1,
-    // backgroundColor: "lightblue", // Para debug de posicionamento
   },
   scrollContent: {
     paddingBottom: 24,
-    // paddingTop é aplicado dinamicamente
   },
   tabButton: {
     flex: 1,
@@ -489,6 +489,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   bottomPadding: {
-    height: 80, // Altura suficiente para ficar acima da bottom tab
+      height: 80, // Altura igual à das outras telas
   },
 });

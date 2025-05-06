@@ -38,6 +38,7 @@ import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { MotiView } from "moti";
 import { Food } from "../context/MealContext";
+import { BlurView } from "expo-blur";
 
 // Interface para meal food
 interface MealFood {
@@ -1122,6 +1123,13 @@ export default function NutritionRecommendationModal() {
               ]}
               style={[styles.headerGradient, { flex: 1 }]}
             >
+              {/* Adicionar BlurView para o efeito de fundo */}
+              <BlurView
+                intensity={40}
+                tint={theme === "dark" ? "dark" : "light"}
+                style={StyleSheet.absoluteFill}
+              />
+
               {/* Cabeçalho de navegação */}
               <View style={styles.header}>
                 <TouchableOpacity

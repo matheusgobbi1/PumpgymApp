@@ -1,4 +1,5 @@
 import { Tabs } from "expo-router";
+import { BlurView } from "expo-blur";
 import {
   View,
   StyleSheet,
@@ -201,22 +202,15 @@ export default function TabLayout() {
     marginHorizontal: TABBAR_HORIZONTAL_MARGIN,
     width: TABBAR_WIDTH,
     alignSelf: "center" as const,
-    elevation: 8,
-    backgroundColor: colors.background + "E6",
     borderRadius: TABBAR_BORDER_RADIUS,
     height: TABBAR_HEIGHT,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
     paddingBottom: 0,
     paddingTop: 14,
-    borderWidth: 1,
-    borderColor: colors.tabborder,
-    borderTopWidth: 1,
-    borderTopColor: colors.tabborder,
+    borderTopWidth: 0,
+    backgroundColor: "transparent",
     opacity: tabBarState.opacity,
     transform: [{ translateY: 0 }], // Fixar posição vertical
+    overflow: "hidden" as const,
   };
 
   return (
@@ -233,6 +227,13 @@ export default function TabLayout() {
           },
           headerTintColor: colors.text,
           animation: "none", // Usar animação fade para transições mais suaves
+          tabBarBackground: () => (
+            <BlurView
+              tint={theme === "dark" ? "dark" : "light"}
+              intensity={80}
+              style={StyleSheet.absoluteFill}
+            />
+          ),
         }}
       >
         <Tabs.Screen
@@ -245,7 +246,7 @@ export default function TabLayout() {
               </View>
             ),
           }}
-          listeners={{ tabPress: () => safeHaptics.selectionAsync() }}
+          listeners={{ tabPress: () => safeHaptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium) }}
         />
         <Tabs.Screen
           name="nutrition"
@@ -257,7 +258,7 @@ export default function TabLayout() {
               </View>
             ),
           }}
-          listeners={{ tabPress: () => safeHaptics.selectionAsync() }}
+          listeners={{ tabPress: () => safeHaptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium) }}
         />
         <Tabs.Screen name="add" options={{ tabBarButton: () => null }} />
         <Tabs.Screen
@@ -270,7 +271,7 @@ export default function TabLayout() {
               </View>
             ),
           }}
-          listeners={{ tabPress: () => safeHaptics.selectionAsync() }}
+          listeners={{ tabPress: () => safeHaptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium) }}
         />
         <Tabs.Screen
           name="profile"
@@ -282,7 +283,7 @@ export default function TabLayout() {
               </View>
             ),
           }}
-          listeners={{ tabPress: () => safeHaptics.selectionAsync() }}
+          listeners={{ tabPress: () => safeHaptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium) }}
         />
       </Tabs>
 
@@ -391,6 +392,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     textAlign: "center",
+    justifyContent: "center",
+    alignItems: "center",
   },
   saveWeightButtonV2: {
     padding: 12,

@@ -242,34 +242,24 @@ export default function TrainingStatsCard({
     [colors.text, colors.success, colors.danger]
   );
 
-  const navigateToDetailsScreen = useCallback(() => {
-    // Navegação para a tela de detalhes como modal com todos os dados necessários
+  // Função para navegar para a tela de progressão (anteriormente navigateToDetailsScreen)
+  const navigateToProgressionModal = useCallback(() => {
+    // Navegação para a tela de progressão modal com os dados necessários
+    if (!workoutId) {
+      console.warn("Workout ID is missing, cannot navigate to progression modal.");
+      // Adicionar um Haptic ou Alert aqui se necessário
+      return;
+    }
     router.push({
-      pathname: "/workout/stats",
+      pathname: "/progression-modal",
       params: {
-        workoutId: workoutId || "",
+        workoutId: workoutId,
         workoutName,
         workoutColor,
-        currentExercises: JSON.stringify(currentExercises),
-        previousExercises: previousExercises
-          ? JSON.stringify(previousExercises)
-          : "",
-        workoutTotals: JSON.stringify(workoutTotals),
-        previousWorkoutTotals: previousWorkoutTotals
-          ? JSON.stringify(previousWorkoutTotals)
-          : "",
+        // Não precisamos mais passar todos os totais e exercícios para o modal de progressão
       },
     });
-  }, [
-    router,
-    workoutId,
-    workoutName,
-    workoutColor,
-    currentExercises,
-    previousExercises,
-    workoutTotals,
-    previousWorkoutTotals,
-  ]);
+  }, [router, workoutId, workoutName, workoutColor]);
 
   // Componente de linha de estatística memoizado
   const StatRowComponent = useMemo(() => {
@@ -525,8 +515,8 @@ export default function TrainingStatsCard({
   return (
     <TouchableOpacity
       activeOpacity={0.7}
-      onPress={navigateToDetailsScreen}
-      disabled={false}
+      onPress={navigateToProgressionModal}
+      disabled={!workoutId}
     >
       <Animated.View
         entering={FadeIn.duration(400).springify()}

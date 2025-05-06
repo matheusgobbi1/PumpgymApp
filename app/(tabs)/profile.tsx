@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef } from "react";
+import React, { useCallback, useState, useEffect, useRef, useMemo } from "react";
 import {
   View,
   StyleSheet,
@@ -6,7 +6,7 @@ import {
   InteractionManager,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import HomeHeader from "../../components/home/HomeHeader";
@@ -19,6 +19,7 @@ import { useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
+import ScreenTopGradient from "../../components/shared/ScreenTopGradient";
 
 export default function Profile() {
   const { t } = useTranslation();
@@ -27,85 +28,58 @@ export default function Profile() {
   const router = useRouter();
   const { nutritionInfo } = useNutrition();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
 
-  // Referência para o ScrollView para permitir rolagem programática
+  const headerWrapperRef = useRef<View>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+
   const scrollViewRef = useRef<ScrollView>(null);
-
-  // Estado para controlar o carregamento
   const [isUIReady, setIsUIReady] = useState(false);
 
-  // Calcular altura do header
-  const headerHeight = Platform.OS === "ios" ? 70 : 60;
+  const screenTitle = t("profile.header.title");
 
-  // Inicializar a UI após a renderização inicial
+  const handleHeaderLayout = (event: any) => {
+    const { height } = event.nativeEvent.layout;
+    if (height > 0 && height !== headerHeight) {
+      setHeaderHeight(height);
+    }
+  };
+
+  const scrollViewPaddingTop = headerHeight > 0 ? headerHeight + 5 : insets.top + 100;
+
   useEffect(() => {
     if (isUIReady) return;
-
     InteractionManager.runAfterInteractions(() => {
-      setTimeout(() => {
-        setIsUIReady(true);
-      }, 100);
+      setTimeout(() => setIsUIReady(true), 100);
     });
   }, [isUIReady]);
 
-  // Função para navegar para a edição do perfil
   const handleEditProfilePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push("/onboarding");
   };
 
-  // Função para alternar o tema
   const handleThemeToggle = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     toggleTheme();
   };
 
-  // Função para navegar para a tela sobre nós
   const handleAboutPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push("/about-modal");
   };
 
-  // Obter status do plano nutricional
-  const getNutritionStatus = () => {
-    if (!nutritionInfo.calories) {
-      return t("profile.header.planNotConfigured");
-    }
-
-    if (
-      nutritionInfo.gender &&
-      nutritionInfo.height &&
-      nutritionInfo.weight &&
-      nutritionInfo.goal
-    ) {
-      return t("profile.header.planActive");
-    }
-
-    return t("profile.header.planIncomplete");
-  };
-
-  // Atualizar dados quando a tela receber foco
   useFocusEffect(
     useCallback(() => {
-      try {
-      } catch (error) {}
-      return () => {};
+      // Lógica de foco aqui se necessário
     }, [])
   );
 
-  // Renderizar o conteúdo da tela de forma condicional
   const renderScreenContent = () => {
     if (!isUIReady) {
       return (
-        <View
-          style={[
-            styles.container,
-            { justifyContent: "center", alignItems: "center" },
-          ]}
-        >
-          <View style={styles.loadingContainer}>
-            {/* Você pode adicionar aqui qualquer UI de carregamento simples, se necessário */}
-          </View>
+        <View style={styles.loadingContainer}>
+          {/* Loading indicator */}
         </View>
       );
     }
@@ -116,81 +90,63 @@ export default function Profile() {
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
-          // Adicionar padding top para compensar header
-          { paddingTop: headerHeight + 12 }, // +12 de padding original
+          { paddingTop: scrollViewPaddingTop },
         ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.cardsContainer}>
-          {/* Novo card de informações do perfil */}
           <ProfileInfoCard onEditPress={handleEditProfilePress} />
-
-          {/* Resumo do plano nutricional */}
           <NutritionSummaryCard scrollViewRef={scrollViewRef} />
-
-          {/* Opções do perfil */}
           <ProfileOptionsCard
             onThemeToggle={handleThemeToggle}
             onAboutPress={handleAboutPress}
           />
         </View>
-
-        {/* Espaço adicional para garantir que o conteúdo fique acima da bottom tab */}
         <View style={styles.bottomPadding} />
       </ScrollView>
     );
   };
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      edges={["top"]}
-    >
-      {/* Container principal da tela com fundo transparente */}
-      <View style={[styles.container, { backgroundColor: "transparent" }]}>
-        {/* Header posicionado absolutamente no topo */}
-        <View style={styles.headerWrapper}>
-          <HomeHeader
-            title={t("profile.header.title")}
-          
-          />
-        </View>
-
-        {/* Conteúdo da tela renderizado aqui */}
-        {renderScreenContent()}
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScreenTopGradient />
+      <View
+        ref={headerWrapperRef}
+        style={styles.headerWrapper}
+        onLayout={handleHeaderLayout}
+      >
+        <HomeHeader title={screenTitle} />
       </View>
-    </SafeAreaView>
+      {renderScreenContent()}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    position: "relative", // Para que o header absoluto funcione
   },
-  // Wrapper para o header absoluto
   headerWrapper: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 1, // Header fica sobre o ScrollView
+    zIndex: 10,
   },
   scrollView: {
     flex: 1,
-    backgroundColor: "transparent", // ScrollView precisa ser transparente
+    backgroundColor: "transparent",
   },
   scrollContent: {
     paddingBottom: 24,
-    // paddingTop é aplicado dinamicamente (headerHeight + 12)
   },
   cardsContainer: {
     marginVertical: 0,
     paddingTop: 0,
-    paddingHorizontal: 0, // Removido o padding horizontal que foi adicionado incorretamente
+    paddingHorizontal: 0,
   },
   bottomPadding: {
-    height: 80, // Altura suficiente para ficar acima da bottom tab
+    height: 80,
   },
   loadingContainer: {
     flex: 1,

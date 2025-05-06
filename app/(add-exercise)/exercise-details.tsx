@@ -21,7 +21,6 @@ import { useWorkoutContext, Exercise } from "../../context/WorkoutContext";
 import Colors from "../../constants/Colors";
 import { ExerciseData, getExerciseById } from "../../data/exerciseDatabase";
 import { useTranslation } from "react-i18next";
-import { MotiView } from "moti";
 import { useToast } from "../../components/common/ToastContext";
 
 const { width } = Dimensions.get("window");
@@ -392,38 +391,19 @@ const SetCard = ({
         </View>
       </TouchableOpacity>
 
-      {/* Todo o conteúdo agora fica dentro do MotiView expandido */}
+      {/* Todo o conteúdo agora fica dentro do View expandido */}
       {expanded && (
-        <MotiView
-          from={{
-            opacity: 0,
-            scale: 0.98,
-          }}
-          animate={{
-            opacity: 1,
-            scale: 1,
-          }}
-          transition={{
-            type: "timing",
-            duration: 250,
-          }}
+        <View
           style={[
             styles.setCardExpandedContent,
             { borderTopColor: colors.border + "30" },
           ]}
         >
           {/* Container para repetições e peso lado a lado */}
-          <MotiView
-            from={{ opacity: 0, translateX: -5 }}
-            animate={{ opacity: 1, translateX: 0 }}
-            transition={{ delay: 150, duration: 200 }}
-          >
+          <View>
             <View style={styles.setMetricsRow}>
               {/* Repetições */}
-              <MotiView
-                from={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 50, duration: 150 }}
+              <View
                 style={styles.setMetricContainer}
               >
                 <View style={styles.setMetricHeader}>
@@ -471,13 +451,10 @@ const SetCard = ({
                     <Ionicons name="add" size={18} color={color} />
                   </TouchableOpacity>
                 </View>
-              </MotiView>
+              </View>
 
               {/* Peso - Mostrar controle para exercícios normais ou texto "Peso Corporal" para exercícios de peso corporal */}
-              <MotiView
-                from={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 100, duration: 150 }}
+              <View
                 style={styles.setMetricContainer}
               >
                 <View style={styles.setMetricHeader}>
@@ -555,16 +532,12 @@ const SetCard = ({
                     </TouchableOpacity>
                   </View>
                 )}
-              </MotiView>
+              </View>
             </View>
-          </MotiView>
+          </View>
 
           {/* Tempo de descanso */}
-          <MotiView
-            from={{ opacity: 0, translateX: -5 }}
-            animate={{ opacity: 1, translateX: 0 }}
-            transition={{ delay: 250, duration: 200 }}
-          >
+          <View>
             <View style={styles.setMetricContainer}>
               <View style={styles.setMetricHeader}>
                 <Text style={[styles.setMetricLabel, { color: colors.text }]}>
@@ -573,18 +546,11 @@ const SetCard = ({
               </View>
 
               {/* Opções rápidas de tempo de descanso */}
-              <MotiView
-                from={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 50, duration: 150 }}
-              >
+              <View>
                 <View style={styles.restTimeOptionsContainer}>
                   {restTimeOptions.map((time, idx) => (
-                    <MotiView
+                    <View
                       key={`rest-time-${time}`}
-                      from={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 30 * idx, duration: 120 }}
                     >
                       <TouchableOpacity
                         style={[
@@ -612,17 +578,13 @@ const SetCard = ({
                           {time}s
                         </Text>
                       </TouchableOpacity>
-                    </MotiView>
+                    </View>
                   ))}
                 </View>
-              </MotiView>
+              </View>
 
               {/* Input manual para tempo de descanso */}
-              <MotiView
-                from={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 100, duration: 150 }}
-              >
+              <View>
                 <View
                   style={[
                     styles.setMetricControls,
@@ -672,38 +634,27 @@ const SetCard = ({
                     <Ionicons name="add" size={18} color={color} />
                   </TouchableOpacity>
                 </View>
-              </MotiView>
+              </View>
             </View>
-          </MotiView>
+          </View>
 
           {/* Seção de intensidade */}
-          <MotiView
-            from={{ opacity: 0, translateX: -5 }}
-            animate={{ opacity: 1, translateX: 0 }}
-            transition={{ delay: 350, duration: 200 }}
-          >
+          <View>
             <View style={styles.expandedSection}>
               <Text style={[styles.expandedSectionTitle, { color: color }]}>
                 {t("exercise.intensitySection")}
               </Text>
 
               {/* Interface ultra simplificada: Apenas RIR */}
-              <MotiView
-                from={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 50, duration: 150 }}
-              >
+              <View>
                 <View style={[styles.intensityContainer, { marginTop: 10 }]}>
                   <Text style={[styles.intensityLabel, { color: colors.text }]}>
                     {t("exercise.repsInReserveShort")}
                   </Text>
                   <View style={styles.intensityButtonsRow}>
                     {[0, 1, 2, 3, 4, 5].map((value, idx) => (
-                      <MotiView
+                      <View
                         key={`rir-${value}`}
-                        from={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 30 * idx, duration: 120 }}
                       >
                         <TouchableOpacity
                           style={[
@@ -745,29 +696,22 @@ const SetCard = ({
                             {value}
                           </Text>
                         </TouchableOpacity>
-                      </MotiView>
+                      </View>
                     ))}
                   </View>
                 </View>
-              </MotiView>
+              </View>
 
               {/* Percepção de esforço - ultra minimalista */}
-              <MotiView
-                from={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 100, duration: 150 }}
-              >
+              <View>
                 <View style={[styles.intensityContainer, { marginTop: 15 }]}>
                   <Text style={[styles.intensityLabel, { color: colors.text }]}>
                     {t("exercise.perceivedEffort.title")}
                   </Text>
                   <View style={styles.intensityButtonsRow}>
                     {[1, 2, 3, 4, 5].map((level, idx) => (
-                      <MotiView
+                      <View
                         key={`effort-${level}`}
-                        from={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 30 * idx, duration: 120 }}
                       >
                         <TouchableOpacity
                           style={[
@@ -805,14 +749,14 @@ const SetCard = ({
                             {level}
                           </Text>
                         </TouchableOpacity>
-                      </MotiView>
+                      </View>
                     ))}
                   </View>
                 </View>
-              </MotiView>
+              </View>
             </View>
-          </MotiView>
-        </MotiView>
+          </View>
+        </View>
       )}
     </View>
   );
@@ -1221,9 +1165,7 @@ const ExerciseDetailsScreen = () => {
 
       // Mostrar toast de atualização
       showToast({
-        message: t("exercise.updatedSuccess", {
-          defaultValue: `${newExercise.name} atualizado com sucesso`,
-        }),
+        message: t("exercise.updatedSuccess", { name: newExercise.name }),
         type: "success",
         position: "bottom",
       });
@@ -1233,9 +1175,7 @@ const ExerciseDetailsScreen = () => {
 
       // Mostrar toast de adição
       showToast({
-        message: t("exercise.addedSuccess", {
-          defaultValue: `${newExercise.name} adicionado ao treino`,
-        }),
+        message: t("exercise.addedSuccess", { name: newExercise.name }),
         type: "success",
         position: "bottom",
       });
@@ -1421,15 +1361,7 @@ const ExerciseDetailsScreen = () => {
                   {exercise?.category !== "cardio" && (
                     <View style={styles.setButtonsContainer}>
                       {sets.length > 0 && (
-                        <MotiView
-                          from={{ scale: 0.8, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          transition={{
-                            type: "spring",
-                            damping: 15,
-                            delay: 100,
-                          }}
-                        >
+                        <View>
                           <TouchableOpacity
                             style={[
                               styles.copySetButton,
@@ -1456,16 +1388,9 @@ const ExerciseDetailsScreen = () => {
                               color={workoutColor}
                             />
                           </TouchableOpacity>
-                        </MotiView>
+                        </View>
                       )}
-                      <MotiView
-                        from={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{
-                          type: "spring",
-                          damping: 15,
-                        }}
-                      >
+                      <View>
                         <TouchableOpacity
                           style={[
                             styles.copySetButton,
@@ -1478,7 +1403,7 @@ const ExerciseDetailsScreen = () => {
                         >
                           <Ionicons name="add" size={20} color={workoutColor} />
                         </TouchableOpacity>
-                      </MotiView>
+                      </View>
                     </View>
                   )}
                 </View>
@@ -1491,15 +1416,8 @@ const ExerciseDetailsScreen = () => {
                     ]}
                   >
                     {sets.map((set, index) => (
-                      <MotiView
+                      <View
                         key={set.id}
-                        from={{ opacity: 0, translateY: 20 }}
-                        animate={{ opacity: 1, translateY: 0 }}
-                        transition={{
-                          type: "spring",
-                          damping: 15,
-                          delay: index * 100,
-                        }}
                       >
                         <SetCard
                           key={set.id}
@@ -1512,26 +1430,18 @@ const ExerciseDetailsScreen = () => {
                           color={workoutColor}
                           isBodyweightExercise={isBodyweightExercise}
                         />
-                      </MotiView>
+                      </View>
                     ))}
                   </View>
                 ) : (
-                  <MotiView
-                    from={{ opacity: 0, translateY: 20 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    transition={{
-                      type: "spring",
-                      damping: 15,
-                      delay: 300,
-                    }}
-                  >
+                  <View>
                     <CardioCard
                       duration={cardioDuration}
                       intensity={cardioIntensity}
                       onUpdate={updateCardioSettings}
                       color={workoutColor}
                     />
-                  </MotiView>
+                  </View>
                 )}
 
                 <View style={styles.notesContainer}>
@@ -1562,10 +1472,7 @@ const ExerciseDetailsScreen = () => {
           )}
         </ScrollView>
 
-        <MotiView
-          from={{ opacity: 0, translateY: 20 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "spring", damping: 15 }}
+        <View
           style={[
             styles.bottomBar,
             {
@@ -1608,7 +1515,7 @@ const ExerciseDetailsScreen = () => {
               style={styles.addButtonIcon}
             />
           </TouchableOpacity>
-        </MotiView>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

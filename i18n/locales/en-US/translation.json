@@ -175,7 +175,7 @@
   },
   "training": {
     "title": "Your workouts",
-    "subtitle": "Record your workouts",
+    "subtitle": "Record your training",
     "noTraining": "No training recorded",
     "workoutsToday": "Today's workouts",
     "selectWorkout": "Change workout",
@@ -668,7 +668,9 @@
       "level5": "Very hard"
     },
     "collapseSet": "Collapse set",
-    "expandSet": "Expand set"
+    "expandSet": "Expand set",
+    "addedSuccess": "{{name}} added to workout",
+    "updatedSuccess": "{{name}} updated successfully"
   },
   "yesterday": "Yesterday",
   "minutes": "minutes",
@@ -723,9 +725,9 @@
     },
     "mealTypes": {
       "breakfast": "Breakfast",
-      "morning_snack": "Morning Snack",
+      "pre_workout": "Pre-workout",
       "lunch": "Lunch",
-      "afternoon_snack": "Afternoon Snack",
+      "post_workout": "Post-workout",
       "dinner": "Dinner",
       "supper": "Supper",
       "snack": "Snack"
@@ -745,7 +747,10 @@
       "calories": "Calories",
       "protein": "Protein",
       "carbs": "Carbs",
-      "fat": "Fat"
+      "fat": "Fat",
+      "portionIncreased": "{{name}} portion increased",
+      "addedToMealToast": "{{name}} added to meal",
+      "addedSuccessToast": "{{name}} added successfully"
     },
     "foodDetails": {
       "title": "Food Details",
@@ -759,7 +764,8 @@
       "foodNotFound": "Food not found",
       "loadError": "Error loading food details",
       "genericError": "Error loading food",
-      "tryAgain": "Try Again"
+      "tryAgain": "Try Again",
+      "updatedSuccessToast": "{{name}} updated successfully"
     },
     "common": {
       "gender": {
@@ -2422,5 +2428,26 @@
     "Peixes e Frutos do Mar": "Fish and Seafood",
     "Proteínas Vegetais": "Plant-based Proteins",
     "Suplementos": "Supplements"
+  },
+  "workoutBuilder": {
+    "title": "Create Custom Workout",
+    "experienceTitle": "What's your experience level?",
+    "experienceDescription": "Select your experience level so we can customize your workout with appropriate volume and intensity.",
+    "beginner": "Beginner",
+    "beginnerDescription": "New to strength training or returning after a long break.",
+    "intermediate": "Intermediate",
+    "intermediateDescription": "You've been training regularly for some time and know the basic movements.",
+    "advanced": "Advanced",
+    "advancedDescription": "You've been training consistently for years and have deep technical knowledge.",
+    "musclesTitle": "Which muscles do you want to train?",
+    "musclesDescription": "Select the muscle groups you want to include in your personalized workout.",
+    "selectAll": "Select All",
+    "clearAll": "Clear All",
+    "generateWorkout": "Generate Workout",
+    "reviewTitle": "Your Custom Workout",
+    "reviewDescription": "Here's the workout we've created for you. You can add all these exercises to your current workout.",
+    "reviewExistingDescription": "This is your current workout. You can save it again or generate a new one.",
+    "regenerateWorkout": "Generate New Workout",
+    "saveWorkout": "Save Workout"
   }
 } 

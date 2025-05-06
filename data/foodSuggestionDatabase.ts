@@ -202,16 +202,6 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
         label: "100g",
         weight: 100,
       },
-      {
-        id: "measure_arroz_colher",
-        label: "colher de sopa cheia (25g)",
-        weight: 25,
-      },
-      {
-        id: "measure_arroz_xicara",
-        label: "xícara (160g)",
-        weight: 160,
-      },
     ],
     alternatives: [
       "sugg_batata_doce",
@@ -395,19 +385,9 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
     },
     measures: [
       {
-        id: "measure_macarrao_pegador",
-        label: "pegador (110g)",
-        weight: 110,
-      },
-      {
         id: "measure_macarrao_100g",
         label: "100g",
         weight: 100,
-      },
-      {
-        id: "measure_macarrao_prato",
-        label: "prato raso (220g)",
-        weight: 220,
       },
     ],
     alternatives: [
@@ -429,11 +409,6 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       fiber: 4.5,
     },
     measures: [
-      {
-        id: "measure_macarrao_integral_pegador",
-        label: "pegador cheio (100g)",
-        weight: 100,
-      },
       {
         id: "measure_macarrao_integral_100g",
         label: "100g",
@@ -2239,19 +2214,9 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
     },
     measures: [
       {
-        id: "measure_feijao_concha",
-        label: "concha (80g)",
-        weight: 80,
-      },
-      {
         id: "measure_feijao_100g",
         label: "100g",
         weight: 100,
-      },
-      {
-        id: "measure_feijao_xicara",
-        label: "xícara (180g)",
-        weight: 180,
       },
     ],
     alternatives: ["sugg_lentilha", "sugg_grao_bico", "sugg_feijao_preto"],
@@ -2269,19 +2234,9 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
     },
     measures: [
       {
-        id: "measure_feijao_preto_concha",
-        label: "concha (80g)",
-        weight: 80,
-      },
-      {
         id: "measure_feijao_preto_100g",
         label: "100g",
         weight: 100,
-      },
-      {
-        id: "measure_feijao_preto_xicara",
-        label: "xícara (180g)",
-        weight: 180,
       },
     ],
     alternatives: ["sugg_feijao", "sugg_lentilha", "sugg_grao_bico"],

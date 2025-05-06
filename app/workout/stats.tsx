@@ -148,7 +148,16 @@ export default function WorkoutStatsModal() {
       : t("training.stats.firstWorkout");
 
     return (
-      <View style={[styles.metricCardNew, { backgroundColor: colors.card }]}>
+      <View
+        style={[
+          styles.metricCardNew,
+          {
+            backgroundColor: colors.card,
+            borderWidth: 1,
+            borderColor: colors.border + "80",
+          },
+        ]}
+      >
         <View style={styles.metricCardHeader}>
           <View style={styles.metricTitleContainer}>
             <View
@@ -163,28 +172,30 @@ export default function WorkoutStatsModal() {
               {title}
             </Text>
           </View>
-
-          {hasPrevious && (
-            <View
-              style={[
-                styles.metricProgressBadge,
-                { backgroundColor: progressColor + "15" },
-              ]}
-            >
-              <Text
-                style={[styles.metricProgressText, { color: progressColor }]}
-              >
-                {progressText}
-              </Text>
-            </View>
-          )}
         </View>
 
         <View style={styles.metricValueContainerNew}>
-          <Text style={[styles.metricValueNew, { color: colors.text }]}>
-            {formatter(value)}
-            <Text style={styles.metricUnitNew}>{unit}</Text>
-          </Text>
+          <View style={styles.metricValueRow}>
+            <Text style={[styles.metricValueNew, { color: colors.text }]}>
+              {formatter(value)}
+              <Text style={styles.metricUnitNew}>{unit}</Text>
+            </Text>
+
+            {hasPrevious && (
+              <View
+                style={[
+                  styles.metricProgressBadge,
+                  { backgroundColor: progressColor + "15" },
+                ]}
+              >
+                <Text
+                  style={[styles.metricProgressText, { color: progressColor }]}
+                >
+                  {progressText}
+                </Text>
+              </View>
+            )}
+          </View>
 
           {hasPrevious && (
             <Text
@@ -355,25 +366,6 @@ export default function WorkoutStatsModal() {
               {exercise.name}
             </Text>
           </View>
-
-          {hasPrevious && (
-            <View
-              style={[
-                styles.progressBadgeNew,
-                { backgroundColor: progressColor + "15" },
-              ]}
-            >
-              <Text
-                style={[styles.progressBadgeText, { color: progressColor }]}
-              >
-                {primaryProgress > 0
-                  ? `+${Math.round(primaryProgress)}%`
-                  : primaryProgress < 0
-                  ? `${Math.round(primaryProgress)}%`
-                  : t("training.stats.maintained")}
-              </Text>
-            </View>
-          )}
         </View>
 
         {/* Separador */}
@@ -818,6 +810,9 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   metricsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
     gap: 12,
   },
   metricCardNew: {
@@ -827,18 +822,19 @@ const styles = StyleSheet.create({
     elevation: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 1.5,
+    width: (width - 32 - 12) / 2,
   },
   metricCardHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   metricTitleContainer: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
   },
   metricIconNew: {
     width: 28,
@@ -853,28 +849,34 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   metricProgressBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     borderRadius: 12,
+    marginLeft: 8,
   },
   metricProgressText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
   },
   metricValueContainerNew: {
-    marginBottom: 12,
+    marginBottom: 10,
+    alignItems: 'flex-start',
+  },
+  metricValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   metricValueNew: {
-    fontSize: 24,
-    fontWeight: "700",
+    fontSize: 20,
+    fontWeight: "600",
   },
   metricUnitNew: {
     fontSize: 18,
     fontWeight: "400",
   },
   metricPreviousValue: {
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: 11,
+    marginTop: 3,
   },
   metricProgressBarContainer: {
     marginTop: 6,

@@ -11,15 +11,14 @@ import {
   KeyboardAvoidingView,
   Keyboard,
   TouchableWithoutFeedback,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
-import { MotiView } from "moti";
 import { useMeals } from "../../context/MealContext";
-import * as Haptics from "expo-haptics";
 import { v4 as uuidv4 } from "uuid";
 import { getFoodDetails } from "../../services/food";
 import { FoodItem, FoodServing } from "../../types/food";
@@ -29,97 +28,6 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useToast } from "../../components/common/ToastContext";
 
 const { width } = Dimensions.get("window");
-
-const LoadingSkeleton = () => {
-  const { theme } = useTheme();
-  const colors = Colors[theme];
-
-  return (
-    <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-      <View style={styles.foodInfo}>
-        {/* Nome do Alimento Skeleton */}
-        <MotiView
-          key={`skeleton-title-${theme}`}
-          from={{ opacity: 0.5 }}
-          animate={{ opacity: 1 }}
-          transition={{
-            type: "timing",
-            duration: 1000,
-            loop: true,
-          }}
-          style={[styles.skeletonTitle, { backgroundColor: colors.light }]}
-        />
-
-        {/* Input Porção Skeleton */}
-        <MotiView
-          key={`skeleton-portion-${theme}`}
-          from={{ opacity: 0.5 }}
-          animate={{ opacity: 1 }}
-          transition={{
-            type: "timing",
-            duration: 1000,
-            loop: true,
-          }}
-          style={[styles.skeletonPortion, { backgroundColor: colors.light }]}
-        />
-
-        {/* Macros Circles Skeleton */}
-        <View style={styles.macrosContainer}>
-          {[...Array(4)].map((_, index) => (
-            <View
-              key={`macro-circle-${index}-${theme}`}
-              style={styles.macroCircle}
-            >
-              <MotiView
-                key={`skeleton-circle-${index}-${theme}`}
-                from={{ opacity: 0.5 }}
-                animate={{ opacity: 1 }}
-                transition={{
-                  type: "timing",
-                  duration: 1000,
-                  loop: true,
-                  delay: index * 100,
-                }}
-                style={[
-                  styles.skeletonCircle,
-                  { backgroundColor: colors.light },
-                ]}
-              />
-              <MotiView
-                key={`skeleton-label-${index}-${theme}`}
-                from={{ opacity: 0.5 }}
-                animate={{ opacity: 1 }}
-                transition={{
-                  type: "timing",
-                  duration: 1000,
-                  loop: true,
-                  delay: index * 100,
-                }}
-                style={[
-                  styles.skeletonLabel,
-                  { backgroundColor: colors.light },
-                ]}
-              />
-            </View>
-          ))}
-        </View>
-
-        {/* Informações Adicionais Skeleton */}
-        <MotiView
-          key={`skeleton-info-${theme}`}
-          from={{ opacity: 0.5 }}
-          animate={{ opacity: 1 }}
-          transition={{
-            type: "timing",
-            duration: 1000,
-            loop: true,
-          }}
-          style={[styles.skeletonInfo, { backgroundColor: colors.light }]}
-        />
-      </View>
-    </ScrollView>
-  );
-};
 
 export default function FoodDetailsScreen() {
   const router = useRouter();
@@ -134,54 +42,14 @@ export default function FoodDetailsScreen() {
   const { addFoodToMeal, updateFoodInMeal, saveMeals, addToSearchHistory } =
     useMeals();
   const [food, setFood] = useState<FoodItem | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFromHistory, setIsFromHistory] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  // Estado para controlar se os gráficos devem ser renderizados
-  const [shouldRenderCharts, setShouldRenderCharts] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const [, setForceUpdate] = useState({});
-
-  // Estado para controlar a visibilidade do teclado
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
 
-  useEffect(() => {
-    setForceUpdate({});
-  }, [theme]);
-
-  // Efeito para garantir que os gráficos sejam renderizados após o componente montar
-  useEffect(() => {
-    if (!isLoading && food) {
-      // Pequeno atraso para garantir que a UI esteja pronta
-      const timer = setTimeout(() => {
-        setShouldRenderCharts(true);
-        // Forçar atualização do componente
-        setForceUpdate({});
-
-        // Adicionar requestAnimationFrame para garantir a renderização no próximo frame
-        requestAnimationFrame(() => {
-          setForceUpdate({});
-        });
-      }, 100);
-
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading, food]);
-
-  // Efeito para atualizar os gráficos quando a porção mudar
-  useEffect(() => {
-    if (!isLoading && food) {
-      // Forçar atualização após mudança na porção
-      requestAnimationFrame(() => {
-        setForceUpdate({});
-      });
-    }
-  }, [portion, isLoading, food]);
-
-  // Efeito para detectar quando o teclado é exibido/ocultado
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
       "keyboardDidShow",
@@ -202,14 +70,12 @@ export default function FoodDetailsScreen() {
     };
   }, []);
 
-  // Extrair parâmetros da refeição
   const foodId = params.foodId as string;
   const mealId = params.mealId as string;
   const mealName = params.mealName as string;
   const mode = params.mode as string;
   const mealColor = (params.mealColor as string) || colors.primary;
 
-  // Extrair parâmetros adicionais para alimentos do histórico
   const foodName = params.foodName as string;
   const foodCalories = Number(params.calories || 0);
   const foodProtein = Number(params.protein || 0);
@@ -219,32 +85,17 @@ export default function FoodDetailsScreen() {
   const foodPortion = Number(params.portion || 100);
   const foodPortionDescription = params.portionDescription as string;
 
-  // Novo useEffect para garantir que os valores de portion e numberOfPortions sejam configurados corretamente
   useEffect(() => {
     if (params.isFromHistory === "true" && foodPortion) {
-      // Garantir que a porção seja definida com o valor correto ao montar o componente
       setPortion(foodPortion.toString());
     }
   }, [params.isFromHistory, foodPortion]);
 
-  // Efeito para atualizar os gráficos quando a porção mudar
   useEffect(() => {
-    if (!isLoading && food) {
-      // Forçar atualização após mudança na porção
-      requestAnimationFrame(() => {
-        setForceUpdate({});
-      });
-    }
-  }, [portion, isLoading, food]);
-
-  // Efeito principal para lidar com a inicialização do componente
-  useEffect(() => {
-    // Verificar se estamos no modo de edição
     if (mode === "edit") {
       setIsEditMode(true);
     }
 
-    // Verificar se o alimento vem do histórico
     if (params.isFromHistory === "true") {
       console.log("Alimento do histórico:", {
         foodPortion,
@@ -255,11 +106,8 @@ export default function FoodDetailsScreen() {
 
       setIsFromHistory(true);
 
-      // SEMPRE definir a porção correta para alimentos do histórico,
-      // independentemente do modo de edição
       setPortion(foodPortion.toString());
 
-      // Se temos uma descrição de porção personalizada, desabilitar o modo de porção customizada
       if (
         foodPortionDescription &&
         foodPortionDescription !== `${foodPortion}g`
@@ -267,7 +115,6 @@ export default function FoodDetailsScreen() {
         setIsCustomPortion(false);
       }
 
-      // Criar um objeto de alimento com os dados passados via parâmetros
       const historyFood: FoodItem = {
         food_id: foodId,
         food_name: foodName,
@@ -289,14 +136,7 @@ export default function FoodDetailsScreen() {
       };
 
       setFood(historyFood);
-      setIsLoading(false);
-
-      // Forçar atualização para garantir que os valores sejam aplicados
-      setTimeout(() => {
-        setForceUpdate({});
-      }, 50);
     } else {
-      // Se não for do histórico, carregar dados da API normalmente
       loadFoodDetails();
     }
   }, [
@@ -313,10 +153,8 @@ export default function FoodDetailsScreen() {
     foodFiber,
   ]);
 
-  // Função para obter a porção preferida para exibição
   const getPreferredServing = (servings: FoodServing[]): FoodServing => {
     if (!servings || servings.length === 0) {
-      // Fallback para uma porção padrão se não houver nenhuma
       return {
         serving_id: "default",
         serving_description: "100g",
@@ -329,7 +167,6 @@ export default function FoodDetailsScreen() {
       };
     }
 
-    // Verificar se há uma porção de embalagem (como "1 unidade", "1 pacote", etc.)
     const packageServing = servings.find(
       (serving) =>
         serving.serving_description.toLowerCase().includes("unidade") ||
@@ -347,12 +184,10 @@ export default function FoodDetailsScreen() {
           !serving.serving_description.toLowerCase().includes("100g"))
     );
 
-    // Se encontrou uma porção de embalagem, use-a
     if (packageServing) {
       return packageServing;
     }
 
-    // Caso contrário, use a primeira porção (geralmente 100g)
     return servings[0];
   };
 
@@ -363,12 +198,9 @@ export default function FoodDetailsScreen() {
         const foodItem = response.items[0];
         setFood(foodItem);
 
-        // Use a porção real do alimento em vez de forçar 100g
         if (foodItem.servings && foodItem.servings.length > 0) {
-          // Determinar qual porção usar
           const preferredServing = getPreferredServing(foodItem.servings);
 
-          // Verificar explicitamente por alimentos comuns que devem ser servidos em unidades
           const isCommonUnitFood =
             foodItem.food_name.toLowerCase().includes("ovo") ||
             foodItem.food_name.toLowerCase().includes("cookie") ||
@@ -379,7 +211,6 @@ export default function FoodDetailsScreen() {
             foodItem.food_name.toLowerCase().includes("bolacha") ||
             foodItem.food_name.toLowerCase().includes("unidade");
 
-          // Se temos uma descrição específica como "1 bar" e um peso real, use-o
           if (
             preferredServing.serving_description &&
             (preferredServing.serving_description
@@ -415,26 +246,21 @@ export default function FoodDetailsScreen() {
               preferredServing.serving_description
                 .toLowerCase()
                 .includes("fatia") ||
-              isCommonUnitFood || // Verificar alimentos comuns
+              isCommonUnitFood ||
               !preferredServing.serving_description.toLowerCase().includes("g"))
           ) {
-            // Se temos um peso real em gramas, use-o
             if (preferredServing.metric_serving_amount) {
               setPortion(formatNumber(preferredServing.metric_serving_amount));
-              // Como é uma porção específica (ex: 1 barra), permitimos ajuste
               setIsCustomPortion(true);
             } else {
-              // Caso contrário, use 100g como fallback
               setPortion("100");
               setIsCustomPortion(true);
             }
           } else {
-            // Para outros alimentos, use 100g como padrão
             setPortion("100");
             setIsCustomPortion(true);
           }
         } else {
-          // Se não tiver serving information, use 100g como padrão
           setPortion("100");
           setIsCustomPortion(true);
         }
@@ -443,75 +269,48 @@ export default function FoodDetailsScreen() {
       }
     } catch (err) {
       setError(t("nutrition.foodDetails.loadError"));
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  // Função para formatar números eliminando zeros desnecessários
   const formatNumber = (value: number | string): string => {
-    // Converter para número
     const num = typeof value === "string" ? parseFloat(value) : value;
 
-    // Se for NaN ou indefinido, retornar 0
     if (isNaN(num)) return "0";
 
-    // Se o valor é inteiro, retorna sem casas decimais
     if (num === Math.floor(num)) {
       return num.toString();
     }
 
-    // Caso contrário, limita a 1 casa decimal e remove zeros à direita
     return num.toFixed(1).replace(/\.0$/, "");
   };
 
   const handleSliderChange = (value: number) => {
-    // Arredonda para o número inteiro mais próximo
     const roundedValue = Math.round(value);
     setPortion(formatNumber(roundedValue));
     setIsCustomPortion(true);
-
-    // Feedback tátil leve ao ajustar o slider
-    if (roundedValue % 10 === 0) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
   };
 
-  // Função para incrementar o número de porções
   const incrementPortions = () => {
     const currentValue = parseFloat(numberOfPortions);
     if (isNaN(currentValue)) {
       setNumberOfPortions("1");
     } else {
-      // Arredondar para 1 casa decimal para evitar valores estranhos
       const newValue = Math.round((currentValue + 0.5) * 10) / 10;
       setNumberOfPortions(formatNumber(newValue));
     }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  // Função para decrementar o número de porções
   const decrementPortions = () => {
     const currentValue = parseFloat(numberOfPortions);
     if (isNaN(currentValue) || currentValue <= 0.5) {
       setNumberOfPortions("0.5");
     } else {
-      // Arredondar para 1 casa decimal para evitar valores estranhos
       const newValue = Math.round((currentValue - 0.5) * 10) / 10;
       setNumberOfPortions(formatNumber(newValue));
     }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const renderMacrosCircles = () => {
-    // Como removemos os gráficos circulares, esta função não é mais necessária
-    // Retornamos null ou um componente vazio
-    return null;
-  };
-
-  // Função para tratar o input de focus e ajustar o scroll
   const handleInputFocus = () => {
-    // Damos um pequeno tempo para o teclado aparecer e depois ajustamos o scroll
     setTimeout(() => {
       scrollViewRef.current?.scrollTo({
         y: 250,
@@ -520,47 +319,9 @@ export default function FoodDetailsScreen() {
     }, 100);
   };
 
-  // Função para fechar o teclado quando toca fora dos inputs
   const dismissKeyboard = () => {
     Keyboard.dismiss();
   };
-
-  if (isLoading) {
-    return (
-      <SafeAreaView
-        style={[
-          styles.container,
-          {
-            backgroundColor: colors.background,
-          },
-        ]}
-        edges={["bottom"]}
-      >
-        <View
-          style={[
-            styles.header,
-            { backgroundColor: colors.background },
-            isEditMode && { paddingTop: Platform.OS === "ios" ? 0 : 16 },
-          ]}
-        >
-          <TouchableOpacity
-            key={`back-button-${theme}`}
-            onPress={() => router.back()}
-            style={[styles.backButton, { backgroundColor: colors.card }]}
-          >
-            <Ionicons name="chevron-back" size={22} color={colors.text} />
-          </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>
-              {t(`nutrition.mealTypes.${mealId}`, { defaultValue: mealName })}
-            </Text>
-          </View>
-          <View style={{ width: 40 }} />
-        </View>
-        <LoadingSkeleton />
-      </SafeAreaView>
-    );
-  }
 
   if (error || !food) {
     return (
@@ -582,7 +343,6 @@ export default function FoodDetailsScreen() {
     );
   }
 
-  // Modificar o cálculo de nutrientes para considerar o número de porções
   const calculatedNutrients = (() => {
     if (!food || !food.servings || food.servings.length === 0) {
       return {
@@ -594,10 +354,9 @@ export default function FoodDetailsScreen() {
       };
     }
 
-    const selectedServing = food.servings[0]; // Sempre usar o primeiro serving
+    const selectedServing = food.servings[0];
     const portionsMultiplier = parseFloat(numberOfPortions) || 1;
 
-    // Cálculo para porção personalizada em gramas * número de porções
     const baseAmount = selectedServing.metric_serving_amount || 100;
     const weightMultiplier =
       (Number(portion) / baseAmount) * portionsMultiplier;
@@ -616,16 +375,12 @@ export default function FoodDetailsScreen() {
     };
   })();
 
-  // Calcula a contribuição de cada macronutriente para as calorias totais
-  const proteinCalories = calculatedNutrients.protein * 4; // 4 calorias por grama de proteína
-  const carbsCalories = calculatedNutrients.carbs * 4; // 4 calorias por grama de carboidrato
-  const fatCalories = calculatedNutrients.fat * 9; // 9 calorias por grama de gordura
+  const proteinCalories = calculatedNutrients.protein * 4;
+  const carbsCalories = calculatedNutrients.carbs * 4;
+  const fatCalories = calculatedNutrients.fat * 9;
 
-  // Calcula as porcentagens de cada macronutriente
   const totalMacroCalories = proteinCalories + carbsCalories + fatCalories;
 
-  // Usar o total de calorias dos macros para calcular as porcentagens
-  // Isso garante que a soma seja 100%
   const proteinPercentage =
     totalMacroCalories > 0
       ? Math.round((proteinCalories / totalMacroCalories) * 100)
@@ -641,12 +396,10 @@ export default function FoodDetailsScreen() {
       ? Math.round((fatCalories / totalMacroCalories) * 100)
       : 0;
 
-  // Ajuste para garantir que a soma seja exatamente 100%
   let adjustedProteinPercentage = proteinPercentage;
   let adjustedCarbsPercentage = carbsPercentage;
   let adjustedFatPercentage = fatPercentage;
 
-  // Se a soma não for 100%, ajustar o maior valor
   const sum = proteinPercentage + carbsPercentage + fatPercentage;
   if (sum !== 100 && sum > 0) {
     if (
@@ -663,18 +416,15 @@ export default function FoodDetailsScreen() {
       adjustedFatPercentage = 100 - proteinPercentage - carbsPercentage;
     }
 
-    // Garantir que nenhum valor seja negativo
     adjustedProteinPercentage = Math.max(0, adjustedProteinPercentage);
     adjustedCarbsPercentage = Math.max(0, adjustedCarbsPercentage);
     adjustedFatPercentage = Math.max(0, adjustedFatPercentage);
 
-    // Se após os ajustes a soma ainda não for 100%, distribuir a diferença
     const adjustedSum =
       adjustedProteinPercentage +
       adjustedCarbsPercentage +
       adjustedFatPercentage;
     if (adjustedSum !== 100 && adjustedSum > 0) {
-      // Encontrar o maior valor para ajustar
       if (
         adjustedProteinPercentage >= adjustedCarbsPercentage &&
         adjustedProteinPercentage >= adjustedFatPercentage
@@ -695,15 +445,11 @@ export default function FoodDetailsScreen() {
   }
 
   const handleAddFood = async () => {
-    if (!food && !isFromHistory) return; // Verificar se food existe antes de prosseguir
+    if (!food && !isFromHistory) return;
 
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-    // Obter a descrição da porção
     let portionDescription = `${portion}g`;
     const portionsMultiplier = parseFloat(numberOfPortions) || 1;
 
-    // Verificar se temos uma descrição especial de porção (como "1 bar")
     const hasSpecialServing =
       food?.servings &&
       food.servings[0]?.serving_description &&
@@ -724,22 +470,17 @@ export default function FoodDetailsScreen() {
         !food.servings[0].serving_description.toLowerCase().includes("g"));
 
     if (hasSpecialServing) {
-      // Se temos uma porção especial (como "1 bar"), usar essa descrição
       if (portionsMultiplier === 1) {
         portionDescription = food.servings[0].serving_description;
       } else {
-        // Melhorar a formatação para unidades baseadas em "unidade"
         if (
           food.servings[0].serving_description.toLowerCase().includes("unidade")
         ) {
-          // Extrair o nome da unidade
           let unitName = "unidade";
-          // Verificar se é um tipo específico de unidade
           if (food.servings[0].serving_description.includes("unidade de")) {
             unitName = food.servings[0].serving_description;
           }
 
-          // Formar descrição mais natural como "X unidades"
           portionDescription = `${numberOfPortions} ${unitName}${
             parseFloat(numberOfPortions) > 1 ? "s" : ""
           }`;
@@ -748,7 +489,6 @@ export default function FoodDetailsScreen() {
         }
       }
     } else if (portionsMultiplier !== 1) {
-      // Se for apenas uma porção em gramas e temos múltiplas porções
       portionDescription = `${numberOfPortions}x ${portion}g`;
     }
 
@@ -769,28 +509,23 @@ export default function FoodDetailsScreen() {
       portionDescription: portionDescription,
     };
 
-    // Verificar se estamos editando um alimento existente ou adicionando um novo
     if (isEditMode && foodId) {
-      // Atualizar o alimento existente
       updateFoodInMeal(mealId, newFood);
 
-      // Mostrar toast de atualização
       showToast({
-        message: t("nutrition.foodDetails.updatedSuccess", {
-          defaultValue: `${newFood.name} ${t("common.updatedSuccess")}`,
+        message: t("nutrition.foodDetails.updatedSuccessToast", {
+          name: newFood.name,
         }),
         type: "success",
         duration: 3000,
         position: "bottom",
       });
     } else {
-      // Adicionar novo alimento à refeição
       addFoodToMeal(mealId, newFood);
 
-      // Mostrar toast de adição
       showToast({
-        message: t("nutrition.addFood.addedSuccess", {
-          defaultValue: `${newFood.name} ${t("common.addedSuccess")}`,
+        message: t("nutrition.addFood.addedSuccessToast", {
+          name: newFood.name,
         }),
         type: "success",
         duration: 3000,
@@ -798,13 +533,10 @@ export default function FoodDetailsScreen() {
       });
     }
 
-    // Adicionar ao histórico com a porção exata em que foi adicionado
     await addToSearchHistory(newFood);
 
-    // Salvar as alterações
     await saveMeals();
 
-    // Voltar para a tela anterior
     router.back();
   };
 
@@ -822,7 +554,6 @@ export default function FoodDetailsScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoidingView}
         keyboardVerticalOffset={
-          // Usar offsets diferentes dependendo do modo
           isEditMode
             ? Platform.OS === "ios"
               ? 10
@@ -832,7 +563,6 @@ export default function FoodDetailsScreen() {
             : 20
         }
       >
-        {/* Header Redesenhado */}
         <View
           style={[
             styles.header,
@@ -865,17 +595,11 @@ export default function FoodDetailsScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
         >
-          {isLoading ? (
-            <LoadingSkeleton />
-          ) : food ? (
-            <MotiView
+          {food ? (
+            <View
               key={`food-details-${food.food_id}-${theme}`}
-              from={{ opacity: 0, translateY: 10 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: "timing", duration: 300 }}
               style={styles.foodInfo}
             >
-              {/* Nome do Alimento com Design Melhorado */}
               <View
                 style={[
                   styles.foodNameWrapper,
@@ -892,13 +616,10 @@ export default function FoodDetailsScreen() {
                 </Text>
               </View>
 
-              {/* Card Unificado */}
               <View
                 style={[styles.unifiedCard, { backgroundColor: colors.card }]}
               >
-                {/* Seção Principal - Calorias e Macros */}
                 <View style={styles.mainInfoSection}>
-                  {/* Calorias no centro */}
                   <View style={styles.caloriesContainer}>
                     <View
                       style={[
@@ -921,7 +642,6 @@ export default function FoodDetailsScreen() {
                     </Text>
                   </View>
 
-                  {/* Macros em grid de 2x2 */}
                   <View style={styles.macrosGrid}>
                     <View style={styles.macroItem}>
                       <View
@@ -1027,16 +747,12 @@ export default function FoodDetailsScreen() {
                   </View>
                 </View>
 
-                {/* Separador */}
                 <View
                   style={[styles.divider, { backgroundColor: colors.border }]}
                 />
 
-                {/* Seção de Controles */}
                 <View style={styles.controlsSection}>
-                  {/* Porções e Peso */}
                   <View style={styles.quantityControls}>
-                    {/* Número de porções */}
                     <View style={styles.portionControl}>
                       <Text
                         style={[styles.controlLabel, { color: colors.text }]}
@@ -1065,34 +781,27 @@ export default function FoodDetailsScreen() {
                           ]}
                           value={numberOfPortions}
                           onChangeText={(text) => {
-                            // Substituir vírgula por ponto
                             const sanitizedText = text.replace(",", ".");
 
-                            // Se o texto estiver vazio, definir como vazio
                             if (sanitizedText === "") {
                               setNumberOfPortions("");
                               return;
                             }
 
-                            // Verificar se é um número válido
                             if (!/^[0-9]*\.?[0-9]*$/.test(sanitizedText)) {
-                              return; // Ignorar entradas que não são números
+                              return;
                             }
 
-                            // Converter para número e verificar se está entre 0.5 e 99
                             const numValue = parseFloat(sanitizedText);
                             if (!isNaN(numValue) && numValue <= 99) {
-                              // Não formatar enquanto o usuário está digitando
                               setNumberOfPortions(sanitizedText);
                             }
                           }}
                           onFocus={handleInputFocus}
                           onBlur={() => {
-                            // Ao perder o foco, formatar corretamente o número
                             if (numberOfPortions === "") {
                               setNumberOfPortions("1");
                             } else {
-                              // Garantir valor mínimo de 0.5
                               const numValue = parseFloat(numberOfPortions);
                               const validValue = isNaN(numValue)
                                 ? 1
@@ -1120,7 +829,6 @@ export default function FoodDetailsScreen() {
                       </View>
                     </View>
 
-                    {/* Tamanho da porção */}
                     <View style={styles.weightControl}>
                       <Text
                         style={[styles.controlLabel, { color: colors.text }]}
@@ -1132,24 +840,19 @@ export default function FoodDetailsScreen() {
                           style={[styles.weightInput, { color: colors.text }]}
                           value={portion}
                           onChangeText={(text) => {
-                            // Substituir vírgula por ponto
                             const sanitizedText = text.replace(",", ".");
 
-                            // Se o texto estiver vazio, definir como vazio
                             if (sanitizedText === "") {
                               setPortion("");
                               return;
                             }
 
-                            // Verificar se é um número válido
                             if (!/^[0-9]*\.?[0-9]*$/.test(sanitizedText)) {
-                              return; // Ignorar entradas que não são números
+                              return;
                             }
 
-                            // Converter para número e verificar se está entre 1 e 1000
                             const numValue = parseFloat(sanitizedText);
                             if (!isNaN(numValue) && numValue <= 1000) {
-                              // Não formatar enquanto o usuário está digitando
                               setPortion(sanitizedText);
                             }
 
@@ -1157,7 +860,6 @@ export default function FoodDetailsScreen() {
                           }}
                           onFocus={handleInputFocus}
                           onBlur={() => {
-                            // Ao perder o foco, formatar corretamente o número
                             if (portion === "") {
                               setPortion("0");
                             } else {
@@ -1176,7 +878,6 @@ export default function FoodDetailsScreen() {
                     </View>
                   </View>
 
-                  {/* Slider para ajuste de porção integrado */}
                   <View style={styles.sliderContainer}>
                     <Slider
                       style={styles.slider}
@@ -1209,7 +910,6 @@ export default function FoodDetailsScreen() {
                     </View>
                   </View>
 
-                  {/* Texto de ajuda */}
                   {food.servings[0].serving_description && (
                     <Text
                       style={[styles.helperText, { color: colors.text + "80" }]}
@@ -1253,20 +953,15 @@ export default function FoodDetailsScreen() {
                   )}
                 </View>
               </View>
-            </MotiView>
+            </View>
           ) : null}
         </ScrollView>
 
-        {/* Add Button */}
         {food && (
-          <MotiView
-            from={{ opacity: 0, translateY: 20 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: "timing", duration: 400, delay: 200 }}
+          <View
             style={[
               styles.bottomContainer,
               {
-                // Garantir que a barra inferior esteja sempre visível
                 position: "relative",
                 zIndex: 100,
               },
@@ -1288,7 +983,7 @@ export default function FoodDetailsScreen() {
                 style={styles.addButtonIcon}
               />
             </TouchableOpacity>
-          </MotiView>
+          </View>
         )}
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -1306,16 +1001,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollViewContent: {
-    paddingBottom: 120, // Aumentar o padding inferior para garantir espaço para a barra de botões
+    paddingBottom: 120,
     paddingHorizontal: 16,
   },
   scrollViewContentEdit: {
-    paddingBottom: 80, // Menos padding no modo de edição
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    paddingBottom: 80,
   },
   errorContainer: {
     flex: 1,
@@ -1343,6 +1033,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 16,
+    zIndex: 1,
   },
   backButton: {
     width: 40,
@@ -1374,7 +1065,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     letterSpacing: -0.5,
   },
-  // Card Unificado
   unifiedCard: {
     borderRadius: 20,
     shadowColor: "#000",
@@ -1384,7 +1074,6 @@ const styles = StyleSheet.create({
     elevation: 2,
     overflow: "hidden",
   },
-  // Seção Principal com Calorias e Macros
   mainInfoSection: {
     padding: 20,
   },
@@ -1410,7 +1099,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     letterSpacing: 0.5,
   },
-  // Macros em Grid
   macrosGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -1439,12 +1127,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
-  // Divider
   divider: {
     height: 1,
     width: "100%",
   },
-  // Seção de Controles
   controlsSection: {
     padding: 20,
   },
@@ -1520,10 +1206,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     letterSpacing: -0.2,
   },
-  // Botão de adicionar
   bottomContainer: {
     padding: 16,
-    paddingBottom: Platform.OS === "ios" ? 16 : 24, // Aumentar o padding inferior para Android
+    paddingBottom: Platform.OS === "ios" ? 16 : 24,
   },
   addButton: {
     height: 56,
@@ -1545,45 +1230,6 @@ const styles = StyleSheet.create({
   },
   addButtonIcon: {
     marginLeft: 8,
-  },
-  // Skeleton
-  skeletonTitle: {
-    height: 32,
-    borderRadius: 16,
-    marginBottom: 20,
-    width: width * 0.6,
-    alignSelf: "center",
-  },
-  skeletonPortion: {
-    height: 56,
-    borderRadius: 12,
-    marginBottom: 20,
-    width: width * 0.4,
-    alignSelf: "center",
-  },
-  skeletonCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 8,
-  },
-  skeletonLabel: {
-    height: 12,
-    width: 60,
-    borderRadius: 6,
-  },
-  skeletonInfo: {
-    height: 120,
-    borderRadius: 16,
-    marginTop: 20,
-  },
-  macrosContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  macroCircle: {
-    alignItems: "center",
-    width: width * 0.3,
   },
   recentFoodMeta: {
     fontSize: 14,

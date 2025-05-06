@@ -13,7 +13,7 @@ import {
   InteractionManager,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
 import Calendar from "../../components/shared/Calendar";
 import { useNutrition } from "../../context/NutritionContext";
@@ -22,6 +22,7 @@ import {
   MealType as MealTypeContext,
 } from "../../context/MealContext";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import MealCard from "../../components/nutrition/MealCard";
 import MacrosCard from "../../components/nutrition/MacrosCard";
 import { getLocalDate } from "../../utils/dateUtils";
@@ -37,6 +38,7 @@ import { MenuAction } from "../../components/shared/ContextMenu";
 import HomeHeader from "../../components/home/HomeHeader";
 import { useTranslation } from "react-i18next";
 import { useDateLocale } from "../../hooks/useDateLocale";
+import ScreenTopGradient from "../../components/shared/ScreenTopGradient";
 
 // Interface local para os tipos de refeição com a propriedade foods
 interface MealType extends MealTypeContext {
@@ -65,6 +67,11 @@ export default function NutritionScreen() {
   const params = useLocalSearchParams();
   const { t } = useTranslation();
   const { formatDateWithWeekday } = useDateLocale();
+  const insets = useSafeAreaInsets();
+
+  // ADICIONAR para medição de altura
+  const headerContentWrapperRef = useRef<View>(null);
+  const [headerContentHeight, setHeaderContentHeight] = useState(0);
 
   // Estado para controlar o carregamento
   const [isUIReady, setIsUIReady] = useState(false);
@@ -96,7 +103,7 @@ export default function NutritionScreen() {
   }, [isUIReady]);
 
   // Estado para forçar a recriação do MealConfigSheet
-  const [mealConfigKey] = useState(Date.now());
+  const [mealConfigKey, setMealConfigKey] = useState(Date.now());
 
   // Novo estado para gerenciar modais
   const [modalInfo, setModalInfo] = useState({
@@ -341,9 +348,19 @@ export default function NutritionScreen() {
     return hasMealTypesConfigured && configuredMealTypes.length > 0;
   }, [hasMealTypesConfigured, configuredMealTypes]);
 
-  // Calcular alturas corretas
-  const headerHeight = Platform.OS === "ios" ? 65 : 55; // Altura exata do HomeHeader
-  const calendarHeight = 70; // Altura exata do Calendar
+  // Título desta tela
+  const screenTitle = t("nutrition.title");
+
+  // Função para medir a altura do header + calendário
+  const handleHeaderContentLayout = (event: any) => {
+    const { height } = event.nativeEvent.layout;
+    if (height > 0 && height !== headerContentHeight) {
+      setHeaderContentHeight(height);
+    }
+  };
+
+  // Ajustar paddingTop do ScrollView dinamicamente
+  const scrollViewPaddingTop = headerContentHeight > 0 ? headerContentHeight + 5 : insets.top + 150; // Fallback inicial
 
   // Renderizar os modais baseados no modalInfo
   const renderModals = () => {
@@ -423,168 +440,121 @@ export default function NutritionScreen() {
   const renderScreenContent = () => {
     if (!isUIReady) {
       return (
-        <View
-          style={[
-            styles.container,
-            { justifyContent: "center", alignItems: "center" },
-          ]}
-        >
-          <View style={styles.loadingContainer}>
-            {/* Você pode adicionar aqui qualquer UI de carregamento simples, se necessário */}
-          </View>
-        </View>
+        <View style={styles.loadingContainer}></View>
       );
     }
 
     // Se não houver refeições configuradas, mostrar o estado vazio
-    if (!hasMealTypesConfigured || configuredMealTypes.length === 0) {
+    if (shouldShowEmptyState) {
       return (
-        // Container relativo principal para conteúdo
-        <View style={styles.contentWrapper}>
-          {/* Calendário posicionado absolutamente abaixo do header */}
-          <View style={[styles.calendarWrapper, { top: headerHeight }]}>
-            {calendarComponent}
-          </View>
-
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={[
-              styles.scrollViewContent,
-              // Padding top = altura EXATA do header + altura EXATA do calendário
-              { paddingTop: headerHeight + calendarHeight }, // Sem offset adicional
-            ]}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            removeClippedSubviews={true}
-          >
-            {emptyStateComponent}
-
-            {/* Espaço adicional para garantir que o conteúdo fique acima da bottom tab */}
-            <View style={styles.bottomPadding} />
-          </ScrollView>
-        </View>
-      );
-    }
-
-    // Renderizar o conteúdo normal quando tudo estiver pronto
-    return (
-      // Container relativo principal para conteúdo
-      <View style={styles.contentWrapper}>
-        {/* Calendário posicionado absolutamente abaixo do header */}
-        <View style={[styles.calendarWrapper, { top: headerHeight }]}>
-          {calendarComponent}
-        </View>
-
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={[
             styles.scrollViewContent,
-            // Padding top = altura EXATA do header + altura EXATA do calendário
-            { paddingTop: headerHeight + calendarHeight }, // Sem offset adicional
+            { paddingTop: scrollViewPaddingTop }, // Usar padding dinâmico
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           removeClippedSubviews={true}
         >
-          <MacrosCard
-            dayTotals={dailyTotals}
-            nutritionInfo={nutritionInfo}
-            date={selectedDate}
-          />
-
-          {configuredMealTypes.map((meal, index) => (
-            <MealCard
-              key={`meal-${meal.id}-${selectedDate}`}
-              meal={meal}
-              foods={meal.foods}
-              mealTotals={getMealTotals(meal.id)}
-              index={index}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
-              onDeleteFood={(foodId) => removeFoodFromMeal(meal.id, foodId)}
-              showCopyOption={true}
-              setModalInfo={setModalInfo}
-            />
-          ))}
-
-          {/* Espaço adicional para garantir que o conteúdo fique acima da bottom tab */}
+          {emptyStateComponent}
           <View style={styles.bottomPadding} />
         </ScrollView>
-      </View>
+      );
+    }
+
+    // Renderizar o conteúdo normal quando tudo estiver pronto
+    return (
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollViewContent,
+          { paddingTop: scrollViewPaddingTop }, // Usar padding dinâmico
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
+      >
+        <MacrosCard
+          dayTotals={dailyTotals}
+          nutritionInfo={nutritionInfo}
+          date={selectedDate}
+        />
+        {configuredMealTypes.map((meal, index) => (
+          <MealCard
+            key={`meal-${meal.id}-${selectedDate}`}
+            meal={meal}
+            foods={meal.foods}
+            mealTotals={getMealTotals(meal.id)}
+            index={index}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            onDeleteFood={(foodId) => removeFoodFromMeal(meal.id, foodId)}
+            showCopyOption={true}
+            setModalInfo={setModalInfo}
+          />
+        ))}
+        <View style={styles.bottomPadding} />
+      </ScrollView>
     );
   };
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      edges={["top"]}
-    >
-      {/* Container principal da tela com fundo transparente */}
-      <View style={[styles.container, { backgroundColor: "transparent" }]}>
-        {/* Header posicionado absolutamente no topo */}
-        <View style={styles.headerWrapper}>
-          <HomeHeader
-            title={t("nutrition.title")}
-            showContextMenu={true}
-            menuActions={menuActions}
-            menuVisible={isMenuVisible}
-          />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScreenTopGradient />
+      {/* Wrapper para Header e Calendário que será medido */}
+      <View
+        ref={headerContentWrapperRef}
+        style={styles.headerContentWrapper}
+        onLayout={handleHeaderContentLayout}
+      >
+        {/* Header */}
+        <HomeHeader
+          title={screenTitle}
+          showContextMenu={true}
+          menuActions={menuActions}
+          menuVisible={isMenuVisible}
+        />
+        {/* Calendário */}
+        <View style={styles.calendarContainer}>
+          {calendarComponent}
         </View>
-
-        {/* Conteúdo da tela (ScrollView + Calendar) renderizado aqui */}
-        {renderScreenContent()}
-
-        {/* Renderizar modais fora do ScrollView e do container principal */}
-        {renderModals()}
       </View>
 
-      {/* BottomSheet continua fora do container principal */}
+      {renderScreenContent()}
+      {renderModals()}
+
       <MealConfigSheet
         ref={mealConfigSheetRef}
         onMealConfigured={handleMealConfigured}
         key={`meal-config-configured-${mealConfigKey}-${theme}`}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    position: "relative", // Para que o header absoluto funcione
   },
-  // Wrapper para o header absoluto
-  headerWrapper: {
+  headerContentWrapper: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 10, // Garantir que fique sobre o ScrollView
+    zIndex: 10,
   },
-  // Wrapper para o conteúdo principal (ScrollView + Calendário)
-  contentWrapper: {
-    flex: 1,
-    position: "relative", // Para que o calendário absoluto funcione
-    marginTop: 0, // O espaço é criado pelo paddingTop do ScrollView
-  },
-  // Wrapper do calendário absoluto
-  calendarWrapper: {
-    position: "absolute",
-    // top é definido inline (abaixo do header)
-    left: 0,
-    right: 0,
-    zIndex: 1, // Calendário fica sobre o ScrollView, mas abaixo do header
-    height: 70, // Definir altura fixa igual à do componente Calendar
+  calendarContainer: {
+    height: 70,
   },
   scrollView: {
     flex: 1,
-    backgroundColor: "transparent", // ScrollView precisa ser transparente
+    backgroundColor: "transparent",
   },
   scrollViewContent: {
-    paddingHorizontal: 16, // Padding horizontal aplicado aqui
+    paddingHorizontal: 16,
     paddingBottom: 24,
-    // paddingTop será adicionado dinamicamente
   },
   loadingContainer: {
     flex: 1,
@@ -592,6 +562,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   bottomPadding: {
-    height: 80, // Altura suficiente para ficar acima da bottom tab
+    height: 80,
   },
 });

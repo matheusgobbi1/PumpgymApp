@@ -358,7 +358,7 @@
     },
     "trainingFrequency": {
       "title": "Com que frequência você se exercita?",
-      "subtitle": "Escolha a opção que melhor descreve seu nível atual",
+      "subtitle": "Escolha a opção que melhor descreve seu nível",
       "options": {
         "sedentary": {
           "title": "Sedentário",
@@ -702,8 +702,8 @@
     "exerciseNamePlaceholder": "Nome do exercício",
     "notesPlaceholder": "Adicione anotações sobre o exercício...",
     "intensitySection": "Configurações de intensidade",
-    "addedSuccess": "{{defaultValue}}",
-    "updatedSuccess": "{{defaultValue}}"
+    "addedSuccess": "{{name}} adicionado ao treino",
+    "updatedSuccess": "{{name}} atualizado com sucesso"
   },
   "dates": {
     "today": "Hoje",
@@ -805,7 +805,7 @@
     "excess": "Excesso",
     "remaining": "Restam",
     "configSheet": {
-      "title": "Configure suas Refeições",
+      "title": "Configurar Refeições",
       "subtitle": "Selecione as refeições que deseja acompanhar",
       "confirm": "Confirmar",
       "removeMealsTitle": "Remover Refeições",
@@ -813,9 +813,9 @@
     },
     "mealTypes": {
       "breakfast": "Café da Manhã",
-      "morning_snack": "Lanche da Manhã",
+      "pre_workout": "Pré-treino",
       "lunch": "Almoço",
-      "afternoon_snack": "Lanche da Tarde",
+      "post_workout": "Pós-treino",
       "dinner": "Jantar",
       "supper": "Ceia",
       "snack": "Lanche"
@@ -838,7 +838,10 @@
       "fat": "Gordura",
       "addedToMeal": "adicionado à refeição",
       "addedSuccess": "Alimento adicionado com sucesso",
-      "deletedSuccess": "Alimento removido com sucesso"
+      "deletedSuccess": "Alimento removido com sucesso",
+      "portionIncreased": "Porção de {{name}} aumentada",
+      "addedToMealToast": "{{name}} adicionado à refeição",
+      "addedSuccessToast": "{{name}} adicionado com sucesso"
     },
     "foodDetails": {
       "title": "Detalhes do Alimento",
@@ -853,7 +856,8 @@
       "loadError": "Erro ao carregar detalhes do alimento",
       "genericError": "Erro ao carregar alimento",
       "tryAgain": "Tentar Novamente",
-      "updatedSuccess": "{{defaultValue}}"
+      "updatedSuccess": "{{defaultValue}}",
+      "updatedSuccessToast": "{{name}} atualizado com sucesso"
     },
     "common": {
       "gender": {
@@ -2455,5 +2459,26 @@
     "sugg_castanha_do_para": "Castanha do Pará",
     "sugg_amendoa": "Amêndoa",
     "sugg_leite": "Leite Desnatado"
+  },
+  "workoutBuilder": {
+    "title": "Criar Treino Personalizado",
+    "experienceTitle": "Qual é o seu nível de experiência?",
+    "experienceDescription": "Selecione seu nível de experiência para personalizarmos seu treino com o volume e intensidade adequados.",
+    "beginner": "Iniciante",
+    "beginnerDescription": "Novo em treinamento de força ou retornando após uma longa pausa.",
+    "intermediate": "Intermediário",
+    "intermediateDescription": "Já treina com regularidade há algum tempo e conhece os movimentos básicos.",
+    "advanced": "Avançado",
+    "advancedDescription": "Treina consistentemente há anos e tem conhecimento técnico aprofundado.",
+    "musclesTitle": "Quais músculos deseja treinar?",
+    "musclesDescription": "Selecione os grupos musculares que você quer incluir no seu treino personalizado.",
+    "selectAll": "Selecionar Todos",
+    "clearAll": "Limpar Todos",
+    "generateWorkout": "Gerar Treino",
+    "reviewTitle": "Seu Treino Personalizado",
+    "reviewDescription": "Aqui está o treino que criamos para você. Você pode adicionar todos estes exercícios ao seu treino atual.",
+    "reviewExistingDescription": "Este é o seu treino atual. Você pode salvá-lo novamente ou gerar um novo.",
+    "regenerateWorkout": "Gerar Novo Treino",
+    "saveWorkout": "Salvar Treino"
   }
 } 

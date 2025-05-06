@@ -8,36 +8,6 @@ export const tacoFoods: (FoodData & {
 })[] = [
   // Cereais e derivados
   {
-    id: "taco_001",
-    name: "Arroz branco cozido",
-    category: "Grãos e Cereais",
-    nutrients: {
-      calories: 128,
-      protein: 2.5,
-      fat: 0.2,
-      carbs: 28.1,
-      fiber: 1.6,
-    },
-    measures: [
-      {
-        id: "measure_taco_001_100g",
-        label: "100g",
-        weight: 100,
-      },
-      {
-        id: "measure_taco_001_colher",
-        label: "colher de sopa cheia (25g)",
-        weight: 25,
-      },
-      {
-        id: "measure_taco_001_xicara",
-        label: "xícara (160g)",
-        weight: 160,
-      },
-    ],
-    alternatives: ["taco_002", "taco_004", "food_arroz_branco"],
-  },
-  {
     id: "taco_002",
     name: "Arroz integral cozido",
     category: "Grãos e Cereais",
@@ -110,16 +80,6 @@ export const tacoFoods: (FoodData & {
         label: "100g",
         weight: 100,
       },
-      {
-        id: "measure_taco_004_pegador",
-        label: "pegador (110g)",
-        weight: 110,
-      },
-      {
-        id: "measure_taco_004_prato",
-        label: "prato raso (220g)",
-        weight: 220,
-      },
     ],
     alternatives: ["taco_001", "taco_002", "food_macarrao"],
   },
@@ -142,16 +102,6 @@ export const tacoFoods: (FoodData & {
         label: "100g",
         weight: 100,
       },
-      {
-        id: "measure_taco_005_concha",
-        label: "concha (80g)",
-        weight: 80,
-      },
-      {
-        id: "measure_taco_005_xicara",
-        label: "xícara (180g)",
-        weight: 180,
-      },
     ],
     alternatives: ["taco_006", "food_feijao_preto", "food_feijao_carioca"],
   },
@@ -171,16 +121,6 @@ export const tacoFoods: (FoodData & {
         id: "measure_taco_006_100g",
         label: "100g",
         weight: 100,
-      },
-      {
-        id: "measure_taco_006_concha",
-        label: "concha (80g)",
-        weight: 80,
-      },
-      {
-        id: "measure_taco_006_xicara",
-        label: "xícara (180g)",
-        weight: 180,
       },
     ],
     alternatives: ["taco_005", "food_feijao_carioca", "food_feijao_preto"],
@@ -1808,16 +1748,6 @@ export const tacoFoods: (FoodData & {
         label: "100g",
         weight: 100,
       },
-      {
-        id: "measure_taco_071_concha",
-        label: "concha (80g)",
-        weight: 80,
-      },
-      {
-        id: "measure_taco_071_colher",
-        label: "colher de sopa (20g)",
-        weight: 20,
-      },
     ],
     alternatives: ["taco_005", "taco_006", "taco_072"],
   },
@@ -1837,16 +1767,6 @@ export const tacoFoods: (FoodData & {
         id: "measure_taco_072_100g",
         label: "100g",
         weight: 100,
-      },
-      {
-        id: "measure_taco_072_concha",
-        label: "concha (80g)",
-        weight: 80,
-      },
-      {
-        id: "measure_taco_072_colher",
-        label: "colher de sopa (25g)",
-        weight: 25,
       },
     ],
     alternatives: ["taco_005", "taco_006", "taco_071"],

@@ -37,6 +37,7 @@ import { format } from "date-fns";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KEYS } from "../constants/keys";
 import ProgressionSummaryCard from "../components/training/ProgressionSummaryCard";
+import { BlurView } from "expo-blur";
 
 // Constantes para animação do header e card
 const { width } = Dimensions.get("window");
@@ -321,6 +322,13 @@ export default function ProgressionModal() {
               ]}
               style={[styles.headerGradient, { flex: 1 }]}
             >
+              {/* Adicionar BlurView para o efeito de fundo */}
+              <BlurView
+                intensity={40} // Intensidade reduzida
+                tint={theme === "dark" ? "dark" : "light"} // Ajuste o tint baseado no tema
+                style={StyleSheet.absoluteFill} // Preencher todo o gradiente
+              />
+
               {/* Cabeçalho de navegação */}
               <View style={styles.header}>
                 <TouchableOpacity

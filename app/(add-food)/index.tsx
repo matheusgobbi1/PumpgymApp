@@ -40,36 +40,6 @@ interface RecentFoodItem {
   portionDescription?: string;
 }
 
-const recentFoods: RecentFoodItem[] = [
-  {
-    id: "1",
-    name: "Frango Grelhado",
-    calories: 165,
-    protein: 31,
-    carbs: 0,
-    fat: 3.6,
-    portion: "100g",
-  },
-  {
-    id: "2",
-    name: "Arroz Branco",
-    calories: 130,
-    protein: 2.7,
-    carbs: 28,
-    fat: 0.3,
-    portion: "100g",
-  },
-  {
-    id: "3",
-    name: "Batata Doce",
-    calories: 86,
-    protein: 1.6,
-    carbs: 20,
-    fat: 0.1,
-    portion: "100g",
-  },
-];
-
 // Otimizar o componente de filtro de categoria para usar memo
 const FoodCategoryFilter = React.memo(
   ({
@@ -240,7 +210,10 @@ const RecentFoodItem = React.memo(
             borderColor: colors.border,
           },
         ]}
-        onPress={() => navigateToFoodDetails(food)}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          navigateToFoodDetails(food);
+        }}
       >
         <View style={styles.recentFoodInfo}>
           <Text style={[styles.recentFoodName, { color: colors.text }]}>
@@ -303,7 +276,10 @@ const SearchResultItem = React.memo(
             borderColor: colors.border,
           },
         ]}
-        onPress={() => handleFoodSelect(result)}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          handleFoodSelect(result);
+        }}
       >
         <View style={styles.foodInfo}>
           <Text style={[styles.foodName, { color: colors.text }]}>
@@ -572,9 +548,9 @@ export default function AddFoodScreen() {
 
         // Mostrar toast de sucesso com mensagem específica para incremento
         showToast({
-          message: `${updatedFood.name} ${t(
-            "nutrition.addFood.portionIncreased"
-          )}`,
+          message: t("nutrition.addFood.portionIncreased", {
+            name: updatedFood.name,
+          }),
           type: "success",
           position: "bottom",
         });
@@ -598,7 +574,9 @@ export default function AddFoodScreen() {
 
         // Mostrar toast de sucesso
         showToast({
-          message: `${newFood.name} ${t("nutrition.addFood.addedToMeal")}`,
+          message: t("nutrition.addFood.addedToMealToast", {
+            name: newFood.name,
+          }),
           type: "success",
           position: "bottom",
         });
@@ -666,7 +644,7 @@ export default function AddFoodScreen() {
     async (food: FoodItem) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      // Encontrar a porção mais adequada para exibição
+      // Chamar getPreferredServing AQUI para obter a porção
       const preferredServing = getPreferredServing(food.servings);
 
       // Calcula os valores nutricionais baseado na porção preferida
@@ -685,7 +663,7 @@ export default function AddFoodScreen() {
 
       if (existingFood) {
         // Se já existe, incrementar a porção em vez de adicionar um novo
-        const newPortion = preferredServing.metric_serving_amount || 100;
+        const newPortion = preferredServing.metric_serving_amount || 100; // Usar preferredServing obtido acima
         const updatedFood = {
           ...existingFood,
           name: t(`foods.${existingFood.id}`, {
@@ -764,9 +742,9 @@ export default function AddFoodScreen() {
 
         // Mostrar toast de sucesso com mensagem específica para incremento
         showToast({
-          message: `${updatedFood.name} ${t(
-            "nutrition.addFood.portionIncreased"
-          )}`,
+          message: t("nutrition.addFood.portionIncreased", {
+            name: updatedFood.name,
+          }),
           type: "success",
           position: "bottom",
         });
@@ -779,8 +757,8 @@ export default function AddFoodScreen() {
           protein: calculatedNutrients.protein,
           carbs: calculatedNutrients.carbs,
           fat: calculatedNutrients.fat,
-          portion: preferredServing.metric_serving_amount || 100,
-          portionDescription: preferredServing.serving_description,
+          portion: preferredServing.metric_serving_amount || 100, // Usar preferredServing obtido acima
+          portionDescription: preferredServing.serving_description, // Usar preferredServing obtido acima
         };
 
         // Adicionar o alimento à refeição
@@ -791,7 +769,9 @@ export default function AddFoodScreen() {
 
         // Mostrar toast de sucesso
         showToast({
-          message: `${newFood.name} ${t("nutrition.addFood.addedToMeal")}`,
+          message: t("nutrition.addFood.addedToMealToast", {
+            name: newFood.name,
+          }),
           type: "success",
           position: "bottom",
         });
@@ -803,7 +783,7 @@ export default function AddFoodScreen() {
       addToSearchHistory,
       showToast,
       t,
-      getPreferredServing,
+      getPreferredServing, // Manter como dependência
       meals,
       selectedDate,
     ]
@@ -813,57 +793,43 @@ export default function AddFoodScreen() {
   const getServingDescription = useCallback(
     (food: FoodItem): string => {
       if (!food.servings || food.servings.length === 0) {
-        return "100g";
+        return "100g • N/A kcal"; // Fallback
       }
 
       const preferredServing = getPreferredServing(food.servings);
 
-      // Se for uma porção especial (não apenas gramas), mostrar a descrição e calorias
-      if (
-        preferredServing.serving_description &&
-        (preferredServing.serving_description
-          .toLowerCase()
-          .includes("unidade") ||
-          preferredServing.serving_description
-            .toLowerCase()
-            .includes("pacote") ||
-          preferredServing.serving_description
-            .toLowerCase()
-            .includes("embalagem") ||
-          preferredServing.serving_description.toLowerCase().includes("pote") ||
-          preferredServing.serving_description
-            .toLowerCase()
-            .includes("garrafa") ||
-          preferredServing.serving_description.toLowerCase().includes("lata") ||
-          preferredServing.serving_description.toLowerCase().includes("copo") ||
-          preferredServing.serving_description.toLowerCase().includes("bar") ||
-          preferredServing.serving_description
-            .toLowerCase()
-            .includes("piece") ||
-          preferredServing.serving_description
-            .toLowerCase()
-            .includes("scoop") ||
-          preferredServing.serving_description
-            .toLowerCase()
-            .includes("fatia") ||
-          !preferredServing.serving_description.toLowerCase().includes("g"))
-      ) {
-        return `${preferredServing.serving_description} • ${preferredServing.calories} kcal`;
+      let displayDescription = "";
+      const servingDescLower = preferredServing.serving_description?.toLowerCase();
+      const metricAmount = preferredServing.metric_serving_amount;
+      const metricUnit = preferredServing.metric_serving_unit;
+
+      // Define uma descrição padrão baseada nos dados métricos, se disponíveis
+      if (metricAmount && metricUnit) {
+        displayDescription = `${Math.round(metricAmount)}${metricUnit}`;
+      } else if (preferredServing.serving_description) {
+        displayDescription = preferredServing.serving_description; // Usa a descrição se não houver dados métricos
+      } else {
+        displayDescription = "Porção"; // Fallback final
       }
 
-      // Para porções em gramas que não são 100g, mostrar o peso
-      if (
-        preferredServing.metric_serving_amount &&
-        preferredServing.metric_serving_amount !== 100 &&
-        preferredServing.serving_description.toLowerCase().includes("g")
-      ) {
-        return `${preferredServing.serving_description} • ${preferredServing.calories} kcal`;
+      // Se uma serving_description existe e NÃO é apenas a representação em gramas,
+      // prefira a serving_description por ser mais informativa.
+      if (preferredServing.serving_description) {
+        const isJustGrams =
+          metricUnit === "g" &&
+          metricAmount &&
+          servingDescLower === `${Math.round(metricAmount)}g`;
+
+        if (!isJustGrams) {
+          // Se a descrição não for apenas o valor em gramas (ex: "1 unidade", "1 fatia (30g)"), use-a.
+          displayDescription = preferredServing.serving_description;
+        }
+        // Caso contrário (isJustGrams é true), mantém a descrição métrica (ex: "100g")
       }
 
-      // Para 100g, mostrar apenas o peso
-      return `${Math.round(
-        preferredServing.metric_serving_amount || 100
-      )}g por porção`;
+      return `${displayDescription} • ${Math.round(
+        preferredServing.calories
+      )} kcal`;
     },
     [getPreferredServing]
   );

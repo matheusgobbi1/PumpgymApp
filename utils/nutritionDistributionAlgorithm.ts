@@ -99,12 +99,12 @@ export function generateMealDistribution(
   // Definir porcentagens sugeridas por tipo de refeição
   const mealImportance: Record<string, number> = {
     breakfast: 0.25, // 25% das calorias diárias
-    morning_snack: 0.1, // 10% das calorias diárias
+    pre_workout: 0.1, // 10% das calorias diárias
     lunch: 0.25, // 25% das calorias diárias
-    afternoon_snack: 0.1, // 10% das calorias diárias
+    post_workout: 0.15, // 15% das calorias diárias (um pouco mais que o pré)
     dinner: 0.2, // 20% das calorias diárias
     supper: 0.05, // 5% das calorias diárias
-    snack: 0.05, // 5% das calorias diárias
+    snack: 0.05, // 5% das calorias diárias (manter para refeições customizadas)
   };
 
   // Calcular distribuição balanceada com base nos tipos de refeições disponíveis
@@ -311,12 +311,12 @@ function generateSuggestionReason(mealId: string, percentage: number): string {
   switch (mealId) {
     case "breakfast":
       return `NOVA DISTRIBUIÇÃO: Café da manhã representa ${percentText}% das suas necessidades diárias. Uma distribuição maior para iniciar o dia com mais energia.`;
-    case "morning_snack":
-      return `NOVA DISTRIBUIÇÃO: Lanche da manhã representa ${percentText}% das suas necessidades nutricionais. Um lanche mais leve para manter a energia.`;
+    case "pre_workout":
+      return `NOVA DISTRIBUIÇÃO: Pré-treino representa ${percentText}% das suas necessidades nutricionais. Energia focada para seu treino.`;
     case "lunch":
       return `NOVA DISTRIBUIÇÃO: Almoço corresponde a ${percentText}% do seu plano nutricional. Concentrando mais calorias no almoço para melhor desempenho durante o dia.`;
-    case "afternoon_snack":
-      return `NOVA DISTRIBUIÇÃO: Lanche da tarde representa ${percentText}% das suas necessidades nutricionais. Um pequeno impulso de energia para o restante do dia.`;
+    case "post_workout":
+      return `NOVA DISTRIBUIÇÃO: Pós-treino representa ${percentText}% das suas necessidades nutricionais. Recuperação e reparo muscular.`;
     case "dinner":
       return `NOVA DISTRIBUIÇÃO: Jantar com ${percentText}% das suas calorias diárias. Reduzido para uma digestão mais leve antes de dormir.`;
     case "supper":

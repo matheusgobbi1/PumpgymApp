@@ -32,6 +32,7 @@ import { useAuth } from "../../context/AuthContext";
 import ConfirmationModal from "../ui/ConfirmationModal";
 import { useTranslation } from "react-i18next";
 import { useDateLocale } from "../../hooks/useDateLocale";
+import WorkoutBuilderModal from "./WorkoutBuilderModal";
 
 const { width } = Dimensions.get("window");
 
@@ -121,8 +122,12 @@ export default function WorkoutCard({
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { user } = useAuth();
-  const { selectedDate, copyWorkoutFromDate, startWorkoutForDate } =
-    useWorkoutContext();
+  const {
+    selectedDate,
+    startWorkoutForDate,
+    addExerciseToWorkout,
+    saveGeneratedWorkout,
+  } = useWorkoutContext();
   const { t } = useTranslation();
   const { formatSmartDate } = useDateLocale();
 
@@ -146,6 +151,13 @@ export default function WorkoutCard({
 
   // Atualização direta da referência para reduzir operações
   workoutsRef.current = workouts;
+
+  // Referência para o modal do construtor de treino
+  const { openModal, Modal: WorkoutBuilderModalComponent } = WorkoutBuilderModal({
+    onSaveWorkout: async (workoutId: string, date: string, generatedExercises: Exercise[]) => {
+      return await saveGeneratedWorkout(workoutId, date, generatedExercises);
+    },
+  });
 
   // Função para obter as datas anteriores com este treino - memoizada
   const getPreviousDatesWithWorkout = useCallback(() => {
@@ -245,37 +257,6 @@ export default function WorkoutCard({
     }
   }, [getMostRecentWorkoutDate, handleHapticFeedback]);
 
-  // Função para abrir o modal de progressão
-  const openProgressionModal = useCallback(() => {
-    requestAnimationFrame(() => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    });
-
-    // Verificar se existe um treino anterior
-    const mostRecentDate = getMostRecentWorkoutDate();
-
-    if (mostRecentDate) {
-      // Navegar para a tela modal de progressão em vez de usar o componente
-      router.push({
-        pathname: "/progression-modal",
-        params: {
-          workoutId: workout.id,
-          workoutName: workout.name,
-          workoutColor: workout.color,
-        },
-      });
-    } else {
-      // Se não houver treino anterior, mostrar feedback de erro
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    }
-  }, [
-    getMostRecentWorkoutDate,
-    router,
-    workout.id,
-    workout.name,
-    workout.color,
-  ]);
-
   // Função para copiar treino de uma data anterior
   const handleCopyWorkout = useCallback(async () => {
     if (!state.selectedSourceDate) {
@@ -294,11 +275,10 @@ export default function WorkoutCard({
       // Executar a operação assíncrona em segundo plano
       setTimeout(async () => {
         try {
-          await copyWorkoutFromDate(
-            state.selectedSourceDate,
-            selectedDate,
+          await saveGeneratedWorkout(
             workout.id,
-            workout.id
+            state.selectedSourceDate,
+            workoutsRef.current[state.selectedSourceDate][workout.id]
           );
 
           // Recarregar a página atual
@@ -314,10 +294,10 @@ export default function WorkoutCard({
     }
   }, [
     state.selectedSourceDate,
-    selectedDate,
     workout.id,
-    copyWorkoutFromDate,
+    saveGeneratedWorkout,
     router,
+    workoutsRef,
   ]);
 
   // Função para navegar para os detalhes do exercício
@@ -762,51 +742,24 @@ export default function WorkoutCard({
     () => () =>
       (
         <View style={styles.actionButtonsContainer}>
-          {/* Botão de copiar treino */}
-          {getMostRecentWorkoutDate() && (
-            <TouchableOpacity
-              style={[
-                styles.headerActionButton,
-                {
-                  borderColor: workout.color,
-                  backgroundColor: workout.color + "10",
-                },
-              ]}
-              onPress={() => {
-                requestAnimationFrame(() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  openCopyModal();
-                });
-              }}
-            >
-              <Ionicons name="copy-outline" size={20} color={workout.color} />
-            </TouchableOpacity>
-          )}
-
-          {/* Botão de progressão de treino */}
-          {getMostRecentWorkoutDate() && (
-            <TouchableOpacity
-              style={[
-                styles.headerActionButton,
-                {
-                  borderColor: workout.color,
-                  backgroundColor: workout.color + "10",
-                },
-              ]}
-              onPress={() => {
-                requestAnimationFrame(() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  openProgressionModal();
-                });
-              }}
-            >
-              <Ionicons
-                name="trending-up-outline"
-                size={20}
-                color={workout.color}
-              />
-            </TouchableOpacity>
-          )}
+          {/* Botão do construtor de treino personalizado */}
+          <TouchableOpacity
+            style={[
+              styles.headerActionButton,
+              {
+                borderColor: workout.color,
+                backgroundColor: workout.color + "10",
+              },
+            ]}
+            onPress={() => {
+              requestAnimationFrame(() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                openModal(workout.id, workout.name, workout.color, exercises);
+              });
+            }}
+          >
+            <Ionicons name="fitness-outline" size={20} color={workout.color} />
+          </TouchableOpacity>
 
           {/* Botão para adicionar exercício */}
           <TouchableOpacity
@@ -837,13 +790,12 @@ export default function WorkoutCard({
         </View>
       ),
     [
-      getMostRecentWorkoutDate,
-      openCopyModal,
-      openProgressionModal,
       workout.color,
       workout.id,
       workout.name,
       router,
+      exercises,
+      openModal,
     ]
   );
 
@@ -1025,6 +977,9 @@ export default function WorkoutCard({
           dispatch({ type: "SET_SHOW_COPY_MODAL", payload: false })
         }
       />
+
+      {/* Modal do construtor de treino */}
+      {WorkoutBuilderModalComponent}
     </>
   );
 }

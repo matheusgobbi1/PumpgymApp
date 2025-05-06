@@ -5,8 +5,9 @@ import {
   Alert,
   Dimensions,
   Platform,
+  InteractionManager,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
 import React, {
@@ -19,6 +20,7 @@ import React, {
 import Calendar from "../../components/shared/Calendar";
 import { getLocalDate } from "../../utils/dateUtils";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import EmptyWorkoutState from "../../components/training/EmptyWorkoutState";
 import * as Haptics from "expo-haptics";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -30,12 +32,12 @@ import {
 } from "../../context/WorkoutContext";
 import WorkoutCard from "../../components/training/WorkoutCard";
 import TrainingStatsCard from "../../components/training/TrainingStatsCard";
-import { useRouter } from "expo-router";
-import { useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { MenuAction } from "../../components/shared/ContextMenu";
 import HomeHeader from "../../components/home/HomeHeader";
 import { useTranslation } from "react-i18next";
-import { InteractionManager } from "react-native";
+import { useAuth } from "../../context/AuthContext";
+import ScreenTopGradient from "../../components/shared/ScreenTopGradient";
 
 const { width } = Dimensions.get("window");
 
@@ -48,7 +50,6 @@ interface WorkoutGroupProps {
   index: number;
   previousWorkoutData: any;
   previousExercises: Exercise[];
-  onNavigate: (id: string) => void;
   onDeleteExercise: (workoutId: string, exerciseId: string) => Promise<void>;
 }
 
@@ -112,13 +113,13 @@ const MemoizedWorkoutGroup = React.memo(
     index,
     previousWorkoutData,
     previousExercises,
-
     onDeleteExercise,
   }: WorkoutGroupProps) => {
     return (
       <View key={`workout-group-${workoutId}-${index}`}>
         {/* Card de estatísticas para este treino específico */}
         <TrainingStatsCard
+          workoutId={workoutId}
           workoutTotals={workoutTotals}
           previousWorkoutTotals={previousWorkoutData}
           workoutName={workoutType.name}
@@ -160,15 +161,18 @@ export default function TrainingScreen() {
   const colors = Colors[theme];
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { user } = useAuth();
+  const insets = useSafeAreaInsets();
+
+  // ADICIONAR para medição de altura
+  const headerContentWrapperRef = useRef<View>(null);
+  const [headerContentHeight, setHeaderContentHeight] = useState(0);
 
   // Estado para controlar carregamento da UI
   const [isUIReady, setIsUIReady] = useState(false);
 
   // Estado para forçar a recriação do WorkoutConfigSheet
   const [workoutConfigKey, setWorkoutConfigKey] = useState(Date.now());
-
-  // Estado para contar dias de treino
-  const [trainingDays, setTrainingDays] = useState(0);
 
   // Usar o contexto de treinos - desestruturar apenas o que é necessário para este componente
   // Usar os valores memoizados do contexto em vez de calcular novamente
@@ -331,24 +335,6 @@ export default function TrainingScreen() {
     }
   }, [params, router, isUIReady]);
 
-  // Função para navegar para a tela de detalhes do treino
-  const navigateToWorkoutDetails = useCallback(
-    (workoutId: string) => {
-      const workoutType = getWorkoutTypeById(workoutId);
-      if (!workoutType) return;
-
-      router.push({
-        pathname: "/(workout-details)/workout-details",
-        params: {
-          workoutId,
-          workoutName: workoutType.name,
-          workoutColor: workoutType.color,
-        },
-      });
-    },
-    [getWorkoutTypeById, router]
-  );
-
   // Função para excluir um exercício de um treino
   const handleDeleteExercise = useCallback(
     async (workoutId: string, exerciseId: string) => {
@@ -497,7 +483,6 @@ export default function TrainingScreen() {
         index={0}
         previousWorkoutData={previousWorkoutData}
         previousExercises={previousExercises}
-        onNavigate={navigateToWorkoutDetails}
         onDeleteExercise={handleDeleteExercise}
       />
     );
@@ -508,7 +493,6 @@ export default function TrainingScreen() {
     getWorkoutTotals,
     getPreviousWorkoutTotals,
     getWorkoutsForDate,
-    navigateToWorkoutDetails,
     handleDeleteExercise,
   ]);
 
@@ -586,121 +570,93 @@ export default function TrainingScreen() {
     [hasConfiguredWorkouts]
   );
 
-  // Calcular alturas corretas
-  const headerHeight = Platform.OS === "ios" ? 65 : 55; // Altura exata do HomeHeader
-  const calendarHeight = 70; // Altura exata do Calendar
+  // Título desta tela
+  const screenTitle = t("training.title");
 
-  // Renderização do conteúdo completo da tela
+  // Função para medir a altura do header + calendário
+  const handleHeaderContentLayout = (event: any) => {
+    const { height } = event.nativeEvent.layout;
+    if (height > 0 && height !== headerContentHeight) {
+      setHeaderContentHeight(height);
+    }
+  };
+
+  // Ajustar paddingTop do ScrollView dinamicamente
+  const scrollViewPaddingTop = headerContentHeight > 0 ? headerContentHeight + 5 : insets.top + 150; // Fallback inicial
+
+  // Renderização do conteúdo completo da tela (ajustar paddingTop)
   const renderScreenContent = () => {
     if (!isUIReady) {
-      return (
-        <View
-          style={[
-            styles.container,
-            { justifyContent: "center", alignItems: "center" },
-          ]}
-        >
-          <View style={styles.loadingContainer}>
-            {/* Você pode adicionar aqui qualquer UI de carregamento simples, se necessário */}
-          </View>
-        </View>
-      );
+      return <View style={styles.loadingContainer}></View>;
     }
-
     return (
-      // Container relativo principal para conteúdo (ScrollView + elementos absolutos)
-      <View style={styles.contentWrapper}>
-        {/* Calendário posicionado absolutamente abaixo do header */}
-        <View style={[styles.calendarWrapper, { top: headerHeight }]}>
-          {calendarComponent}
-        </View>
-
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollViewContent,
-            // Padding top = altura EXATA do header + altura EXATA do calendário
-            { paddingTop: headerHeight + calendarHeight }, // Sem offset adicional
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
-          {shouldShowEmptyState ? emptyStateComponent : renderWorkoutCards()}
-
-          {/* Espaço adicional para garantir que o conteúdo fique acima da bottom tab */}
-          <View style={styles.bottomPadding} />
-        </ScrollView>
-      </View>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollViewContent,
+          { paddingTop: scrollViewPaddingTop }, // Usar padding dinâmico
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {shouldShowEmptyState ? emptyStateComponent : renderWorkoutCards()}
+        <View style={styles.bottomPadding} />
+      </ScrollView>
     );
   };
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      edges={["top"]}
-    >
-      {/* Container principal da tela com fundo transparente */}
-      <View style={[styles.container, { backgroundColor: "transparent" }]}>
-        {/* Header posicionado absolutamente no topo */}
-        <View style={styles.headerWrapper}>
-          <HomeHeader
-            title={t("training.title")}
-            showContextMenu={true}
-            menuActions={menuActions}
-            menuVisible={isMenuVisible}
-          />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScreenTopGradient />
+      <View
+        ref={headerContentWrapperRef}
+        style={styles.headerContentWrapper}
+        onLayout={handleHeaderContentLayout}
+      >
+        <HomeHeader
+          title={screenTitle}
+          showContextMenu={true}
+          menuActions={menuActions}
+          menuVisible={isMenuVisible}
+        />
+        {/* Calendário - fluxo normal abaixo do header */}
+        <View style={styles.calendarContainer}>
+          {calendarComponent}
         </View>
-
-        {/* Conteúdo da tela (ScrollView + Calendar) renderizado aqui */}
-        {renderScreenContent()}
       </View>
 
-      {/* BottomSheet continua fora do container principal */}
+      {renderScreenContent()}
+
       <WorkoutConfigSheet
         ref={workoutConfigSheetRef}
         onWorkoutConfigured={handleWorkoutConfigured}
         selectedDate={getLocalDate(selectedDate)}
         key={`workout-config-${workoutConfigKey}-${theme}`}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    position: "relative", // Para que o header absoluto funcione
   },
-  // Wrapper para o header absoluto
-  headerWrapper: {
+  headerContentWrapper: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 10, // Garantir que fique sobre o ScrollView
+    zIndex: 10,
   },
-  // Wrapper para o conteúdo principal (ScrollView + Calendário)
-  contentWrapper: {
-    flex: 1,
-    position: "relative", // Para que o calendário absoluto funcione
-    marginTop: 0, // O espaço é criado pelo paddingTop do ScrollView
-  },
-  // Wrapper do calendário absoluto
-  calendarWrapper: {
-    position: "absolute",
-    // top é definido inline (abaixo do header)
-    left: 0,
-    right: 0,
-    zIndex: 1, // Calendário fica sobre o ScrollView, mas abaixo do header
-    height: 70, // Definir altura fixa igual à do componente Calendar
+  calendarContainer: {
+    height: 70,
   },
   scrollView: {
     flex: 1,
-    backgroundColor: "transparent", // ScrollView precisa ser transparente
+    backgroundColor: "transparent",
   },
   scrollViewContent: {
-    paddingHorizontal: 16, // Padding horizontal aplicado aqui
+    paddingHorizontal: 16,
     paddingBottom: 24,
-    // paddingTop será adicionado dinamicamente
   },
   loadingContainer: {
     flex: 1,
@@ -708,6 +664,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   bottomPadding: {
-    height: 80, // Altura suficiente para ficar acima da bottom tab
+    height: 80,
   },
 });

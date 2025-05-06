@@ -28,6 +28,8 @@ import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 import NotificationService from "../services/NotificationService";
 import * as Font from "expo-font";
+import { useWorkoutContext } from "../context/WorkoutContext";
+import AchievementNotification from "../components/notifications/AchievementNotification";
 
 // Configurar como as notificações serão tratadas quando o app estiver em segundo plano
 Notifications.setNotificationHandler({
@@ -169,6 +171,7 @@ function AppContent() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const router = useRouter();
+  const { achievementNotificationData, clearAchievementNotification } = useWorkoutContext();
 
   // Carregar fontes
   const [fontsLoaded, fontError] = Font.useFonts({
@@ -214,131 +217,145 @@ function AppContent() {
 
   return (
     // Adicionar onLayout para esconder a splash screen após o layout ser calculado
-    <View
-      style={{ flex: 1, backgroundColor: colors.background }}
-      onLayout={onLayoutRootView}
-    >
-      {/* Configuração da StatusBar para Android e iOS */}
-      <StatusBar style={theme === "dark" ? "light" : "dark"} />
-      <RNStatusBar backgroundColor={colors.background} translucent={true} />
-
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: {
-            backgroundColor: "transparent",
-          },
-          // Configuração melhorada de animações
-          animation: "simple_push",
-          animationDuration: 200,
-        }}
+    <>
+      <View
+        style={{ flex: 1, backgroundColor: colors.background }}
+        onLayout={onLayoutRootView}
       >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="auth/login" />
-        <Stack.Screen name="auth/register" />
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen
-          name="(add-food)"
-          options={{
-            animation: "slide_from_right",
-            animationDuration: 200,
-            presentation: "card",
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="(add-exercise)"
-          options={{
-            animation: "slide_from_right",
-            animationDuration: 200,
-            presentation: "card",
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="reminder-modal"
-          options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: 200,
-          }}
-        />
-        <Stack.Screen
-          name="terms-of-use"
-          options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: 200,
-          }}
-        />
-        <Stack.Screen
-          name="privacy-policy"
-          options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: 200,
-          }}
-        />
-        <Stack.Screen
-          name="about-modal"
-          options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: 200,
-          }}
-        />
-        <Stack.Screen
-          name="progression-modal"
-          options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: 200,
-          }}
-        />
+        {/* Configuração da StatusBar para Android e iOS */}
+        <StatusBar style={theme === "dark" ? "light" : "dark"} />
+        <RNStatusBar backgroundColor={"transparent"} translucent={true} />
 
-        <Stack.Screen
-          name="(add-exercise)/exercise-details"
-          options={({ route }: { route: { params?: { mode?: string } } }) => ({
-            presentation: route?.params?.mode === "edit" ? "card" : "modal",
-            animation:
-              route?.params?.mode === "edit" ? "fade" : "slide_from_bottom",
-            animationDuration: 200,
-          })}
-        />
-        <Stack.Screen
-          name="nutrition-recommendation-modal"
-          options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: {
+              backgroundColor: "transparent",
+            },
+            // Configuração melhorada de animações
+            animation: "simple_push",
             animationDuration: 200,
           }}
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="auth/login" />
+          <Stack.Screen name="auth/register" />
+          <Stack.Screen name="onboarding" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen
+            name="(add-food)"
+            options={{
+              animation: "slide_from_right",
+              animationDuration: 200,
+              presentation: "card",
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="(add-exercise)"
+            options={{
+              animation: "slide_from_right",
+              animationDuration: 200,
+              presentation: "card",
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="reminder-modal"
+            options={{
+              presentation: "modal",
+              animation: "slide_from_bottom",
+              animationDuration: 200,
+            }}
+          />
+          <Stack.Screen
+            name="terms-of-use"
+            options={{
+              presentation: "modal",
+              animation: "slide_from_bottom",
+              animationDuration: 200,
+            }}
+          />
+          <Stack.Screen
+            name="privacy-policy"
+            options={{
+              presentation: "modal",
+              animation: "slide_from_bottom",
+              animationDuration: 200,
+            }}
+          />
+          <Stack.Screen
+            name="about-modal"
+            options={{
+              presentation: "modal",
+              animation: "slide_from_bottom",
+              animationDuration: 200,
+            }}
+          />
+          <Stack.Screen
+            name="progression-modal"
+            options={{
+              presentation: "modal",
+              animation: "slide_from_bottom",
+              animationDuration: 200,
+            }}
+          />
+
+          <Stack.Screen
+            name="(add-exercise)/exercise-details"
+            options={({ route }: { route: { params?: { mode?: string } } }) => ({
+              presentation: route?.params?.mode === "edit" ? "card" : "modal",
+              animation:
+                route?.params?.mode === "edit" ? "fade" : "slide_from_bottom",
+              animationDuration: 200,
+            })}
+          />
+          <Stack.Screen
+            name="nutrition-recommendation-modal"
+            options={{
+              presentation: "modal",
+              animation: "slide_from_bottom",
+              animationDuration: 200,
+            }}
+          />
+          <Stack.Screen
+            name="meal-distribution-config"
+            options={{
+              presentation: "modal",
+              animation: "slide_from_bottom",
+              animationDuration: 200,
+            }}
+          />
+          <Stack.Screen
+            name="diet-export-modal"
+            options={{
+              presentation: "modal",
+              animation: "slide_from_bottom",
+              animationDuration: 200,
+            }}
+          />
+          <Stack.Screen
+            name="workout-export-modal"
+            options={{
+              presentation: "modal",
+              animation: "slide_from_bottom",
+              animationDuration: 200,
+            }}
+          />
+        </Stack>
+      </View>
+
+      {/* Renderizar a notificação de Conquista condicionalmente */}
+      {achievementNotificationData && (
+        <AchievementNotification
+          visible={!!achievementNotificationData} // Garantir que seja boolean
+          iconName={achievementNotificationData.iconName}
+          iconColor={achievementNotificationData.iconColor}
+          title={achievementNotificationData.title}
+          message={achievementNotificationData.message}
+          onDismiss={clearAchievementNotification} // Usar a função renomeada
         />
-        <Stack.Screen
-          name="meal-distribution-config"
-          options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: 200,
-          }}
-        />
-        <Stack.Screen
-          name="diet-export-modal"
-          options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: 200,
-          }}
-        />
-        <Stack.Screen
-          name="workout-export-modal"
-          options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: 200,
-          }}
-        />
-      </Stack>
-    </View>
+      )}
+    </>
   );
 }

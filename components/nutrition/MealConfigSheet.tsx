@@ -55,14 +55,14 @@ const DEFAULT_MEAL_TYPES: MealType[] = [
     id: "breakfast",
     name: "Café da Manhã",
     icon: "sunny-outline",
-    color: "#FF6B6B",
+    color: "#E53935",
     selected: false,
     isDefault: true,
   },
   {
-    id: "morning_snack",
-    name: "Lanche da Manhã",
-    icon: "cafe-outline",
+    id: "pre_workout",
+    name: "Pré-treino",
+    icon: "flame-outline",
     color: "#FF9500",
     selected: false,
     isDefault: true,
@@ -76,9 +76,9 @@ const DEFAULT_MEAL_TYPES: MealType[] = [
     isDefault: true,
   },
   {
-    id: "afternoon_snack",
-    name: "Lanche da Tarde",
-    icon: "ice-cream-outline",
+    id: "post_workout",
+    name: "Pós-treino",
+    icon: "barbell-outline",
     color: "#AF52DE",
     selected: false,
     isDefault: true,
@@ -99,6 +99,31 @@ const DEFAULT_MEAL_TYPES: MealType[] = [
     selected: false,
     isDefault: true,
   },
+];
+
+// Definições de ícones e cores disponíveis
+const AVAILABLE_ICONS: string[] = [
+  "fast-food-outline", "pizza-outline", "cafe-outline", "beer-outline",
+  "egg-outline", "fish-outline", "nutrition-outline", "ice-cream-outline",
+  "restaurant-outline", "wine-outline", "leaf-outline", "water-outline",
+  "sunny-outline", "moon-outline", "flame-outline", "barbell-outline", "bed-outline",
+  "bowl-mix-outline", // Adicionado ícone MaterialCommunityIcons
+  "food-apple-outline", // Adicionado ícone MaterialCommunityIcons
+  "food-drumstick-outline", // Adicionado ícone MaterialCommunityIcons
+  "glass-mug-variant", // Adicionado ícone MaterialCommunityIcons
+];
+
+const AVAILABLE_COLORS: string[] = [
+  "#FF5252", "#E53935", "#C62828", "#FF8A80",
+  "#FF9800", "#FB8C00", "#EF6C00", "#FFAB40",
+  "#FFEB3B", "#FDD835", "#FBC02D", "#FFFF8D",
+  "#4CAF50", "#43A047", "#2E7D32", "#69F0AE", "#00C853",
+  "#00BCD4", "#00ACC1", "#00838F", "#18FFFF", "#00BFA5",
+  "#2196F3", "#1E88E5", "#1565C0", "#448AFF", "#2962FF",
+  "#9C27B0", "#8E24AA", "#6A1B9A", "#E040FB",
+  "#E91E63", "#D81B60", "#AD1457", "#FF80AB",
+  "#795548", "#6D4C41", "#4E342E",
+  "#9E9E9E", "#757575", "#424242", "#BDBDBD",
 ];
 
 interface MealConfigSheetProps {
@@ -129,49 +154,57 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
     // Pontos de ancoragem do bottom sheet
     const snapPoints = useMemo(() => ["70%"], []);
 
-    // Inicializar os tipos de refeições com os existentes ou os padrões
+    // Estados para controlar seletores
+    const [showColorSelectorFor, setShowColorSelectorFor] = useState<string | null>(null);
+    const [showIconSelectorFor, setShowIconSelectorFor] = useState<string | null>(null);
+
+    // Inicializar os tipos de refeições com os existentes ou os padrões (CORRIGIDO 2)
     useEffect(() => {
       const initializeMealTypes = () => {
-        // Sempre inicializar com os tipos padrão, todos desmarcados
-        const initialTypes = DEFAULT_MEAL_TYPES.map((type) => ({
-          ...type,
-          selected: false,
-        }));
+        const finalMealTypes: MealType[] = [];
 
-        // Se existirem tipos configurados, marcá-los como selecionados
-        if (existingMealTypes.length > 0) {
-          // Marcar os tipos existentes como selecionados
-          initialTypes.forEach((type) => {
-            const existingType = existingMealTypes.find(
-              (et) => et.id === type.id
-            );
+        // Criar um mapa dos tipos existentes para acesso rápido
+        const existingTypesMap = new Map<string, typeof existingMealTypes[0]>();
+        existingMealTypes.forEach(et => existingTypesMap.set(et.id, et));
+
+        // Processar os tipos padrão
+        DEFAULT_MEAL_TYPES.forEach((defaultType) => {
+          const existingType = existingTypesMap.get(defaultType.id);
             if (existingType) {
-              type.selected = true;
-            }
-          });
+            // Existe no contexto: usar dados salvos
+            finalMealTypes.push({
+              ...defaultType, // Mantém name, isDefault
+              icon: existingType.icon,
+              color: existingType.color || defaultType.color, // Fallback para cor padrão se salva for inválida
+              selected: true,
+            });
+            // Remover do mapa para não processar duas vezes
+            existingTypesMap.delete(defaultType.id);
+          } else {
+            // Não existe no contexto: usar padrão desmarcado
+            finalMealTypes.push({
+              ...defaultType,
+              selected: false,
+            });
+          }
+        });
 
-          // Adicionar tipos personalizados que não estão nos padrões
-          existingMealTypes.forEach((existingType) => {
-            const isCustomType = !initialTypes.some(
-              (dt) => dt.id === existingType.id
-            );
-            if (isCustomType) {
-              initialTypes.push({
-                id: existingType.id,
-                name: existingType.name,
-                icon: existingType.icon,
-                color: existingType.color,
-                selected: true,
-              } as MealType);
-            }
+        // Adicionar tipos personalizados restantes do mapa (que não estavam nos defaults)
+        existingTypesMap.forEach((customType) => {
+          finalMealTypes.push({
+            id: customType.id,
+            name: customType.name,
+            icon: customType.icon,
+            color: customType.color || "#CCCCCC", // Fallback genérico
+            selected: true, // Se está no contexto, estava selecionado
+            isDefault: false,
           });
-        }
+        });
 
-        setMealTypes(initialTypes);
+        setMealTypes(finalMealTypes);
         setIsLoading(false);
       };
 
-      // Executar com um pequeno delay para evitar bloqueios na UI
       requestAnimationFrame(initializeMealTypes);
     }, [existingMealTypes]);
 
@@ -232,6 +265,38 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
           meal.id === id ? { ...meal, selected: !meal.selected } : meal
         )
       );
+    }, []);
+
+    // Funções para alternar seletores
+    const toggleColorSelector = useCallback((mealId: string) => {
+        setShowColorSelectorFor(prev => (prev === mealId ? null : mealId));
+        setShowIconSelectorFor(null); // Fecha o outro seletor
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }, []);
+
+    const toggleIconSelector = useCallback((mealId: string) => {
+        setShowIconSelectorFor(prev => (prev === mealId ? null : mealId));
+        setShowColorSelectorFor(null); // Fecha o outro seletor
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }, []);
+
+    // Funções para atualizar estado local
+    const updateMealColor = useCallback((mealId: string, color: string) => {
+        setMealTypes(prev =>
+            prev.map(meal =>
+                meal.id === mealId ? { ...meal, color } : meal
+            )
+        );
+        setShowColorSelectorFor(null); // Fecha o seletor
+    }, []);
+
+    const updateMealIcon = useCallback((mealId: string, icon: string) => {
+        setMealTypes(prev =>
+            prev.map(meal =>
+                meal.id === mealId ? { ...meal, icon } : meal
+            )
+        );
+        setShowIconSelectorFor(null); // Fecha o seletor
     }, []);
 
     // Função para confirmar a configuração
@@ -330,8 +395,9 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
     // Componente de renderização para cada item de refeição
     const renderMealItem = useCallback(
       (meal: MealType, index: number) => {
-        // Calcular posição inicial para efeito de entrada
         const entryDirection = index % 2 === 0 ? -1 : 1;
+        const isColorSelectorOpen = showColorSelectorFor === meal.id;
+        const isIconSelectorOpen = showIconSelectorFor === meal.id;
 
         return (
           <MotiView
@@ -368,7 +434,12 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                   borderColor: meal.color + "50",
                 },
               ]}
-              onPress={() => toggleMealSelection(meal.id)}
+              onPress={() => {
+                // Só permite selecionar/deselecionar se nenhum seletor estiver aberto
+                if (!isColorSelectorOpen && !isIconSelectorOpen) {
+                    toggleMealSelection(meal.id);
+                }
+              }}
               activeOpacity={0.7}
             >
               <View
@@ -377,7 +448,8 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                   meal.selected && { backgroundColor: "transparent" },
                 ]}
               >
-                <View
+                {/* Ícone clicável para abrir seletor de ícones */}
+                <TouchableOpacity
                   style={[
                     styles.mealIconContainer,
                     {
@@ -390,13 +462,15 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                         : colors.border + "40",
                     },
                   ]}
+                   onPress={() => toggleIconSelector(meal.id)}
                 >
                   <Ionicons
                     name={meal.icon as any}
                     size={24}
                     color={meal.selected ? meal.color : colors.primary}
                   />
-                </View>
+                </TouchableOpacity>
+
                 <View style={styles.mealInfo}>
                   <Text
                     style={[
@@ -412,23 +486,84 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                     })}
                   </Text>
                 </View>
+
+                {/* Botão para abrir seletor de cores */}
                 <TouchableOpacity
-                  style={styles.editButton}
-                  onPress={() => {}}
-                  hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                  style={[styles.colorPickerButton, { backgroundColor: meal.color + '20' }]}
+                  onPress={() => toggleColorSelector(meal.id)}
                 >
-                  <Ionicons
-                    name="ellipsis-vertical"
-                    size={20}
-                    color={meal.selected ? meal.color : colors.text + "70"}
-                  />
+                  <View style={[styles.colorPreview, { backgroundColor: meal.color }]} />
                 </TouchableOpacity>
               </View>
+
+              {/* Seletor de Cores */}
+              {isColorSelectorOpen && (
+                <MotiView
+                  from={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  transition={{ type: 'timing', duration: 200 }}
+                  style={styles.inlineSelectorContainer}
+                >
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.inlineSelectorList}>
+                    {AVAILABLE_COLORS.map(color => (
+                      <TouchableOpacity
+                        key={color}
+                        style={[styles.colorOption, { backgroundColor: color }, meal.color === color && styles.optionSelected]}
+                        onPress={() => updateMealColor(meal.id, color)}
+                      >
+                        {meal.color === color && <Ionicons name="checkmark" size={18} color="#FFF" />}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </MotiView>
+              )}
+
+              {/* Seletor de Ícones */}
+              {isIconSelectorOpen && (
+                 <MotiView
+                   from={{ opacity: 0, height: 0 }}
+                   animate={{ opacity: 1, height: 'auto' }}
+                   transition={{ type: 'timing', duration: 200 }}
+                   style={styles.inlineSelectorContainer}
+                 >
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.inlineSelectorList}>
+                    {AVAILABLE_ICONS.map(iconName => (
+                      <TouchableOpacity
+                        key={iconName}
+                        style={[
+                            styles.iconOption,
+                            {
+                                backgroundColor: meal.icon === iconName ? meal.color : colors.background + '50',
+                                borderColor: meal.icon === iconName ? meal.color : colors.border + '50',
+                            }
+                        ]}
+                        onPress={() => updateMealIcon(meal.id, iconName)}
+                      >
+                        <Ionicons
+                           name={iconName as any}
+                           size={22}
+                           color={meal.icon === iconName ? (theme === 'dark' ? '#000' : '#FFF') : colors.text + '80'} />
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </MotiView>
+              )}
             </TouchableOpacity>
           </MotiView>
         );
       },
-      [colors, theme, toggleMealSelection, t]
+      [
+          colors,
+          theme,
+          toggleMealSelection,
+          t,
+          showColorSelectorFor,
+          showIconSelectorFor,
+          toggleColorSelector,
+          toggleIconSelector,
+          updateMealColor,
+          updateMealIcon
+      ]
     );
 
     // Adicionar um componente de carregamento
@@ -576,7 +711,9 @@ const styles = StyleSheet.create({
   mealCardContent: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    paddingVertical: 16,
+    paddingLeft: 16, // Ajuste para dar espaço ao botão de cor
+    paddingRight: 10, // Ajuste para dar espaço ao botão de cor
     minHeight: 70,
   },
   mealIconContainer: {
@@ -595,8 +732,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  editButton: {
-    padding: 4,
+  editButton: { // Removido - substituído por colorPickerButton
+    // padding: 4,
   },
   footer: {
     paddingHorizontal: 20,
@@ -651,5 +788,63 @@ const styles = StyleSheet.create({
   colorIndicatorMoreText: {
     fontSize: 9,
     fontWeight: "bold",
+  },
+  colorPickerButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: 8, // Espaço entre nome e botão de cor
+  },
+  colorPreview: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.5)', // Borda sutil
+  },
+  inlineSelectorContainer: {
+      paddingVertical: 10,
+      // backgroundColor: 'rgba(0,0,0,0.03)', // Fundo sutil
+      borderBottomLeftRadius: 16, // Arredondar cantos inferiores
+      borderBottomRightRadius: 16,
+      overflow: 'hidden', // Garantir que o conteúdo não transborde
+      marginTop: -1, // Sobrepor ligeiramente a linha inferior do cartão
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(0,0,0,0.05)', // Linha divisória sutil
+  },
+  inlineSelectorList: {
+      paddingHorizontal: 16,
+      paddingVertical: 6, // Espaçamento vertical interno
+  },
+  colorOption: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      marginRight: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(0,0,0,0.1)',
+  },
+  iconOption: {
+      width: 42, // Ligeiramente maior para ícones
+      height: 42,
+      borderRadius: 21,
+      marginRight: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+  },
+  optionSelected: {
+      borderWidth: 2.5, // Destaque maior
+      borderColor: '#FFF', // Borda branca para destaque
+      transform: [{ scale: 1.05 }],
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 3,
+      elevation: 3,
   },
 });

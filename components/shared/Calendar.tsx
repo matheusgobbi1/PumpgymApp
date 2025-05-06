@@ -33,8 +33,8 @@ const WINDOW_SIZE = 5; // Quantidade de dias visíveis por vez
 // Pré-definir estilos que não dependem de props para evitar recálculos
 const staticGradientConfig = {
   leftStart: { x: 0, y: 0.5 },
-  leftEnd: { x: 0.4, y: 0.5 },
-  rightStart: { x: 0.7, y: 0.5 },
+  leftEnd: { x: 0.2, y: 0.5 },
+  rightStart: { x: 0.8, y: 0.5 },
   rightEnd: { x: 1, y: 0.5 },
 };
 
@@ -420,7 +420,7 @@ const Calendar = ({
   const containerStyle = useMemo(
     () => [
       styles.outerContainer,
-      { backgroundColor: `${colors.background}E0` },
+      { backgroundColor: `${colors.background}F0` },
     ],
     [colors.background]
   );

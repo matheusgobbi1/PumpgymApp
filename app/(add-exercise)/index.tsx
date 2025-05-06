@@ -335,9 +335,7 @@ const RecentExerciseItem = React.memo(
 
             // Mostrar toast de sucesso
             showToast({
-              message: t("exercise.addedSuccess", {
-                defaultValue: `${exerciseName} adicionado ao treino`,
-              }),
+              message: t("exercise.addedSuccess", { name: exerciseName }),
               type: "success",
               position: "bottom",
             });
@@ -473,9 +471,7 @@ const SearchResultItem = React.memo(
 
             // Mostrar toast de sucesso
             showToast({
-              message: t("exercise.addedSuccess", {
-                defaultValue: `${exerciseName} adicionado ao treino`,
-              }),
+              message: t("exercise.addedSuccess", { name: exerciseName }),
               type: "success",
               position: "bottom",
             });
@@ -535,8 +531,8 @@ export default function AddExerciseScreen() {
         }
       });
 
-      // Ordenar e limitar a 5 itens
-      setRecentExercises(recentExercisesList.slice(-5).reverse());
+      // Ordenar e limitar a 10 itens
+      setRecentExercises(recentExercisesList.slice(-10).reverse());
     }
   }, [workouts]);
 
@@ -647,9 +643,7 @@ export default function AddExerciseScreen() {
 
       // Mostrar toast de sucesso
       showToast({
-        message: t("exercise.addedSuccess", {
-          defaultValue: `${exerciseName} adicionado ao treino`,
-        }),
+        message: t("exercise.addedSuccess", { name: exerciseName }),
         type: "success",
         position: "bottom",
       });

@@ -598,11 +598,6 @@ export const foodDatabase: FoodData[] = [
     },
     measures: [
       {
-        id: "measure_arroz_branco_cup",
-        label: "xícara cozido (158g)",
-        weight: 158,
-      },
-      {
         id: "measure_arroz_branco_100g",
         label: "100g",
         weight: 100,
@@ -889,29 +884,6 @@ export const foodDatabase: FoodData[] = [
       },
       {
         id: "measure_tapioca_100g",
-        label: "100g",
-        weight: 100,
-      },
-    ],
-  },
-  {
-    id: "food_acai_bowl",
-    category: "Pratos Típicos",
-    nutrients: {
-      calories: 210,
-      protein: 3.0,
-      fat: 6.0,
-      carbs: 35.0,
-      fiber: 4.0,
-    },
-    measures: [
-      {
-        id: "measure_acai_bowl_small",
-        label: "tigela pequena (200g)",
-        weight: 200,
-      },
-      {
-        id: "measure_acai_bowl_100g",
         label: "100g",
         weight: 100,
       },

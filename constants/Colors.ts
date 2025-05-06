@@ -14,8 +14,8 @@ export default {
     accent: "#6C63FF", // Mantendo roxo como cor de destaque
     accentGray: "#1A1A1A", // Cinza Azulado Médio (mais escuro para light theme)
     success: "#2ECE8D", // Verde mais vibrante
-    danger: "#FF5252", // Vermelho vibrante
-    error: "#FF5252", // Adicionado cor de erro
+    danger: "#E53935", // Vermelho principal atualizado
+    error: "#E53935", // Adicionado cor de erro (usando a mesma cor de perigo)
     warning: "#FFB74D", // Laranja âmbar
     info: "#FFD54F", // Amarelo suave
     light: "#F8F9FA", // Branco levemente acinzentado
@@ -43,8 +43,8 @@ export default {
     accent: "#8B7FFF", // Roxo mais suave
     accentGray: "#B0BEC5", // Cinza Azulado Claro
     success: "#4AE3A8", // Verde néon suave
-    danger: "#FF6B6B", // Vermelho coral
-    error: "#FF6B6B", // Adicionado cor de erro
+    danger: "#E53935", // Vermelho principal atualizado
+    error: "#E53935", // Adicionado cor de erro (usando a mesma cor de perigo)
     warning: "#FFC857", // Amarelo mais quente
     info: "#FFE082", // Amarelo suave néon
     light: "#181818", // Cinza mais escuro para cards

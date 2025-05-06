@@ -40,30 +40,131 @@ const CONTROL_ICON_COLOR = "#FFFFFF";
 const CONTROL_BUTTON_SIZE = 54;
 const CONTROL_BUTTON_RADIUS = 26;
 
+// Função de feedback tátil ajustada para iOS e Android
 const triggerHaptic = (
-  type: "light" | "medium" | "error" | "success" = "light"
+  type: "light" | "medium" | "heavy" | "selection" | "error" | "success" | "warning" = "light"
 ) => {
-  if (Platform.OS !== "android") return;
-
   try {
     switch (type) {
       case "light":
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        break;
       case "medium":
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      case "heavy":
+        const styleMap: { [key in "light" | "medium" | "heavy"]: Haptics.ImpactFeedbackStyle } = {
+          light: Haptics.ImpactFeedbackStyle.Light,
+          medium: Haptics.ImpactFeedbackStyle.Medium,
+          heavy: Haptics.ImpactFeedbackStyle.Heavy,
+        };
+        const style = styleMap[type];
+        if (Platform.OS === "ios") {
+          // Atraso para iOS para melhor performance/sensação
+          setTimeout(() => Haptics.impactAsync(style), 0);
+        } else {
+          Haptics.impactAsync(style);
+        }
+        break;
+      case "selection":
+         if (Platform.OS === "ios") {
+          // Atraso para iOS para melhor performance/sensação
+          setTimeout(() => Haptics.selectionAsync(), 0);
+        } else {
+          Haptics.selectionAsync();
+        }
         break;
       case "error":
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        break;
       case "success":
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      case "warning":
+         const notificationMap: { [key in "error" | "success" | "warning"]: Haptics.NotificationFeedbackType } = {
+          error: Haptics.NotificationFeedbackType.Error,
+          success: Haptics.NotificationFeedbackType.Success,
+          warning: Haptics.NotificationFeedbackType.Warning,
+        };
+        Haptics.notificationAsync(notificationMap[type]);
         break;
     }
   } catch (error) {
     // Ignora erros de feedback tátil
+    console.warn("Haptic feedback failed:", error);
   }
 };
+
+// Componente reutilizável para botões de controle
+interface ControlButtonProps {
+  iconName: keyof typeof MaterialCommunityIcons.glyphMap | keyof typeof Ionicons.glyphMap;
+  iconType?: "Ionicons" | "MaterialCommunityIcons";
+  onPress: () => void;
+  onPressIn?: () => void;
+  disabled?: boolean;
+  accessibilityLabel: string;
+  style?: object;
+  iconColor?: string;
+  iconSize?: number;
+}
+
+const ControlButton: React.FC<ControlButtonProps> = React.memo(
+  ({
+    iconName,
+    iconType = "Ionicons",
+    onPress,
+    onPressIn,
+    disabled = false,
+    accessibilityLabel,
+    style,
+    iconColor = CONTROL_ICON_COLOR,
+    iconSize = CONTROL_ICON_SIZE,
+  }) => {
+    const IconComponent = iconType === "MaterialCommunityIcons" ? MaterialCommunityIcons : Ionicons;
+    return (
+      <TouchableOpacity
+        style={[
+          styles.controlButton,
+          style,
+          disabled && styles.disabledButton,
+        ]}
+        onPress={onPress}
+        onPressIn={onPressIn}
+        disabled={disabled}
+        hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+        accessible={true}
+        accessibilityLabel={accessibilityLabel}
+        activeOpacity={0.7}
+      >
+        <IconComponent name={iconName as any} size={iconSize} color={iconColor} />
+      </TouchableOpacity>
+    );
+  }
+);
+
+// Componente reutilizável para itens de menu
+interface MenuItemButtonProps {
+    iconName: keyof typeof Ionicons.glyphMap;
+    iconColor: string;
+    onPress: () => void;
+    accessibilityLabel: string;
+    iconComponent?: React.ComponentType<any>; // Para usar WorkoutIcon
+    iconProps?: any; // Props adicionais para o ícone (como iconType)
+}
+
+const MenuItemButton: React.FC<MenuItemButtonProps> = React.memo(({ iconName, iconColor, onPress, accessibilityLabel, iconComponent: IconComponent, iconProps }) => (
+    <TouchableOpacity
+        style={styles.menuItem}
+        onPress={onPress}
+        onPressIn={() => triggerHaptic('light')}
+        activeOpacity={0.7}
+        hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+        accessible={true}
+        accessibilityLabel={accessibilityLabel}
+    >
+        {IconComponent ? (
+             <IconComponent {...iconProps} size={MENU_ICON_SIZE} color={iconColor} />
+        ) : (
+            <Ionicons
+                name={iconName}
+                size={MENU_ICON_SIZE}
+                color={iconColor}
+            />
+        )}
+    </TouchableOpacity>
+));
 
 export default function FloatingActionButton() {
   const { theme } = useTheme();
@@ -95,7 +196,6 @@ export default function FloatingActionButton() {
     nutritionInfo.weight || 0
   );
   const [isAnimating, setIsAnimating] = useState(false);
-  const [contentOpacity, setContentOpacity] = useState(0);
 
   // Calcula a posição dinâmica do botão
   const dynamicBottom = useMemo(
@@ -139,7 +239,13 @@ export default function FloatingActionButton() {
       outputRange: [1, 0, 0],
     });
 
-    return { width: widthAnim, height, borderRadius, left, bottom, opacity };
+    // Animação de opacidade para o conteúdo expandido
+    const contentOpacityAnim = animationProgress.interpolate({
+      inputRange: [0, 0.5, 1], // Começa a aparecer depois que o botão começa a expandir
+      outputRange: [0, 0, 1],
+    });
+
+    return { width: widthAnim, height, borderRadius, left, bottom, opacity, contentOpacity: contentOpacityAnim };
   }, [animationProgress, dynamicBottom, width]);
 
   // Controla a expansão do FAB
@@ -149,10 +255,8 @@ export default function FloatingActionButton() {
     setIsAnimating(true);
     const expanding = !isExpanded;
 
-    // Feedback tátil
-    if (Platform.OS === "android") {
-      triggerHaptic(expanding ? "medium" : "light");
-    }
+    // Feedback tátil ajustado
+    triggerHaptic("medium"); // Usar 'medium' para expandir e colapsar
 
     // Animação suave
     Animated.timing(animationProgress, {
@@ -163,50 +267,30 @@ export default function FloatingActionButton() {
       setIsExpanded(expanding);
       setIsAnimating(false);
 
-      if (expanding) {
-        setContentOpacity(1);
-      } else {
+      if (!expanding) {
         // Resetar estados quando colapsar
         InteractionManager.runAfterInteractions(() => {
           setContentMode("default");
           setAdjustingWeight(nutritionInfo.weight || 0);
-          setContentOpacity(0);
         });
       }
     });
-
-    // Fade do conteúdo mais rápido
-    if (expanding) {
-      // Atrasa um pouco a exibição do conteúdo para animação mais suave, mas mais rápido
-      setTimeout(() => {
-        setContentOpacity(1);
-      }, 100);
-    } else {
-      setContentOpacity(0);
-    }
   }, [isExpanded, isAnimating, animationProgress, nutritionInfo.weight]);
 
   // Muda o modo de conteúdo com fade mais rápido
   const changeContentMode = useCallback(
     (newMode: typeof contentMode) => {
-      if (contentMode === newMode) return;
+      if (contentMode === newMode || isAnimating) return; // Evita troca durante animação
 
-      // Fade out rápido
-      setContentOpacity(0);
+      triggerHaptic("light"); // Feedback para mudança de modo
 
-      // Troca o modo após um breve delay, mas mais rápido
-      setTimeout(() => {
-        setContentMode(newMode);
-
-        if (newMode === "updateWeight") {
-          setAdjustingWeight(nutritionInfo.weight || 0);
-        }
-
-        // Fade in imediato
-        setContentOpacity(1);
-      }, 50);
+      // Apenas troca o modo. A animação de opacidade já cuida do fade.
+      setContentMode(newMode);
+      if (newMode === "updateWeight") {
+        setAdjustingWeight(nutritionInfo.weight || 0);
+      }
     },
-    [contentMode, nutritionInfo.weight]
+    [contentMode, isAnimating, nutritionInfo.weight]
   );
 
   // Ajusta o peso
@@ -362,6 +446,159 @@ export default function FloatingActionButton() {
     removeWater();
   }, [removeWater]);
 
+  // --- Subcomponentes de Conteúdo ---
+
+  const DefaultMenuContent = useCallback(() => (
+      <View style={styles.defaultMenu}>
+          {menuOptions.map((option, index) => (
+              <MenuItemButton
+                  key={`option-${index}`}
+                  iconName={option.icon}
+                  iconColor={colors.background}
+                  onPress={option.onPress}
+                  accessibilityLabel={option.label}
+              />
+          ))}
+      </View>
+  ), [menuOptions, colors.background]);
+
+  const MealTypesContent = useCallback(() => (
+      <View style={styles.scrollMenuFull}>
+          <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={[styles.scrollContent, styles.centeredContent]}
+              removeClippedSubviews={false}
+              decelerationRate="fast"
+          >
+              {mealTypes.map((mealType) => (
+                  <MenuItemButton
+                      key={`meal-${mealType.id}`}
+                      iconName={(mealType.icon || "restaurant-outline") as any}
+                      iconColor={mealType.color || colors.background}
+                      onPress={() => navigateToAddFood(mealType)}
+                      accessibilityLabel={mealType.name}
+                  />
+              ))}
+          </ScrollView>
+      </View>
+  ), [mealTypes, colors.background, navigateToAddFood]);
+
+  const WaterContent = useCallback(() => (
+      <View style={styles.controlsMenu}>
+          <ControlButton
+              iconName="arrow-back"
+              onPress={() => changeContentMode("default")}
+              accessibilityLabel={t("accessibility.back", "Voltar")}
+              style={styles.backButton}
+              onPressIn={() => triggerHaptic('light')}
+          />
+          <ControlButton
+              iconName="minus"
+              iconType="MaterialCommunityIcons"
+              onPress={handleRemoveWater}
+              disabled={currentWaterIntake <= 0}
+              accessibilityLabel={t("waterIntake.removeWater", "Remover água")}
+              onPressIn={() => triggerHaptic('light')}
+          />
+          <View style={styles.valueDisplay}>
+              <Text style={[styles.valueText, { color: colors.background }]}>
+                  {`${(currentWaterIntake / 1000).toFixed(1)}L`}
+              </Text>
+          </View>
+          <ControlButton
+              iconName="plus"
+              iconType="MaterialCommunityIcons"
+              onPress={handleAddWater}
+              disabled={currentWaterIntake >= dailyWaterGoal}
+              accessibilityLabel={t("waterIntake.addWater", "Adicionar água")}
+              onPressIn={() => triggerHaptic('light')}
+          />
+      </View>
+  ), [colors.background, currentWaterIntake, dailyWaterGoal, handleAddWater, handleRemoveWater, changeContentMode, t]);
+
+  const WorkoutTypesContent = useCallback(() => (
+      <View style={styles.scrollMenuFull}>
+          <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={[styles.scrollContent, styles.centeredContent]}
+              removeClippedSubviews={false}
+              decelerationRate="fast"
+          >
+              {selectedWorkoutTypes.map((workoutType) => (
+                  <MenuItemButton
+                      key={`workout-${workoutType.id}`}
+                      iconName="barbell"
+                      iconColor={workoutType.color || colors.background}
+                      onPress={() => handleStartWorkout(workoutType)}
+                      accessibilityLabel={workoutType.name}
+                      iconComponent={WorkoutIcon}
+                      iconProps={{ iconType: workoutType.iconType }}
+                  />
+              ))}
+          </ScrollView>
+      </View>
+  ), [selectedWorkoutTypes, colors.background, handleStartWorkout]);
+
+  const UpdateWeightContent = useCallback(() => (
+      <View style={styles.controlsMenuUpdate}>
+          <View style={styles.controlsLeft}>
+              <ControlButton
+                  iconName="arrow-back"
+                  onPress={() => changeContentMode("default")}
+                  accessibilityLabel={t("accessibility.back", "Voltar")}
+                  style={styles.backButton}
+                  onPressIn={() => triggerHaptic('light')}
+              />
+          </View>
+          <View style={styles.controlsCenter}>
+              <ControlButton
+                  iconName="remove"
+                  onPress={() => adjustWeight(-0.1)}
+                  disabled={adjustingWeight <= 0}
+                  accessibilityLabel={t("weight.decrease", "Diminuir peso")}
+                  onPressIn={() => triggerHaptic('light')}
+              />
+              <View style={styles.valueDisplay}>
+                  <Text style={[styles.valueText, { color: colors.background }]}>
+                      {adjustingWeight.toFixed(1)}
+                      <Text style={styles.unitText}>kg</Text>
+                  </Text>
+              </View>
+              <ControlButton
+                  iconName="add"
+                  onPress={() => adjustWeight(0.1)}
+                  accessibilityLabel={t("weight.increase", "Aumentar peso")}
+                  onPressIn={() => triggerHaptic('light')}
+              />
+          </View>
+          <View style={styles.controlsRight}>
+              <ControlButton
+                  iconName="checkmark"
+                  onPress={handleUpdateWeight}
+                  disabled={adjustingWeight === nutritionInfo.weight}
+                  accessibilityLabel={t("weight.save", "Salvar peso")}
+                  style={styles.saveButton}
+                  onPressIn={() => triggerHaptic('light')}
+              />
+          </View>
+      </View>
+  ), [colors.background, adjustingWeight, nutritionInfo.weight, handleUpdateWeight, adjustWeight, changeContentMode, t]);
+
+  // Mapeamento do contentMode para o componente de conteúdo
+  const ContentComponent = useMemo(() => {
+      switch (contentMode) {
+          case "mealTypes": return MealTypesContent;
+          case "water": return WaterContent;
+          case "workoutTypes": return WorkoutTypesContent;
+          case "updateWeight": return UpdateWeightContent;
+          case "default":
+          default:
+              return DefaultMenuContent;
+      }
+  }, [contentMode, DefaultMenuContent, MealTypesContent, WaterContent, WorkoutTypesContent, UpdateWeightContent]);
+
   return (
     <>
       {isExpanded && (
@@ -415,244 +652,13 @@ export default function FloatingActionButton() {
         </Animated.View>
 
         {/* Conteúdo expandido */}
-        <View
-          style={[styles.content, { opacity: contentOpacity }]}
+        <Animated.View
+          style={[styles.content, { opacity: animatedStyles.contentOpacity }]}
           pointerEvents={isExpanded ? "auto" : "none"}
         >
-          {contentMode === "default" && (
-            <View style={styles.defaultMenu}>
-              {menuOptions.map((option, index) => (
-                <TouchableOpacity
-                  key={`option-${index}`}
-                  style={styles.menuItem}
-                  onPress={option.onPress}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                  accessible={true}
-                  accessibilityLabel={option.label}
-                >
-                  <Ionicons
-                    name={option.icon}
-                    size={MENU_ICON_SIZE}
-                    color={colors.background}
-                  />
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          {contentMode === "mealTypes" && (
-            <View style={styles.scrollMenuFull}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={[
-                  styles.scrollContent,
-                  styles.centeredContent,
-                ]}
-                removeClippedSubviews={false}
-                decelerationRate="fast"
-              >
-                {mealTypes.map((mealType) => (
-                  <TouchableOpacity
-                    key={`meal-${mealType.id}`}
-                    style={styles.menuItem}
-                    onPress={() => navigateToAddFood(mealType)}
-                    hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                    accessible={true}
-                    accessibilityLabel={mealType.name}
-                  >
-                    <Ionicons
-                      name={(mealType.icon || "restaurant-outline") as any}
-                      size={MENU_ICON_SIZE}
-                      color={mealType.color || colors.background}
-                    />
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          {contentMode === "water" && (
-            <View style={styles.controlsMenu}>
-              <TouchableOpacity
-                style={[styles.controlButton, styles.backButton]}
-                onPress={() => changeContentMode("default")}
-                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                accessible={true}
-                accessibilityLabel={t("accessibility.back", "Voltar")}
-              >
-                <Ionicons
-                  name="arrow-back"
-                  size={CONTROL_ICON_SIZE}
-                  color={CONTROL_ICON_COLOR}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.controlButton,
-                  currentWaterIntake <= 0 && styles.disabledButton,
-                ]}
-                onPress={handleRemoveWater}
-                disabled={currentWaterIntake <= 0}
-                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                accessible={true}
-                accessibilityLabel={t(
-                  "waterIntake.removeWater",
-                  "Remover água"
-                )}
-              >
-                <MaterialCommunityIcons
-                  name="minus"
-                  size={CONTROL_ICON_SIZE}
-                  color={CONTROL_ICON_COLOR}
-                />
-              </TouchableOpacity>
-
-              <View style={styles.valueDisplay}>
-                <Text style={[styles.valueText, { color: colors.background }]}>
-                  {`${(currentWaterIntake / 1000).toFixed(1)}L`}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                style={[
-                  styles.controlButton,
-                  currentWaterIntake >= dailyWaterGoal && styles.disabledButton,
-                ]}
-                onPress={handleAddWater}
-                disabled={currentWaterIntake >= dailyWaterGoal}
-                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                accessible={true}
-                accessibilityLabel={t("waterIntake.addWater", "Adicionar água")}
-              >
-                <MaterialCommunityIcons
-                  name="plus"
-                  size={CONTROL_ICON_SIZE}
-                  color={CONTROL_ICON_COLOR}
-                />
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {contentMode === "workoutTypes" && (
-            <View style={styles.scrollMenuFull}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={[
-                  styles.scrollContent,
-                  styles.centeredContent,
-                ]}
-                removeClippedSubviews={false}
-                decelerationRate="fast"
-              >
-                {selectedWorkoutTypes.map((workoutType) => (
-                  <TouchableOpacity
-                    key={`workout-${workoutType.id}`}
-                    style={styles.menuItem}
-                    onPress={() => handleStartWorkout(workoutType)}
-                    hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                    accessible={true}
-                    accessibilityLabel={workoutType.name}
-                  >
-                    <WorkoutIcon
-                      iconType={workoutType.iconType}
-                      size={MENU_ICON_SIZE}
-                      color={workoutType.color || colors.background}
-                    />
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          {contentMode === "updateWeight" && (
-            <View style={styles.controlsMenuUpdate}>
-              <View style={styles.controlsLeft}>
-                <TouchableOpacity
-                  style={[styles.controlButton, styles.backButton]}
-                  onPress={() => changeContentMode("default")}
-                  hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                  accessible={true}
-                  accessibilityLabel={t("accessibility.back", "Voltar")}
-                >
-                  <Ionicons
-                    name="arrow-back"
-                    size={CONTROL_ICON_SIZE}
-                    color={CONTROL_ICON_COLOR}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.controlsCenter}>
-                <TouchableOpacity
-                  style={[
-                    styles.controlButton,
-                    adjustingWeight <= 0 && styles.disabledButton,
-                  ]}
-                  onPress={() => adjustWeight(-0.1)}
-                  disabled={adjustingWeight <= 0}
-                  hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                  accessible={true}
-                  accessibilityLabel={t("weight.decrease", "Diminuir peso")}
-                >
-                  <Ionicons
-                    name="remove"
-                    size={CONTROL_ICON_SIZE}
-                    color={CONTROL_ICON_COLOR}
-                  />
-                </TouchableOpacity>
-
-                <View style={styles.valueDisplay}>
-                  <Text
-                    style={[styles.valueText, { color: colors.background }]}
-                  >
-                    {adjustingWeight.toFixed(1)}
-                    <Text style={styles.unitText}>kg</Text>
-                  </Text>
-                </View>
-
-                <TouchableOpacity
-                  style={styles.controlButton}
-                  onPress={() => adjustWeight(0.1)}
-                  hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                  accessible={true}
-                  accessibilityLabel={t("weight.increase", "Aumentar peso")}
-                >
-                  <Ionicons
-                    name="add"
-                    size={CONTROL_ICON_SIZE}
-                    color={CONTROL_ICON_COLOR}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.controlsRight}>
-                <TouchableOpacity
-                  style={[
-                    styles.controlButton,
-                    styles.saveButton,
-                    adjustingWeight === nutritionInfo.weight &&
-                      styles.disabledButton,
-                  ]}
-                  onPress={handleUpdateWeight}
-                  disabled={adjustingWeight === nutritionInfo.weight}
-                  hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                  accessible={true}
-                  accessibilityLabel={t("weight.save", "Salvar peso")}
-                >
-                  <Ionicons
-                    name="checkmark"
-                    size={CONTROL_ICON_SIZE}
-                    color={CONTROL_ICON_COLOR}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        </View>
+          {/* Renderiza o componente de conteúdo correto */}
+          {isExpanded && <ContentComponent />}
+        </Animated.View>
       </Animated.View>
     </>
   );
@@ -693,7 +699,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     flexDirection: "row",
     alignItems: "center",
-    zIndex: 20,
   },
   defaultMenu: {
     flexDirection: "row",

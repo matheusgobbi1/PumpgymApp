@@ -140,33 +140,47 @@ const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
 
 // Ícones disponíveis para treinos personalizados
 const AVAILABLE_ICONS: WorkoutIconType[] = [
-  // Ícones do MaterialCommunityIcons
+  // MaterialCommunityIcons
   { type: "material" as const, name: "dumbbell" as MaterialIconNames },
   { type: "material" as const, name: "weight-lifter" as MaterialIconNames },
-  { type: "material" as const, name: "human-handsdown" as MaterialIconNames },
   { type: "material" as const, name: "run-fast" as MaterialIconNames },
   { type: "material" as const, name: "arm-flex" as MaterialIconNames },
   { type: "material" as const, name: "arm-flex-outline" as MaterialIconNames },
-  { type: "material" as const, name: "human-male" as MaterialIconNames },
   { type: "material" as const, name: "weight" as MaterialIconNames },
   { type: "material" as const, name: "yoga" as MaterialIconNames },
   { type: "material" as const, name: "bike" as MaterialIconNames },
+  { type: "material" as const, name: "swim" as MaterialIconNames },
+  { type: "material" as const, name: "boxing-glove" as MaterialIconNames },
+  { type: "material" as const, name: "karate" as MaterialIconNames },
+  { type: "material" as const, name: "rowing" as MaterialIconNames },
+  { type: "material" as const, name: "hiking" as MaterialIconNames },
+  { type: "material" as const, name: "meditation" as MaterialIconNames },
 
-  // Ícones do FontAwesome5
+  // FontAwesome5
   { type: "fontawesome" as const, name: "dumbbell" as FontAwesome5Names },
   { type: "fontawesome" as const, name: "running" as FontAwesome5Names },
   { type: "fontawesome" as const, name: "walking" as FontAwesome5Names },
   { type: "fontawesome" as const, name: "heartbeat" as FontAwesome5Names },
   { type: "fontawesome" as const, name: "biking" as FontAwesome5Names },
   { type: "fontawesome" as const, name: "swimmer" as FontAwesome5Names },
+  { type: "fontawesome" as const, name: "skating" as FontAwesome5Names },
+  { type: "fontawesome" as const, name: "skiing" as FontAwesome5Names },
+  { type: "fontawesome" as const, name: "football-ball" as FontAwesome5Names },
+  { type: "fontawesome" as const, name: "basketball-ball" as FontAwesome5Names },
+  { type: "fontawesome" as const, name: "volleyball-ball" as FontAwesome5Names },
 
-  // Ícones do Ionicons
+  // Ionicons
   { type: "ionicons" as const, name: "barbell-outline" as IoniconsNames },
   { type: "ionicons" as const, name: "body-outline" as IoniconsNames },
   { type: "ionicons" as const, name: "fitness-outline" as IoniconsNames },
   { type: "ionicons" as const, name: "bicycle-outline" as IoniconsNames },
   { type: "ionicons" as const, name: "walk-outline" as IoniconsNames },
   { type: "ionicons" as const, name: "heart-outline" as IoniconsNames },
+  { type: "ionicons" as const, name: "flame-outline" as IoniconsNames },
+  { type: "ionicons" as const, name: "leaf-outline" as IoniconsNames },
+  { type: "ionicons" as const, name: "tennisball-outline" as IoniconsNames },
+  { type: "ionicons" as const, name: "water-outline" as IoniconsNames },
+  { type: "ionicons" as const, name: "footsteps-outline" as IoniconsNames },
 ];
 
 // Cores disponíveis para treinos
@@ -175,41 +189,63 @@ const AVAILABLE_COLORS: string[] = [
   "#FF5252",
   "#E53935",
   "#C62828",
+  "#FF8A80",
 
   // Laranjas
   "#FF9800",
   "#FB8C00",
   "#EF6C00",
+  "#FFAB40",
 
   // Amarelos
   "#FFEB3B",
   "#FDD835",
-  "#F9A825",
+  "#FBC02D",
+  "#FFFF8D",
 
   // Verdes
   "#4CAF50",
   "#43A047",
   "#2E7D32",
+  "#69F0AE",
+  "#00C853",
+
+  // Ciano/Teal
+  "#00BCD4",
+  "#00ACC1",
+  "#00838F",
+  "#18FFFF",
+  "#00BFA5",
 
   // Azuis
   "#2196F3",
   "#1E88E5",
   "#1565C0",
+  "#448AFF",
+  "#2962FF",
 
   // Roxos
   "#9C27B0",
   "#8E24AA",
   "#6A1B9A",
+  "#E040FB",
 
   // Rosas
-  "#F06292",
-  "#EC407A",
+  "#E91E63",
   "#D81B60",
+  "#AD1457",
+  "#FF80AB",
+
+  // Marrons
+  "#795548",
+  "#6D4C41",
+  "#4E342E",
 
   // Cinzas
   "#9E9E9E",
   "#757575",
-  "#616161",
+  "#424242",
+  "#BDBDBD",
 ];
 
 // Interface para as props do componente
@@ -383,23 +419,13 @@ const WorkoutConfigSheet = forwardRef<
       // Aumentar para 90% para garantir mais espaço para os itens inferiores
       setSnapPoints(["90%"]);
 
-      // Calcular a posição de rolagem considerando a posição do item na lista
-      // Quanto mais abaixo estiver o item, mais para cima devemos rolar
-      setTimeout(() => {
-        const itemHeight = 80; // Altura aproximada de cada item
-        // Para itens no começo da lista, rolamos menos
-        // Para itens no final da lista, rolamos mais
-        const baseOffset = index * itemHeight;
-
-        // Calculamos um offset progressivo - quanto maior o índice, mais alto rolamos
-        // Esta fórmula aumenta progressivamente o offset com base no índice
-        const progressiveOffset = Math.max(0, index > 2 ? (index - 2) * 50 : 0);
-
-        scrollViewRef.current?.scrollTo({
-          y: baseOffset + progressiveOffset,
-          animated: true,
-        });
-      }, 100);
+      // Calcular a posição de rolagem para trazer o item para a vista
+      const itemHeight = 80; // Altura aproximada de cada item
+      const scrollOffsetY = index * itemHeight; // Leva o item para o topo
+      scrollViewRef.current?.scrollTo({
+        y: scrollOffsetY,
+        animated: true,
+      });
 
       // Feedback tátil
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -781,20 +807,15 @@ const WorkoutConfigSheet = forwardRef<
                             ]}
                             value={editingWorkoutName}
                             onChangeText={setEditingWorkoutName}
-                            autoFocus
                             selectTextOnFocus
-                            onBlur={() => cancelWorkoutNameEdit()}
                             onFocus={() => {
-                              // Se o item for um dos últimos da lista, garantir que ele seja bem visível
-                              if (index > 3) {
-                                // Rolar mais para cima para itens mais abaixo na lista
-                                const adjustedOffset =
-                                  index * 80 + (index - 3) * 60;
-                                scrollViewRef.current?.scrollTo({
-                                  y: adjustedOffset,
-                                  animated: true,
-                                });
-                              }
+                              // Calcular a posição de rolagem para trazer o item para a vista
+                              const itemHeight = 80; // Altura aproximada de cada item
+                              const scrollOffsetY = index * itemHeight; // Leva o item para o topo
+                              scrollViewRef.current?.scrollTo({
+                                y: scrollOffsetY,
+                                animated: true,
+                              });
                             }}
                             onSubmitEditing={() => saveWorkoutNameEdit(item.id)}
                             maxLength={20}
@@ -1010,7 +1031,7 @@ const WorkoutConfigSheet = forwardRef<
             ref={scrollViewRef}
             style={styles.scrollContent}
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
+            keyboardShouldPersistTaps="always"
             contentContainerStyle={[
               styles.scrollContentContainer,
               // Adicionar espaço extra no final do conteúdo para garantir

@@ -91,6 +91,15 @@ export interface WorkoutTotals {
   avgRestTime: number; // Tempo médio de descanso entre séries
 }
 
+// Interface genérica para dados da notificação de conquista
+export interface AchievementNotificationData {
+  type: "pr" | "proteinGoal" | "streak" | "other"; // Adicionar mais tipos conforme necessário
+  iconName: any; // Nome do ícone Ionicon (ou outro set, ajustar tipo se necessário)
+  iconColor: string;
+  title: string;
+  message: string;
+}
+
 // Interface para o contexto de treinos
 interface WorkoutContextType {
   workouts: { [date: string]: { [workoutId: string]: Exercise[] } };
@@ -160,6 +169,16 @@ interface WorkoutContextType {
     workoutId: string,
     updatedExercises: Exercise[]
   ) => Promise<boolean>;
+  // Salvar treino gerado pelo builder
+  saveGeneratedWorkout: (
+    workoutId: string,
+    date: string,
+    exercises: Exercise[]
+  ) => Promise<boolean>;
+
+  // Propriedades para notificação de Conquista (genérico)
+  achievementNotificationData: AchievementNotificationData | null;
+  clearAchievementNotification: () => void;
 }
 
 // Criação do contexto
@@ -184,12 +203,20 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     WorkoutType[]
   >([]);
   const [loading, setLoading] = useState(false);
+  // Estado para notificação de Conquista
+  const [achievementNotificationData, setAchievementNotificationData] = useState<AchievementNotificationData | null>(null);
+
+  // Função para limpar a notificação de Conquista
+  const clearAchievementNotification = useCallback(() => {
+    setAchievementNotificationData(null);
+  }, []);
 
   // Função para resetar o estado quando o usuário mudar
   const resetState = useCallback(() => {
     setWorkouts({});
     setWorkoutTypes({});
     setAvailableWorkoutTypes([]);
+    setAchievementNotificationData(null); // Limpar notificação ao trocar usuário
   }, []);
 
   // Memoizar valores derivados do estado que são frequentemente acessados
@@ -261,6 +288,36 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     },
     [workoutTypes]
   );
+
+  // --- RESTAURAR/DEFINIR getPreviousWorkoutExercises --- 
+  const getPreviousWorkoutExercises = useCallback(
+    (workoutId: string): { exercises: Exercise[]; date: string | null } => {
+      const defaultReturn = { exercises: [], date: null };
+      const previousDates = Object.keys(workouts)
+        .filter((date) => date < selectedDate)
+        .sort((a, b) => b.localeCompare(a));
+      if (previousDates.length === 0) {
+        return defaultReturn;
+      }
+      for (const date of previousDates) {
+        if (workouts[date] && workouts[date][workoutId]) {
+          const exercises = workouts[date][workoutId];
+          const validExercises = exercises.filter(
+            (exercise: Exercise) => // Adicionado tipo Exercise
+              exercise.category !== "cardio" &&
+              exercise.sets &&
+              exercise.sets.length > 0
+          );
+          if (validExercises.length > 0) {
+            return { exercises: validExercises, date };
+          }
+        }
+      }
+      return defaultReturn;
+    },
+    [workouts, selectedDate]
+  );
+  // --- FIM RESTAURAR/DEFINIR getPreviousWorkoutExercises --- 
 
   // Carregar treinos do AsyncStorage
   const loadWorkouts = useCallback(async (): Promise<boolean> => {
@@ -824,67 +881,145 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Atualizar exercício em um treino
+  // Atualizar exercício em um treino - COM LÓGICA DE VERIFICAÇÃO DE PR
   const updateExerciseInWorkout = async (
     workoutId: string,
     exerciseId: string,
     updatedExercise: Exercise
   ) => {
+    let isPR = false;
+    let prWeight = 0;
+    let currentWorkoutsState: any;
+
     try {
-      // Atualizar o estado
       setWorkouts((prev) => {
         const updatedWorkouts = { ...prev };
-
-        // Verificar se existe uma entrada para a data selecionada e o treino
-        if (
-          !updatedWorkouts[selectedDate] ||
-          !updatedWorkouts[selectedDate][workoutId]
-        ) {
-          return updatedWorkouts;
+        if (!updatedWorkouts[selectedDate] || !updatedWorkouts[selectedDate][workoutId]) {
+          return prev;
         }
-
-        // Atualizar o exercício no treino
-        updatedWorkouts[selectedDate][workoutId] = updatedWorkouts[
-          selectedDate
-        ][workoutId].map((exercise) =>
+        updatedWorkouts[selectedDate][workoutId] = updatedWorkouts[selectedDate][workoutId].map((exercise) =>
           exercise.id === exerciseId ? updatedExercise : exercise
         );
-
+        currentWorkoutsState = updatedWorkouts; // Store the updated state for saving
         return updatedWorkouts;
       });
 
-      // Salvar imediatamente para garantir persistência
-      try {
-        const currentWorkouts = { ...workouts };
-
-        // Verificar se existe uma entrada para a data selecionada e o treino
-        if (
-          !currentWorkouts[selectedDate] ||
-          !currentWorkouts[selectedDate][workoutId]
-        ) {
-          return;
+       // --- Lógica de Verificação de PR --- 
+       if (updatedExercise.category !== 'cardio' && updatedExercise.sets && updatedExercise.sets.length > 0) {
+           const { exercises: previousExercises } = getPreviousWorkoutExercises(workoutId);
+           if (previousExercises.length > 0) {
+               const previousExercise = previousExercises.find((ex: Exercise) => ex.id === exerciseId || ex.name === updatedExercise.name);
+               if (previousExercise && previousExercise.sets && previousExercise.sets.length > 0) {
+                   let previousMaxWeight = 0;
+                   previousExercise.sets.forEach((set: ExerciseSet) => {
+                       if (set.weight > previousMaxWeight) {
+                           previousMaxWeight = set.weight;
+                       }
+                   });
+                   let currentMaxWeight = 0;
+                   updatedExercise.sets.forEach((set: ExerciseSet) => {
+                       if (set.weight > currentMaxWeight) {
+                           currentMaxWeight = set.weight;
+                       }
+                   });
+                   if (currentMaxWeight > previousMaxWeight) {
+                       isPR = true;
+                       prWeight = currentMaxWeight;
+                   }
+               }
+           }
         }
+       // --- Fim da Lógica de Verificação de PR ---
 
-        // Atualizar o exercício no treino
-        currentWorkouts[selectedDate][workoutId] = currentWorkouts[
-          selectedDate
-        ][workoutId].map((exercise) =>
-          exercise.id === exerciseId ? updatedExercise : exercise
-        );
-
-        // Salvar no AsyncStorage
+      // Salvar imediatamente usando o estado capturado
+      if (currentWorkoutsState) {
         await AsyncStorage.setItem(
           `${KEYS.WORKOUTS}:${userId}`,
-          JSON.stringify(currentWorkouts)
+          JSON.stringify(currentWorkoutsState)
         );
-      } catch (error) {
-        // Erro ao salvar após atualizar exercício:
+      } else {
+        console.warn("Estado atualizado não capturado, salvamento pulado em updateExerciseInWorkout");
       }
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
     } catch (error) {
-      // Erro ao atualizar exercício
+      console.error("Erro ao atualizar exercício:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+
+    // Se for um PR, atualizar o estado da notificação de conquista
+    if (isPR) {
+      // Definir a cor aqui, poderia vir do tema ou ser fixa
+      const prIconColor = '#FFD700'; // Dourado para troféu
+      setAchievementNotificationData({
+        type: 'pr',
+        iconName: 'trophy',
+        iconColor: prIconColor,
+        title: 'Parabéns!',
+        message: `Novo Recorde Pessoal em ${updatedExercise.name}: ${prWeight} kg!`,
+      });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    }
+  };
+
+  // Função para remover um treino inteiro para uma data específica
+  const removeWorkoutForDate = async (
+    workoutId: string,
+    date?: string
+  ): Promise<boolean> => {
+    try {
+      const dateToUse = date || selectedDate;
+
+      // Verificar se existe uma entrada para a data e o treino
+      if (!workouts[dateToUse] || !workouts[dateToUse][workoutId]) {
+        return false;
+      }
+
+      // Criar cópias atualizadas dos objetos
+      const updatedWorkouts = { ...workouts };
+      const updatedWorkoutTypes = { ...workoutTypes };
+
+      // Remover o treino específico da data
+      delete updatedWorkouts[dateToUse][workoutId];
+
+      // Remover também o tipo de treino correspondente
+      if (updatedWorkoutTypes[dateToUse]) {
+        delete updatedWorkoutTypes[dateToUse][workoutId];
+      }
+
+      // Se não houver mais treinos para esta data, remover a entrada da data
+      if (Object.keys(updatedWorkouts[dateToUse]).length === 0) {
+        delete updatedWorkouts[dateToUse];
+        if (updatedWorkoutTypes[dateToUse]) {
+          delete updatedWorkoutTypes[dateToUse];
+        }
+      }
+
+      // Atualizar os estados
+      setWorkouts(updatedWorkouts);
+      setWorkoutTypes(updatedWorkoutTypes);
+
+      // Persistir no AsyncStorage
+      await AsyncStorage.setItem(
+        `${KEYS.WORKOUTS}:${userId}`,
+        JSON.stringify(updatedWorkouts)
+      );
+
+      await AsyncStorage.setItem(
+        `${KEYS.WORKOUT_TYPES}:${userId}`,
+        JSON.stringify(updatedWorkoutTypes)
+      );
+
+      // Executar feedback tátil de sucesso
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      return true;
+    } catch (error) {
+      // Executar feedback tátil de erro
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      console.error("Erro ao remover treino:", error);
+      return false;
     }
   };
 
@@ -1640,47 +1775,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     );
   }, [availableWorkoutTypes]);
 
-  // Função para obter exercícios do treino anterior
-  const getPreviousWorkoutExercises = useCallback(
-    (workoutId: string): { exercises: Exercise[]; date: string | null } => {
-      // Valor padrão para retorno
-      const defaultReturn = { exercises: [], date: null };
-
-      // Obter datas anteriores à data selecionada
-      const previousDates = Object.keys(workouts)
-        .filter((date) => date < selectedDate)
-        .sort((a, b) => b.localeCompare(a)); // Ordem decrescente (mais recente primeiro)
-
-      // Se não houver datas anteriores, retornar valor padrão
-      if (previousDates.length === 0) {
-        return defaultReturn;
-      }
-
-      // Procurar pela data mais recente que contém o treino específico
-      for (const date of previousDates) {
-        if (workouts[date] && workouts[date][workoutId]) {
-          const exercises = workouts[date][workoutId];
-
-          // Filtrar apenas exercícios de força que possuem séries
-          const validExercises = exercises.filter(
-            (exercise) =>
-              exercise.category !== "cardio" &&
-              exercise.sets &&
-              exercise.sets.length > 0
-          );
-
-          if (validExercises.length > 0) {
-            return { exercises: validExercises, date };
-          }
-        }
-      }
-
-      // Se não encontrar o treino em datas anteriores
-      return defaultReturn;
-    },
-    [workouts, selectedDate]
-  );
-
   // Função para obter múltiplos treinos anteriores do mesmo tipo
   const getMultiplePreviousWorkoutsExercises = useCallback(
     (
@@ -1793,68 +1887,56 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       } catch (error) {
         console.error("Erro ao aplicar progressão:", error);
         return false;
-      }
+      } 
     },
     [workouts, selectedDate, saveWorkouts, userId] // Adicionar userId às dependências
   );
 
-  // Função para remover um treino inteiro para uma data específica
-  const removeWorkoutForDate = async (
-    workoutId: string,
-    date?: string
-  ): Promise<boolean> => {
-    try {
-      const dateToUse = date || selectedDate;
+  // Função para salvar/substituir um treino gerado pelo builder
+  const saveGeneratedWorkout = useCallback(
+    async (
+      workoutId: string,
+      date: string,
+      exercises: Exercise[]
+    ): Promise<boolean> => {
+      try {
+        // Verificar se workoutId e date são válidos
+        if (!workoutId || !date) {
+          console.warn("Workout ID ou Data inválidos para salvar treino gerado.");
+          return false;
+        }
 
-      // Verificar se existe uma entrada para a data e o treino
-      if (!workouts[dateToUse] || !workouts[dateToUse][workoutId]) {
+        // Criar cópia profunda dos exercícios para evitar problemas de referência
+        const cleanExercises = JSON.parse(JSON.stringify(exercises));
+
+        // Atualizar o estado dos workouts
+        setWorkouts((prev) => {
+          const updatedWorkouts = { ...prev };
+
+          // Garantir que a entrada para a data existe
+          if (!updatedWorkouts[date]) {
+            updatedWorkouts[date] = {};
+          }
+
+          // Substituir os exercícios para o workoutId específico nesta data
+          updatedWorkouts[date][workoutId] = cleanExercises;
+
+          return updatedWorkouts;
+        });
+
+        // Salvar os workouts (que inclui a persistência no AsyncStorage e Firebase)
+        await saveWorkouts();
+
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        return true;
+      } catch (error) {
+        console.error("Erro ao salvar treino gerado:", error);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         return false;
       }
-
-      // Criar cópias atualizadas dos objetos
-      const updatedWorkouts = { ...workouts };
-      const updatedWorkoutTypes = { ...workoutTypes };
-
-      // Remover o treino específico da data
-      delete updatedWorkouts[dateToUse][workoutId];
-
-      // Remover também o tipo de treino correspondente
-      if (updatedWorkoutTypes[dateToUse]) {
-        delete updatedWorkoutTypes[dateToUse][workoutId];
-      }
-
-      // Se não houver mais treinos para esta data, remover a entrada da data
-      if (Object.keys(updatedWorkouts[dateToUse]).length === 0) {
-        delete updatedWorkouts[dateToUse];
-        delete updatedWorkoutTypes[dateToUse];
-      }
-
-      // Atualizar os estados
-      setWorkouts(updatedWorkouts);
-      setWorkoutTypes(updatedWorkoutTypes);
-
-      // Persistir no AsyncStorage
-      await AsyncStorage.setItem(
-        `${KEYS.WORKOUTS}:${userId}`,
-        JSON.stringify(updatedWorkouts)
-      );
-
-      await AsyncStorage.setItem(
-        `${KEYS.WORKOUT_TYPES}:${userId}`,
-        JSON.stringify(updatedWorkoutTypes)
-      );
-
-      // Executar feedback tátil de sucesso
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-      return true;
-    } catch (error) {
-      // Executar feedback tátil de erro
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      console.error("Erro ao remover treino:", error);
-      return false;
-    }
-  };
+    },
+    [saveWorkouts] // saveWorkouts já inclui a dependência do userId
+  );
 
   // Adicionar um novo contexto - usando os valores memoizados
   const contextValue: WorkoutContextType = useMemo(
@@ -1884,45 +1966,50 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       getWorkoutTotals,
       getPreviousWorkoutTotals,
       hasWorkoutTypesConfigured,
-      // Valores memoizados
       workoutsForSelectedDate,
       selectedWorkoutTypes,
       hasConfiguredWorkouts,
-      // Novas funções relacionadas à progressão
       getPreviousWorkoutExercises,
       getMultiplePreviousWorkoutsExercises,
       applyProgressionToWorkout,
+      saveGeneratedWorkout,
+      // Propriedades para notificação de Conquista
+      achievementNotificationData,
+      clearAchievementNotification,
     }),
     [
       workouts,
       workoutTypes,
       availableWorkoutTypes,
       selectedDate,
-      addExerciseToWorkout,
-      removeExerciseFromWorkout,
-      updateExerciseInWorkout,
-      removeWorkoutForDate,
-      saveWorkouts,
-      getWorkoutsForDate,
-      startWorkoutForDate,
-      getAvailableWorkoutTypes,
-      copyWorkoutFromDate,
-      saveAvailableWorkoutTypes,
-      getWorkoutTypeForWorkout,
-      getWorkoutTypeById,
-      getExercisesForWorkout,
-      saveWorkoutTypes,
-      addWorkoutType,
-      updateWorkoutTypes,
-      getWorkoutTotals,
-      getPreviousWorkoutTotals,
-      hasWorkoutTypesConfigured,
+      addExerciseToWorkout, 
+      removeExerciseFromWorkout, 
+      updateExerciseInWorkout, 
+      removeWorkoutForDate, 
+      saveWorkouts, 
+      getWorkoutsForDate, 
+      startWorkoutForDate, 
+      getAvailableWorkoutTypes, 
+      copyWorkoutFromDate, 
+      saveAvailableWorkoutTypes, 
+      getWorkoutTypeForWorkout, 
+      getWorkoutTypeById, 
+      getExercisesForWorkout, 
+      saveWorkoutTypes, 
+      addWorkoutType, 
+      updateWorkoutTypes, 
+      getWorkoutTotals, 
+      getPreviousWorkoutTotals, 
+      hasWorkoutTypesConfigured, 
       workoutsForSelectedDate,
       selectedWorkoutTypes,
       hasConfiguredWorkouts,
-      getPreviousWorkoutExercises,
+      getPreviousWorkoutExercises, 
       getMultiplePreviousWorkoutsExercises,
       applyProgressionToWorkout,
+      saveGeneratedWorkout,
+      achievementNotificationData,
+      clearAchievementNotification,
     ]
   );
 

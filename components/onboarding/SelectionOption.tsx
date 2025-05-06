@@ -9,7 +9,12 @@ import {
 import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeInDown, ZoomIn } from "react-native-reanimated";
+import Animated, {
+  FadeInDown,
+  ZoomIn,
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -47,6 +52,12 @@ export default function SelectionOption({
     };
   };
 
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: withSpring(isSelected ? 1.03 : 1) }],
+    };
+  });
+
   const getTextColor = () => {
     return isSelected ? colors.primary : colors.text;
   };
@@ -66,6 +77,7 @@ export default function SelectionOption({
   return (
     <Animated.View
       entering={FadeInDown.duration(400).delay(entryDelay).springify()}
+      style={animatedStyle}
     >
       <TouchableOpacity
         style={[styles.optionContainer, getContainerStyle()]}
