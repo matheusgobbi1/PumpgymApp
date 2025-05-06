@@ -1642,6 +1642,8 @@
       "suggestionsTitle": "Sugestões de Progressão",
       "selectExercisesDescription": "Selecione os exercícios para os quais deseja aplicar a progressão sugerida:",
       "applyProgressions": "Aplicar Progressões ({{count}})",
+      "noSuggestions": "Sem Sugestões de Progressão",
+      "noSuggestionsDescription": "Não encontramos sugestões de progressão específicas no momento. Continue registrando seus treinos para receber conselhos personalizados.",
       "alert": {
         "attention": "Atenção",
         "selectAtLeastOne": "Selecione pelo menos uma sugestão para aplicar.",

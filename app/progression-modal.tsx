@@ -15,7 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import Colors from "../constants/Colors";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import {
   useWorkoutContext,
@@ -448,10 +448,10 @@ export default function ProgressionModal() {
             <>
               {suggestions.length === 0 && !previousWorkoutData.totals ? (
                 <View style={styles.emptyContainer}>
-                  <Ionicons
-                    name="fitness-outline"
-                    size={40}
-                    color={colors.secondary}
+                  <FontAwesome5
+                    name="dumbbell"
+                    size={80}
+                    color={colors.primary}
                   />
                   <Text style={[styles.emptyTitle, { color: colors.text }]}>
                     {t("progression.modal.noWorkoutsFound")}
@@ -705,16 +705,21 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginTop: 16,
-    marginBottom: 8,
+    fontSize: 34,
+    fontFamily: "Anton-Regular",
+    textTransform: "uppercase",
+    textAlign: "center",
+    marginTop: 20,
+    marginBottom: 14,
+    letterSpacing: -0.5,
   },
   emptyText: {
-    fontSize: 15,
+    fontSize: 16,
     textAlign: "center",
     lineHeight: 22,
     marginHorizontal: 20,
+    maxWidth: 300,
+    fontWeight: "400",
   },
   sectionTitleContainer: {
     flexDirection: "row",

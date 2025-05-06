@@ -1,10 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import {
-  Ionicons,
-  MaterialCommunityIcons,
-  AntDesign,
-} from "@expo/vector-icons";
+import { Ionicons, FontAwesome5, AntDesign } from "@expo/vector-icons";
 import { MotiView } from "moti";
 import { ExerciseSet } from "../../context/WorkoutContext";
 import { ProgressionSuggestion } from "../../utils/progressionAlgorithm";
@@ -216,11 +212,7 @@ export default function ProgressionCard({
                   },
                 ]}
               >
-                <MaterialCommunityIcons
-                  name="weight-lifter"
-                  size={18}
-                  color={workoutColor}
-                />
+                <FontAwesome5 name="dumbbell" size={18} color={workoutColor} />
               </View>
               <View style={styles.textContainer}>
                 <Text

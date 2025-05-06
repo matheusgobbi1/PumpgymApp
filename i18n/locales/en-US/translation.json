@@ -1279,6 +1279,8 @@
       "suggestionsTitle": "Progression Suggestions",
       "selectExercisesDescription": "Select the exercises you want to apply the suggested progression to:",
       "applyProgressions": "Apply Progressions ({{count}})",
+      "noSuggestions": "No Progression Suggestions",
+      "noSuggestionsDescription": "We couldn't find specific progression suggestions for now. Keep logging your workouts to receive personalized advice.",
       "alert": {
         "attention": "Attention",
         "selectAtLeastOne": "Select at least one suggestion to apply.",

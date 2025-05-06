@@ -166,8 +166,14 @@ const AVAILABLE_ICONS: WorkoutIconType[] = [
   { type: "fontawesome" as const, name: "skating" as FontAwesome5Names },
   { type: "fontawesome" as const, name: "skiing" as FontAwesome5Names },
   { type: "fontawesome" as const, name: "football-ball" as FontAwesome5Names },
-  { type: "fontawesome" as const, name: "basketball-ball" as FontAwesome5Names },
-  { type: "fontawesome" as const, name: "volleyball-ball" as FontAwesome5Names },
+  {
+    type: "fontawesome" as const,
+    name: "basketball-ball" as FontAwesome5Names,
+  },
+  {
+    type: "fontawesome" as const,
+    name: "volleyball-ball" as FontAwesome5Names,
+  },
 
   // Ionicons
   { type: "ionicons" as const, name: "barbell-outline" as IoniconsNames },
@@ -1111,6 +1117,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 8,
     fontFamily: "Anton",
+    textTransform: "uppercase",
   },
   subtitle: {
     fontSize: 16,

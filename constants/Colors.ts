@@ -17,7 +17,7 @@ export default {
     danger: "#E53935", // Vermelho principal atualizado
     error: "#E53935", // Adicionado cor de erro (usando a mesma cor de perigo)
     warning: "#FFB74D", // Laranja âmbar
-    info: "#FFD54F", // Amarelo suave
+    info: "#FFEDA8", // Amarelo suave
     light: "#F8F9FA", // Branco levemente acinzentado
     dark: "#212529", // Preto suave
     border: "#rgb(241, 241, 241)", // Borda mais visível para o tema claro

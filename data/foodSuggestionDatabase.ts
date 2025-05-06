@@ -134,7 +134,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_pao_frances", "sugg_pao_forma", "sugg_tapioca"],
-    mealTypes: ["breakfast", "snack", "morning_snack", "afternoon_snack"],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout"],
   },
   {
     id: "sugg_crepioca",
@@ -472,13 +472,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_granola", "sugg_tapioca", "sugg_chia", "sugg_linhaça"],
-    mealTypes: [
-      "breakfast",
-      "snack",
-      "morning_snack",
-      "afternoon_snack",
-      "supper",
-    ],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout", "supper"],
   },
   {
     id: "sugg_chia",
@@ -503,7 +497,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_linhaça", "sugg_aveia", "sugg_granola"],
-    mealTypes: ["breakfast", "snack", "morning_snack", "afternoon_snack"],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout"],
   },
   {
     id: "sugg_linhaça",
@@ -528,7 +522,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_chia", "sugg_aveia", "sugg_granola"],
-    mealTypes: ["breakfast", "snack"],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout"],
   },
   {
     id: "sugg_granola",
@@ -553,7 +547,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_aveia", "sugg_tapioca", "sugg_musli"],
-    mealTypes: ["breakfast", "snack", "morning_snack", "afternoon_snack"],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout"],
   },
   {
     id: "sugg_musli",
@@ -578,7 +572,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_granola", "sugg_aveia", "sugg_chia"],
-    mealTypes: ["breakfast", "snack"],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout"],
   },
 
   // === PROTEÍNAS ===
@@ -685,13 +679,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_iogurte_grego", "sugg_kefir", "sugg_queijo_cottage"],
-    mealTypes: [
-      "breakfast",
-      "snack",
-      "morning_snack",
-      "afternoon_snack",
-      "supper",
-    ],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout", "supper"],
   },
   {
     id: "sugg_iogurte_grego",
@@ -716,7 +704,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_iogurte_natural", "sugg_skyr", "sugg_queijo_cottage"],
-    mealTypes: ["breakfast", "snack"],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout"],
   },
   {
     id: "sugg_skyr",
@@ -745,7 +733,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       "sugg_iogurte_natural",
       "sugg_queijo_cottage",
     ],
-    mealTypes: ["breakfast", "snack"],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout"],
   },
   {
     id: "sugg_iogurte_desnatado",
@@ -770,13 +758,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_skyr", "sugg_iogurte_natural", "sugg_iogurte_grego"],
-    mealTypes: [
-      "breakfast",
-      "snack",
-      "morning_snack",
-      "afternoon_snack",
-      "supper",
-    ],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout", "supper"],
   },
   {
     id: "sugg_queijo_mussarela",
@@ -835,13 +817,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       "sugg_queijo_minas",
       "sugg_iogurte_grego",
     ],
-    mealTypes: [
-      "breakfast",
-      "snack",
-      "morning_snack",
-      "afternoon_snack",
-      "supper",
-    ],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout", "supper"],
   },
   {
     id: "sugg_queijo_minas",
@@ -870,13 +846,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       "sugg_queijo_mussarela",
       "sugg_ricota",
     ],
-    mealTypes: [
-      "breakfast",
-      "snack",
-      "lunch",
-      "morning_snack",
-      "afternoon_snack",
-    ],
+    mealTypes: ["breakfast", "snack", "lunch", "pre_workout", "post_workout"],
   },
   {
     id: "sugg_ricota",
@@ -988,13 +958,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_maca", "sugg_pera", "sugg_mamao"],
-    mealTypes: [
-      "breakfast",
-      "snack",
-      "morning_snack",
-      "afternoon_snack",
-      "supper",
-    ],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout", "supper"],
   },
   {
     id: "sugg_maca",
@@ -1019,7 +983,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_banana", "sugg_pera", "sugg_melao"],
-    mealTypes: ["breakfast", "snack", "morning_snack", "afternoon_snack"],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout", "supper"],
   },
   {
     id: "sugg_melao",
@@ -1175,7 +1139,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_maca", "sugg_banana", "sugg_melao"],
-    mealTypes: ["breakfast", "snack", "morning_snack", "afternoon_snack"],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout", "supper"],
   },
   {
     id: "sugg_kiwi",
@@ -1225,7 +1189,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_framboesa", "sugg_mirtilo", "sugg_amora"],
-    mealTypes: ["breakfast", "snack", "morning_snack", "afternoon_snack"],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout"],
   },
   {
     id: "sugg_mirtilo",
@@ -1275,7 +1239,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_mirtilo", "sugg_morango", "sugg_amora"],
-    mealTypes: ["breakfast", "snack"],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout"],
   },
 
   // === LEGUMES E VERDURAS ===
@@ -1552,13 +1516,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_pepino", "sugg_cenoura", "sugg_salada_mista"],
-    mealTypes: [
-      "lunch",
-      "dinner",
-      "breakfast",
-      "morning_snack",
-      "afternoon_snack",
-    ],
+    mealTypes: ["lunch", "dinner", "breakfast", "pre_workout", "post_workout"],
   },
 
   // === GORDURAS ===
@@ -2075,7 +2033,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_albumina", "sugg_peito_peru", "sugg_queijo_cottage"],
-    mealTypes: ["breakfast", "snack", "morning_snack", "afternoon_snack"],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout"],
   },
   {
     id: "sugg_albumina",
@@ -2265,7 +2223,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_abacate", "sugg_amendoa", "sugg_castanha_do_para"],
-    mealTypes: ["breakfast", "snack", "morning_snack", "afternoon_snack"],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout"],
   },
   {
     id: "sugg_castanha_do_para",
@@ -2290,13 +2248,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_amendoa", "sugg_abacate", "sugg_pasta_amendoim"],
-    mealTypes: [
-      "breakfast",
-      "snack",
-      "morning_snack",
-      "afternoon_snack",
-      "supper",
-    ],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout", "supper"],
   },
   {
     id: "sugg_amendoa",
@@ -2350,13 +2302,7 @@ export const foodSuggestionDatabase: FoodSuggestion[] = [
       },
     ],
     alternatives: ["sugg_iogurte_natural", "sugg_bebida_vegetal"],
-    mealTypes: [
-      "breakfast",
-      "snack",
-      "morning_snack",
-      "afternoon_snack",
-      "supper",
-    ],
+    mealTypes: ["breakfast", "snack", "pre_workout", "post_workout", "supper"],
   },
 ];
 
@@ -2682,7 +2628,7 @@ export const mealSuggestionDatabase: MealSuggestion[] = [
     name: "Lanche Pré-Treino",
     description: "Boa fonte de energia para antes do treino",
     foods: ["sugg_banana", "sugg_whey"],
-    mealType: "snack",
+    mealType: "pre_workout",
     macrosTarget: {
       caloriesMin: 200,
       caloriesMax: 300,
@@ -2698,8 +2644,8 @@ export const mealSuggestionDatabase: MealSuggestion[] = [
     id: "meal_suggestion_snack_2",
     name: "Lanche Pós-Treino",
     description: "Combinação de proteínas e carboidratos para recuperação",
-    foods: ["sugg_whey", "sugg_aveia", "sugg_banana"],
-    mealType: "snack",
+    foods: ["sugg_whey", "sugg_aveia", "sugg_banana", "sugg_iogurte_natural"],
+    mealType: "post_workout",
     macrosTarget: {
       caloriesMin: 250,
       caloriesMax: 350,
@@ -2797,11 +2743,11 @@ export const mealSuggestionDatabase: MealSuggestion[] = [
     },
   },
   {
-    id: "meal_suggestion_morning_snack_1",
+    id: "meal_suggestion_pre_workout_1",
     name: "Lanche da Manhã Proteico",
     description: "Combinação ideal de proteínas e energia para a manhã",
     foods: ["sugg_leite", "sugg_whey", "sugg_banana"],
-    mealType: "morning_snack",
+    mealType: "pre_workout",
     macrosTarget: {
       caloriesMin: 180,
       caloriesMax: 280,
@@ -2814,7 +2760,7 @@ export const mealSuggestionDatabase: MealSuggestion[] = [
     },
   },
   {
-    id: "meal_suggestion_morning_snack_2",
+    id: "meal_suggestion_pre_workout_2",
     name: "Lanche da Manhã Completo",
     description:
       "Equilíbrio perfeito entre proteínas, carboidratos e gorduras boas",
@@ -2824,7 +2770,7 @@ export const mealSuggestionDatabase: MealSuggestion[] = [
       "sugg_pasta_amendoim",
       "sugg_banana",
     ],
-    mealType: "morning_snack",
+    mealType: "pre_workout",
     macrosTarget: {
       caloriesMin: 200,
       caloriesMax: 300,
@@ -2837,11 +2783,11 @@ export const mealSuggestionDatabase: MealSuggestion[] = [
     },
   },
   {
-    id: "meal_suggestion_morning_snack_3",
+    id: "meal_suggestion_pre_workout_3",
     name: "Lanche da Manhã Energético",
     description: "Boost de energia para manter o foco até o almoço",
     foods: ["sugg_whey", "sugg_pasta_amendoim", "sugg_banana"],
-    mealType: "morning_snack",
+    mealType: "pre_workout",
     macrosTarget: {
       caloriesMin: 220,
       caloriesMax: 320,
@@ -2854,11 +2800,11 @@ export const mealSuggestionDatabase: MealSuggestion[] = [
     },
   },
   {
-    id: "meal_suggestion_morning_snack_4",
+    id: "meal_suggestion_pre_workout_4",
     name: "Lanche da Manhã Desnatado",
     description: "Opção com iogurte desnatado para menor ingestão de gorduras",
     foods: ["sugg_iogurte_desnatado", "sugg_whey", "sugg_banana"],
-    mealType: "morning_snack",
+    mealType: "pre_workout",
     macrosTarget: {
       caloriesMin: 160,
       caloriesMax: 260,
@@ -2871,11 +2817,11 @@ export const mealSuggestionDatabase: MealSuggestion[] = [
     },
   },
   {
-    id: "meal_suggestion_afternoon_snack_1",
+    id: "meal_suggestion_post_workout_1",
     name: "Lanche da Tarde Alto Proteico",
     description: "Ideal para recuperação muscular após o treino",
     foods: ["sugg_whey", "sugg_banana", "sugg_pasta_amendoim"],
-    mealType: "afternoon_snack",
+    mealType: "post_workout",
     macrosTarget: {
       caloriesMin: 200,
       caloriesMax: 300,
@@ -2888,12 +2834,12 @@ export const mealSuggestionDatabase: MealSuggestion[] = [
     },
   },
   {
-    id: "meal_suggestion_afternoon_snack_2",
+    id: "meal_suggestion_post_workout_2",
     name: "Lanche da Tarde Equilibrado",
     description:
       "Composição balanceada para evitar picos de fome antes do jantar",
     foods: ["sugg_iogurte_natural", "sugg_pasta_amendoim", "sugg_banana"],
-    mealType: "afternoon_snack",
+    mealType: "post_workout",
     macrosTarget: {
       caloriesMin: 190,
       caloriesMax: 290,
@@ -2906,11 +2852,11 @@ export const mealSuggestionDatabase: MealSuggestion[] = [
     },
   },
   {
-    id: "meal_suggestion_afternoon_snack_3",
+    id: "meal_suggestion_post_workout_3",
     name: "Lanche da Tarde Completo",
     description: "Combinação de proteínas e gorduras boas",
     foods: ["sugg_leite", "sugg_pasta_amendoim"],
-    mealType: "afternoon_snack",
+    mealType: "post_workout",
     macrosTarget: {
       caloriesMin: 180,
       caloriesMax: 280,
@@ -2923,12 +2869,12 @@ export const mealSuggestionDatabase: MealSuggestion[] = [
     },
   },
   {
-    id: "meal_suggestion_afternoon_snack_4",
+    id: "meal_suggestion_post_workout_4",
     name: "Lanche da Tarde Balanceado",
     description:
       "Combinação de proteínas e gorduras saudáveis para um lanche completo",
     foods: ["sugg_iogurte_desnatado", "sugg_banana", "sugg_pasta_amendoim"],
-    mealType: "afternoon_snack",
+    mealType: "post_workout",
     macrosTarget: {
       caloriesMin: 200,
       caloriesMax: 300,
@@ -3676,7 +3622,13 @@ export function adjustPortionsForNutrientNeeds(
   let iterations = 0;
   const maxIterations = 200;
 
-  while (iterations < maxIterations && bestDelta.total > 5) {
+  while (
+    iterations < maxIterations &&
+    (bestDelta.total > 3 ||
+      Math.abs(bestDelta.fat) > 1 ||
+      Math.abs(bestDelta.protein) > 2 ||
+      Math.abs(bestDelta.carbs) > 3)
+  ) {
     iterations++;
 
     // Para cada alimento, tentamos ajustar a porção para melhorar o resultado
@@ -4277,7 +4229,13 @@ export function adjustPortionsWithExistingFoods(
   let iterations = 0;
   const maxIterations = 200;
 
-  while (iterations < maxIterations && bestDelta.total > 5) {
+  while (
+    iterations < maxIterations &&
+    (bestDelta.total > 3 ||
+      Math.abs(bestDelta.fat) > 1 ||
+      Math.abs(bestDelta.protein) > 2 ||
+      Math.abs(bestDelta.carbs) > 3)
+  ) {
     iterations++;
 
     // Para cada alimento, tentamos ajustar a porção para melhorar o resultado
