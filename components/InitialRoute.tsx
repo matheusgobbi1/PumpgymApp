@@ -7,6 +7,9 @@ import { OfflineStorage } from "../services/OfflineStorage";
 import { View, ActivityIndicator, Text } from "react-native";
 import Colors from "../constants/Colors";
 import { useTheme } from "../context/ThemeContext";
+import { getUserData } from "../firebase/storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { KEYS } from "../constants/keys";
 
 export default function InitialRoute() {
   const {
@@ -18,6 +21,9 @@ export default function InitialRoute() {
     isAnonymous,
     isSubscribed,
     checkSubscriptionStatus,
+    setUser,
+    setIsSubscribed,
+    checkOfflineSubscriptionStatus,
   } = useAuth();
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
   const [onboardingCompleted, setOnboardingCompleted] = useState<
@@ -25,8 +31,73 @@ export default function InitialRoute() {
   >(null);
   const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);
   const [hasCheckedSubscription, setHasCheckedSubscription] = useState(false);
+  const [isCheckingOfflineUser, setIsCheckingOfflineUser] = useState(false);
+  const [offlineUser, setOfflineUser] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const { theme } = useTheme();
+
+  // Verificar usuário offline quando não há usuário autenticado
+  useEffect(() => {
+    const checkOfflineUser = async () => {
+      if (!user && !loading && authStateStable && !isRestoringSession) {
+        setIsCheckingOfflineUser(true);
+        try {
+          // Verificar se está offline
+          const isOnline = await OfflineStorage.isOnline();
+
+          if (!isOnline) {
+            // Tentar obter último usuário logado
+            const lastUserId = await AsyncStorage.getItem(
+              KEYS.LAST_LOGGED_USER
+            );
+
+            if (lastUserId) {
+              // Carregar dados do usuário do SecureStore
+              const userData = await getUserData();
+
+              if (userData && userData.uid) {
+                // Verificar status de assinatura offline usando a função do AuthContext
+                const hasSubscription = await checkOfflineSubscriptionStatus(
+                  userData.uid
+                );
+
+                // Definir dados do usuário no contexto para manter sessão
+                setUser({
+                  uid: userData.uid,
+                  email: userData.email,
+                  displayName: userData.displayName,
+                  isAnonymous: userData.isAnonymous || false,
+                } as any);
+
+                // Definir status de assinatura
+                setIsSubscribed(hasSubscription);
+
+                // Salvar para uso na renderização
+                setOfflineUser({
+                  ...userData,
+                  isSubscribed: hasSubscription,
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Erro ao verificar usuário offline:", error);
+        } finally {
+          setIsCheckingOfflineUser(false);
+        }
+      }
+    };
+
+    checkOfflineUser();
+  }, [
+    user,
+    loading,
+    authStateStable,
+    isRestoringSession,
+    setUser,
+    setIsSubscribed,
+    checkOfflineSubscriptionStatus,
+  ]);
 
   // Verificar status de assinatura
   useEffect(() => {
@@ -180,6 +251,7 @@ export default function InitialRoute() {
     !authStateStable ||
     isRestoringSession ||
     !appInitialized ||
+    isCheckingOfflineUser ||
     (user &&
       !isAnonymous &&
       (isCheckingOnboarding ||
@@ -198,6 +270,19 @@ export default function InitialRoute() {
         <ActivityIndicator size="large" color={Colors[theme].primary} />
       </View>
     );
+  }
+
+  // Se temos um usuário offline quando estamos sem internet
+  if (offlineUser && !user) {
+    if (!offlineUser.onboardingCompleted) {
+      return <Redirect href="/onboarding/gender" />;
+    }
+
+    if (!offlineUser.isSubscribed) {
+      return <Redirect href="/paywall" />;
+    }
+
+    return <Redirect href="/(tabs)" />;
   }
 
   // Após o carregamento, redirecionar baseado no estado de autenticação e onboarding
