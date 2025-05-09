@@ -71,7 +71,8 @@
     "react-native-screens": "~4.4.0",
     "react-native-svg": "^15.11.2",
     "react-native-view-shot": "^4.0.3",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "@react-native-masked-view/masked-view": "0.3.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

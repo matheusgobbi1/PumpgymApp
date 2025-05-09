@@ -1,9 +1,4 @@
-import React, {
-  useRef,
-  useCallback,
-  useState,
-  useEffect,
-} from "react";
+import React, { useRef, useCallback, useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -23,9 +18,7 @@ import {
 } from "react-native";
 import Colors from "../../constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
-import BottomSheet, {
-  BottomSheetBackdrop,
-} from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import * as Haptics from "expo-haptics";
 import { validateLogin } from "../../utils/validations";
 import { useAuth } from "../../context/AuthContext";
@@ -60,7 +53,7 @@ const LoginBottomSheet = ({
   const { theme } = useTheme();
   const colors = Colors[theme];
   const insets = useSafeAreaInsets();
-  const { login, loginWithApple } = useAuth();
+  const { login } = useAuth();
   const { t } = useTranslation();
   const router = useRouter();
   const { showToast } = useToast();
@@ -111,9 +104,7 @@ const LoginBottomSheet = ({
 
     if (bottomSheetRef.current) {
       isAnimatingRef.current = true;
-      // Se o teclado estiver visível, só temos um snapPoint (0)
-      // Se não, vamos para o snapPoint 1 (85%)
-      const targetIndex = keyboardVisible ? 0 : 1;
+      const targetIndex = keyboardVisible ? 0 : snapPoints.length - 1; // Usar o último snap point disponível
       bottomSheetRef.current.snapToIndex(targetIndex);
       lastSnapPointRef.current = targetIndex;
 
@@ -122,7 +113,7 @@ const LoginBottomSheet = ({
         isAnimatingRef.current = false;
       }, 300);
     }
-  }, [keyboardVisible]);
+  }, [keyboardVisible, snapPoints.length]);
 
   // Monitorar o teclado
   useEffect(() => {
@@ -165,7 +156,7 @@ const LoginBottomSheet = ({
             setKeyboardVisible(false);
 
             // Restaurar os snapPoints originais
-            setSnapPoints(["60%", "75%"]);
+            setSnapPoints(["50%", "75%"]);
           })
         : null;
 
@@ -178,7 +169,7 @@ const LoginBottomSheet = ({
         setKeyboardVisible(false);
 
         // Restaurar os snapPoints originais
-        setSnapPoints(["60%", "75%"]);
+        setSnapPoints(["50%", "75%"]);
       }
     );
 
@@ -275,45 +266,6 @@ const LoginBottomSheet = ({
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 
       // Usar toast em vez de mensagem de erro inline
-      showToast({
-        message: handleLoginError(err),
-        type: "error",
-        duration: 4000,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAppleLogin = async () => {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-      // Verificar se estamos em modo de desenvolvimento Expo Go
-      if (isExpoGo) {
-        showToast({
-          message: "Login com Apple só funciona em builds nativos do app",
-          type: "warning",
-          duration: 4000,
-        });
-        return;
-      }
-
-      // Verificar se o dispositivo é Android
-      if (Platform.OS === "android") {
-        showToast({
-          message:
-            "Login com Apple não está disponível em dispositivos Android",
-          type: "info",
-          duration: 4000,
-        });
-        return;
-      }
-
-      setLoading(true);
-      await loginWithApple();
-    } catch (err) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showToast({
         message: handleLoginError(err),
         type: "error",
@@ -431,7 +383,7 @@ const LoginBottomSheet = ({
       ]}
       backgroundStyle={[
         styles.bottomSheetBackground,
-        { backgroundColor: theme === "dark" ? "#1c1c1e" : "#ffffff" },
+        { backgroundColor: theme === "dark" ? "#000" : "#ffffff" },
       ]}
       onChange={handleSheetChanges}
       keyboardBehavior="interactive"
@@ -652,8 +604,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
   },
   bottomSheetIndicator: {
-    width: 40,
-    height: 4,
+    width: 0,
+    height: 0,
   },
   headerContainer: {
     flexDirection: "row",
@@ -756,6 +708,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     letterSpacing: 1,
+  },
+  socialLoginContainer: {
+    marginBottom: 16, // Adicionado para dar espaço antes do final do BottomSheet
+  },
+  socialButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+  },
+  socialIcon: {
+    marginRight: 12,
+  },
+  socialButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 

@@ -20,7 +20,7 @@
       "passwordPlaceholder": "Sua senha",
       "forgotPassword": "Esqueceu sua senha?",
       "loginButton": "ENTRAR",
-      "orContinueWith": "ou continue com",
+      "continueWithApple": "Continuar com Apple",
       "errorMessages": {
         "invalidCredentials": "Email ou senha inválidos. Tente novamente.",
         "emptyFields": "Por favor, preencha todos os campos.",
@@ -2482,5 +2482,62 @@
     "reviewExistingDescription": "Este é o seu treino atual. Você pode salvá-lo novamente ou gerar um novo.",
     "regenerateWorkout": "Gerar Novo Treino",
     "saveWorkout": "Salvar Treino"
+  },
+  "paywall": {
+    "title": "Acesso Total",
+    "subtitle": "Escolha um plano para desbloquear todas as funcionalidades e conteúdos.",
+    "loadingPlans": "Carregando planos...",
+    "loadErrorTitle": "Erro ao Carregar Planos",
+    "loadErrorMessage": "Não foi possível carregar os planos de assinatura. Verifique sua conexão com a internet e tente novamente.",
+    "tryAgain": "Tentar Novamente",
+    "purchaseErrorVerification": "Houve um problema ao verificar sua compra. Tente novamente ou contate o suporte.",
+    "purchaseErrorGeneric": "Não foi possível concluir a compra: {{message}}. Tente novamente mais tarde.",
+    "restoreSuccess": "Compras restauradas com sucesso!",
+    "restoreNoSubscription": "Nenhuma assinatura ativa encontrada para restaurar.",
+    "restoreError": "Erro ao restaurar compras. Tente novamente ou contate o suporte.",
+    "startFreeTrial": "Comece Seus 7 Dias Grátis",
+    "selectedPlanError": "Plano selecionado não encontrado. Por favor, tente novamente.",
+    "introOffer": "{{period}} {{price}}",
+    "introOfferFree": "Grátis por {{period}}",
+    "introOfferPaid": "{{price}} durante os primeiros {{period}}",
+    "chooseYourPlan": "Inicie o teste gratuito",
+    "bottomSheet": {
+      "title": "Escolha seu Plano"
+    },
+    "annual": {
+      "badge": "MELHOR VALOR",
+      "title": "Plano Anual",
+      "frequency": "cobrado anualmente",
+      "frequencyDetails": "Cobrado anualmente (R${{pricePerMonth}}/mês)",
+      "save": "2 meses grátis"
+    },
+    "monthly": {
+      "title": "Plano Mensal",
+      "frequency": "cobrado mensalmente",
+      "frequencyDetails": "Cobrado mensalmente"
+    },
+    "restorePurchases": {
+      "button": "Restaurar Compras",
+      "mockMessage": "Mock: Compras restauradas com sucesso!"
+    },
+    "footer": {
+      "autoRenew": "As assinaturas são renovadas automaticamente, a menos que a renovação automática seja desativada pelo menos 24 horas antes do final do período atual. Gerencie suas assinaturas nas configurações da sua conta.",
+      "terms": "Termos de Uso",
+      "privacy": "Política de Privacidade"
+    },
+    "stepper": {
+      "today": {
+        "title": "Hoje - Acesso Imediato",
+        "description": "Acesso a todos os treinos, planos alimentares, monitoramento de progresso e mais."
+      },
+      "day5": {
+        "title": "Dia 5 - Lembrete do Teste",
+        "description": "Enviaremos um lembrete antes do seu teste terminar."
+      },
+      "day7": {
+        "title": "Dia 7 - Fim do Teste",
+        "description": "Seu teste gratuito termina. Cancele a qualquer momento antes desta data para não ser cobrado."
+      }
+    }
   }
 } 

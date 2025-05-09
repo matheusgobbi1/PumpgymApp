@@ -119,7 +119,6 @@ const MemoizedWorkoutGroup = React.memo(
       <View key={`workout-group-${workoutId}-${index}`}>
         {/* Card de estatísticas para este treino específico */}
         <TrainingStatsCard
-          workoutId={workoutId}
           workoutTotals={workoutTotals}
           previousWorkoutTotals={previousWorkoutData}
           workoutName={workoutType.name}
@@ -582,7 +581,8 @@ export default function TrainingScreen() {
   };
 
   // Ajustar paddingTop do ScrollView dinamicamente
-  const scrollViewPaddingTop = headerContentHeight > 0 ? headerContentHeight + 5 : insets.top + 150; // Fallback inicial
+  const scrollViewPaddingTop =
+    headerContentHeight > 0 ? headerContentHeight + 5 : insets.top + 150; // Fallback inicial
 
   // Renderização do conteúdo completo da tela (ajustar paddingTop)
   const renderScreenContent = () => {
@@ -619,9 +619,7 @@ export default function TrainingScreen() {
           menuVisible={isMenuVisible}
         />
         {/* Calendário - fluxo normal abaixo do header */}
-        <View style={styles.calendarContainer}>
-          {calendarComponent}
-        </View>
+        <View style={styles.calendarContainer}>{calendarComponent}</View>
       </View>
 
       {renderScreenContent()}

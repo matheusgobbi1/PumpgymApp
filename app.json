@@ -19,8 +19,9 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fitfolio.app",
-      "usesAppleSignIn": true
+      "bundleIdentifier": "app.matheus.fitfolio",
+      "usesAppleSignIn": true,
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "adaptiveIcon": {

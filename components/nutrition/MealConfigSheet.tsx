@@ -173,10 +173,11 @@ const AVAILABLE_COLORS: string[] = [
 
 interface MealConfigSheetProps {
   onMealConfigured: (meals: MealType[]) => void;
+  onDismiss?: () => void; // Adicionado para callback de dismiss geral
 }
 
 const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
-  ({ onMealConfigured }, ref) => {
+  (props, ref) => {
     const { theme } = useTheme();
     const colors = Colors[theme];
     const insets = useSafeAreaInsets();
@@ -184,22 +185,17 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
     const [isLoading, setIsLoading] = useState(true);
     const { t } = useTranslation();
 
-    // Ref para o bottom sheet
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+    const isSavingInProgress = useRef(false);
+    const [initialMealTypesOnOpen, setInitialMealTypesOnOpen] = useState<
+      MealType[]
+    >([]);
 
-    // Expor a referência para o componente pai
-    useImperativeHandle(ref, () => {
-      return bottomSheetModalRef.current!;
-    });
+    useImperativeHandle(ref, () => bottomSheetModalRef.current!);
 
-    // Estados
     const [mealTypes, setMealTypes] = useState<MealType[]>([]);
     const [keyboardVisible, setKeyboardVisible] = useState(false);
-
-    // Pontos de ancoragem do bottom sheet
     const snapPoints = useMemo(() => ["70%"], []);
-
-    // Estados para controlar seletores
     const [showColorSelectorFor, setShowColorSelectorFor] = useState<
       string | null
     >(null);
@@ -207,96 +203,93 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
       string | null
     >(null);
 
-    // Inicializar os tipos de refeições com os existentes ou os padrões (CORRIGIDO 2)
     useEffect(() => {
       const initializeMealTypes = () => {
-        const finalMealTypes: MealType[] = [];
+        setIsLoading(true);
+        let loadedTypesToSet: MealType[] = [];
 
-        // Criar um mapa dos tipos existentes para acesso rápido
-        const existingTypesMap = new Map<
-          string,
-          (typeof existingMealTypes)[0]
-        >();
-        existingMealTypes.forEach((et) => existingTypesMap.set(et.id, et));
+        if (existingMealTypes && existingMealTypes.length > 0) {
+          const finalMealTypes: MealType[] = [];
+          const existingTypesMap = new Map<
+            string,
+            (typeof existingMealTypes)[0]
+          >();
+          existingMealTypes.forEach((et) => existingTypesMap.set(et.id, et));
 
-        // Processar os tipos padrão
-        DEFAULT_MEAL_TYPES.forEach((defaultType) => {
-          const existingType = existingTypesMap.get(defaultType.id);
-          if (existingType) {
-            // Existe no contexto: usar dados salvos
-            finalMealTypes.push({
-              ...defaultType, // Mantém name, isDefault
-              icon: existingType.icon,
-              color: existingType.color || defaultType.color, // Fallback para cor padrão se salva for inválida
-              selected: true,
-            });
-            // Remover do mapa para não processar duas vezes
-            existingTypesMap.delete(defaultType.id);
-          } else {
-            // Não existe no contexto: usar padrão desmarcado
-            finalMealTypes.push({
-              ...defaultType,
-              selected: false,
-            });
-          }
-        });
-
-        // Adicionar tipos personalizados restantes do mapa (que não estavam nos defaults)
-        existingTypesMap.forEach((customType) => {
-          finalMealTypes.push({
-            id: customType.id,
-            name: customType.name,
-            icon: customType.icon,
-            color: customType.color || "#CCCCCC", // Fallback genérico
-            selected: true, // Se está no contexto, estava selecionado
-            isDefault: false,
+          DEFAULT_MEAL_TYPES.forEach((defaultType) => {
+            const existingType = existingTypesMap.get(defaultType.id);
+            if (existingType) {
+              finalMealTypes.push({
+                ...defaultType,
+                icon: existingType.icon,
+                color: existingType.color || defaultType.color,
+                name: existingType.name,
+                selected: true,
+              });
+              existingTypesMap.delete(defaultType.id);
+            } else {
+              finalMealTypes.push({ ...defaultType, selected: false });
+            }
           });
-        });
 
-        setMealTypes(finalMealTypes);
+          existingTypesMap.forEach((customType) => {
+            finalMealTypes.push({
+              id: customType.id,
+              name: customType.name,
+              icon: customType.icon,
+              color: customType.color || "#CCCCCC",
+              selected: true,
+              isDefault: false,
+            });
+          });
+          loadedTypesToSet = finalMealTypes;
+        } else {
+          loadedTypesToSet = DEFAULT_MEAL_TYPES.map((type) => ({
+            ...type,
+            selected: false,
+          }));
+        }
+        setMealTypes(loadedTypesToSet);
+        // Armazenar uma cópia profunda do estado inicial
+        setInitialMealTypesOnOpen(JSON.parse(JSON.stringify(loadedTypesToSet)));
         setIsLoading(false);
       };
-
       requestAnimationFrame(initializeMealTypes);
     }, [existingMealTypes]);
 
-    // Detectar quando o teclado é aberto ou fechado
     useEffect(() => {
       const keyboardDidShowListener = Keyboard.addListener(
         "keyboardDidShow",
-        () => {
-          setKeyboardVisible(true);
-        }
+        () => setKeyboardVisible(true)
       );
       const keyboardDidHideListener = Keyboard.addListener(
         "keyboardDidHide",
-        () => {
-          setKeyboardVisible(false);
-        }
+        () => setKeyboardVisible(false)
       );
-
       return () => {
         keyboardDidShowListener.remove();
         keyboardDidHideListener.remove();
       };
     }, []);
 
-    // Função para fechar o bottom sheet
     const closeBottomSheet = useCallback(() => {
       bottomSheetModalRef.current?.dismiss();
     }, []);
 
-    // Função para quando o bottom sheet for fechado
-    const handleSheetChanges = useCallback((index: number) => {
-      // Quando o bottom sheet for fechado (index = -1), não fazemos nada
-      // Remover a chamada ao callback para não criar refeições automaticamente
-      if (index === -1) {
-        // Apenas fechamos o modal sem criar refeições
-        // O usuário precisa explicitamente clicar em "Confirmar" para criar as refeições
+    const handleDismiss = useCallback(() => {
+      if (!isSavingInProgress.current) {
+        // Reverter para o estado inicial se não estiver salvando
+        setMealTypes(JSON.parse(JSON.stringify(initialMealTypesOnOpen)));
+        // Limpar seletores
+        setShowColorSelectorFor(null);
+        setShowIconSelectorFor(null);
       }
-    }, []);
+      // Resetar o flag de salvamento
+      isSavingInProgress.current = false;
+      // Chamar o onDismiss original do componente pai, se existir
+      props.onDismiss?.();
+    }, [initialMealTypesOnOpen, props.onDismiss]);
 
-    // Função para renderizar o backdrop (fundo escurecido)
     const renderBackdrop = useCallback(
       (props: BottomSheetBackdropProps) => (
         <BottomSheetBackdrop
@@ -309,7 +302,6 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
       []
     );
 
-    // Função para selecionar/deselecionar uma refeição
     const toggleMealSelection = useCallback((id: string) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setMealTypes((prev) =>
@@ -319,88 +311,67 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
       );
     }, []);
 
-    // Funções para alternar seletores
     const toggleColorSelector = useCallback((mealId: string) => {
       setShowColorSelectorFor((prev) => (prev === mealId ? null : mealId));
-      setShowIconSelectorFor(null); // Fecha o outro seletor
+      setShowIconSelectorFor(null);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }, []);
 
     const toggleIconSelector = useCallback((mealId: string) => {
       setShowIconSelectorFor((prev) => (prev === mealId ? null : mealId));
-      setShowColorSelectorFor(null); // Fecha o outro seletor
+      setShowColorSelectorFor(null);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }, []);
 
-    // Funções para atualizar estado local
     const updateMealColor = useCallback((mealId: string, color: string) => {
       setMealTypes((prev) =>
         prev.map((meal) => (meal.id === mealId ? { ...meal, color } : meal))
       );
-      setShowColorSelectorFor(null); // Fecha o seletor
+      setShowColorSelectorFor(null);
     }, []);
 
     const updateMealIcon = useCallback((mealId: string, icon: string) => {
       setMealTypes((prev) =>
         prev.map((meal) => (meal.id === mealId ? { ...meal, icon } : meal))
       );
-      setShowIconSelectorFor(null); // Fecha o seletor
+      setShowIconSelectorFor(null);
     }, []);
 
-    // Função para confirmar a configuração
     const confirmMealConfig = useCallback(() => {
-      // Filtrar apenas as refeições selecionadas
-      const selectedMeals = mealTypes.filter((meal) => meal.selected);
+      // Fechar seletores antes de confirmar
+      setShowColorSelectorFor(null);
+      setShowIconSelectorFor(null);
 
+      const selectedMeals = mealTypes.filter((meal) => meal.selected);
       if (selectedMeals.length === 0) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         return;
       }
 
-      // Chamar o callback para atualizar o estado no contexto
-      onMealConfigured(selectedMeals);
-
-      // Então fechar o modal
+      isSavingInProgress.current = true; // Marcar que o salvamento está em progresso
+      props.onMealConfigured(selectedMeals);
       bottomSheetModalRef.current?.dismiss();
-
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }, [mealTypes, onMealConfigured]);
+    }, [mealTypes, props.onMealConfigured]);
 
-    // Verificar se há refeições selecionadas
-    const hasMealsSelected = useMemo(() => {
-      return mealTypes.some((meal) => meal.selected);
-    }, [mealTypes]);
+    const hasMealsSelected = useMemo(
+      () => mealTypes.some((meal) => meal.selected),
+      [mealTypes]
+    );
 
-    // Função para obter a cor da refeição selecionada
-    // Se houver múltiplas refeições selecionadas, usamos a cor da última refeição selecionada
     const getSelectedMealColor = useCallback(() => {
       const selectedMeals = mealTypes.filter((m) => m.selected);
-
-      if (selectedMeals.length === 0) {
-        return undefined;
-      }
-
-      // Retorna a cor da última refeição selecionada
+      if (selectedMeals.length === 0) return undefined;
       return selectedMeals[selectedMeals.length - 1].color;
     }, [mealTypes]);
 
-    // Verifica se há múltiplas refeições selecionadas
-    const hasMultipleMealsSelected = useCallback(() => {
-      return mealTypes.filter((m) => m.selected).length > 1;
-    }, [mealTypes]);
-
-    // Função para obter todas as cores das refeições selecionadas
     const getSelectedMealColors = useCallback(() => {
       return mealTypes.filter((m) => m.selected).map((m) => m.color);
     }, [mealTypes]);
 
-    // Função para renderizar os indicadores de cor
     const renderColorIndicators = () => {
       const selectedColors = getSelectedMealColors();
-
       if (selectedColors.length === 0) return null;
-
-      // Limitar o número de indicadores para não sobrecarregar a UI
       const maxIndicators = 4;
       const colorsToShow = selectedColors.slice(0, maxIndicators);
       const hasMore = selectedColors.length > maxIndicators;
@@ -414,10 +385,9 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                 styles.colorIndicator,
                 {
                   backgroundColor: color,
-                  // Um pequeno efeito de escalonamento para os círculos
                   transform: [{ scale: 1 - index * 0.05 }],
                   zIndex: colorsToShow.length - index,
-                  marginLeft: index > 0 ? -6 : 0, // Sobreposição parcial
+                  marginLeft: index > 0 ? -6 : 0,
                 },
               ]}
             />
@@ -440,7 +410,6 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
       );
     };
 
-    // Componente de renderização para cada item de refeição
     const renderMealItem = useCallback(
       (meal: MealType, index: number) => {
         const entryDirection = index % 2 === 0 ? -1 : 1;
@@ -483,7 +452,6 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                 },
               ]}
               onPress={() => {
-                // Só permite selecionar/deselecionar se nenhum seletor estiver aberto
                 if (!isColorSelectorOpen && !isIconSelectorOpen) {
                   toggleMealSelection(meal.id);
                 }
@@ -496,7 +464,6 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                   meal.selected && { backgroundColor: "transparent" },
                 ]}
               >
-                {/* Ícone clicável para abrir seletor de ícones */}
                 <TouchableOpacity
                   style={[
                     styles.mealIconContainer,
@@ -535,7 +502,6 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                   </Text>
                 </View>
 
-                {/* Botão para abrir seletor de cores */}
                 <TouchableOpacity
                   style={[
                     styles.colorPickerButton,
@@ -552,7 +518,6 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                 </TouchableOpacity>
               </View>
 
-              {/* Seletor de Cores */}
               {isColorSelectorOpen && (
                 <MotiView
                   from={{ opacity: 0, height: 0 }}
@@ -584,7 +549,6 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
                 </MotiView>
               )}
 
-              {/* Seletor de Ícones */}
               {isIconSelectorOpen && (
                 <MotiView
                   from={{ opacity: 0, height: 0 }}
@@ -649,7 +613,6 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
       ]
     );
 
-    // Adicionar um componente de carregamento
     if (isLoading) {
       return (
         <View
@@ -672,14 +635,12 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
           backgroundColor: colors.text + "50",
           width: 40,
         }}
-        backgroundStyle={{
-          backgroundColor: colors.background,
-        }}
+        backgroundStyle={{ backgroundColor: colors.background }}
         enablePanDownToClose
         enableDismissOnClose
         keyboardBehavior="interactive"
         keyboardBlurBehavior="none"
-        onChange={handleSheetChanges}
+        onDismiss={handleDismiss}
         backdropComponent={renderBackdrop}
       >
         <KeyboardAvoidingView
@@ -726,15 +687,8 @@ const MealConfigSheet = forwardRef<BottomSheetModal, MealConfigSheetProps>(
               style={
                 getSelectedMealColor()
                   ? {
+                      ...styles.confirmButton,
                       backgroundColor: getSelectedMealColor(),
-                      height: 56,
-                      borderRadius: 28,
-                      justifyContent: "center",
-                      alignItems: "center",
-                      shadowColor: "#000",
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.15,
-                      shadowRadius: 8,
                     }
                   : styles.confirmButton
               }
@@ -796,8 +750,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 16,
-    paddingLeft: 16, // Ajuste para dar espaço ao botão de cor
-    paddingRight: 10, // Ajuste para dar espaço ao botão de cor
+    paddingLeft: 16,
+    paddingRight: 10,
     minHeight: 70,
   },
   mealIconContainer: {
@@ -815,10 +769,6 @@ const styles = StyleSheet.create({
   mealName: {
     fontSize: 16,
     fontWeight: "600",
-  },
-  editButton: {
-    // Removido - substituído por colorPickerButton
-    // padding: 4,
   },
   footer: {
     paddingHorizontal: 20,
@@ -847,7 +797,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-  // Estilos para os indicadores de cor
   colorIndicatorsContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -880,28 +829,27 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 8, // Espaço entre nome e botão de cor
+    marginLeft: 8,
   },
   colorPreview: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.5)", // Borda sutil
+    borderColor: "rgba(255, 255, 255, 0.5)",
   },
   inlineSelectorContainer: {
     paddingVertical: 10,
-    // backgroundColor: 'rgba(0,0,0,0.03)', // Fundo sutil
-    borderBottomLeftRadius: 16, // Arredondar cantos inferiores
+    borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
-    overflow: "hidden", // Garantir que o conteúdo não transborde
-    marginTop: -1, // Sobrepor ligeiramente a linha inferior do cartão
+    overflow: "hidden",
+    marginTop: -1,
     borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.05)", // Linha divisória sutil
+    borderTopColor: "rgba(0,0,0,0.05)",
   },
   inlineSelectorList: {
     paddingHorizontal: 16,
-    paddingVertical: 6, // Espaçamento vertical interno
+    paddingVertical: 6,
   },
   colorOption: {
     width: 38,
@@ -914,7 +862,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(0,0,0,0.1)",
   },
   iconOption: {
-    width: 42, // Ligeiramente maior para ícones
+    width: 42,
     height: 42,
     borderRadius: 21,
     marginRight: 12,
@@ -923,8 +871,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   optionSelected: {
-    borderWidth: 2.5, // Destaque maior
-    borderColor: "#FFF", // Borda branca para destaque
+    borderWidth: 2.5,
+    borderColor: "#FFF",
     transform: [{ scale: 1.05 }],
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },

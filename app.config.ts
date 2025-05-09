@@ -16,7 +16,7 @@ export default {
   assetBundlePatterns: ["**/*"],
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.fitfolio.app",
+    bundleIdentifier: "app.matheus.fitfolio",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSMotionUsageDescription:
@@ -40,6 +40,20 @@ export default {
     EDAMAM_APP_KEY: process.env.EXPO_PUBLIC_EDAMAM_APP_KEY,
     FATSECRET_CLIENT_ID: process.env.EXPO_PUBLIC_FATSECRET_CLIENT_ID,
     FATSECRET_CLIENT_SECRET: process.env.EXPO_PUBLIC_FATSECRET_CLIENT_SECRET,
+    FIREBASE_API_KEY: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+    FIREBASE_AUTH_DOMAIN: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    FIREBASE_PROJECT_ID: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+    FIREBASE_STORAGE_BUCKET: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    FIREBASE_MESSAGING_SENDER_ID:
+      process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    FIREBASE_APP_ID: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+    FIREBASE_MEASUREMENT_ID: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
+    GOOGLE_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    GOOGLE_IOS_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    REVENUECAT_IOS_API_KEY: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY,
+    REVENUECAT_ANDROID_API_KEY:
+      process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY,
+
     eas: {
       projectId: "1831e653-eb5e-45fc-a600-7a202c73cea9",
     },

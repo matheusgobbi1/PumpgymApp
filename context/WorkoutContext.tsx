@@ -169,13 +169,6 @@ interface WorkoutContextType {
     workoutId: string,
     updatedExercises: Exercise[]
   ) => Promise<boolean>;
-  // Salvar treino gerado pelo builder
-  saveGeneratedWorkout: (
-    workoutId: string,
-    date: string,
-    exercises: Exercise[]
-  ) => Promise<boolean>;
-
   // Propriedades para notificação de Conquista (genérico)
   achievementNotificationData: AchievementNotificationData | null;
   clearAchievementNotification: () => void;
@@ -204,7 +197,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   >([]);
   const [loading, setLoading] = useState(false);
   // Estado para notificação de Conquista
-  const [achievementNotificationData, setAchievementNotificationData] = useState<AchievementNotificationData | null>(null);
+  const [achievementNotificationData, setAchievementNotificationData] =
+    useState<AchievementNotificationData | null>(null);
 
   // Função para limpar a notificação de Conquista
   const clearAchievementNotification = useCallback(() => {
@@ -289,7 +283,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     [workoutTypes]
   );
 
-  // --- RESTAURAR/DEFINIR getPreviousWorkoutExercises --- 
+  // --- RESTAURAR/DEFINIR getPreviousWorkoutExercises ---
   const getPreviousWorkoutExercises = useCallback(
     (workoutId: string): { exercises: Exercise[]; date: string | null } => {
       const defaultReturn = { exercises: [], date: null };
@@ -303,7 +297,9 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         if (workouts[date] && workouts[date][workoutId]) {
           const exercises = workouts[date][workoutId];
           const validExercises = exercises.filter(
-            (exercise: Exercise) => // Adicionado tipo Exercise
+            (
+              exercise: Exercise // Adicionado tipo Exercise
+            ) =>
               exercise.category !== "cardio" &&
               exercise.sets &&
               exercise.sets.length > 0
@@ -317,7 +313,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     },
     [workouts, selectedDate]
   );
-  // --- FIM RESTAURAR/DEFINIR getPreviousWorkoutExercises --- 
+  // --- FIM RESTAURAR/DEFINIR getPreviousWorkoutExercises ---
 
   // Carregar treinos do AsyncStorage
   const loadWorkouts = useCallback(async (): Promise<boolean> => {
@@ -894,42 +890,59 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     try {
       setWorkouts((prev) => {
         const updatedWorkouts = { ...prev };
-        if (!updatedWorkouts[selectedDate] || !updatedWorkouts[selectedDate][workoutId]) {
+        if (
+          !updatedWorkouts[selectedDate] ||
+          !updatedWorkouts[selectedDate][workoutId]
+        ) {
           return prev;
         }
-        updatedWorkouts[selectedDate][workoutId] = updatedWorkouts[selectedDate][workoutId].map((exercise) =>
+        updatedWorkouts[selectedDate][workoutId] = updatedWorkouts[
+          selectedDate
+        ][workoutId].map((exercise) =>
           exercise.id === exerciseId ? updatedExercise : exercise
         );
         currentWorkoutsState = updatedWorkouts; // Store the updated state for saving
         return updatedWorkouts;
       });
 
-       // --- Lógica de Verificação de PR --- 
-       if (updatedExercise.category !== 'cardio' && updatedExercise.sets && updatedExercise.sets.length > 0) {
-           const { exercises: previousExercises } = getPreviousWorkoutExercises(workoutId);
-           if (previousExercises.length > 0) {
-               const previousExercise = previousExercises.find((ex: Exercise) => ex.id === exerciseId || ex.name === updatedExercise.name);
-               if (previousExercise && previousExercise.sets && previousExercise.sets.length > 0) {
-                   let previousMaxWeight = 0;
-                   previousExercise.sets.forEach((set: ExerciseSet) => {
-                       if (set.weight > previousMaxWeight) {
-                           previousMaxWeight = set.weight;
-                       }
-                   });
-                   let currentMaxWeight = 0;
-                   updatedExercise.sets.forEach((set: ExerciseSet) => {
-                       if (set.weight > currentMaxWeight) {
-                           currentMaxWeight = set.weight;
-                       }
-                   });
-                   if (currentMaxWeight > previousMaxWeight) {
-                       isPR = true;
-                       prWeight = currentMaxWeight;
-                   }
-               }
-           }
+      // --- Lógica de Verificação de PR ---
+      if (
+        updatedExercise.category !== "cardio" &&
+        updatedExercise.sets &&
+        updatedExercise.sets.length > 0
+      ) {
+        const { exercises: previousExercises } =
+          getPreviousWorkoutExercises(workoutId);
+        if (previousExercises.length > 0) {
+          const previousExercise = previousExercises.find(
+            (ex: Exercise) =>
+              ex.id === exerciseId || ex.name === updatedExercise.name
+          );
+          if (
+            previousExercise &&
+            previousExercise.sets &&
+            previousExercise.sets.length > 0
+          ) {
+            let previousMaxWeight = 0;
+            previousExercise.sets.forEach((set: ExerciseSet) => {
+              if (set.weight > previousMaxWeight) {
+                previousMaxWeight = set.weight;
+              }
+            });
+            let currentMaxWeight = 0;
+            updatedExercise.sets.forEach((set: ExerciseSet) => {
+              if (set.weight > currentMaxWeight) {
+                currentMaxWeight = set.weight;
+              }
+            });
+            if (currentMaxWeight > previousMaxWeight) {
+              isPR = true;
+              prWeight = currentMaxWeight;
+            }
+          }
         }
-       // --- Fim da Lógica de Verificação de PR ---
+      }
+      // --- Fim da Lógica de Verificação de PR ---
 
       // Salvar imediatamente usando o estado capturado
       if (currentWorkoutsState) {
@@ -938,11 +951,12 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           JSON.stringify(currentWorkoutsState)
         );
       } else {
-        console.warn("Estado atualizado não capturado, salvamento pulado em updateExerciseInWorkout");
+        console.warn(
+          "Estado atualizado não capturado, salvamento pulado em updateExerciseInWorkout"
+        );
       }
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
     } catch (error) {
       console.error("Erro ao atualizar exercício:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -951,12 +965,12 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     // Se for um PR, atualizar o estado da notificação de conquista
     if (isPR) {
       // Definir a cor aqui, poderia vir do tema ou ser fixa
-      const prIconColor = '#FFD700'; // Dourado para troféu
+      const prIconColor = "#FFD700"; // Dourado para troféu
       setAchievementNotificationData({
-        type: 'pr',
-        iconName: 'trophy',
+        type: "pr",
+        iconName: "trophy",
         iconColor: prIconColor,
-        title: 'Parabéns!',
+        title: "Parabéns!",
         message: `Novo Recorde Pessoal em ${updatedExercise.name}: ${prWeight} kg!`,
       });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -1887,55 +1901,9 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       } catch (error) {
         console.error("Erro ao aplicar progressão:", error);
         return false;
-      } 
-    },
-    [workouts, selectedDate, saveWorkouts, userId] // Adicionar userId às dependências
-  );
-
-  // Função para salvar/substituir um treino gerado pelo builder
-  const saveGeneratedWorkout = useCallback(
-    async (
-      workoutId: string,
-      date: string,
-      exercises: Exercise[]
-    ): Promise<boolean> => {
-      try {
-        // Verificar se workoutId e date são válidos
-        if (!workoutId || !date) {
-          console.warn("Workout ID ou Data inválidos para salvar treino gerado.");
-          return false;
-        }
-
-        // Criar cópia profunda dos exercícios para evitar problemas de referência
-        const cleanExercises = JSON.parse(JSON.stringify(exercises));
-
-        // Atualizar o estado dos workouts
-        setWorkouts((prev) => {
-          const updatedWorkouts = { ...prev };
-
-          // Garantir que a entrada para a data existe
-          if (!updatedWorkouts[date]) {
-            updatedWorkouts[date] = {};
-          }
-
-          // Substituir os exercícios para o workoutId específico nesta data
-          updatedWorkouts[date][workoutId] = cleanExercises;
-
-          return updatedWorkouts;
-        });
-
-        // Salvar os workouts (que inclui a persistência no AsyncStorage e Firebase)
-        await saveWorkouts();
-
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        return true;
-      } catch (error) {
-        console.error("Erro ao salvar treino gerado:", error);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        return false;
       }
     },
-    [saveWorkouts] // saveWorkouts já inclui a dependência do userId
+    [workouts, selectedDate, saveWorkouts, userId] // Adicionar userId às dependências
   );
 
   // Adicionar um novo contexto - usando os valores memoizados
@@ -1972,7 +1940,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       getPreviousWorkoutExercises,
       getMultiplePreviousWorkoutsExercises,
       applyProgressionToWorkout,
-      saveGeneratedWorkout,
       // Propriedades para notificação de Conquista
       achievementNotificationData,
       clearAchievementNotification,
@@ -1982,32 +1949,31 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       workoutTypes,
       availableWorkoutTypes,
       selectedDate,
-      addExerciseToWorkout, 
-      removeExerciseFromWorkout, 
-      updateExerciseInWorkout, 
-      removeWorkoutForDate, 
-      saveWorkouts, 
-      getWorkoutsForDate, 
-      startWorkoutForDate, 
-      getAvailableWorkoutTypes, 
-      copyWorkoutFromDate, 
-      saveAvailableWorkoutTypes, 
-      getWorkoutTypeForWorkout, 
-      getWorkoutTypeById, 
-      getExercisesForWorkout, 
-      saveWorkoutTypes, 
-      addWorkoutType, 
-      updateWorkoutTypes, 
-      getWorkoutTotals, 
-      getPreviousWorkoutTotals, 
-      hasWorkoutTypesConfigured, 
+      addExerciseToWorkout,
+      removeExerciseFromWorkout,
+      updateExerciseInWorkout,
+      removeWorkoutForDate,
+      saveWorkouts,
+      getWorkoutsForDate,
+      startWorkoutForDate,
+      getAvailableWorkoutTypes,
+      copyWorkoutFromDate,
+      saveAvailableWorkoutTypes,
+      getWorkoutTypeForWorkout,
+      getWorkoutTypeById,
+      getExercisesForWorkout,
+      saveWorkoutTypes,
+      addWorkoutType,
+      updateWorkoutTypes,
+      getWorkoutTotals,
+      getPreviousWorkoutTotals,
+      hasWorkoutTypesConfigured,
       workoutsForSelectedDate,
       selectedWorkoutTypes,
       hasConfiguredWorkouts,
-      getPreviousWorkoutExercises, 
+      getPreviousWorkoutExercises,
       getMultiplePreviousWorkoutsExercises,
       applyProgressionToWorkout,
-      saveGeneratedWorkout,
       achievementNotificationData,
       clearAchievementNotification,
     ]

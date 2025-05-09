@@ -90,7 +90,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   const [meals, setMeals] = useState<{
     [date: string]: { [mealId: string]: Food[] };
   }>({});
-  const [mealTypes, setMealTypes] = useState<MealType[]>(DEFAULT_MEAL_TYPES);
+  const [mealTypes, setMealTypes] = useState<MealType[]>([]);
   const [hasMealTypesConfigured, setHasMealTypesConfigured] =
     useState<boolean>(false);
   const [searchHistory, setSearchHistory] = useState<Food[]>([]);
@@ -98,7 +98,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
   // Resetar o estado quando o usuário mudar
   const resetState = useCallback(() => {
     setMeals({});
-    setMealTypes(DEFAULT_MEAL_TYPES);
+    setMealTypes([]);
     setHasMealTypesConfigured(false);
     setSearchHistory([]);
   }, []);
@@ -354,7 +354,7 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       if (!user) return;
 
       // Limpar dados existentes antes de carregar
-      setMealTypes(DEFAULT_MEAL_TYPES);
+      setMealTypes([]);
       setHasMealTypesConfigured(false);
 
       // Primeiro tentar carregar do AsyncStorage
@@ -416,17 +416,21 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
               );
             }
           } else {
+            // Se não encontrou no Firebase (e não encontrou localmente antes), mantém vazio e false
+            setMealTypes([]);
             setHasMealTypesConfigured(false);
           }
         } catch (firebaseError) {
           // Em caso de erro, garantir que os dados estejam limpos
-          setMealTypes(DEFAULT_MEAL_TYPES);
+          setMealTypes([]);
           setHasMealTypesConfigured(false);
         }
+      } else {
+        // Se estiver offline e não carregou do AsyncStorage, os tipos permanecem vazios e hasConfigured false.
       }
     } catch (error) {
       // Em caso de erro, garantir que os dados estejam limpos
-      setMealTypes(DEFAULT_MEAL_TYPES);
+      setMealTypes([]);
       setHasMealTypesConfigured(false);
     }
   }, [user, setMealTypes, setHasMealTypesConfigured]);
@@ -521,7 +525,10 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
             JSON.stringify(newMealTypes)
           );
         } catch (storageError) {
-          console.error("Erro ao salvar tipos de refeição no AsyncStorage:", storageError);
+          console.error(
+            "Erro ao salvar tipos de refeição no AsyncStorage:",
+            storageError
+          );
           // Ignorar erro de armazenamento local de tipos
         }
 
@@ -531,11 +538,18 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
 
         // Salvar localmente primeiro para todas as datas no estado atual
         for (const date of Object.keys(finalMealsState)) {
-            try {
-                await OfflineStorage.saveMealsData(user.uid, date, finalMealsState[date] || {});
-            } catch (localSaveError) {
-                console.warn(`Erro salvando dados de refeição localmente para ${date}:`, localSaveError);
-            }
+          try {
+            await OfflineStorage.saveMealsData(
+              user.uid,
+              date,
+              finalMealsState[date] || {}
+            );
+          } catch (localSaveError) {
+            console.warn(
+              `Erro salvando dados de refeição localmente para ${date}:`,
+              localSaveError
+            );
+          }
         }
 
         // Tentar salvar no Firebase para todas as datas (se online e não anônimo)
@@ -549,21 +563,27 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
               { merge: true } // Usar merge true pode ser mais seguro aqui
             );
           } catch (firebaseConfigError) {
-              console.warn("Erro ao salvar config de tipos de refeição no Firebase:", firebaseConfigError);
-              // Continuar mesmo se a config falhar
+            console.warn(
+              "Erro ao salvar config de tipos de refeição no Firebase:",
+              firebaseConfigError
+            );
+            // Continuar mesmo se a config falhar
           }
 
           // Salvar cada data de refeição individualmente no Firebase
           for (const date of Object.keys(finalMealsState)) {
-              try {
-                  await setDoc(
-                      doc(db, "users", user.uid, "meals", date),
-                      finalMealsState[date] || {} // Salva o estado limpo (ou vazio)
-                  );
-              } catch (firebaseSaveError) {
-                  console.warn(`Erro ao salvar dados de refeição no Firebase para ${date}:`, firebaseSaveError);
-                  // Continuar salvando outras datas mesmo que uma falhe
-              }
+            try {
+              await setDoc(
+                doc(db, "users", user.uid, "meals", date),
+                finalMealsState[date] || {} // Salva o estado limpo (ou vazio)
+              );
+            } catch (firebaseSaveError) {
+              console.warn(
+                `Erro ao salvar dados de refeição no Firebase para ${date}:`,
+                firebaseSaveError
+              );
+              // Continuar salvando outras datas mesmo que uma falhe
+            }
           }
         }
 

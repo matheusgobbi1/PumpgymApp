@@ -171,7 +171,8 @@ function AppContent() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const router = useRouter();
-  const { achievementNotificationData, clearAchievementNotification } = useWorkoutContext();
+  const { achievementNotificationData, clearAchievementNotification } =
+    useWorkoutContext();
 
   // Carregar fontes
   const [fontsLoaded, fontError] = Font.useFonts({
@@ -303,7 +304,11 @@ function AppContent() {
 
           <Stack.Screen
             name="(add-exercise)/exercise-details"
-            options={({ route }: { route: { params?: { mode?: string } } }) => ({
+            options={({
+              route,
+            }: {
+              route: { params?: { mode?: string } };
+            }) => ({
               presentation: route?.params?.mode === "edit" ? "card" : "modal",
               animation:
                 route?.params?.mode === "edit" ? "fade" : "slide_from_bottom",
@@ -340,6 +345,16 @@ function AppContent() {
               presentation: "modal",
               animation: "slide_from_bottom",
               animationDuration: 200,
+            }}
+          />
+          <Stack.Screen
+            name="paywall"
+            options={{
+             
+              animation: "slide_from_bottom",
+              animationDuration: 200,
+              headerShown: false,
+              gestureEnabled: false,
             }}
           />
         </Stack>

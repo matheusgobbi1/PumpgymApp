@@ -9,14 +9,13 @@ import {
   Dimensions,
   Keyboard,
   TouchableOpacity,
-  Pressable,
+  Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import Colors from "../../constants/Colors";
 import { useTheme } from "../../context/ThemeContext";
 import Input from "../../components/common/Input";
-import Button from "../../components/common/Button";
 import { useAuth } from "../../context/AuthContext";
 import {
   SafeAreaView,
@@ -112,9 +111,9 @@ export default function CompleteRegistrationScreen() {
       setSuccessAnimation(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      // Após a animação de sucesso, redireciona para o app
+      // Após a animação de sucesso, redireciona para o paywall
       setTimeout(() => {
-        // Você pode adicionar navegação aqui se necessário
+        router.replace("/paywall");
       }, 1500);
     } catch (err: any) {
       if (err.code === "auth/email-already-in-use") {
@@ -450,9 +449,8 @@ export default function CompleteRegistrationScreen() {
                 {formStep === 1 && (
                   <MotiView
                     key={`form-step-1-${theme}`}
-                    from={{ opacity: 0, transform: [{ translateX: -width }] }}
-                    animate={{ opacity: 1, transform: [{ translateX: 0 }] }}
-                    exit={{ opacity: 0, transform: [{ translateX: -width }] }}
+                    from={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
                     transition={{
                       type: "timing",
                       duration: 350,
@@ -503,29 +501,58 @@ export default function CompleteRegistrationScreen() {
                         />
                       </View>
 
-                      <TouchableOpacity
-                        key={`next-button-${theme}`}
-                        style={[
-                          styles.nextButton,
-                          { backgroundColor: colors.primary },
-                        ]}
-                        onPress={nextStep}
-                        activeOpacity={0.8}
-                      >
-                        <Text
+                      <View style={styles.step1ButtonRow}>
+                        {/* Botão de Login com Apple (Minimalista) */}
+                        {Platform.OS === "ios" && !isExpoGo && (
+                          <TouchableOpacity
+                            style={[
+                              styles.appleIconButton,
+                              {
+                                backgroundColor:
+                                  theme === "dark" ? "#FFF" : "#000",
+                                borderColor:
+                                  theme === "dark" ? colors.border : "#000",
+                              },
+                            ]}
+                            onPress={() => handleSocialLogin("Apple")}
+                            disabled={loading}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons
+                              name="logo-apple"
+                              size={24}
+                              color={theme === "dark" ? "#000" : "#FFF"}
+                            />
+                          </TouchableOpacity>
+                        )}
+
+                        <TouchableOpacity
+                          key={`next-button-${theme}`}
                           style={[
-                            styles.nextButtonText,
-                            { color: theme === "dark" ? "black" : "white" },
+                            styles.nextButton,
+                            { backgroundColor: colors.primary },
+                            Platform.OS === "ios" && !isExpoGo
+                              ? styles.nextButtonWithAppleIcon
+                              : {},
                           ]}
+                          onPress={nextStep}
+                          activeOpacity={0.8}
                         >
-                          {t("completeRegistration.buttons.continue")}
-                        </Text>
-                        <Ionicons
-                          name="arrow-forward"
-                          size={20}
-                          color={theme === "dark" ? "black" : "white"}
-                        />
-                      </TouchableOpacity>
+                          <Text
+                            style={[
+                              styles.nextButtonText,
+                              { color: theme === "dark" ? "black" : "white" },
+                            ]}
+                          >
+                            {t("completeRegistration.buttons.continue")}
+                          </Text>
+                          <Ionicons
+                            name="arrow-forward"
+                            size={20}
+                            color={theme === "dark" ? "black" : "white"}
+                          />
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </MotiView>
                 )}
@@ -533,9 +560,8 @@ export default function CompleteRegistrationScreen() {
                 {formStep === 2 && (
                   <MotiView
                     key={`form-step-2-${theme}`}
-                    from={{ opacity: 0, transform: [{ translateX: width }] }}
-                    animate={{ opacity: 1, transform: [{ translateX: 0 }] }}
-                    exit={{ opacity: 0, transform: [{ translateX: width }] }}
+                    from={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
                     transition={{
                       type: "timing",
                       duration: 350,
@@ -699,7 +725,11 @@ export default function CompleteRegistrationScreen() {
           {t("completeRegistration.terms.agreement")}{" "}
           <Text
             style={[styles.termsLink, { color: colors.primary }]}
-            onPress={() => router.push("/terms-of-use")}
+            onPress={() =>
+              Linking.openURL(
+                "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+              )
+            }
           >
             {t("completeRegistration.terms.termsOfService")}
           </Text>{" "}
@@ -816,9 +846,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 8,
     gap: 8,
+    flex: 1,
   },
+  nextButtonWithAppleIcon: {},
   nextButtonText: {
     fontSize: 16,
     fontWeight: "600",
@@ -888,12 +919,25 @@ const styles = StyleSheet.create({
   },
   termsLink: {
     fontWeight: "bold",
-    textDecorationLine: "underline", // Adiciona sublinhado para indicar link
+    textDecorationLine: "underline",
   },
   footerTermsContainer: {
-    // Novo estilo para o container fixo no rodapé
     paddingHorizontal: 24,
     paddingTop: 16,
     alignItems: "center",
+  },
+  step1ButtonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 20,
+    gap: 12,
+  },
+  appleIconButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
   },
 });

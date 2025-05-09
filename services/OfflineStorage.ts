@@ -327,12 +327,33 @@ export const OfflineStorage = {
   // Carregar dados do usuário
   loadUserData: async (userId: string): Promise<any | null> => {
     try {
+      // Se userId não for fornecido, tentar obter o último usuário logado
+      if (!userId) {
+        const lastUserId = await AsyncStorage.getItem(KEYS.LAST_LOGGED_USER);
+        if (lastUserId) {
+          userId = lastUserId;
+        } else {
+          // Se não houver último usuário, retornar null
+          return null;
+        }
+      }
+
       const key = `${KEYS.USER_DATA}_${userId}`;
       const data = await AsyncStorage.getItem(key);
       return data ? JSON.parse(data) : null;
     } catch (error) {
       // Erro ao carregar dados do usuário
       return null;
+    }
+  },
+
+  // Salvar o ID do último usuário logado
+  saveLastLoggedUser: async (userId: string): Promise<void> => {
+    try {
+      if (!userId) return;
+      await AsyncStorage.setItem(KEYS.LAST_LOGGED_USER, userId);
+    } catch (error) {
+      console.error("Erro ao salvar último usuário logado:", error);
     }
   },
 
@@ -728,6 +749,39 @@ export const OfflineStorage = {
       return;
     } catch (error) {
       // Não lançar erro para permitir que o reset continue mesmo com falha na limpeza
+    }
+  },
+
+  // Funções para gerenciar o status de assinatura offline
+  saveSubscriptionStatus: async (
+    userId: string,
+    isSubscribed: boolean
+  ): Promise<void> => {
+    try {
+      if (!userId) return;
+      const key = `${KEYS.SUBSCRIPTION_STATUS}_${userId}`;
+      const subscriptionData = {
+        isSubscribed,
+        lastVerified: new Date().toISOString(),
+      };
+      await AsyncStorage.setItem(key, JSON.stringify(subscriptionData));
+    } catch (error) {
+      console.error("Erro ao salvar status de assinatura:", error);
+    }
+  },
+
+  getSubscriptionStatus: async (userId: string): Promise<boolean> => {
+    try {
+      if (!userId) return false;
+      const key = `${KEYS.SUBSCRIPTION_STATUS}_${userId}`;
+      const data = await AsyncStorage.getItem(key);
+      if (!data) return false;
+
+      const subscriptionData = JSON.parse(data);
+      return subscriptionData.isSubscribed === true;
+    } catch (error) {
+      console.error("Erro ao obter status de assinatura:", error);
+      return false;
     }
   },
 };

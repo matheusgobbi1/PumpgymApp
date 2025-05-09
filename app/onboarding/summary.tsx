@@ -1260,7 +1260,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   headerTitle: {
-    fontSize: 36,
+    fontSize: 34,
     fontWeight: "700",
     marginBottom: 24,
     textAlign: "center",

@@ -77,57 +77,58 @@ export default function SelectionOption({
   return (
     <Animated.View
       entering={FadeInDown.duration(400).delay(entryDelay).springify()}
-      style={animatedStyle}
     >
-      <TouchableOpacity
-        style={[styles.optionContainer, getContainerStyle()]}
-        onPress={handleSelect}
-        activeOpacity={0.7}
-      >
-        {icon && (
-          <Animated.View
-            entering={ZoomIn.delay(entryDelay + 200).duration(300)}
-            style={[
-              styles.iconContainer,
-              isSelected && {
-                backgroundColor:
-                  theme === "dark"
-                    ? colors.primary + "20"
-                    : colors.primary + "20",
-                borderRadius: 20,
-              },
-            ]}
-          >
-            {icon}
-          </Animated.View>
-        )}
-        <View style={styles.textContainer}>
-          <Text
-            style={[
-              styles.optionTitle,
-              {
-                color: getTextColor(),
-                fontWeight: isSelected ? "600" : "500",
-              },
-            ]}
-          >
-            {title}
-          </Text>
-          {description ? (
-            <Text
+      <Animated.View style={animatedStyle}>
+        <TouchableOpacity
+          style={[styles.optionContainer, getContainerStyle()]}
+          onPress={handleSelect}
+          activeOpacity={0.7}
+        >
+          {icon && (
+            <Animated.View
+              entering={ZoomIn.delay(entryDelay + 200).duration(300)}
               style={[
-                styles.optionDescription,
-                {
-                  color: colors.text,
-                  opacity: isSelected ? 0.8 : 0.7,
+                styles.iconContainer,
+                isSelected && {
+                  backgroundColor:
+                    theme === "dark"
+                      ? colors.primary + "20"
+                      : colors.primary + "20",
+                  borderRadius: 20,
                 },
               ]}
             >
-              {description}
+              {icon}
+            </Animated.View>
+          )}
+          <View style={styles.textContainer}>
+            <Text
+              style={[
+                styles.optionTitle,
+                {
+                  color: getTextColor(),
+                  fontWeight: isSelected ? "600" : "500",
+                },
+              ]}
+            >
+              {title}
             </Text>
-          ) : null}
-        </View>
-      </TouchableOpacity>
+            {description ? (
+              <Text
+                style={[
+                  styles.optionDescription,
+                  {
+                    color: colors.text,
+                    opacity: isSelected ? 0.8 : 0.7,
+                  },
+                ]}
+              >
+                {description}
+              </Text>
+            ) : null}
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
     </Animated.View>
   );
 }

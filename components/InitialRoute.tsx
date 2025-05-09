@@ -16,13 +16,57 @@ export default function InitialRoute() {
     appInitialized,
     user,
     isAnonymous,
+    isSubscribed,
+    checkSubscriptionStatus,
   } = useAuth();
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
   const [onboardingCompleted, setOnboardingCompleted] = useState<
     boolean | null
   >(null);
+  const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);
+  const [hasCheckedSubscription, setHasCheckedSubscription] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { theme } = useTheme();
+
+  // Verificar status de assinatura
+  useEffect(() => {
+    let isMounted = true;
+
+    const verifySubscription = async () => {
+      if (
+        !user ||
+        isAnonymous ||
+        isCheckingSubscription ||
+        hasCheckedSubscription
+      ) {
+        return;
+      }
+
+      setIsCheckingSubscription(true);
+      try {
+        await checkSubscriptionStatus();
+      } catch (error) {
+        console.error("Erro ao verificar assinatura:", error);
+      } finally {
+        if (isMounted) {
+          setIsCheckingSubscription(false);
+          setHasCheckedSubscription(true);
+        }
+      }
+    };
+
+    verifySubscription();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    user,
+    isAnonymous,
+    isCheckingSubscription,
+    hasCheckedSubscription,
+    checkSubscriptionStatus,
+  ]);
 
   // Verificar o status de onboarding quando o usuário estiver autenticado
   useEffect(() => {
@@ -138,7 +182,9 @@ export default function InitialRoute() {
     !appInitialized ||
     (user &&
       !isAnonymous &&
-      (isCheckingOnboarding || onboardingCompleted === null))
+      (isCheckingOnboarding ||
+        onboardingCompleted === null ||
+        isCheckingSubscription))
   ) {
     return (
       <View
@@ -169,6 +215,11 @@ export default function InitialRoute() {
     return <Redirect href="/onboarding/gender" />;
   }
 
-  // Se usuário está autenticado e completou onboarding
+  // Se o usuário não tem assinatura, enviar para a tela de pagamento
+  if (!isSubscribed) {
+    return <Redirect href="/paywall" />;
+  }
+
+  // Se usuário está autenticado, completou onboarding e tem assinatura
   return <Redirect href="/(tabs)" />;
 }

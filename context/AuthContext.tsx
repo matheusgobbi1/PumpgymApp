@@ -56,12 +56,21 @@ import NetInfo from "@react-native-community/netinfo";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
+import Purchases from "react-native-purchases";
 
 // Verificar se estamos em um build nativo ou Expo Go
 const isExpoGo = Constants.executionEnvironment === "standalone";
 
 // Garantir que auth é do tipo FirebaseAuth
 const firebaseAuth: FirebaseAuth = auth;
+
+// Inicializar RevenueCat
+const initializeRevenueCat = () => {
+  const iosKey = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
+  if (Platform.OS === "ios" && iosKey) {
+    Purchases.configure({ apiKey: iosKey });
+  }
+};
 
 interface AuthContextType {
   user: FirebaseUser | null;
@@ -92,6 +101,9 @@ interface AuthContextType {
   navigationAttempted: boolean;
   sendPasswordResetEmail: (email: string) => Promise<void>;
   loginWithApple: () => Promise<void>;
+  isSubscribed: boolean;
+  setIsSubscribed: (value: boolean) => void;
+  checkSubscriptionStatus: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -118,7 +130,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [navigationLocked, setNavigationLocked] = useState(false);
   const [isRestoringSession, setIsRestoringSession] = useState(true);
   const [navigationAttempted, setNavigationAttempted] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const router = useRouter();
+
+  // Inicializar RevenueCat
+  useEffect(() => {
+    initializeRevenueCat();
+  }, []);
+
+  // Verificar status de assinatura
+  const checkSubscriptionStatus = async (): Promise<boolean> => {
+    try {
+      if (!user) return false;
+
+      // SIMULAÇÃO PARA TESTE: Forçar assinatura para usuário específico
+      if (user.uid === "4N7KtLUsNNV9mF3EGo5OyoctHr72") {
+        setIsSubscribed(true);
+        await OfflineStorage.saveSubscriptionStatus(user.uid, true);
+        return true;
+      }
+
+      // Verificar conexão com a internet
+      const isOnline = await OfflineStorage.isOnline();
+
+      if (!isOnline) {
+        // Se estiver offline, utilizar o status salvo localmente
+        const cachedStatus = await OfflineStorage.getSubscriptionStatus(
+          user.uid
+        );
+        setIsSubscribed(cachedStatus);
+        return cachedStatus;
+      }
+
+      // Se estiver online, verificar com o RevenueCat
+      const customerInfo = await Purchases.getCustomerInfo();
+      const hasPRO =
+        typeof customerInfo.entitlements.active.PRO !== "undefined";
+
+      // Salvar o status localmente para uso offline
+      await OfflineStorage.saveSubscriptionStatus(user.uid, hasPRO);
+
+      setIsSubscribed(hasPRO);
+      return hasPRO;
+    } catch (error) {
+      console.error("Erro ao verificar status da assinatura:", error);
+
+      // Em caso de erro, tentar usar o status offline como fallback
+      if (user) {
+        const offlineStatus = await OfflineStorage.getSubscriptionStatus(
+          user.uid
+        );
+        setIsSubscribed(offlineStatus);
+        return offlineStatus;
+      }
+
+      return false;
+    }
+  };
+
+  // Função para verificar assinatura ao inicializar
+  useEffect(() => {
+    if (user && !user.isAnonymous) {
+      checkSubscriptionStatus();
+    }
+  }, [user]);
 
   const notifyRegistrationCompleted = () => {
     setRegistrationCompleted(true);
@@ -158,7 +233,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           if (!onboardingCompleted) {
             await router.replace("/onboarding/gender");
           } else {
-            await router.replace("/(tabs)");
+            // Verificar status de assinatura
+            const hasSubscription = await checkSubscriptionStatus();
+
+            if (!hasSubscription) {
+              await router.replace("/paywall");
+            } else {
+              await router.replace("/(tabs)");
+            }
           }
         } catch (error) {
           await router.replace("/auth/login");
@@ -187,6 +269,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (auth.currentUser) {
         setUser(auth.currentUser);
         setIsAnonymous(auth.currentUser.isAnonymous);
+
+        // Salvar o ID do último usuário logado
+        await OfflineStorage.saveLastLoggedUser(auth.currentUser.uid);
+
+        // Verificar status de assinatura
+        await checkSubscriptionStatus();
+
         return true;
       }
 
@@ -210,6 +299,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               } as FirebaseUser);
               setIsAnonymous(userData.isAnonymous || false);
               setIsNewUser(!userData.onboardingCompleted);
+
+              // Salvar o ID do último usuário logado
+              await OfflineStorage.saveLastLoggedUser(userData.uid);
+
+              // Verificar status de assinatura offline
+              const hasSubscription =
+                await OfflineStorage.getSubscriptionStatus(userData.uid);
+              setIsSubscribed(hasSubscription);
+
               return true;
             }
 
@@ -245,6 +343,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 isAnonymous: userCredential.user.isAnonymous,
               });
 
+              // Salvar o ID do último usuário logado
+              await OfflineStorage.saveLastLoggedUser(userCredential.user.uid);
+
+              // Verificar status de assinatura
+              await checkSubscriptionStatus();
+
               setUser(userCredential.user);
               setIsAnonymous(userCredential.user.isAnonymous);
               setIsNewUser(!onboardingCompleted);
@@ -254,6 +358,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               setUser(userCredential.user);
               setIsAnonymous(userCredential.user.isAnonymous);
               setIsNewUser(true);
+
+              // Mesmo com erro, salvar o ID do usuário
+              await OfflineStorage.saveLastLoggedUser(userCredential.user.uid);
+
+              // Verificar status de assinatura
+              await checkSubscriptionStatus();
+
               return true;
             }
           } catch (error) {
@@ -269,6 +380,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               } as FirebaseUser);
               setIsAnonymous(userData.isAnonymous || false);
               setIsNewUser(!userData.onboardingCompleted);
+
+              // Salvar o ID do último usuário logado
+              await OfflineStorage.saveLastLoggedUser(userData.uid);
+
+              // Verificar status de assinatura offline
+              const hasSubscription =
+                await OfflineStorage.getSubscriptionStatus(userData.uid);
+              setIsSubscribed(hasSubscription);
+
               return true;
             }
 
@@ -559,6 +679,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           onboardingCompleted: onboardingCompleted,
           isAnonymous: userCredential.user.isAnonymous,
         });
+
+        // Salvar o ID do último usuário logado
+        await OfflineStorage.saveLastLoggedUser(userCredential.user.uid);
+
+        // Verificar e salvar o status de assinatura
+        await checkSubscriptionStatus();
 
         // Definir o estado de novo usuário
         setIsNewUser(!onboardingCompleted);
@@ -852,8 +978,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsAnonymous(false);
       setIsNewUser(false);
 
-      // Navegar diretamente para a tela principal antes de desbloquear a navegação
-      await router.replace("/(tabs)");
+      // Navegar para paywall (alterado de/(tabs) para /paywall)
+      await router.replace("/paywall");
 
       // Notificar que o registro foi concluído após a navegação
       notifyRegistrationCompleted();
@@ -1127,6 +1253,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     navigationAttempted,
     sendPasswordResetEmail,
     loginWithApple,
+    isSubscribed,
+    setIsSubscribed,
+    checkSubscriptionStatus,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

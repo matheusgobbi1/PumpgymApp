@@ -165,17 +165,16 @@ export default function LoginScreen() {
             <View style={styles.buttonsContainer}>
               <AnimatedTouchableOpacity
                 entering={FadeInUp.delay(400).duration(800)}
-                style={[
-                  styles.button,
-                  styles.primaryButton,
-                ]}
+                style={[styles.button, styles.primaryButton]}
                 onPress={handleStartAnonymously}
                 activeOpacity={0.8}
               >
                 {loading ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
-                  <Text style={styles.primaryButtonText}>{t("login.startNow")}</Text>
+                  <Text style={styles.primaryButtonText}>
+                    {t("login.startNow")}
+                  </Text>
                 )}
               </AnimatedTouchableOpacity>
 
@@ -281,9 +280,9 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   primaryButton: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     borderWidth: 0.2,
-    borderColor: '#FFFFFF',
+    borderColor: "#FFFFFF",
     shadowColor: "#FFFFFF",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.7,
@@ -291,11 +290,11 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 24,
     letterSpacing: 1.5,
-    fontFamily: 'Anton',
-    textTransform: 'uppercase',
+    fontFamily: "Anton",
+    textTransform: "uppercase",
   },
   buttonIcon: {
     marginRight: 8,

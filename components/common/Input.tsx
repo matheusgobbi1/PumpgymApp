@@ -87,10 +87,10 @@ export default function Input({
   const [isPasswordVisible, setIsPasswordVisible] = useState(!secureTextEntry);
   const { theme } = useTheme();
   const colors = Colors[theme];
-  
+
   // Estado para forçar re-renderização quando o tema mudar
   const [, setForceUpdate] = useState({});
-  
+
   // Efeito para forçar a re-renderização quando o tema mudar
   useEffect(() => {
     setForceUpdate({});
@@ -202,7 +202,10 @@ export default function Input({
     rightIcon || secureTextEntry || (icon && iconPosition === "right");
 
   return (
-    <View key={`input-container-${label || placeholder}-${theme}`} style={[styles.container, containerStyle]}>
+    <View
+      key={`input-container-${label || placeholder}-${theme}`}
+      style={[styles.container, containerStyle]}
+    >
       {label && (
         <MotiView
           key={`label-container-${theme}`}
@@ -275,7 +278,10 @@ export default function Input({
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: "spring" }}
         >
-          <Text key={`error-text-${theme}`} style={[styles.errorText, { color: colors.danger }]}>
+          <Text
+            key={`error-text-${theme}`}
+            style={[styles.errorText, { color: colors.danger }]}
+          >
             {error}
           </Text>
         </MotiView>

@@ -18,4 +18,7 @@ export const KEYS = {
   WATER_INTAKE: "pumpgym_water_intake",
   STEPS_COUNT: "pumpgym_steps_count",
   LAST_PROGRESSION_APPLIED_CHECK_DATE: "pumpgym_last_progression_check_date",
+  USER_SUBSCRIPTION_STATUS: "@MyApp:userSubscriptionStatus",
+  SUBSCRIPTION_STATUS: "pumpgym_subscription_status",
+  LAST_LOGGED_USER: "pumpgym_last_logged_user",
 };

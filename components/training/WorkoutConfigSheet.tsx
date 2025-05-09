@@ -64,7 +64,7 @@ const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
     name: "Workout A",
     iconType: {
       type: "material" as const,
-      name: "arm-flex-outline" as MaterialIconNames,
+      name: "arm-flex" as MaterialIconNames,
     },
     color: "#FF6B6B",
     selected: false,
@@ -75,7 +75,7 @@ const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
     name: "Workout B",
     iconType: {
       type: "material" as const,
-      name: "arm-flex-outline" as MaterialIconNames,
+      name: "arm-flex" as MaterialIconNames,
     },
     color: "#448AFF",
     selected: false,
@@ -86,7 +86,7 @@ const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
     name: "Workout C",
     iconType: {
       type: "material" as const,
-      name: "arm-flex-outline" as MaterialIconNames,
+      name: "arm-flex" as MaterialIconNames,
     },
     color: "#66BB6A",
     selected: false,
@@ -97,7 +97,7 @@ const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
     name: "Workout D",
     iconType: {
       type: "material" as const,
-      name: "arm-flex-outline" as MaterialIconNames,
+      name: "arm-flex" as MaterialIconNames,
     },
     color: "#FFA726",
     selected: false,
@@ -108,7 +108,7 @@ const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
     name: "Workout E",
     iconType: {
       type: "material" as const,
-      name: "arm-flex-outline" as MaterialIconNames,
+      name: "arm-flex" as MaterialIconNames,
     },
     color: "#AB47BC",
     selected: false,
@@ -119,7 +119,7 @@ const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
     name: "Workout F",
     iconType: {
       type: "material" as const,
-      name: "arm-flex-outline" as MaterialIconNames,
+      name: "arm-flex" as MaterialIconNames,
     },
     color: "#26A69A",
     selected: false,
@@ -130,7 +130,7 @@ const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
     name: "Workout G",
     iconType: {
       type: "material" as const,
-      name: "arm-flex-outline" as MaterialIconNames,
+      name: "arm-flex" as MaterialIconNames,
     },
     color: "#EC407A",
     selected: false,
@@ -315,7 +315,7 @@ const WorkoutConfigSheet = forwardRef<
   WorkoutConfigSheetProps
 >(
   (
-    { onWorkoutConfigured, selectedDate, onDismiss },
+    props, // Renomeado para props para acessar props.onDismiss
     ref: ForwardedRef<BottomSheetModal>
   ) => {
     const { t } = useTranslation();
@@ -350,6 +350,10 @@ const WorkoutConfigSheet = forwardRef<
     const [availableWorkoutTypes, setAvailableWorkoutTypes] = useState<
       WorkoutType[]
     >(DEFAULT_WORKOUT_TYPES);
+    const [initialWorkoutTypesOnOpen, setInitialWorkoutTypesOnOpen] = useState<
+      WorkoutType[]
+    >([]);
+    const isSavingInProgress = useRef(false);
 
     // Estado para controlar qual treino está sendo editado
     const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(
@@ -367,6 +371,7 @@ const WorkoutConfigSheet = forwardRef<
     // Carregar tipos de treino disponíveis do AsyncStorage
     useEffect(() => {
       const loadWorkoutTypes = async () => {
+        let loadedTypesToSet = DEFAULT_WORKOUT_TYPES;
         try {
           const storedTypes = await AsyncStorage.getItem(
             `${KEYS.AVAILABLE_WORKOUT_TYPES}:${userId}`
@@ -374,25 +379,30 @@ const WorkoutConfigSheet = forwardRef<
 
           if (storedTypes) {
             const parsedTypes = JSON.parse(storedTypes);
-
             if (Array.isArray(parsedTypes) && parsedTypes.length > 0) {
-              setAvailableWorkoutTypes(parsedTypes);
-              return;
+              loadedTypesToSet = parsedTypes;
+            } else {
+              // Se os dados armazenados são inválidos, tentar do contexto
+              const contextTypes = getAvailableWorkoutTypes();
+              if (Array.isArray(contextTypes) && contextTypes.length > 0) {
+                loadedTypesToSet = contextTypes;
+              }
+            }
+          } else {
+            // Se não há dados no AsyncStorage, tentar do contexto
+            const contextTypes = getAvailableWorkoutTypes();
+            if (Array.isArray(contextTypes) && contextTypes.length > 0) {
+              loadedTypesToSet = contextTypes;
             }
           }
-
-          // Fallback para os tipos do contexto
-          const contextTypes = getAvailableWorkoutTypes();
-          if (Array.isArray(contextTypes) && contextTypes.length > 0) {
-            setAvailableWorkoutTypes(contextTypes);
-            return;
-          }
-
-          // Se não há dados salvos nem no contexto, usar os padrões
-          setAvailableWorkoutTypes(DEFAULT_WORKOUT_TYPES);
         } catch (error) {
-          setAvailableWorkoutTypes(DEFAULT_WORKOUT_TYPES);
+          // Em caso de erro, usa os padrões
+          loadedTypesToSet = DEFAULT_WORKOUT_TYPES;
         }
+        setAvailableWorkoutTypes(loadedTypesToSet);
+        setInitialWorkoutTypesOnOpen(
+          JSON.parse(JSON.stringify(loadedTypesToSet))
+        ); // Deep copy
       };
 
       loadWorkoutTypes();
@@ -549,43 +559,37 @@ const WorkoutConfigSheet = forwardRef<
     );
 
     const handleSaveWorkoutTypes = async () => {
-      // Obter os tipos de treino selecionados
+      // Fechar seletores de cor/ícone antes de salvar
+      setShowColorSelector(false);
+      setShowIconSelector(false);
+      setSelectedWorkoutForOptions(null);
+
       const selectedWorkoutTypes = availableWorkoutTypes.filter(
         (w) => w.selected
       );
 
-      // Verificar se há treinos selecionados
       if (selectedWorkoutTypes.length === 0) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         return;
       }
 
-      // Fornecer feedback tátil de sucesso
+      isSavingInProgress.current = true;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      // Notificar que a configuração foi concluída
-      onWorkoutConfigured?.(selectedWorkoutTypes);
+      props.onWorkoutConfigured?.(selectedWorkoutTypes);
 
-      // Fechar o modal com um pequeno atraso para garantir que o feedback seja percebido
       setTimeout(() => {
         if (bottomSheetModalRef.current) {
           bottomSheetModalRef.current.dismiss();
         }
       }, 50);
 
-      // Executar as operações assíncronas em segundo plano após fechar o modal
       setTimeout(async () => {
         try {
-          // Salvar localmente
           await saveAvailableWorkoutTypes(availableWorkoutTypes);
-
-          // Atualizar o contexto
           updateWorkoutTypes(availableWorkoutTypes);
 
-          // Verificar conexão online antes de tentar sincronizar com Firebase
           const isOnline = await OfflineStorage.isOnline();
-
-          // Sincronizar com Firebase apenas se estiver online e o usuário não for anônimo
           if (isOnline && user && !user.isAnonymous) {
             try {
               const db = getFirestore();
@@ -596,7 +600,6 @@ const WorkoutConfigSheet = forwardRef<
                 "workouts",
                 "data"
               );
-
               await setDoc(
                 workoutsRef,
                 {
@@ -606,33 +609,39 @@ const WorkoutConfigSheet = forwardRef<
                 { merge: true }
               );
             } catch (firebaseError) {
-              // Erro ao sincronizar tipos de treino com Firebase
+              // Erro ao sincronizar
             }
           }
         } catch (error) {
-          // Erro ao salvar tipos de treino
+          // Erro ao salvar
         }
       }, 100);
     };
 
-    // Função para quando o bottom sheet for fechado
-    const handleSheetChanges = useCallback((index: number) => {
-      if (index === -1) {
-        // Apenas fechamos o modal sem criar treinos
-        // O usuário precisa explicitamente clicar em "Salvar" para criar os treinos
+    // Função para quando o bottom sheet for fechado (seja por salvar ou não)
+    const handleDismiss = useCallback(() => {
+      if (!isSavingInProgress.current) {
+        // Se não foi salvo, reverter para o estado inicial
+        setAvailableWorkoutTypes(
+          JSON.parse(JSON.stringify(initialWorkoutTypesOnOpen))
+        );
+        // Limpar estados de edição
+        setEditingWorkoutId(null);
+        setShowColorSelector(false);
+        setShowIconSelector(false);
+        setSelectedWorkoutForOptions(null);
+        setSnapPoints(["70%"]); // Resetar snap points
       }
-    }, []);
+      // Sempre resetar o flag de salvamento ao fechar
+      isSavingInProgress.current = false;
+      // Chamar o onDismiss original do componente pai, se existir
+      props.onDismiss?.();
+    }, [initialWorkoutTypesOnOpen, props.onDismiss]);
 
     // Função para obter a cor do treino selecionado
-    // Se houver múltiplos treinos selecionados, usamos a cor do último treino selecionado
     const getSelectedWorkoutColor = useCallback(() => {
       const selectedWorkouts = availableWorkoutTypes.filter((w) => w.selected);
-
-      if (selectedWorkouts.length === 0) {
-        return undefined;
-      }
-
-      // Retorna a cor do último treino selecionado
+      if (selectedWorkouts.length === 0) return undefined;
       return selectedWorkouts[selectedWorkouts.length - 1].color;
     }, [availableWorkoutTypes]);
 
@@ -651,10 +660,7 @@ const WorkoutConfigSheet = forwardRef<
     // Função para renderizar os indicadores de cor
     const renderColorIndicators = () => {
       const selectedColors = getSelectedWorkoutColors();
-
       if (selectedColors.length === 0) return null;
-
-      // Limitar o número de indicadores para não sobrecarregar a UI
       const maxIndicators = 4;
       const colorsToShow = selectedColors.slice(0, maxIndicators);
       const hasMore = selectedColors.length > maxIndicators;
@@ -668,10 +674,9 @@ const WorkoutConfigSheet = forwardRef<
                 styles.colorIndicator,
                 {
                   backgroundColor: color,
-                  // Um pequeno efeito de escalonamento para os círculos
                   transform: [{ scale: 1 - index * 0.05 }],
                   zIndex: colorsToShow.length - index,
-                  marginLeft: index > 0 ? -6 : 0, // Sobreposição parcial
+                  marginLeft: index > 0 ? -6 : 0,
                 },
               ]}
             />
@@ -694,7 +699,6 @@ const WorkoutConfigSheet = forwardRef<
       );
     };
 
-    // Função para renderizar o backdrop (fundo escurecido)
     const renderBackdrop = useCallback(
       (props: BottomSheetBackdropProps) => (
         <BottomSheetBackdrop
@@ -707,7 +711,6 @@ const WorkoutConfigSheet = forwardRef<
       []
     );
 
-    // Renderizar a lista de tipos de treino
     const renderWorkoutTypesList = () => (
       <View style={styles.workoutTypesList}>
         {Array.isArray(availableWorkoutTypes) &&
@@ -720,7 +723,7 @@ const WorkoutConfigSheet = forwardRef<
               }
               friction={2}
               overshootRight={false}
-              enabled={editingWorkoutId !== item.id} // Desativar swipe durante edição
+              enabled={editingWorkoutId !== item.id}
             >
               <MotiView
                 style={styles.workoutCardWrapper}
@@ -770,7 +773,6 @@ const WorkoutConfigSheet = forwardRef<
                       item.selected && { backgroundColor: "transparent" },
                     ]}
                   >
-                    {/* Ícone do treino - clicável para edição de ícone quando em modo de edição */}
                     <TouchableOpacity
                       style={[
                         styles.workoutIconContainer,
@@ -798,7 +800,6 @@ const WorkoutConfigSheet = forwardRef<
                       />
                     </TouchableOpacity>
 
-                    {/* Área de nome e edição */}
                     <View style={styles.workoutInfo}>
                       {editingWorkoutId === item.id ? (
                         <View style={styles.inlineEditContainer}>
@@ -815,9 +816,8 @@ const WorkoutConfigSheet = forwardRef<
                             onChangeText={setEditingWorkoutName}
                             selectTextOnFocus
                             onFocus={() => {
-                              // Calcular a posição de rolagem para trazer o item para a vista
-                              const itemHeight = 80; // Altura aproximada de cada item
-                              const scrollOffsetY = index * itemHeight; // Leva o item para o topo
+                              const itemHeight = 80;
+                              const scrollOffsetY = index * itemHeight;
                               scrollViewRef.current?.scrollTo({
                                 y: scrollOffsetY,
                                 animated: true,
@@ -862,7 +862,6 @@ const WorkoutConfigSheet = forwardRef<
                       )}
                     </View>
 
-                    {/* Ações de edição */}
                     {editingWorkoutId === item.id ? (
                       <TouchableOpacity
                         style={[
@@ -893,7 +892,6 @@ const WorkoutConfigSheet = forwardRef<
                     )}
                   </View>
 
-                  {/* Seletor de cores inline */}
                   {showColorSelector &&
                     selectedWorkoutForOptions === item.id && (
                       <MotiView
@@ -938,7 +936,6 @@ const WorkoutConfigSheet = forwardRef<
                       </MotiView>
                     )}
 
-                  {/* Seletor de ícones inline */}
                   {showIconSelector &&
                     selectedWorkoutForOptions === item.id && (
                       <MotiView
@@ -956,9 +953,9 @@ const WorkoutConfigSheet = forwardRef<
                           showsHorizontalScrollIndicator={false}
                           contentContainerStyle={styles.inlineIconList}
                         >
-                          {AVAILABLE_ICONS.map((icon, index) => (
+                          {AVAILABLE_ICONS.map((icon, iconIndex) => (
                             <TouchableOpacity
-                              key={`${icon.type}-${icon.name}-${index}`}
+                              key={`${icon.type}-${icon.name}-${iconIndex}`}
                               style={[
                                 styles.iconOption,
                                 {
@@ -1016,8 +1013,7 @@ const WorkoutConfigSheet = forwardRef<
         snapPoints={snapPoints}
         backgroundStyle={{ backgroundColor: colors.background }}
         handleIndicatorStyle={{ backgroundColor: colors.text + "50" }}
-        onDismiss={onDismiss}
-        onChange={handleSheetChanges}
+        onDismiss={handleDismiss}
         enablePanDownToClose
         backdropComponent={renderBackdrop}
       >
@@ -1040,8 +1036,6 @@ const WorkoutConfigSheet = forwardRef<
             keyboardShouldPersistTaps="always"
             contentContainerStyle={[
               styles.scrollContentContainer,
-              // Adicionar espaço extra no final do conteúdo para garantir
-              // que todos os itens possam ser rolados até a visualização completa
               { paddingBottom: 240 },
             ]}
           >

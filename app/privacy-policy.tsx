@@ -48,7 +48,7 @@ export default function PrivacyPolicyScreen() {
       >
         <View style={styles.leftPlaceholder} />
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Política de Privacidade
+          Privacy Policy
         </Text>
         <TouchableOpacity
           style={styles.closeButton}
@@ -64,206 +64,286 @@ export default function PrivacyPolicyScreen() {
         contentContainerStyle={styles.contentContainer}
       >
         <Text style={[styles.lastUpdated, { color: colors.secondary }]}>
-          Última atualização: {new Date().toLocaleDateString("pt-BR")}
+          Last updated: {new Date().toLocaleDateString("en-US")}
         </Text>
 
         <Text style={[styles.paragraph, { color: colors.text }]}>
-          A FitFolio ("nós", "nosso" ou "nossos") está comprometida em proteger
-          sua privacidade. Esta Política de Privacidade explica como suas
-          informações pessoais são coletadas, usadas e divulgadas pelo FitFolio.
+          FitFolio ("we", "us", or "our") is committed to protecting your
+          privacy. This Privacy Policy explains how your personal information is
+          collected, used, and disclosed by FitFolio.
         </Text>
         <Text style={[styles.paragraph, { color: colors.text }]}>
-          Esta Política de Privacidade se aplica às informações que coletamos
-          quando você usa nosso aplicativo móvel FitFolio (coletivamente, os
-          "Serviços").
+          This Privacy Policy applies to the information we collect when you use
+          our FitFolio mobile application (collectively, the "Services").
         </Text>
         <Text style={[styles.paragraph, { color: colors.text }]}>
-          Ao acessar ou usar nossos Serviços, você indica que leu, entendeu e
-          concorda com nossa coleta, armazenamento, uso e divulgação de suas
-          informações pessoais conforme descrito nesta Política de Privacidade.
+          By accessing or using our Services, you signify that you have read,
+          understood, and agree to our collection, storage, use, and disclosure
+          of your personal information as described in this Privacy Policy and
+          our Terms of Use.
         </Text>
 
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          1. Informações que Coletamos
+          1. Information We Collect
         </Text>
         <Text style={[styles.paragraph, { color: colors.text }]}>
-          Podemos coletar e processar os seguintes tipos de informações pessoais
-          sobre você:
+          We may collect and process the following types of personal information
+          about you:
         </Text>
         <Text style={[styles.bulletPoint, { color: colors.text }]}>
           •{" "}
           <Text style={{ fontWeight: "600" }}>
-            Informações que você nos fornece:
+            Information You Provide to Us:
           </Text>{" "}
-          Coletamos informações que você nos fornece diretamente, como quando
-          cria uma conta, preenche um formulário, envia uma solicitação de
-          suporte ao cliente, ou se comunica conosco de qualquer forma. Os tipos
-          de informações que podemos coletar incluem seu nome, endereço de
-          e-mail, senha, informações de perfil (como idade, altura, peso,
-          gênero), objetivos de condicionamento físico, e qualquer outra
-          informação que você optar por fornecer.
-        </Text>
-        <Text style={[styles.bulletPoint, { color: colors.text }]}>
-          • <Text style={{ fontWeight: "600" }}>Informações de uso:</Text>{" "}
-          Coletamos informações sobre como você usa nossos Serviços, incluindo
-          os tipos de conteúdo que você visualiza ou com os quais se envolve, os
-          recursos que você usa, as ações que você realiza, o tempo, frequência
-          e duração de suas atividades. Isso inclui informações sobre os treinos
-          que você registra, refeições, progresso físico e outras métricas
-          relacionadas à saúde e fitness.
-        </Text>
-        <Text style={[styles.bulletPoint, { color: colors.text }]}>
-          •{" "}
-          <Text style={{ fontWeight: "600" }}>Informações do dispositivo:</Text>{" "}
-          Coletamos informações sobre o dispositivo que você usa para acessar
-          nossos Serviços, incluindo modelo de hardware, sistema operacional e
-          versão, identificadores de dispositivo únicos, informações de rede e
-          endereço IP.
-        </Text>
-        <Text style={[styles.bulletPoint, { color: colors.text }]}>
-          •{" "}
-          <Text style={{ fontWeight: "600" }}>Informações de localização:</Text>{" "}
-          Com sua permissão, podemos coletar e processar informações sobre sua
-          localização precisa ou aproximada. Usamos várias tecnologias para
-          determinar a localização, incluindo endereço IP, GPS e outros
-          sensores.
-        </Text>
-
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          2. Como Usamos Suas Informações
-        </Text>
-        <Text style={[styles.paragraph, { color: colors.text }]}>
-          Usamos as informações que coletamos para:
-        </Text>
-        <Text style={[styles.bulletPoint, { color: colors.text }]}>
-          • Fornecer, manter e melhorar nossos Serviços;
-        </Text>
-        <Text style={[styles.bulletPoint, { color: colors.text }]}>
-          • Processar e completar transações, e enviar informações relacionadas,
-          incluindo confirmações de compra e faturas;
-        </Text>
-        <Text style={[styles.bulletPoint, { color: colors.text }]}>
-          • Enviar mensagens técnicas, atualizações, alertas de segurança e
-          mensagens de suporte e administrativas;
-        </Text>
-        <Text style={[styles.bulletPoint, { color: colors.text }]}>
-          • Responder a seus comentários, perguntas e solicitações, e fornecer
-          atendimento ao cliente;
-        </Text>
-        <Text style={[styles.bulletPoint, { color: colors.text }]}>
-          • Comunicar-se com você sobre produtos, serviços, ofertas, promoções,
-          recompensas e eventos oferecidos por nós e outros, e fornecer notícias
-          e informações que acreditamos ser de seu interesse;
-        </Text>
-        <Text style={[styles.bulletPoint, { color: colors.text }]}>
-          • Monitorar e analisar tendências, uso e atividades em conexão com
-          nossos Serviços;
-        </Text>
-        <Text style={[styles.bulletPoint, { color: colors.text }]}>
-          • Personalizar e melhorar os Serviços e fornecer conteúdo, recursos
-          e/ou anúncios adaptados aos seus interesses e preferências;
-        </Text>
-        <Text style={[styles.bulletPoint, { color: colors.text }]}>
-          • Processar e entregar participações em concursos e sorteios;
-        </Text>
-        <Text style={[styles.bulletPoint, { color: colors.text }]}>
-          • Detectar, investigar e prevenir atividades fraudulentas e outras
-          atividades ilegais e proteger os direitos e a propriedade da FitFolio
-          e de outros.
-        </Text>
-
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          3. Compartilhamento de Informações
-        </Text>
-        <Text style={[styles.paragraph, { color: colors.text }]}>
-          Podemos compartilhar as informações pessoais que coletamos com:
+          We collect information you provide directly to us, such as when you
+          create an account, fill out a form, submit a customer support request,
+          or otherwise communicate with us. The types of information we may
+          collect include your name, email address, profile information (such as
+          age, height, weight, gender), fitness goals, and any other information
+          you choose to provide.
         </Text>
         <Text style={[styles.bulletPoint, { color: colors.text }]}>
           •{" "}
           <Text style={{ fontWeight: "600" }}>
-            Fornecedores, consultores e outros provedores de serviços:
+            Information We Collect Automatically When You Use the Services:
           </Text>{" "}
-          Podemos compartilhar suas informações com fornecedores, consultores e
-          outros provedores de serviços que precisam acessar essas informações
-          para realizar trabalhos em nosso nome. Esses provedores de serviços só
-          podem acessar, processar e armazenar suas informações pessoais
-          enquanto prestam serviços a nós e de acordo com nossas instruções.
+          We collect information about how you use our Services, including the
+          types of content you view or engage with, the features you use, the
+          actions you take, and the time, frequency, and duration of your
+          activities. This includes information about the workouts you log,
+          meals, physical progress, and other health and fitness-related
+          metrics.
+        </Text>
+        <Text style={[styles.bulletPoint, { color: colors.text }]}>
+          • <Text style={{ fontWeight: "600" }}>Device Information:</Text> We
+          collect information about the device you use to access our Services,
+          including the hardware model, operating system and version, unique
+          device identifiers, network information, and IP address.
+        </Text>
+        <Text style={[styles.bulletPoint, { color: colors.text }]}>
+          • <Text style={{ fontWeight: "600" }}>Location Information:</Text>{" "}
+          With your permission, we may collect and process information about
+          your precise or approximate location. We use various technologies to
+          determine location, including IP address, GPS, and other sensors.
         </Text>
         <Text style={[styles.bulletPoint, { color: colors.text }]}>
           •{" "}
           <Text style={{ fontWeight: "600" }}>
-            Em resposta a um processo legal:
+            Information from Third Parties:
           </Text>{" "}
-          Podemos divulgar suas informações quando acreditarmos de boa fé que a
-          divulgação é necessária para cumprir a lei, proteger nossos direitos
-          ou os direitos de outros, ou em resposta a um processo legal.
-        </Text>
-        <Text style={[styles.bulletPoint, { color: colors.text }]}>
-          • <Text style={{ fontWeight: "600" }}>Com seu consentimento:</Text>{" "}
-          Podemos compartilhar suas informações quando tivermos seu
-          consentimento para fazê-lo.
+          We may receive information about you from third-party services, such
+          as social media platforms if you choose to log in or connect your
+          account, or from health and fitness platforms like Apple HealthKit or
+          Google Fit if you grant us permission to access that data. This
+          information will be treated in accordance with this Privacy Policy.
         </Text>
 
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          4. Segurança
+          2. How We Use Your Information
         </Text>
         <Text style={[styles.paragraph, { color: colors.text }]}>
-          A FitFolio toma medidas razoáveis para ajudar a proteger as
-          informações pessoais contra perda, roubo, uso indevido e acesso não
-          autorizado, divulgação, alteração e destruição. No entanto, nenhuma
-          transmissão pela Internet ou armazenamento eletrônico de informações
-          pode ser garantida como 100% segura.
+          We use the information we collect to:
+        </Text>
+        <Text style={[styles.bulletPoint, { color: colors.text }]}>
+          • Provide, maintain, and improve our Services;
+        </Text>
+        <Text style={[styles.bulletPoint, { color: colors.text }]}>
+          • Process and complete transactions, and send you related information,
+          including purchase confirmations and invoices;
+        </Text>
+        <Text style={[styles.bulletPoint, { color: colors.text }]}>
+          • Send you technical notices, updates, security alerts, and support
+          and administrative messages;
+        </Text>
+        <Text style={[styles.bulletPoint, { color: colors.text }]}>
+          • Respond to your comments, questions, and requests, and provide
+          customer service;
+        </Text>
+        <Text style={[styles.bulletPoint, { color: colors.text }]}>
+          • Communicate with you about products, services, offers, promotions,
+          rewards, and events offered by us and others, and provide news and
+          information we think will be of interest to you;
+        </Text>
+        <Text style={[styles.bulletPoint, { color: colors.text }]}>
+          • Monitor and analyze trends, usage, and activities in connection with
+          our Services;
+        </Text>
+        <Text style={[styles.bulletPoint, { color: colors.text }]}>
+          • Personalize and improve the Services and provide content, features,
+          and/or advertisements tailored to your interests and preferences;
+        </Text>
+        <Text style={[styles.bulletPoint, { color: colors.text }]}>
+          • Process and deliver contest entries and rewards;
+        </Text>
+        <Text style={[styles.bulletPoint, { color: colors.text }]}>
+          • Detect, investigate, and prevent fraudulent transactions and other
+          illegal activities and protect the rights and property of FitFolio and
+          others.
         </Text>
 
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          5. Seus Direitos e Escolhas
+          3. How We Share Your Information
         </Text>
         <Text style={[styles.paragraph, { color: colors.text }]}>
-          Você tem certos direitos e escolhas em relação às suas informações
-          pessoais:
-        </Text>
-        <Text style={[styles.bulletPoint, { color: colors.text }]}>
-          • <Text style={{ fontWeight: "600" }}>Informações da conta:</Text>{" "}
-          Você pode atualizar, corrigir ou excluir certas informações da conta a
-          qualquer momento acessando as configurações da sua conta no
-          aplicativo.
+          We may share the personal information we collect as follows:
         </Text>
         <Text style={[styles.bulletPoint, { color: colors.text }]}>
           •{" "}
-          <Text style={{ fontWeight: "600" }}>Comunicações promocionais:</Text>{" "}
-          Você pode optar por não receber e-mails promocionais seguindo as
-          instruções nesses e-mails. Se você optar por não receber e-mails
-          promocionais, ainda poderemos enviar e-mails não promocionais, como
-          e-mails sobre sua conta ou nosso relacionamento comercial contínuo.
+          <Text style={{ fontWeight: "600" }}>
+            With Vendors, Consultants, and Other Service Providers:
+          </Text>{" "}
+          We may share your information with vendors, consultants, and other
+          service providers who need access to such information to carry out
+          work on our behalf. These service providers are authorized to use your
+          personal information only as necessary to provide these services to us
+          and are obligated to protect your information.
         </Text>
         <Text style={[styles.bulletPoint, { color: colors.text }]}>
           •{" "}
-          <Text style={{ fontWeight: "600" }}>Informações de localização:</Text>{" "}
-          Você pode controlar como coletamos e usamos informações de localização
-          através das configurações do seu dispositivo.
+          <Text style={{ fontWeight: "600" }}>
+            In Response to a Legal Process:
+          </Text>{" "}
+          We may disclose your information if we believe disclosure is in
+          accordance with, or required by, any applicable law, regulation, or
+          legal process.
+        </Text>
+        <Text style={[styles.bulletPoint, { color: colors.text }]}>
+          •{" "}
+          <Text style={{ fontWeight: "600" }}>
+            To Protect Rights, Property, and Others:
+          </Text>{" "}
+          We may disclose your information if we believe your actions are
+          inconsistent with our user agreements or policies, or to protect the
+          rights, property, and safety of FitFolio or others.
+        </Text>
+        <Text style={[styles.bulletPoint, { color: colors.text }]}>
+          • <Text style={{ fontWeight: "600" }}>With Your Consent:</Text> We may
+          share your information when we have your consent to do so, including
+          if we notify you through our Services that the information you provide
+          will be shared in a particular manner and you provide such
+          information.
+        </Text>
+        <Text style={[styles.bulletPoint, { color: colors.text }]}>
+          • <Text style={{ fontWeight: "600" }}>Business Transfers:</Text> We
+          may share or transfer your information in connection with, or during
+          negotiations of, any merger, sale of company assets, financing, or
+          acquisition of all or a portion of our business to another company.
+        </Text>
+        <Text style={[styles.paragraph, { color: colors.text, marginTop: 16 }]}>
+          We do not sell your personal information to third parties.
         </Text>
 
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          6. Alterações nesta Política de Privacidade
+          4. Data Retention
         </Text>
         <Text style={[styles.paragraph, { color: colors.text }]}>
-          Podemos alterar esta Política de Privacidade de tempos em tempos. Se
-          fizermos alterações, notificaremos você revisando a data no topo da
-          política e, em alguns casos, podemos fornecer notificação adicional
-          (como adicionar uma declaração à nossa página inicial ou enviar uma
-          notificação por e-mail).
+          We store the information we collect about you for as long as is
+          necessary for the purpose(s) for which we originally collected it, or
+          for other legitimate business purposes, including to meet our legal,
+          regulatory, or other compliance obligations. If you wish to delete
+          your account or request that we no longer use your information to
+          provide you Services, contact us at the email provided below.
         </Text>
 
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          7. Contato
+          5. Data Security
         </Text>
         <Text style={[styles.paragraph, { color: colors.text }]}>
-          Se você tiver alguma dúvida sobre esta Política de Privacidade, entre
-          em contato conosco em fitfolio.app.br@gmail.com ou visite nosso site
-          em fitfolio.com.br.
+          FitFolio takes reasonable measures to help protect personal
+          information from loss, theft, misuse, and unauthorized access,
+          disclosure, alteration, and destruction. However, no Internet or email
+          transmission is ever fully secure or error-free. Therefore, you should
+          take special care in deciding what information you send to us via the
+          Services or email. Please keep this in mind when disclosing any
+          personal information to FitFolio via the Internet.
         </Text>
 
-        {/* Espaço extra no final para permitir deslizar mais para cima */}
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          6. Your Rights and Choices
+        </Text>
+        <Text style={[styles.paragraph, { color: colors.text }]}>
+          You have certain rights and choices regarding your personal
+          information:
+        </Text>
+        <Text style={[styles.bulletPoint, { color: colors.text }]}>
+          • <Text style={{ fontWeight: "600" }}>Account Information:</Text> You
+          may update, correct, or delete certain account information at any time
+          by logging into your account settings within the app.
+        </Text>
+        <Text style={[styles.bulletPoint, { color: colors.text }]}>
+          •{" "}
+          <Text style={{ fontWeight: "600" }}>Promotional Communications:</Text>{" "}
+          You may opt out of receiving promotional emails from us by following
+          the instructions in those emails. If you opt out, we may still send
+          you non-promotional emails, such as those about your account or our
+          ongoing business relations.
+        </Text>
+        <Text style={[styles.bulletPoint, { color: colors.text }]}>
+          • <Text style={{ fontWeight: "600" }}>Location Information:</Text> You
+          can control how we collect and use location information through your
+          device settings.
+        </Text>
+        <Text style={[styles.bulletPoint, { color: colors.text }]}>
+          •{" "}
+          <Text style={{ fontWeight: "600" }}>
+            Access, Correction, and Deletion:
+          </Text>{" "}
+          Depending on your jurisdiction, you may have the right to request
+          access to, correction of, or deletion of your personal information.
+          You can submit these requests by contacting us at the email address
+          below.
+        </Text>
+
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          7. Children's Privacy
+        </Text>
+        <Text style={[styles.paragraph, { color: colors.text }]}>
+          Our Services are not directed to individuals under the age of 13 (or a
+          higher age threshold where applicable under local law). We do not
+          knowingly collect personal information from children under 13. If we
+          become aware that a child under 13 has provided us with personal
+          information, we will take steps to delete such information. If you
+          become aware that a child has provided us with personal information,
+          please contact us at the contact information provided below.
+        </Text>
+
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          8. International Data Transfers
+        </Text>
+        <Text style={[styles.paragraph, { color: colors.text }]}>
+          Your information, including personal data, may be transferred to — and
+          maintained on — computers located outside of your state, province,
+          country, or other governmental jurisdiction where the data protection
+          laws may differ from those in your jurisdiction. If you are located
+          outside Brazil and choose to provide information to us, please note
+          that we transfer the data, including personal data, to Brazil and
+          process it there. Your consent to this Privacy Policy followed by your
+          submission of such information represents your agreement to that
+          transfer.
+        </Text>
+
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          9. Changes to This Privacy Policy
+        </Text>
+        <Text style={[styles.paragraph, { color: colors.text }]}>
+          We may change this Privacy Policy from time to time. If we make
+          changes, we will notify you by revising the date at the top of the
+          policy and, in some cases, we may provide you with additional notice
+          (such as adding a statement to our homepage or sending you an email
+          notification). We encourage you to review the Privacy Policy whenever
+          you access the Services to stay informed about our information
+          practices and the ways you can help protect your privacy.
+        </Text>
+
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          10. Contact Us
+        </Text>
+        <Text style={[styles.paragraph, { color: colors.text }]}>
+          If you have any questions about this Privacy Policy, please contact us
+          at fitfolio.app.br@gmail.com or visit our website at fitfolio.com.br.
+        </Text>
+
+        {/* Extra space at the bottom to allow scrolling further up */}
         <View style={styles.extraSpace} />
       </ScrollView>
     </SafeAreaView>

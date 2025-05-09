@@ -20,7 +20,7 @@
       "passwordPlaceholder": "Your password",
       "forgotPassword": "Forgot your password?",
       "loginButton": "SIGN IN",
-      "orContinueWith": "or continue with",
+      "continueWithApple": "Continue with apple",
       "errorMessages": {
         "invalidCredentials": "Invalid email or password. Please try again.",
         "emptyFields": "Please fill in all fields.",
@@ -2451,5 +2451,62 @@
     "reviewExistingDescription": "This is your current workout. You can save it again or generate a new one.",
     "regenerateWorkout": "Generate New Workout",
     "saveWorkout": "Save Workout"
+  },
+  "paywall": {
+    "title": "Unlock All Features",
+    "subtitle": "Choose a plan to get full access to all features and content.",
+    "loadingPlans": "Loading plans...",
+    "loadErrorTitle": "Error Loading Plans",
+    "loadErrorMessage": "Could not load subscription plans. Please check your internet connection and try again.",
+    "tryAgain": "Try Again",
+    "purchaseErrorVerification": "There was a problem verifying your purchase. Please try again or contact support.",
+    "purchaseErrorGeneric": "Could not complete purchase: {{message}}. Please try again later.",
+    "restoreSuccess": "Purchases restored successfully!",
+    "restoreNoSubscription": "No active subscription found to restore.",
+    "restoreError": "Error restoring purchases. Please try again or contact support.",
+    "startFreeTrial": "Start Your 7-Day Free Trial",
+    "selectedPlanError": "Selected plan not found. Please try again.",
+    "introOffer": "{{period}} {{price}}",
+    "introOfferFree": "Free for {{period}}",
+    "introOfferPaid": "{{price}} for the first {{period}}",
+    "chooseYourPlan": "Start Your Free Trial",
+    "bottomSheet": {
+      "title": "Select Your Plan"
+    },
+    "annual": {
+      "badge": "BEST VALUE",
+      "title": "Annual Plan",
+      "frequency": "billed once a year",
+      "frequencyDetails": "Billed annually (${{pricePerMonth}}/month)",
+      "save": "2 months free"
+    },
+    "monthly": {
+      "title": "Monthly Plan",
+      "frequency": "billed monthly",
+      "frequencyDetails": "Billed monthly"
+    },
+    "restorePurchases": {
+      "button": "Restore Purchases",
+      "mockMessage": "Mock: Purchases restored successfully!"
+    },
+    "footer": {
+      "autoRenew": "Subscriptions automatically renew unless auto-renew is turned off at least 24-hours before the end of the current period. Manage your subscriptions in your account settings.",
+      "terms": "Terms of Use",
+      "privacy": "Privacy Policy"
+    },
+    "stepper": {
+      "today": {
+        "title": "Today - Instant Access",
+        "description": "Access all workouts, meal plans, progress tracking, and more."
+      },
+      "day5": {
+        "title": "Day 5 - Trial Reminder",
+        "description": "We'll send a reminder before your trial ends."
+      },
+      "day7": {
+        "title": "Day 7 - Trial Ends",
+        "description": "Your free trial ends. Cancel anytime before this date to avoid charges."
+      }
+    }
   }
 } 

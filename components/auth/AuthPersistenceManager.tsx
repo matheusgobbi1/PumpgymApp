@@ -15,6 +15,8 @@ export function AuthPersistenceManager() {
     authStateStable,
     isRestoringSession,
     restoreSession,
+    checkSubscriptionStatus,
+    setIsSubscribed,
   } = useAuth();
 
   useEffect(() => {
@@ -27,6 +29,25 @@ export function AuthPersistenceManager() {
         // Se não houver usuário e não estiver carregando, tenta restaurar a sessão
         if (!user && !loading && !isRestoringSession) {
           await restoreSession();
+        }
+        // Se já tem usuário, verifica assinatura (online ou offline)
+        else if (user && !user.isAnonymous) {
+          await checkSubscriptionStatus();
+        }
+        // Se estiver offline, tenta recuperar status do usuário e assinatura localmente
+        else if (!isOnline && !user) {
+          try {
+            // Carregar último usuário conhecido do armazenamento local
+            const userData = await OfflineStorage.loadUserData("");
+            if (userData && userData.uid) {
+              // Verificar status de assinatura local
+              const hasSubscription =
+                await OfflineStorage.getSubscriptionStatus(userData.uid);
+              setIsSubscribed(hasSubscription);
+            }
+          } catch (error) {
+            console.error("Erro ao restaurar dados offline:", error);
+          }
         }
       }
     };
@@ -48,6 +69,8 @@ export function AuthPersistenceManager() {
     authStateStable,
     isRestoringSession,
     restoreSession,
+    checkSubscriptionStatus,
+    setIsSubscribed,
   ]);
 
   // Este componente não renderiza nada, apenas executa o hook
