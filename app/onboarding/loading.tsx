@@ -8,6 +8,8 @@ import { useNutrition } from "../../context/NutritionContext";
 import { Ionicons } from "@expo/vector-icons";
 import { MotiView } from "moti";
 import { useTranslation } from "react-i18next";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.85;
@@ -16,7 +18,7 @@ export default function LoadingScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = Colors[theme];
-  const { calculateMacros } = useNutrition();
+  const { calculateMacros, nutritionInfo } = useNutrition();
   const { t } = useTranslation();
 
   const LOADING_STEPS = [
@@ -60,10 +62,11 @@ export default function LoadingScreen() {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [calculationComplete, setCalculationComplete] = useState(false);
+  const [isFadingOut, setIsFadingOut] = useState(false);
 
   // Animação e progresso dos passos
   useEffect(() => {
-    const stepDuration = 1500; // 1.5 segundos por etapa
+    const stepDuration = 1700; // Aumentado para 1.7 segundos por etapa
     let isMounted = true;
 
     const advanceStep = (step: number) => {
@@ -76,11 +79,29 @@ export default function LoadingScreen() {
           setCurrentStep(step);
           setCompletedSteps((prev) => [...prev, step]);
 
+          // Feedback Tátil Diferenciado
+          try {
+            if (step === LOADING_STEPS.length - 1) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            } else if (step % 3 === 0) {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            } else if (step % 3 === 1) {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            } else {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            }
+          } catch (e) {
+            console.log("Haptics not available");
+          }
+
           // No penúltimo passo, calcular os macros
           if (step === LOADING_STEPS.length - 2) {
             try {
+              console.log("Calculando macros no penúltimo passo...");
               calculateMacros();
-            } catch (error) {}
+            } catch (error) {
+              console.error("Erro ao calcular macros:", error);
+            }
             setCalculationComplete(true);
           }
 
@@ -94,150 +115,178 @@ export default function LoadingScreen() {
     return () => {
       isMounted = false;
     };
-  }, [LOADING_STEPS.length]);
+  }, [LOADING_STEPS.length, calculateMacros]);
 
   // Navegar para a tela de resumo após completar os passos
   useEffect(() => {
-    const totalDuration = LOADING_STEPS.length * 1500;
-    const navigationTimer = setTimeout(() => {
-      // Garantir que a navegação aconteça mesmo se o cálculo falhar
-      router.replace("/onboarding/summary");
-    }, totalDuration);
+    const newStepDuration = 1700; // Usar o novo stepDuration
+    const initialCascadeDelay = (LOADING_STEPS.length - 1) * 250; // Delay da animação em cascata
+    const totalStepTime = LOADING_STEPS.length * newStepDuration; // Tempo total dos passos
+    const totalDuration = initialCascadeDelay + totalStepTime; // Tempo total real
 
-    return () => clearTimeout(navigationTimer);
-  }, [LOADING_STEPS.length]);
+    const fadeOutDuration = 500; // Duração do fade-out
+
+    const fadeTimer = setTimeout(() => {
+      setIsFadingOut(true); // Iniciar fade-out
+    }, totalDuration - fadeOutDuration); // Começa a desaparecer *antes* do fim
+
+    const navigationTimer = setTimeout(() => {
+      router.replace("/onboarding/summary");
+    }, totalDuration); // Navega no tempo original
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(navigationTimer);
+    };
+  }, [LOADING_STEPS.length, router]);
 
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={["bottom"]}
     >
-      <View style={styles.content}>
-        <Text style={[styles.title, { color: colors.text }]}>
-          {t("onboarding.loading.title")}
-        </Text>
-        <Text style={[styles.subtitle, { color: colors.text }]}>
-          {t("onboarding.loading.subtitle")}
-        </Text>
+      <MotiView
+        style={{ flex: 1 }}
+        animate={{ opacity: isFadingOut ? 0 : 1 }}
+        transition={{ type: "timing", duration: 500 }}
+      >
+        <View style={styles.content}>
+          <Text style={[styles.title, { color: colors.text }]}>
+            {t("onboarding.loading.title")}
+          </Text>
+          <Text style={[styles.subtitle, { color: colors.text }]}>
+            {t("onboarding.loading.subtitle")}
+          </Text>
 
-        <View style={styles.stepsContainer}>
-          {LOADING_STEPS.map((step, index) => {
-            const isActive = index === currentStep;
-            const isCompleted = completedSteps.includes(index);
-            const isNext = index === currentStep + 1;
+          <View style={styles.stepsContainer}>
+            {LOADING_STEPS.map((step, index) => {
+              const isActive = index === currentStep;
+              const isCompleted = completedSteps.includes(index);
+              const isNext = index === currentStep + 1;
 
-            return (
-              <MotiView
-                key={`step-${step.title}`}
-                from={{
-                  opacity: 0,
-                  translateX: -20,
-                }}
-                animate={{
-                  opacity: isNext ? 0.7 : 1,
-                  translateX: 0,
-                  scale: isActive ? 1.02 : 1,
-                }}
-                transition={{
-                  type: "timing",
-                  duration: 500,
-                  delay: index * 200,
-                }}
-                style={[
-                  styles.stepCard,
-                  {
-                    backgroundColor: isActive
-                      ? `${step.color}15`
-                      : theme === "dark"
-                      ? colors.dark
-                      : colors.background,
-                    borderColor: isActive ? step.color : "transparent",
-                    borderWidth: 2,
-                  },
-                ]}
-              >
-                <View style={styles.stepHeader}>
-                  <View style={styles.stepIconContainer}>
-                    <Ionicons
-                      name={step.icon as any}
-                      size={24}
-                      color={isActive || isCompleted ? step.color : colors.text}
-                    />
-                    {isCompleted && (
-                      <MotiView
-                        from={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        style={styles.checkmark}
+              return (
+                <MotiView
+                  key={`step-${step.title}`}
+                  from={{
+                    opacity: 0,
+                    translateX: -20,
+                    translateY: 20,
+                  }}
+                  animate={{
+                    opacity: isNext ? 0.7 : 1,
+                    translateX: 0,
+                    translateY: 0,
+                    scale: isActive ? 1.02 : 1,
+                  }}
+                  transition={{
+                    type: "spring",
+                    damping: 15,
+                    stiffness: 100,
+                    delay: index * 250,
+                  }}
+                  style={[
+                    styles.stepCard,
+                    {
+                      backgroundColor: isActive
+                        ? `${step.color}15`
+                        : colors.light,
+                      borderColor: isActive ? step.color : colors.border,
+                      borderWidth: isActive ? 1 : 1,
+                    },
+                  ]}
+                >
+                  <View style={styles.stepHeader}>
+                    <View style={styles.stepIconContainer}>
+                      <Ionicons
+                        name={step.icon as any}
+                        size={24}
+                        color={isActive || isCompleted ? step.color : colors.text}
+                      />
+                      {isCompleted && (
+                        <MotiView
+                          from={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          style={styles.checkmark}
+                        >
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={16}
+                            color={step.color}
+                          />
+                        </MotiView>
+                      )}
+                    </View>
+
+                    <View style={styles.stepContent}>
+                      <Text
+                        style={[
+                          styles.stepTitle,
+                          { color: isActive ? step.color : colors.text },
+                        ]}
                       >
-                        <Ionicons
-                          name="checkmark-circle"
-                          size={16}
-                          color={step.color}
-                        />
+                        {step.title}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.stepDescription,
+                          { color: colors.text, opacity: 0.7 },
+                        ]}
+                      >
+                        {step.description}
+                      </Text>
+                    </View>
+
+                    {isActive && (
+                      <MotiView
+                        from={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        style={[styles.badge, { backgroundColor: step.color }]}
+                      >
+                        <Text style={styles.badgeText}>{step.detail}</Text>
                       </MotiView>
                     )}
                   </View>
 
-                  <View style={styles.stepContent}>
-                    <Text
-                      style={[
-                        styles.stepTitle,
-                        { color: isActive ? step.color : colors.text },
-                      ]}
-                    >
-                      {step.title}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.stepDescription,
-                        { color: colors.text, opacity: 0.7 },
-                      ]}
-                    >
-                      {step.description}
-                    </Text>
-                  </View>
-
+                  {/* Gradiente animado como fundo */}
                   {isActive && (
                     <MotiView
-                      from={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      style={[styles.badge, { backgroundColor: step.color }]}
+                      from={{ width: "0%" }}
+                      animate={{ width: "100%" }}
+                      transition={{
+                        type: "timing",
+                        duration: 1500, // Animação do gradiente permanece 1500ms
+                      }}
+                      style={{
+                        ...StyleSheet.absoluteFillObject,
+                        borderRadius: 10,
+                        zIndex: -1,
+                      }}
                     >
-                      <Text style={styles.badgeText}>{step.detail}</Text>
+                      <LinearGradient
+                        colors={[`${step.color}50`, `${step.color}10`]}
+                        style={StyleSheet.absoluteFillObject}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                      />
                     </MotiView>
                   )}
-                </View>
+                </MotiView>
+              );
+            })}
+          </View>
 
-                {isActive && (
-                  <MotiView
-                    from={{ width: "0%" }}
-                    animate={{ width: "100%" }}
-                    transition={{
-                      type: "timing",
-                      duration: 1500,
-                    }}
-                    style={[
-                      styles.progressBar,
-                      { backgroundColor: step.color },
-                    ]}
-                  />
-                )}
-              </MotiView>
-            );
-          })}
+          <MotiView
+            animate={{
+              width: `${((currentStep + 1) / LOADING_STEPS.length) * 100}%`,
+            }}
+            transition={{
+              type: "timing",
+              duration: 500,
+            }}
+            style={[styles.totalProgress, { backgroundColor: colors.primary }]}
+          />
         </View>
-
-        <MotiView
-          animate={{
-            width: `${((currentStep + 1) / LOADING_STEPS.length) * 100}%`,
-          }}
-          transition={{
-            type: "timing",
-            duration: 500,
-          }}
-          style={[styles.totalProgress, { backgroundColor: colors.primary }]}
-        />
-      </View>
+      </MotiView>
     </SafeAreaView>
   );
 }

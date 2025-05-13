@@ -18,7 +18,7 @@ export default {
     error: "#E53935", // Adicionado cor de erro (usando a mesma cor de perigo)
     warning: "#FFB74D", // Laranja âmbar
     info: "#FFEDA8", // Amarelo suave
-    light: "#F8F9FA", // Branco levemente acinzentado
+    light: "#FFFFFF", // Branco puro para cards no tema claro
     dark: "#212529", // Preto suave
     border: "#rgb(241, 241, 241)", // Borda mais visível para o tema claro
     tabborder: "#rgb(224, 224, 224)", // Borda mais visível para o tema escuro
@@ -47,11 +47,11 @@ export default {
     error: "#E53935", // Adicionado cor de erro (usando a mesma cor de perigo)
     warning: "#FFC857", // Amarelo mais quente
     info: "#FFE082", // Amarelo suave néon
-    light: "#181818", // Cinza mais escuro para cards
+    light: "#151515", // Cinza muito escuro para cards no tema dark
     dark: "#0A0A0A", // Preto profundo
     border: "#rgba(255, 255, 255, 0.03)", // Borda mais visível para o tema escuro
     tabborder: "#rgba(255, 255, 255, 0.05)", // Borda mais visível para o tema escuro
-    card: "rgba(255, 255, 255, 0.05)", // Card com brilho sutil
+    card: "rgba(255, 255, 255, 0.02)", // Card com brilho mais sutil e escuro
 
     // Cores para gráficos com base monocromática
     chartBackground: "rgba(255, 255, 255, 0.07)", // Aumentei opacidade

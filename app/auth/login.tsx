@@ -4,7 +4,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Dimensions,
   StatusBar,
   Keyboard,
   TouchableWithoutFeedback,
@@ -27,8 +26,6 @@ import { useTranslation } from "react-i18next";
 import { useLanguage } from "../../context/LanguageContext";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-
-const { width, height } = Dimensions.get("window");
 
 const AnimatedTouchableOpacity =
   Animated.createAnimatedComponent(TouchableOpacity);
@@ -142,7 +139,6 @@ export default function LoginScreen() {
               <Text
                 style={[
                   styles.titleText,
-                  currentLanguage === "pt-BR" && { fontSize: 76 }, // Tamanho menor para PT-BR
                 ]}
               >
                 {t("login.titleLine1")}
@@ -150,10 +146,6 @@ export default function LoginScreen() {
               <Text
                 style={[
                   styles.titleTextLarge,
-                  currentLanguage === "pt-BR" && {
-                    fontSize: 81,
-                    lineHeight: 90,
-                  },
                 ]}
               >
                 {t("login.titleLine2")}
@@ -227,22 +219,22 @@ const styles = StyleSheet.create({
   },
   titleText: {
     color: "#FFFFFF",
-    fontSize: 78,
+    fontSize: 58,
     fontFamily: "Anton",
     textTransform: "uppercase",
     letterSpacing: 0,
     textAlign: "center",
-    marginBottom: -15,
+    marginBottom: -10,
     textShadowColor: "rgba(0, 0, 0, 0.6)",
   },
   titleTextLarge: {
     color: "#FFFFFF",
-    fontSize: 92,
+    fontSize: 68,
     fontFamily: "Anton",
     textTransform: "uppercase",
     letterSpacing: 0,
     textAlign: "center",
-    lineHeight: 110,
+    lineHeight: 75,
     marginTop: 0,
     marginBottom: 0,
     textShadowColor: "rgba(0, 0, 0, 0.8)",
@@ -251,11 +243,11 @@ const styles = StyleSheet.create({
   },
   subtitleText: {
     color: "rgba(255, 255, 255, 0.9)",
-    fontSize: 24,
+    fontSize: 20,
     fontFamily: "PlayfairDisplay-Italic",
     textAlign: "center",
     maxWidth: "100%",
-    lineHeight: 24,
+    lineHeight: 28,
     textShadowColor: "rgba(0, 0, 0, 0.7)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
@@ -291,7 +283,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: "#FFFFFF",
-    fontSize: 24,
+    fontSize: 22,
     letterSpacing: 1.5,
     fontFamily: "Anton",
     textTransform: "uppercase",
@@ -326,7 +318,7 @@ const styles = StyleSheet.create({
   },
   appName: {
     color: "#FFFFFF",
-    fontSize: 28,
+    fontSize: 26,
     fontFamily: "PlayfairDisplay",
     textTransform: "uppercase",
     textShadowColor: "rgba(0, 0, 0, 0.75)",

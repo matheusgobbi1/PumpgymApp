@@ -111,7 +111,7 @@ export default function RootLayout() {
         if (!isOnline) return;
 
         // Verificar se há operações pendentes
-        const pendingOps = await OfflineStorage.getPendingOperations();
+        const pendingOps = await OfflineStorage.getPendingOperations() || [];
 
         // Verificar se há datas de refeições modificadas
         const userData = await AsyncStorage.getItem("pumpgym_user_data");

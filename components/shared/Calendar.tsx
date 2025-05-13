@@ -454,6 +454,22 @@ const Calendar = ({
               minIndexForVisible: 0,
               autoscrollToTopThreshold: 3,
             }}
+            onScroll={(event) => {
+              const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+              const maxOffset = contentSize.width - layoutMeasurement.width;
+              
+              // Se o usuário tentar rolar além do limite final
+              if (contentOffset.x > maxOffset) {
+                // Força a rolagem de volta para o limite
+                if (listRef.current) {
+                  listRef.current.scrollToOffset({
+                    offset: maxOffset,
+                    animated: false
+                  });
+                }
+              }
+            }}
+            scrollEventThrottle={16}
           />
         </View>
       </View>

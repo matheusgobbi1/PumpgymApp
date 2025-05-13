@@ -15,12 +15,13 @@ export default {
   },
   assetBundlePatterns: ["**/*"],
   ios: {
-    supportsTablet: true,
+    supportsTablet: false,
     bundleIdentifier: "app.matheus.fitfolio",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSMotionUsageDescription:
         "O app usa o pedômetro para contar seus passos diários e monitorar sua atividade física.",
+
     },
   },
   android: {

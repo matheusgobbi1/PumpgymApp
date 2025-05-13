@@ -23,7 +23,6 @@ import {
   updateEmail,
   updatePassword,
   fetchSignInMethodsForEmail,
-  OAuthProvider,
   type AuthError as FirebaseAuthError,
 } from "firebase/auth";
 import {
@@ -57,6 +56,7 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 import Purchases from "react-native-purchases";
+import * as SecureStore from "expo-secure-store";
 
 // Verificar se estamos em um build nativo ou Expo Go
 const isExpoGo = Constants.executionEnvironment === "standalone";
@@ -86,6 +86,8 @@ interface AuthContextType {
   restoreSession: () => Promise<boolean>;
   setUser: (user: FirebaseUser | null) => void;
   setLoading: (loading: boolean) => void;
+  setIsAnonymous: (isAnonymous: boolean) => void;
+  setIsNewUser: (isNewUser: boolean) => void;
   sessionRestoreAttempted: boolean;
   signInAnonymously: () => Promise<FirebaseUser>;
   completeAnonymousRegistration: (
@@ -100,7 +102,6 @@ interface AuthContextType {
   isRestoringSession: boolean;
   navigationAttempted: boolean;
   sendPasswordResetEmail: (email: string) => Promise<void>;
-  loginWithApple: () => Promise<void>;
   isSubscribed: boolean;
   setIsSubscribed: (value: boolean) => void;
   checkSubscriptionStatus: () => Promise<boolean>;
@@ -576,24 +577,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                   }
                 }
               } else {
-                // Se não há usuário, verificar se temos dados locais
-                // e se estamos offline antes de limpar o estado
                 const isOnline = await OfflineStorage.isOnline();
-                const userData = await getUserData();
+                const localUserData = await getUserData(); // Renomeado para clareza
 
-                if (!isOnline && userData && userData.uid) {
-                  // Se offline e temos dados locais, criar um usuário baseado nesses dados
-                  setUser({
-                    uid: userData.uid,
-                    email: userData.email,
-                    displayName: userData.displayName,
-                    isAnonymous: userData.isAnonymous || false,
-                  } as FirebaseUser);
-                  setIsAnonymous(userData.isAnonymous || false);
-                  setIsNewUser(!userData.onboardingCompleted);
+                if (!isOnline && localUserData && localUserData.uid) {
+                  // Se estivermos offline e tivermos dados de usuário local válidos,
+                  // e o estado 'user' atual não for este usuário local (ou for null),
+                  // então usamos os dados locais.
+                  // Isso preserva a sessão restaurada por restoreSession.
+                  if (!user || user.uid !== localUserData.uid) {
+                    setUser({
+                      uid: localUserData.uid,
+                      email: localUserData.email,
+                      displayName: localUserData.displayName,
+                      isAnonymous: localUserData.isAnonymous || false,
+                    } as FirebaseUser);
+                    setIsAnonymous(localUserData.isAnonymous || false);
+                    setIsNewUser(
+                      localUserData.onboardingCompleted !== undefined
+                        ? !localUserData.onboardingCompleted
+                        : true // Default se onboardingCompleted não estiver nos dados locais
+                    );
+                    // Considerar chamar checkOfflineSubscriptionStatus aqui se necessário
+                    await checkOfflineSubscriptionStatus(localUserData.uid);
+                  }
+                  // Se 'user' já é 'localUserData', não fazemos nada, já está correto.
                 } else {
-                  setUser(null);
-                  setIsAnonymous(false);
+                  // Só desloga (setUser(null)) se estivermos online OU se não houver dados locais.
+                  // Isso evita que um 'null' de onAuthStateChanged (porque o Firebase SDK ainda não carregou a sessão offline)
+                  // sobrescreva uma sessão que pode ter sido restaurada manualmente por restoreSession quando offline.
+                  if (isOnline || !localUserData?.uid) {
+                    setUser(null);
+                    setIsAnonymous(false);
+                    // Potencialmente limpar tokens/dados locais aqui se for um logout definitivo online
+                    if (isOnline) {
+                      await removeAuthToken();
+                      await removeUserData(); // Cuidado com a chamada a removeUserData aqui, pode ser agressiva demais
+                    }
+                  }
                 }
               }
             } catch (error) {
@@ -1060,7 +1081,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsAnonymous(false);
       setIsNewUser(false);
 
-      // Navegar para paywall (alterado de/(tabs) para /paywall)
+      // Navegar para paywall
       await router.replace("/paywall");
 
       // Notificar que o registro foi concluído após a navegação
@@ -1129,27 +1150,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               );
             } catch (firebaseError) {
               // Erro ao salvar treinos no Firebase durante logout
+              console.error("Erro ao salvar treinos no Firebase:", firebaseError);
             }
           }
         } catch (e) {
           // Erro ao processar dados de treino durante logout
+          console.error("Erro ao processar dados de treino:", e);
         }
       }
 
-      // Primeiro limpar os dados locais
+      // IMPORTANTE: Antes de remover dados do usuário, salvar uma cópia para recuperação offline
+      if (currentUserId) {
+        try {
+          // Obter dados do usuário atual antes de remover
+          const userData = await getUserData();
+          if (userData) {
+            // Adicionar flag indicando que é um backup
+            userData._isBackup = true;
+            // Salvar uma cópia dos dados para recuperação offline
+            await AsyncStorage.setItem(
+              `${KEYS.USER_DATA}_${currentUserId}_backup`,
+              JSON.stringify(userData)
+            );
+          }
+        } catch (backupError) {
+          console.error("Erro ao criar backup dos dados do usuário:", backupError);
+        }
+      }
+
+      // Remover dados do SecureStore, mas manter o AsyncStorage para recuperação offline
       try {
-        await removeUserData();
+        // Em vez de usar removeUserData que limpa tudo, usar funções específicas
+        await SecureStore.deleteItemAsync("user_data");
       } catch (e) {
-        // Erro ao remover dados do usuário
+        console.error("Erro ao remover dados do SecureStore:", e);
       }
 
       try {
         await removeAuthToken();
       } catch (e) {
-        // Erro ao remover token de autenticação
+        console.error("Erro ao remover token de autenticação:", e);
       }
 
-      // Limpar dados de treino
+      // Limpar dados de treino específicos, mantendo os dados de usuário
       try {
         await AsyncStorage.removeItem(`@pumpgym:workouts:${user?.uid}`);
         await AsyncStorage.removeItem(`@pumpgym:workoutTypes:${user?.uid}`);
@@ -1173,7 +1216,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           await AsyncStorage.multiRemove(reminderKeys);
         }
       } catch (e) {
-        // Erro ao limpar dados de treino
+        console.error("Erro ao limpar dados de treino:", e);
       }
 
       // Depois fazer logout no Firebase
@@ -1187,6 +1230,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Redirecionar para login
       router.replace("/auth/login");
     } catch (error) {
+      console.error("Erro no processo de logout:", error);
       throw error;
     }
   };
@@ -1210,108 +1254,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  // Login com Apple
-  const loginWithApple = async () => {
-    try {
-      setLoading(true);
-
-      // Verificar se o dispositivo suporta autenticação com Apple
-      const isAvailable = await AppleAuthentication.isAvailableAsync();
-      if (!isAvailable) {
-        throw new Error(
-          "Autenticação com Apple não está disponível neste dispositivo"
-        );
-      }
-
-      // Iniciar o fluxo de autenticação com Apple
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
-
-      if (!credential.identityToken) {
-        throw new Error(
-          "Não foi possível obter o token de autenticação da Apple"
-        );
-      }
-
-      // Criar um provedor OAuth para Apple
-      const provider = new OAuthProvider("apple.com");
-
-      // Criar credencial para o Firebase
-      const appleCredential = provider.credential({
-        idToken: credential.identityToken,
-        // O nonce não é necessário em todos os casos, então vamos omiti-lo
-      });
-
-      // Fazer login no Firebase com a credencial da Apple
-      const userCredential = await signInWithCredential(auth, appleCredential);
-      const user = userCredential.user;
-
-      // Determinar o nome de exibição (Apple pode não fornecer em logins subsequentes)
-      const displayName = credential.fullName
-        ? `${credential.fullName.givenName || ""} ${
-            credential.fullName.familyName || ""
-          }`.trim()
-        : user.displayName || "Usuário Apple";
-
-      // Se o nome estiver vazio e o usuário estiver definido, atualizar o perfil
-      if ((!user.displayName || user.displayName === "") && displayName) {
-        await updateProfile(user, { displayName });
-      }
-
-      // Verificar se é a primeira vez que o usuário faz login
-      const userDoc = await getDoc(doc(db, "users", user.uid));
-      const isNewUserSignup = !userDoc.exists();
-      const onboardingCompleted = userDoc.data()?.onboardingCompleted ?? false;
-
-      // Salvar token de autenticação
-      const idToken = await getIdToken(user);
-      await saveAuthToken(idToken);
-
-      // Se for novo usuário, criar documento no Firestore
-      if (isNewUserSignup) {
-        await setDoc(doc(db, "users", user.uid), {
-          name: displayName,
-          email: user.email,
-          photoURL: user.photoURL,
-          createdAt: serverTimestamp(),
-          onboardingCompleted: false,
-          provider: "apple",
-        });
-      }
-
-      // Salvar dados do usuário localmente
-      await saveUserData({
-        uid: user.uid,
-        email: user.email,
-        displayName: displayName,
-        photoURL: user.photoURL,
-        onboardingCompleted: isNewUserSignup ? false : onboardingCompleted,
-        isAnonymous: false,
-      });
-
-      // Atualizar estados
-      setUser(user);
-      setIsAnonymous(false);
-      setIsNewUser(isNewUserSignup || !onboardingCompleted);
-
-      // Redirecionar baseado no status do onboarding
-      if (isNewUserSignup || !onboardingCompleted) {
-        router.replace("/onboarding/gender");
-      } else {
-        router.replace("/(tabs)");
-      }
-    } catch (error) {
-      console.error("Erro no login com Apple:", error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const value = {
     user,
     loading,
@@ -1324,6 +1266,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     restoreSession,
     setUser,
     setLoading,
+    setIsAnonymous,
+    setIsNewUser,
     sessionRestoreAttempted,
     signInAnonymously,
     completeAnonymousRegistration,
@@ -1334,7 +1278,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     isRestoringSession,
     navigationAttempted,
     sendPasswordResetEmail,
-    loginWithApple,
     isSubscribed,
     setIsSubscribed,
     checkSubscriptionStatus,

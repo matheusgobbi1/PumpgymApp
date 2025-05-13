@@ -43,8 +43,7 @@ export default function CompleteRegistrationScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = Colors[theme];
-  const { completeAnonymousRegistration, isAnonymous, loginWithApple } =
-    useAuth();
+  const { completeAnonymousRegistration, isAnonymous } = useAuth();
   const insets = useSafeAreaInsets();
 
   // Referência para o ScrollView
@@ -149,19 +148,8 @@ export default function CompleteRegistrationScreen() {
         return;
       }
 
-      // Verificar se está tentando usar Apple em um dispositivo Android
-      if (provider === "Apple" && Platform.OS === "android") {
-        setError("Login com Apple não está disponível em dispositivos Android");
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        return;
-      }
-
       setLoading(true);
       setError("");
-
-      if (provider === "Apple") {
-        await loginWithApple();
-      }
     } catch (err: any) {
       if (err.code === "auth/email-already-in-use") {
         setError(t("completeRegistration.errors.emailInUse"));
@@ -502,39 +490,9 @@ export default function CompleteRegistrationScreen() {
                       </View>
 
                       <View style={styles.step1ButtonRow}>
-                        {/* Botão de Login com Apple (Minimalista) */}
-                        {Platform.OS === "ios" && !isExpoGo && (
-                          <TouchableOpacity
-                            style={[
-                              styles.appleIconButton,
-                              {
-                                backgroundColor:
-                                  theme === "dark" ? "#FFF" : "#000",
-                                borderColor:
-                                  theme === "dark" ? colors.border : "#000",
-                              },
-                            ]}
-                            onPress={() => handleSocialLogin("Apple")}
-                            disabled={loading}
-                            activeOpacity={0.8}
-                          >
-                            <Ionicons
-                              name="logo-apple"
-                              size={24}
-                              color={theme === "dark" ? "#000" : "#FFF"}
-                            />
-                          </TouchableOpacity>
-                        )}
-
                         <TouchableOpacity
                           key={`next-button-${theme}`}
-                          style={[
-                            styles.nextButton,
-                            { backgroundColor: colors.primary },
-                            Platform.OS === "ios" && !isExpoGo
-                              ? styles.nextButtonWithAppleIcon
-                              : {},
-                          ]}
+                          style={[styles.nextButton, { backgroundColor: colors.primary }]}
                           onPress={nextStep}
                           activeOpacity={0.8}
                         >
@@ -849,7 +807,6 @@ const styles = StyleSheet.create({
     gap: 8,
     flex: 1,
   },
-  nextButtonWithAppleIcon: {},
   nextButtonText: {
     fontSize: 16,
     fontWeight: "600",
@@ -931,13 +888,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 20,
     gap: 12,
-  },
-  appleIconButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
   },
 });

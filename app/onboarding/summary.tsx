@@ -22,6 +22,7 @@ import { MotiView } from "moti";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
 import Svg, { Circle } from "react-native-svg";
+import { LinearGradient } from "expo-linear-gradient";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -425,7 +426,6 @@ export default function SummaryScreen() {
             style={[
               styles.unifiedProfileGoalCard,
               {
-                backgroundColor: theme === "dark" ? colors.dark : colors.light,
                 borderColor: colors.border,
                 borderWidth: 1,
                 overflow: "hidden",
@@ -439,6 +439,16 @@ export default function SummaryScreen() {
               damping: 15,
             }}
           >
+            <LinearGradient
+              colors={
+                theme === "dark"
+                  ? [colors.light, colors.background] // Gradiente do card escuro para o fundo escuro
+                  : [colors.light, colors.border] // Gradiente do card claro para a borda clara
+              }
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFillObject}
+            />
             {/* Cabeçalho do Card */}
             <View style={styles.header}>
               <View style={styles.titleContainer}>
@@ -716,7 +726,6 @@ export default function SummaryScreen() {
             style={[
               styles.unifiedNutritionCard,
               {
-                backgroundColor: theme === "dark" ? colors.dark : colors.light,
                 borderColor: colors.border,
                 borderWidth: 1,
                 overflow: "hidden",
@@ -730,6 +739,16 @@ export default function SummaryScreen() {
               damping: 15,
             }}
           >
+            <LinearGradient
+              colors={
+                theme === "dark"
+                  ? [colors.light, colors.background] // Gradiente do card escuro para o fundo escuro
+                  : [colors.light, colors.border] // Gradiente do card claro para a borda clara
+              }
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFillObject}
+            />
             {/* Cabeçalho do Card Nutricional */}
             <View
               style={[styles.header, { paddingTop: 16, paddingHorizontal: 16 }]}
@@ -1087,7 +1106,7 @@ export default function SummaryScreen() {
           style={[
             styles.infoCard,
             {
-              backgroundColor: theme === "dark" ? colors.dark : colors.light,
+              backgroundColor: colors.light,
               borderColor: colors.border,
               borderWidth: 1,
               overflow: "hidden",
@@ -1278,7 +1297,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
-    overflow: "hidden",
     padding: 16,
   },
   header: {
@@ -1364,7 +1382,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
-    overflow: "hidden",
   },
   caloriesSection: {
     padding: 16,

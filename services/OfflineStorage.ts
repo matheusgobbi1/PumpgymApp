@@ -338,10 +338,33 @@ export const OfflineStorage = {
         }
       }
 
+      // Tentar obter os dados do local padrão
       const key = `${KEYS.USER_DATA}_${userId}`;
       const data = await AsyncStorage.getItem(key);
-      return data ? JSON.parse(data) : null;
+      if (data) {
+        return JSON.parse(data);
+      }
+      
+      // Se não encontrar, verificar se existe um backup
+      try {
+        const backupKey = `${KEYS.USER_DATA}_${userId}_backup`;
+        const backupData = await AsyncStorage.getItem(backupKey);
+        if (backupData) {
+          console.log("OfflineStorage: Recuperando dados do backup");
+          const parsedData = JSON.parse(backupData);
+          
+          // Restaurar os dados para o local principal
+          await AsyncStorage.setItem(key, backupData);
+          
+          return parsedData;
+        }
+      } catch (backupError) {
+        console.error("Erro ao verificar backup na função loadUserData:", backupError);
+      }
+      
+      return null;
     } catch (error) {
+      console.error("Erro ao carregar dados do usuário:", error);
       // Erro ao carregar dados do usuário
       return null;
     }

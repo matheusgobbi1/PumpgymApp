@@ -490,7 +490,7 @@ export default function HealthStepsCard({
         style={[
           styles.container,
           {
-            backgroundColor: theme === "dark" ? "#1A1A1A" : colors.light,
+            backgroundColor: colors.light,
             borderWidth: 1,
             borderColor: colors.border,
           },
@@ -706,7 +706,7 @@ export default function HealthStepsCard({
           <MotiView
             style={[
               styles.modalContent,
-              { backgroundColor: theme === "dark" ? "#1A1A1A" : colors.light },
+              { backgroundColor: colors.light },
             ]}
             from={{ opacity: 0, translateY: 50 }}
             animate={{ opacity: 1, translateY: 0 }}
