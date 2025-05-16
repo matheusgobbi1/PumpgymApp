@@ -14,6 +14,7 @@ import {
   Dimensions,
   Platform,
   ActivityIndicator,
+  Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -34,11 +35,6 @@ import Purchases, {
   PurchasesOffering,
   PurchasesPackage,
 } from "react-native-purchases";
-import {
-  BottomSheetModal,
-  BottomSheetBackdrop,
-  BottomSheetModalProvider,
-} from "@gorhom/bottom-sheet";
 import { LinearGradient } from "expo-linear-gradient";
 import { OfflineStorage } from "../services/OfflineStorage";
 
@@ -88,8 +84,8 @@ export default function PaywallScreen() {
   const [isPurchasing, setIsPurchasing] = useState(false);
 
   // Bottom Sheet refs and snap points
-  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-  const snapPoints = useMemo(() => ["55%"], []); // Ajuste conforme necessário
+  // const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  // const snapPoints = useMemo(() => ["55%"], []); // Ajuste conforme necessário
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerHeight = scrollY.interpolate({
@@ -135,6 +131,9 @@ export default function PaywallScreen() {
 
   // Estado para controlar quando o vídeo deve ser renderizado
   const [shouldRenderVideo, setShouldRenderVideo] = useState(true);
+
+  // Estado para controlar o plano selecionado
+  const [selectedPlan, setSelectedPlan] = useState<PurchasesPackage | null>(null);
 
   // Use este efeito para monitorar o scroll e determinar se o vídeo deve ser renderizado
   useEffect(() => {
@@ -260,7 +259,7 @@ export default function PaywallScreen() {
           await OfflineStorage.saveSubscriptionStatus(user.uid, true);
         }
 
-        bottomSheetModalRef.current?.dismiss(); // Fechar bottom sheet no sucesso
+        // bottomSheetModalRef.current?.dismiss(); // Fechar bottom sheet no sucesso
         router.replace("/(tabs)");
       } else {
         alert(t("paywall.purchaseErrorVerification"));
@@ -303,26 +302,9 @@ export default function PaywallScreen() {
   };
 
   // Funções para controlar o BottomSheet
-  const handlePresentModalPress = useCallback(() => {
-    console.log(
-      "Attempting to present PLANS bottom sheet. Ref:",
-      bottomSheetModalRef.current
-    );
-    bottomSheetModalRef.current?.present();
-  }, []);
-
-  const handleSheetChanges = useCallback((index: number) => {
-    console.log("PLANS handleSheetChanges", index);
-  }, []);
-
-  // Função para quando um plano é selecionado DENTRO do BottomSheet
-  const handlePlanSelectedInModal = (pkg: PurchasesPackage) => {
-    // Não é mais necessário destacar, apenas comprar
-    handleSelectPlan(pkg);
-    // O bottom sheet será fechado pela função handleSelectPlan em caso de sucesso
-    // ou pode ser fechado aqui se a compra falhar e quisermos que feche de qualquer forma.
-    // Por ora, deixamos a lógica de fechar em handleSelectPlan.
-  };
+  // const handlePresentModalPress = useCallback(() => { ... }, []);
+  // const handleSheetChanges = useCallback((index: number) => { ... }, []);
+  // const handlePlanSelectedInModal = (pkg: PurchasesPackage) => { ... };
 
   if (isLoading) {
     return (
@@ -333,12 +315,10 @@ export default function PaywallScreen() {
           { backgroundColor: colors.background },
         ]}
       >
-        <BottomSheetModalProvider>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={{ color: colors.text, marginTop: 10 }}>
-            {t("paywall.loadingPlans")}
-          </Text>
-        </BottomSheetModalProvider>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ color: colors.text, marginTop: 10 }}>
+          {t("paywall.loadingPlans")}
+        </Text>
       </SafeAreaView>
     );
   }
@@ -352,343 +332,373 @@ export default function PaywallScreen() {
           { backgroundColor: colors.background },
         ]}
       >
-        <BottomSheetModalProvider>
-          <Ionicons
-            name="alert-circle-outline"
-            size={60}
-            color={colors.error}
-          />
-          <Text
-            style={[
-              styles.title,
-              { color: colors.text, marginTop: 16, fontFamily: "Inter-Bold" },
-            ]}
-          >
-            {t("paywall.loadErrorTitle")}
-          </Text>
-          <Text
-            style={[
-              styles.subtitle,
-              {
-                color: colors.accentGray,
-                textAlign: "center",
-                fontFamily: "Inter-Regular",
-              },
-            ]}
-          >
-            {t("paywall.loadErrorMessage")}
-          </Text>
-          <TouchableOpacity
-            style={[
-              styles.retryButton,
-              { backgroundColor: colors.primary, marginTop: 20 },
-            ]}
-            onPress={() => {
-              // Função para tentar novamente
-              const getOfferings = async () => {
-                setIsLoading(true);
-                try {
-                  const offeringsResult = await Purchases.getOfferings();
-                  if (
-                    offeringsResult.current !== null &&
-                    offeringsResult.current.availablePackages.length !== 0
-                  ) {
-                    setOffering(offeringsResult.current);
-                  } else {
-                    setOffering(null);
-                  }
-                } catch (e) {
-                  console.error("Erro ao buscar ofertas do RevenueCat: ", e);
+        <Ionicons
+          name="alert-circle-outline"
+          size={60}
+          color={colors.error}
+        />
+        <Text
+          style={[
+            styles.title,
+            { color: colors.text, marginTop: 16, fontFamily: "Inter-Bold" },
+          ]}
+        >
+          {t("paywall.loadErrorTitle")}
+        </Text>
+        <Text
+          style={[
+            styles.subtitle,
+            {
+              color: colors.accentGray,
+              textAlign: "center",
+              fontFamily: "Inter-Regular",
+            },
+          ]}
+        >
+          {t("paywall.loadErrorMessage")}
+        </Text>
+        <TouchableOpacity
+          style={[
+            styles.retryButton,
+            { backgroundColor: colors.primary, marginTop: 20 },
+          ]}
+          onPress={() => {
+            // Função para tentar novamente
+            const getOfferings = async () => {
+              setIsLoading(true);
+              try {
+                const offeringsResult = await Purchases.getOfferings();
+                if (
+                  offeringsResult.current !== null &&
+                  offeringsResult.current.availablePackages.length !== 0
+                ) {
+                  setOffering(offeringsResult.current);
+                } else {
                   setOffering(null);
-                } finally {
-                  setIsLoading(false);
                 }
-              };
-              getOfferings();
-            }}
+              } catch (e) {
+                console.error("Erro ao buscar ofertas do RevenueCat: ", e);
+                setOffering(null);
+              } finally {
+                setIsLoading(false);
+              }
+            };
+            getOfferings();
+          }}
+        >
+          <Text
+            style={[
+              styles.restoreButtonText, // Reutilizando estilo
+              { color: theme === "dark" ? colors.black : colors.background },
+            ]}
           >
-            <Text
-              style={[
-                styles.restoreButtonText, // Reutilizando estilo
-                { color: theme === "dark" ? colors.black : colors.background },
-              ]}
-            >
-              {t("paywall.tryAgain")}
-            </Text>
-          </TouchableOpacity>
-        </BottomSheetModalProvider>
+            {t("paywall.tryAgain")}
+          </Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
   return (
-    <BottomSheetModalProvider>
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={["left", "right", "bottom"]} // Remover 'top' daqui, pois será tratado pelo padding do header
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["left", "right", "bottom"]} // Remover 'top' daqui, pois será tratado pelo padding do header
+    >
+      <StatusBar style={theme === "dark" ? "light" : "dark"} />
+
+      {/* Header animado restaurado */}
+      <Animated.View
+        style={[
+          styles.animatedHeader,
+          {
+            height: Animated.add(headerHeight, insets.top), // Altura total = altura do conteúdo + inset
+            borderColor: colors.border,
+          },
+        ]}
       >
-        <StatusBar style={theme === "dark" ? "light" : "dark"} />
-
-        {/* Header animado restaurado */}
+        {/* Camada de fundo sólido (desaparece no colapso) */}
         <Animated.View
-          style={[
-            styles.animatedHeader,
-            {
-              height: Animated.add(headerHeight, insets.top), // Altura total = altura do conteúdo + inset
-              borderColor: colors.border,
-            },
-          ]}
+          style={{
+            ...StyleSheet.absoluteFillObject,
+            backgroundColor: colors.background,
+            opacity: solidBackgroundOpacity,
+          }}
+        />
+
+        {/* Camada de BlurView (aparece no colapso) */}
+        <Animated.View
+          style={{
+            ...StyleSheet.absoluteFillObject,
+            opacity: blurEffectOpacity,
+          }}
         >
-          {/* Camada de fundo sólido (desaparece no colapso) */}
-          <Animated.View
-            style={{
-              ...StyleSheet.absoluteFillObject,
-              backgroundColor: colors.background,
-              opacity: solidBackgroundOpacity,
-            }}
+          <BlurView
+            intensity={Platform.OS === "ios" ? 70 : 100} // Ajuste a intensidade conforme necessário
+            tint={theme === "dark" ? "dark" : "light"} // Mapeia o tema para o tint do BlurView
+            style={StyleSheet.absoluteFillObject}
           />
-
-          {/* Camada de BlurView (aparece no colapso) */}
-          <Animated.View
-            style={{
-              ...StyleSheet.absoluteFillObject,
-              opacity: blurEffectOpacity,
-            }}
-          >
-            <BlurView
-              intensity={Platform.OS === "ios" ? 70 : 100} // Ajuste a intensidade conforme necessário
-              tint={theme === "dark" ? "dark" : "light"} // Mapeia o tema para o tint do BlurView
-              style={StyleSheet.absoluteFillObject}
-            />
-          </Animated.View>
-
-          <Animated.View
-            style={[
-              styles.collapsedHeaderContent,
-              {
-                opacity: collapsedHeaderOpacity,
-                top: insets.top, // ADICIONADO para posicionar abaixo da safe area
-              },
-            ]}
-          >
-            <Text style={[styles.collapsedHeaderTitle, { color: colors.text }]}>
-              {t("paywall.title")}
-            </Text>
-          </Animated.View>
-
-          <Animated.View
-            style={[
-              styles.mainHeaderContent,
-              {
-                opacity: mainHeaderOpacity,
-                transform: [{ translateY: mainHeaderTranslateY }],
-                paddingTop: insets.top, // ADICIONADO para o conteúdo expandido respeitar a safe area
-              },
-            ]}
-          >
-            <Ionicons
-              name="lock-closed-outline"
-              size={60}
-              color={colors.primary}
-              style={styles.mainHeaderIcon}
-            />
-            <Text style={[styles.title, { color: colors.text }]}>
-              {t("paywall.title")}
-            </Text>
-            <Text style={[styles.subtitle, { color: colors.accentGray }]}>
-              {t("paywall.subtitle")}
-            </Text>
-          </Animated.View>
         </Animated.View>
 
-        <Animated.ScrollView
-          contentContainerStyle={[
-            styles.scrollContent,
+        <Animated.View
+          style={[
+            styles.collapsedHeaderContent,
             {
-              paddingTop: HEADER_MAX_HEIGHT + insets.top, // Ajustar paddingTop para considerar o inset do header
-              backgroundColor: `${colors.background}B3`, // Adiciona ~70% de opacidade ao fundo do conteúdo do scroll
+              opacity: collapsedHeaderOpacity,
+              top: insets.top, // ADICIONADO para posicionar abaixo da safe area
             },
           ]}
-          showsVerticalScrollIndicator={false}
-          scrollEventThrottle={16}
-          bounces={false}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: false }
-          )}
         >
-          <Animated.View
-            style={[
-              styles.videoPlaceholder,
-              {
-                height: videoAnimatedHeight,
-                backgroundColor: colors.background,
-              },
-            ]}
+          <Text style={[styles.collapsedHeaderTitle, { color: colors.text }]}>
+            {t("paywall.title")}
+          </Text>
+        </Animated.View>
+
+        <Animated.View
+          style={[
+            styles.mainHeaderContent,
+            {
+              opacity: mainHeaderOpacity,
+              transform: [{ translateY: mainHeaderTranslateY }],
+              paddingTop: insets.top, // ADICIONADO para o conteúdo expandido respeitar a safe area
+            },
+          ]}
+        >
+          <Ionicons
+            name="lock-closed-outline"
+            size={60}
+            color={colors.primary}
+            style={styles.mainHeaderIcon}
+          />
+          <Text style={[styles.title, { color: colors.text }]}>
+            {t("paywall.title")}
+          </Text>
+          <Text style={[styles.subtitle, { color: colors.accentGray }]}>
+            {t("paywall.subtitle")}
+          </Text>
+        </Animated.View>
+      </Animated.View>
+
+      <Animated.ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: HEADER_MAX_HEIGHT + insets.top, // Ajustar paddingTop para considerar o inset do header
+            backgroundColor: `${colors.background}B3`, // Adiciona ~70% de opacidade ao fundo do conteúdo do scroll
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        bounces={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+      >
+        <Animated.View
+          style={[
+            styles.videoPlaceholder,
+            {
+              height: videoAnimatedHeight,
+              backgroundColor: colors.background,
+            },
+          ]}
+        >
+          {!videoLoaded && (
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          )}
+
+          {shouldRenderVideo && (
+            <Video
+              ref={videoRef}
+              source={videoSource}
+              style={styles.video}
+              isMuted
+              shouldPlay
+              isLooping
+              resizeMode={ResizeMode.COVER}
+              onLoad={handleVideoLoad}
+              rate={1.0}
+              volume={0}
+              progressUpdateIntervalMillis={1000}
+              onPlaybackStatusUpdate={(status) => {
+                if (status.isLoaded && !videoLoaded) {
+                  setVideoLoaded(true);
+                }
+              }}
+              onError={(error) => {
+                console.error("Erro ao carregar vídeo:", error);
+              }}
+            />
+          )}
+        </Animated.View>
+
+        {/* Stepper Component - Versão épica e chamativa */}
+        {/* <View style={styles.stepperContainer}> ... </View> */}
+
+        {/* Botão Principal para Abrir BottomSheet dos Planos */}
+        {/* <TouchableOpacity ... > ... </TouchableOpacity> */}
+
+        <TouchableOpacity
+          style={[styles.restoreButton, { borderColor: colors.border }]}
+          onPress={handleRestorePurchases}
+          disabled={isPurchasing}
+        >
+          <Text
+            style={[styles.restoreButtonText, { color: colors.accentGray }]}
           >
-            {!videoLoaded && (
-              <View style={styles.loaderContainer}>
-                <ActivityIndicator size="large" color={colors.primary} />
-              </View>
-            )}
+            {t("paywall.restorePurchases.button")}
+          </Text>
+        </TouchableOpacity>
 
-            {shouldRenderVideo && (
-              <Video
-                ref={videoRef}
-                source={videoSource}
-                style={styles.video}
-                isMuted
-                shouldPlay
-                isLooping
-                resizeMode={ResizeMode.COVER}
-                onLoad={handleVideoLoad}
-                rate={1.0}
-                volume={0}
-                progressUpdateIntervalMillis={1000}
-                onPlaybackStatusUpdate={(status) => {
-                  if (status.isLoaded && !videoLoaded) {
-                    setVideoLoaded(true);
-                  }
-                }}
-                onError={(error) => {
-                  console.error("Erro ao carregar vídeo:", error);
-                }}
-              />
-            )}
-          </Animated.View>
-
-          {/* Stepper Component - Versão épica e chamativa */}
-          <View style={styles.stepperContainer}>
-            {/* Step 1: Today */}
-            <View style={styles.stepItem}>
-              <View style={styles.stepIconContainer}>
-                <LinearGradient
-                  colors={[colors.primary, colors.accent || "#8B5CF6"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0.1 }}
-                  style={styles.stepIconGradient}
-                >
-                  <Animated.View style={styles.stepIconInner}>
-                    <Ionicons name="checkmark" size={16} color="#fff" />
-                  </Animated.View>
-                </LinearGradient>
-                <View style={styles.stepLineContainer}>
-                  <LinearGradient
-                    colors={[colors.primary, colors.accentGray]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.stepLine}
-                  />
-                </View>
-              </View>
-              <View style={styles.stepTextContainer}>
-                <Text style={[styles.stepTitle, { color: colors.text }]}>
-                  {t("paywall.stepper.today.title")}
-                </Text>
-                <Text
-                  style={[styles.stepDescription, { color: colors.accentGray }]}
-                >
-                  {t("paywall.stepper.today.description")}
-                </Text>
-              </View>
-            </View>
-
-            {/* Step 2: Day 5 */}
-            <View style={styles.stepItem}>
-              <View style={styles.stepIconContainer}>
-                <LinearGradient
-                  colors={
-                    theme === "dark"
-                      ? ["#2E2E2E", "#4E4E4E"]
-                      : [colors.border, colors.card || "#f0f0f0"]
-                  }
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
+        {/* NOVO: Exibir cards de planos diretamente na tela */}
+        {offering && offering.availablePackages.length > 0 && (
+          <View style={[styles.plansContainerBS, { paddingHorizontal: 12 }]}>
+            {offering.availablePackages.map((pkg) => {
+              const isAnnual =
+                pkg.packageType === "ANNUAL" ||
+                pkg.identifier === offering.annual?.identifier;
+              const isPopular = isAnnual;
+              let frequencyText = "";
+              if (pkg.packageType === "ANNUAL") {
+                frequencyText = t("paywall.annual.frequencyDetails", {
+                  pricePerMonth: (pkg.product.price / 12)
+                    .toFixed(2)
+                    .replace(".", ","),
+                });
+              } else if (pkg.packageType === "MONTHLY") {
+                frequencyText = t("paywall.monthly.frequencyDetails");
+              } else {
+                frequencyText = pkg.product.description || "";
+              }
+              const isSelected = selectedPlan?.identifier === pkg.identifier;
+              return (
+                <TouchableOpacity
+                  key={pkg.identifier}
                   style={[
-                    styles.stepIconGradient,
-                    { opacity: theme === "dark" ? 0.9 : 0.8 }, // Ajustada opacidade para light mode
+                    styles.planCardBS,
+                    isPopular && styles.planCardAnnualBS,
+                    isSelected
+                      ? {
+                          borderWidth: 2,
+                          borderColor: '#fff',
+                          backgroundColor: colors.card,
+                          transform: [{ scale: 1.06 }],
+                          zIndex: 2,
+                          shadowColor: '#fff',
+                          shadowOpacity: 0.2,
+                          shadowRadius: 8,
+                          elevation: 8,
+                        }
+                      : {
+                          borderWidth: 1,
+                          borderColor: isPopular ? colors.accent : colors.border,
+                          backgroundColor: theme === 'dark' ? '#222' : '#e0e0e0',
+                          opacity: 0.7,
+                          transform: [{ scale: 0.97 }],
+                          zIndex: 1,
+                        },
+                    { maxWidth: 180, minWidth: 150, marginHorizontal: 6, paddingHorizontal: 18, paddingVertical: 18 },
                   ]}
+                  onPress={() => setSelectedPlan(pkg)}
+                  activeOpacity={0.9}
+                  disabled={isPurchasing}
                 >
-                  <Animated.View style={styles.stepIconInner}>
+                  {isPopular && (
+                    <View
+                      style={[
+                        styles.bestValueBadge,
+                        { backgroundColor: colors.accent },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.bestValueText,
+                          {
+                            color:
+                              theme === "dark" ? colors.black : colors.background,
+                          },
+                        ]}
+                      >
+                        {t("paywall.annual.save")}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.planContent}>
                     <Ionicons
-                      name="time-outline"
-                      size={16}
-                      color={
-                        theme === "dark" ? colors.accentGray : colors.primary
-                      }
+                      name={isAnnual ? "sparkles-outline" : "calendar-outline"}
+                      size={32}
+                      color={isPopular ? colors.primary : colors.text}
+                      style={styles.planIcon}
                     />
-                  </Animated.View>
-                </LinearGradient>
-                <View style={styles.stepLineContainer}>
-                  <LinearGradient
-                    colors={[colors.accentGray, colors.border]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 0.5 }}
-                    style={styles.stepLine}
-                  />
-                </View>
-              </View>
-              <View style={styles.stepTextContainer}>
-                <Text style={[styles.stepTitle, { color: colors.text }]}>
-                  {t("paywall.stepper.day5.title")}
-                </Text>
-                <Text
-                  style={[styles.stepDescription, { color: colors.accentGray }]}
-                >
-                  {t("paywall.stepper.day5.description")}
-                </Text>
-              </View>
-            </View>
-
-            {/* Step 3: Day 7 */}
-            <View style={styles.stepItem}>
-              <View style={styles.stepIconContainer}>
-                <LinearGradient
-                  colors={
-                    theme === "dark"
-                      ? ["#2E2E2E", "#4E4E4E"]
-                      : [colors.border, colors.card || "#f0f0f0"]
-                  }
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0.5 }}
-                  style={[
-                    styles.stepIconGradient,
-                    { opacity: theme === "dark" ? 0.9 : 0.8 }, // Ajustada opacidade para light mode
-                  ]}
-                >
-                  <Animated.View style={styles.stepIconInner}>
-                    <Ionicons
-                      name="trophy-outline"
-                      size={16}
-                      color={
-                        theme === "dark" ? colors.accentGray : colors.primary
+                    <Text style={[styles.planTitle, { color: colors.text }]}>
+                      {pkg.product.title}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.planPrice,
+                        { color: isPopular ? colors.primary : colors.text },
+                      ]}
+                    >
+                      {pkg.product.priceString}
+                    </Text>
+                    <Text style={[styles.planFrequency, { color: colors.accentGray }]}> 
+                      {frequencyText}
+                    </Text>
+                    {pkg.product.introPrice && (() => {
+                      const introPriceObj = pkg.product.introPrice;
+                      let displayPeriod = "";
+                      if (
+                        introPriceObj.periodUnit &&
+                        introPriceObj.periodNumberOfUnits
+                      ) {
+                        let numUnits = introPriceObj.periodNumberOfUnits;
+                        let unit = introPriceObj.periodUnit.toLowerCase();
+                        if (unit === "week") {
+                          numUnits = numUnits * 7;
+                          unit = "day";
+                        }
+                        displayPeriod = `${numUnits} ${unit}${numUnits > 1 ? "s" : ""}`;
                       }
-                    />
-                  </Animated.View>
-                </LinearGradient>
-                {/* No line after the last step */}
-              </View>
-              <View style={styles.stepTextContainer}>
-                <Text style={[styles.stepTitle, { color: colors.text }]}>
-                  {t("paywall.stepper.day7.title")}
-                </Text>
-                <Text
-                  style={[styles.stepDescription, { color: colors.accentGray }]}
-                >
-                  {t("paywall.stepper.day7.description")}
-                </Text>
-              </View>
-            </View>
+                      let introText;
+                      if (introPriceObj.price === 0) {
+                        introText = t("paywall.introOfferFree", {
+                          period: displayPeriod,
+                        });
+                      } else {
+                        introText = t("paywall.introOfferPaid", {
+                          price: introPriceObj.priceString,
+                          period: displayPeriod,
+                        });
+                      }
+                      return (
+                        <Text
+                          style={[
+                            styles.introOfferText,
+                            { color: colors.success },
+                          ]}
+                        >
+                          {introText}
+                        </Text>
+                      );
+                    })()}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
+        )}
 
-          {/* Botão Principal para Abrir BottomSheet dos Planos */}
+        {/* NOVO: Botão de confirmação só aparece se um plano estiver selecionado */}
+        {selectedPlan && (
           <TouchableOpacity
             style={[
               styles.mainActionButton,
               { backgroundColor: colors.primary },
               isPurchasing && styles.disabledButton,
             ]}
-            onPress={handlePresentModalPress}
+            onPress={() => handleSelectPlan(selectedPlan)}
             disabled={isPurchasing}
           >
             {isPurchasing ? (
@@ -704,211 +714,33 @@ export default function PaywallScreen() {
                   },
                 ]}
               >
-                {t("paywall.chooseYourPlan")}
+                {t("paywall.chooseYourPlan", "Teste grátis")}
               </Text>
             )}
           </TouchableOpacity>
+        )}
 
-          <TouchableOpacity
-            style={[styles.restoreButton, { borderColor: colors.border }]}
-            onPress={handleRestorePurchases}
-            disabled={isPurchasing}
-          >
+        {/* Adicionar links pequenos para EULA e Privacy Policy na parte inferior */}
+        <View style={{ alignItems: "center", marginBottom: 16 }}>
+          <Text style={{ fontSize: 12, color: colors.accentGray, textAlign: "center" }}>
+            By continuing, you agree to our
             <Text
-              style={[styles.restoreButtonText, { color: colors.accentGray }]}
-            >
-              {t("paywall.restorePurchases.button")}
-            </Text>
-          </TouchableOpacity>
-        </Animated.ScrollView>
-
-        {/* BottomSheet dos PLANOS */}
-        <BottomSheetModal
-          ref={bottomSheetModalRef}
-          index={0}
-          snapPoints={snapPoints}
-          onChange={handleSheetChanges}
-          backdropComponent={(props) => (
-            <BottomSheetBackdrop
-              {...props}
-              appearsOnIndex={0}
-              disappearsOnIndex={-1}
-              opacity={0.8}
-            />
-          )}
-          handleIndicatorStyle={{ backgroundColor: colors.accentGray }}
-          backgroundStyle={{ backgroundColor: colors.background }}
-        >
-          <View style={styles.bottomSheetContentContainer}>
-            <Text style={[styles.bottomSheetTitle, { color: colors.text }]}>
-              {t("paywall.bottomSheet.title")}
-            </Text>
-            {offering && offering.availablePackages.length > 0 ? (
-              <View style={styles.plansContainerBS}>
-                {offering.availablePackages.map((pkg) => {
-                  const isAnnual =
-                    pkg.packageType === "ANNUAL" ||
-                    pkg.identifier === offering.annual?.identifier;
-                  const isPopular = isAnnual;
-
-                  let frequencyText = "";
-                  if (pkg.packageType === "ANNUAL") {
-                    frequencyText = t("paywall.annual.frequencyDetails", {
-                      pricePerMonth: (pkg.product.price / 12)
-                        .toFixed(2)
-                        .replace(".", ","),
-                    });
-                  } else if (pkg.packageType === "MONTHLY") {
-                    frequencyText = t("paywall.monthly.frequencyDetails");
-                  } else {
-                    frequencyText = pkg.product.description || "";
-                  }
-
-                  return (
-                    <TouchableOpacity
-                      key={pkg.identifier}
-                      style={[
-                        styles.planCardBS,
-                        isPopular && styles.planCardAnnualBS,
-                        {
-                          backgroundColor: colors.card,
-                          borderColor: isPopular
-                            ? colors.accent
-                            : colors.border,
-                        },
-                      ]}
-                      onPress={() => handlePlanSelectedInModal(pkg)}
-                      activeOpacity={0.8}
-                      disabled={isPurchasing}
-                    >
-                      {isPopular && (
-                        <View
-                          style={[
-                            styles.bestValueBadge,
-                            { backgroundColor: colors.accent },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.bestValueText,
-                              {
-                                color:
-                                  theme === "dark"
-                                    ? colors.black
-                                    : colors.background,
-                              },
-                            ]}
-                          >
-                            {t("paywall.annual.save")}
-                          </Text>
-                        </View>
-                      )}
-                      <View style={styles.planContent}>
-                        <Ionicons
-                          name={
-                            isAnnual ? "sparkles-outline" : "calendar-outline"
-                          }
-                          size={32}
-                          color={isPopular ? colors.primary : colors.text}
-                          style={styles.planIcon}
-                        />
-                        <Text
-                          style={[styles.planTitle, { color: colors.text }]}
-                        >
-                          {pkg.product.title}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.planPrice,
-                            { color: isPopular ? colors.primary : colors.text },
-                          ]}
-                        >
-                          {pkg.product.priceString}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.planFrequency,
-                            { color: colors.accentGray },
-                          ]}
-                        >
-                          {frequencyText}
-                        </Text>
-                        {pkg.product.introPrice &&
-                          (() => {
-                            const introPriceObj = pkg.product.introPrice;
-                            let displayPeriod = "";
-                            if (
-                              introPriceObj.periodUnit &&
-                              introPriceObj.periodNumberOfUnits
-                            ) {
-                              let numUnits = introPriceObj.periodNumberOfUnits;
-                              let unit = introPriceObj.periodUnit.toLowerCase();
-
-                              if (unit === "week") {
-                                numUnits = numUnits * 7;
-                                unit = "day";
-                              }
-                              // Você pode adicionar mais normalizações aqui (ex: month to days)
-                              // else if (unit === "month") {
-                              //   numUnits = numUnits * 30; // Aproximação
-                              //   unit = "day";
-                              // }
-
-                              displayPeriod = `${numUnits} ${unit}${
-                                numUnits > 1 ? "s" : ""
-                              }`;
-                            }
-
-                            let introText;
-                            if (introPriceObj.price === 0) {
-                              introText = t("paywall.introOfferFree", {
-                                period: displayPeriod,
-                              });
-                            } else {
-                              introText = t("paywall.introOfferPaid", {
-                                price: introPriceObj.priceString,
-                                period: displayPeriod,
-                              });
-                            }
-
-                            return (
-                              <Text
-                                style={[
-                                  styles.introOfferText,
-                                  { color: colors.success },
-                                ]}
-                              >
-                                {introText}
-                              </Text>
-                            );
-                          })()}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            ) : (
-              <View
-                style={{
-                  flex: 1,
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <Text
-                  style={{ color: colors.text, fontFamily: "Inter-Regular" }}
-                >
-                  {t(
-                    "paywall.noPlansAvailableInSheet",
-                    "Nenhum plano disponível no momento."
-                  )}
-                </Text>
-              </View>
-            )}
-          </View>
-        </BottomSheetModal>
-      </SafeAreaView>
-    </BottomSheetModalProvider>
+              style={{ color: colors.primary, textDecorationLine: "underline" }}
+              onPress={() => {
+                // Open Apple EULA
+                Linking.openURL("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/");
+              }}
+            > Terms of Use (EULA)</Text> and
+            <Text
+              style={{ color: colors.primary, textDecorationLine: "underline" }}
+              onPress={() => {
+                router.push("/privacy-policy");
+              }}
+            > Privacy Policy</Text>
+          </Text>
+        </View>
+      </Animated.ScrollView>
+    </SafeAreaView>
   );
 }
 
