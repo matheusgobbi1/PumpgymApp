@@ -24,6 +24,8 @@ import {
   updatePassword,
   fetchSignInMethodsForEmail,
   type AuthError as FirebaseAuthError,
+  deleteUser,
+  reauthenticateWithCredential,
 } from "firebase/auth";
 import {
   getFirestore,
@@ -76,7 +78,7 @@ interface AuthContextType {
   user: FirebaseUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<FirebaseUser>;
   signOut: () => Promise<void>;
   isNewUser: boolean;
   isAnonymous: boolean;
@@ -106,6 +108,7 @@ interface AuthContextType {
   setIsSubscribed: (value: boolean) => void;
   checkSubscriptionStatus: () => Promise<boolean>;
   checkOfflineSubscriptionStatus: (userId: string) => Promise<boolean>;
+  deleteAccount: (password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -265,9 +268,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           if (!onboardingCompleted) {
             await router.replace("/onboarding/gender");
           } else {
-            // Verificar status de assinatura
+            // Reativar verificação de assinatura e redirecionamento para paywall
             const hasSubscription = await checkSubscriptionStatus();
-
             if (!hasSubscription) {
               await router.replace("/paywall");
             } else {
@@ -294,15 +296,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setSessionRestoreAttempted(true);
       setAuthStateStable(false);
 
-      console.log("AuthContext: Iniciando restauração de sessão");
-
       // Verificar conexão com a internet
       const isOnline = await OfflineStorage.isOnline();
-      console.log("AuthContext: Status de conexão:", isOnline ? "Online" : "Offline");
 
       // Verificar se já existe um usuário autenticado no Firebase
       if (auth.currentUser) {
-        console.log("AuthContext: Usuário já autenticado no Firebase:", auth.currentUser.uid);
         setUser(auth.currentUser);
         setIsAnonymous(auth.currentUser.isAnonymous);
 
@@ -317,119 +315,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Se não tiver usuário autenticado no Firebase, tentar obter último usuário logado
       if (!isOnline) {
-        console.log("AuthContext: Offline, tentando recuperação local");
         try {
-          // Tentar todas as opções possíveis para obter o último usuário logado
-          let lastUserId = await AsyncStorage.getItem(KEYS.LAST_LOGGED_USER);
-          if (!lastUserId) {
-            lastUserId = await AsyncStorage.getItem("pumpgym_last_user_backup");
-          }
-          
-          console.log("AuthContext: Último usuário encontrado:", lastUserId);
-          
+          const lastUserId = await AsyncStorage.getItem(KEYS.LAST_LOGGED_USER);
           if (lastUserId) {
-            // Tentar recuperar dados de todas as fontes possíveis
-            let localUser = null;
-            
-            // 1. Tentar via getUserData padrão
-            localUser = await getUserData();
-            console.log("AuthContext: Resultado da recuperação via getUserData:", localUser?.uid || "falha");
-            
-            // 2. Se falhou, tentar outras fontes via OfflineStorage
-            if (!localUser || !localUser.uid) {
-              localUser = await OfflineStorage.loadUserData(lastUserId);
-              console.log("AuthContext: Resultado da recuperação via OfflineStorage:", localUser?.uid || "falha");
-            }
-            
-            // 3. Último recurso: verificar manualmente todos os locais possíveis
-            if (!localUser || !localUser.uid) {
-              const possibleKeys = [
-                `${KEYS.USER_DATA}_${lastUserId}`,
-                `pumpgym_user_${lastUserId}`,
-                "pumpgym_user_data_mirror",
-                `${KEYS.USER_DATA}_${lastUserId}_backup`
-              ];
-              
-              for (const key of possibleKeys) {
-                try {
-                  const userData = await AsyncStorage.getItem(key);
-                  if (userData) {
-                    localUser = JSON.parse(userData);
-                    console.log(`AuthContext: Recuperado usuário de ${key}:`, localUser.uid);
-                    break;
-                  }
-                } catch (keyError) {
-                  // Continuar para a próxima chave
-                }
-              }
-            }
-            
-            // Se encontrou dados de usuário, criar um usuário temporário
+            const localUser = await getUserData();
             if (localUser && localUser.uid) {
-              console.log("AuthContext: Criando usuário temporário offline para:", localUser.uid);
-              
-              // Buscar status de onboarding explicitamente
-              let onboardingCompleted = localUser.onboardingCompleted;
-              if (onboardingCompleted === undefined) {
-                onboardingCompleted = await OfflineStorage.loadOnboardingStatus(localUser.uid);
-              }
-              
-              // Criar usuário temporário baseado nos dados locais
+              // Criar um usuário temporário baseado nos dados locais
               setUser({
                 uid: localUser.uid,
-                email: localUser.email || "",
-                displayName: localUser.displayName || "",
+                email: localUser.email,
+                displayName: localUser.displayName,
                 isAnonymous: localUser.isAnonymous || false,
-                // Propriedades adicionais para compatibilidade
-                emailVerified: false,
-                phoneNumber: null,
-                photoURL: null,
-                providerData: [],
-                refreshToken: "",
-                tenantId: null,
-                providerId: "firebase",
-                metadata: {
-                  creationTime: Date.now().toString(),
-                  lastSignInTime: Date.now().toString()
-                },
-                delete: async () => { throw new Error("Não implementado"); },
-                getIdToken: async () => { 
-                  const token = await getAuthToken();
-                  return token || "offline-token"; 
-                },
-                getIdTokenResult: async () => { throw new Error("Não implementado"); },
-                reload: async () => { throw new Error("Não implementado"); },
-                toJSON: () => ({ ...localUser })
-              } as unknown as FirebaseUser);
-              
-              // Definir estados adicionais
+              } as FirebaseUser);
               setIsAnonymous(localUser.isAnonymous || false);
-              setIsNewUser(!onboardingCompleted);
+              setIsNewUser(!localUser.onboardingCompleted);
 
               // Verificar status de assinatura offline
-              await checkOfflineSubscriptionStatus(localUser.uid);
-
-              // Armazenar dados localmente para garantir consistência
-              await OfflineStorage.saveLastLoggedUser(localUser.uid);
-              await OfflineStorage.saveUserData(localUser.uid, {
-                ...localUser,
-                onboardingCompleted
-              });
-
-              // Verificar status de assinatura offline novamente para garantir
               await checkOfflineSubscriptionStatus(localUser.uid);
 
               return true;
             }
           }
         } catch (error) {
-          console.error("AuthContext: Erro ao restaurar último usuário conhecido:", error);
+          console.error("Erro ao restaurar último usuário conhecido:", error);
         }
       }
 
       // Tentar restaurar a sessão a partir do armazenamento local
       try {
-        console.log("AuthContext: Tentando restaurar sessão do armazenamento local");
         const userData = await getUserData();
         const authToken = await getAuthToken();
 
@@ -437,7 +350,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           try {
             // Se estiver offline, considerar o usuário autenticado com os dados locais
             if (!isOnline) {
-              console.log("AuthContext: Offline, usando dados locais para autenticação");
               // Definir o usuário baseado nos dados armazenados localmente
               // Isso evita redirecionamento para a tela de login quando offline
               setUser({
@@ -445,26 +357,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 email: userData.email,
                 displayName: userData.displayName,
                 isAnonymous: userData.isAnonymous || false,
-                // Propriedades adicionais para compatibilidade
-                emailVerified: false,
-                phoneNumber: null,
-                photoURL: null,
-                providerData: [],
-                refreshToken: "",
-                tenantId: null,
-                providerId: "firebase",
-                metadata: {
-                  creationTime: Date.now().toString(),
-                  lastSignInTime: Date.now().toString()
-                },
-                delete: async () => { throw new Error("Não implementado"); },
-                getIdToken: async () => { 
-                  return authToken || "offline-token"; 
-                },
-                getIdTokenResult: async () => { throw new Error("Não implementado"); },
-                reload: async () => { throw new Error("Não implementado"); },
-                toJSON: () => ({ ...userData })
-              } as unknown as FirebaseUser);
+                // Outras propriedades necessárias podem ser adicionadas aqui
+              } as FirebaseUser);
               setIsAnonymous(userData.isAnonymous || false);
               setIsNewUser(!userData.onboardingCompleted);
 
@@ -479,7 +373,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
             // Se estiver online e tiver senha, tenta autenticar no Firebase
             if (userData.password) {
-              console.log("AuthContext: Online com dados de senha, tentando autenticar no Firebase");
               const userCredential = await signInWithEmailAndPassword(
                 firebaseAuth,
                 userData.email,
@@ -542,33 +435,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             }
             // Se não tiver senha mas tiver credenciais, usar os dados offline
             else {
-              console.log("AuthContext: Dados sem senha, usando dados locais");
               // Definir o usuário baseado nos dados armazenados localmente
               setUser({
                 uid: userData.uid,
                 email: userData.email,
                 displayName: userData.displayName,
                 isAnonymous: userData.isAnonymous || false,
-                // Propriedades adicionais para compatibilidade
-                emailVerified: false,
-                phoneNumber: null,
-                photoURL: null,
-                providerData: [],
-                refreshToken: "",
-                tenantId: null,
-                providerId: "firebase",
-                metadata: {
-                  creationTime: Date.now().toString(),
-                  lastSignInTime: Date.now().toString()
-                },
-                delete: async () => { throw new Error("Não implementado"); },
-                getIdToken: async () => { 
-                  return authToken || "offline-token"; 
-                },
-                getIdTokenResult: async () => { throw new Error("Não implementado"); },
-                reload: async () => { throw new Error("Não implementado"); },
-                toJSON: () => ({ ...userData })
-              } as unknown as FirebaseUser);
+                // Outras propriedades necessárias podem ser adicionadas aqui
+              } as FirebaseUser);
               setIsAnonymous(userData.isAnonymous || false);
               setIsNewUser(!userData.onboardingCompleted);
 
@@ -581,36 +455,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               return true;
             }
           } catch (error) {
-            console.error("AuthContext: Erro ao tentar login:", error);
             // Se o erro for devido à falta de conexão, usar os dados locais
             if (!isOnline) {
-              console.log("AuthContext: Erro devido à falta de conexão, usando dados locais");
               // Definir o usuário baseado nos dados armazenados localmente
               setUser({
                 uid: userData.uid,
                 email: userData.email,
                 displayName: userData.displayName,
                 isAnonymous: userData.isAnonymous || false,
-                // Propriedades adicionais para compatibilidade
-                emailVerified: false,
-                phoneNumber: null,
-                photoURL: null,
-                providerData: [],
-                refreshToken: "",
-                tenantId: null,
-                providerId: "firebase",
-                metadata: {
-                  creationTime: Date.now().toString(),
-                  lastSignInTime: Date.now().toString()
-                },
-                delete: async () => { throw new Error("Não implementado"); },
-                getIdToken: async () => { 
-                  return authToken || "offline-token"; 
-                },
-                getIdTokenResult: async () => { throw new Error("Não implementado"); },
-                reload: async () => { throw new Error("Não implementado"); },
-                toJSON: () => ({ ...userData })
-              } as unknown as FirebaseUser);
+                // Outras propriedades necessárias podem ser adicionadas aqui
+              } as FirebaseUser);
               setIsAnonymous(userData.isAnonymous || false);
               setIsNewUser(!userData.onboardingCompleted);
 
@@ -629,13 +483,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         }
       } catch (error) {
-        console.error("AuthContext: Erro ao obter dados do armazenamento local:", error);
+        // Erro ao obter dados do usuário do armazenamento local
       }
 
-      console.log("AuthContext: Falha em todas as tentativas de restauração de sessão");
       return false;
     } catch (error) {
-      console.error("AuthContext: Erro geral ao restaurar sessão:", error);
+      // Erro ao restaurar sessão
       return false;
     } finally {
       setLoading(false);
@@ -946,7 +799,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         if (!onboardingCompleted) {
           router.replace("/onboarding/gender");
         } else {
-          router.replace("/(tabs)");
+          // Reativar verificação de assinatura antes de navegar
+          const hasSubscription = await checkSubscriptionStatus();
+          if (!hasSubscription) {
+            router.replace("/paywall");
+          } else {
+            router.replace("/(tabs)");
+          }
         }
       } catch (error) {
         // Rethrow para ser capturado pelo tratador de erros externo
@@ -1076,8 +935,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsNewUser(true);
         setIsAnonymous(false);
 
-        // Redirecionar explicitamente para o onboarding
-        router.replace("/onboarding/gender");
+        // Reativar navegação para paywall
+        const hasSubscription = await checkSubscriptionStatus();
+        if (!hasSubscription) {
+          await router.replace("/paywall");
+        } else {
+          await router.replace("/(tabs)");
+        }
+
+        // Notificar que o registro foi concluído após a navegação
+        notifyRegistrationCompleted();
+
+        // Aguardar um momento para garantir que a navegação iniciou
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Só agora desbloquear a navegação e permitir tentativas futuras
+        setTimeout(() => {
+          setNavigationLocked(false);
+          setNavigationAttempted(true);
+        }, 500);
+
+        return userCredential.user;
       } catch (error) {
         // Rethrow para captura externa
         throw error;
@@ -1230,8 +1108,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsAnonymous(false);
       setIsNewUser(false);
 
-      // Navegar para paywall
-      await router.replace("/paywall");
+      // Reativar navegação para paywall
+      const hasSubscription = await checkSubscriptionStatus();
+      if (!hasSubscription) {
+        await router.replace("/paywall");
+      } else {
+        await router.replace("/(tabs)");
+      }
 
       // Notificar que o registro foi concluído após a navegação
       notifyRegistrationCompleted();
@@ -1403,6 +1286,89 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // Função para excluir a conta do usuário
+  const deleteAccount = async (password: string) => {
+    try {
+      if (!user || !user.email) {
+        throw new Error("Usuário não está autenticado ou não possui email");
+      }
+
+      // Reautenticar o usuário antes de excluir a conta
+      const credential = EmailAuthProvider.credential(user.email, password);
+      await reauthenticateWithCredential(user, credential);
+
+      // Excluir documentos relacionados no Firestore
+      try {
+        // Excluir documento principal do usuário
+        await setDoc(doc(db, "users", user.uid), {
+          deleted: true,
+          deletedAt: serverTimestamp(),
+        }, { merge: true });
+
+        // Tentar excluir outros documentos relacionados
+        const userCollections = ["nutrition", "workouts", "history"];
+        
+        for (const collection of userCollections) {
+          try {
+            const docRef = doc(db, collection, user.uid);
+            const docSnap = await getDoc(docRef);
+            
+            if (docSnap.exists()) {
+              await updateDoc(docRef, {
+                deleted: true,
+                deletedAt: serverTimestamp(),
+              });
+            }
+          } catch (error) {
+            console.error(`Erro ao marcar documentos em ${collection} como excluídos:`, error);
+          }
+        }
+      } catch (firestoreError) {
+        console.error("Erro ao marcar documentos como excluídos:", firestoreError);
+        // Continuar com a exclusão da conta mesmo se houver erro no Firestore
+      }
+
+      // Limpar dados locais
+      try {
+        // Obter todas as chaves do AsyncStorage
+        const keys = await AsyncStorage.getAllKeys();
+        
+        // Filtrar chaves relacionadas ao usuário
+        const userKeys = keys.filter(key => 
+          key.includes(user.uid) || 
+          key.includes("@pumpgym:") ||
+          key.includes("@fitfolio_")
+        );
+        
+        // Remover todas as chaves do usuário
+        if (userKeys.length > 0) {
+          await AsyncStorage.multiRemove(userKeys);
+        }
+        
+        // Remover dados do SecureStore
+        await removeUserData();
+        await removeAuthToken();
+      } catch (storageError) {
+        console.error("Erro ao limpar dados locais:", storageError);
+        // Continuar mesmo com erro
+      }
+
+      // Finalmente, excluir a conta do Firebase
+      await deleteUser(user);
+
+      // Atualizar estado
+      setUser(null);
+      setIsAnonymous(false);
+      setSessionRestoreAttempted(false);
+      
+      // Redirecionar para login
+      router.replace("/auth/login");
+    } catch (error) {
+      console.error("Erro ao excluir conta:", error);
+      throw error;
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -1431,6 +1397,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsSubscribed,
     checkSubscriptionStatus,
     checkOfflineSubscriptionStatus,
+    deleteAccount,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

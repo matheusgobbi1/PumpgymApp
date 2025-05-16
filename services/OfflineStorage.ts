@@ -168,15 +168,8 @@ export const OfflineStorage = {
    * Verifica se o dispositivo está online
    */
   isOnline: async (): Promise<boolean> => {
-    try {
-      const netInfo = await NetInfo.fetch();
-      const isConnected = netInfo.isConnected === true;
-      console.log("OfflineStorage: Status de conexão:", isConnected ? "Online" : "Offline");
-      return isConnected;
-    } catch (error) {
-      console.error("OfflineStorage: Erro ao verificar conexão:", error);
-      return false;
-    }
+    const netInfo = await NetInfo.fetch();
+    return netInfo.isConnected === true;
   },
 
   // Salvar dados de nutrição
@@ -302,71 +295,21 @@ export const OfflineStorage = {
     completed: boolean
   ): Promise<void> => {
     try {
-      console.log("OfflineStorage: Salvando status de onboarding:", userId, completed);
-      if (!userId) return;
-      
       const key = `${KEYS.ONBOARDING_COMPLETED}_${userId}`;
-      const valueString = JSON.stringify(completed);
-      
-      // Salvar em locais redundantes
-      await AsyncStorage.setItem(key, valueString);
-      await AsyncStorage.setItem(`onboarding_status_${userId}`, valueString);
-      
-      // Atualizar nos dados do usuário também
-      try {
-        const userData = await OfflineStorage.loadUserData(userId);
-        if (userData) {
-          userData.onboardingCompleted = completed;
-          await OfflineStorage.saveUserData(userId, userData);
-        }
-      } catch (userDataError) {
-        // Ignorar erro ao atualizar dados do usuário
-      }
+      await AsyncStorage.setItem(key, JSON.stringify(completed));
     } catch (error) {
-      console.error("OfflineStorage: Erro ao salvar status de onboarding:", error);
+      // Erro ao salvar status de onboarding
     }
   },
 
   // Carregar status de onboarding
   loadOnboardingStatus: async (userId: string): Promise<boolean> => {
     try {
-      console.log("OfflineStorage: Carregando status de onboarding:", userId);
-      if (!userId) return false;
-      
-      // Verificar em múltiplos locais
-      const locations = [
-        `${KEYS.ONBOARDING_COMPLETED}_${userId}`,
-        `onboarding_status_${userId}`
-      ];
-      
-      for (const location of locations) {
-        try {
-          const data = await AsyncStorage.getItem(location);
-          if (data) {
-            const status = JSON.parse(data);
-            console.log(`OfflineStorage: Status de onboarding carregado de ${location}:`, status);
-            return status === true;
-          }
-        } catch (locationError) {
-          // Continuar para o próximo local
-        }
-      }
-      
-      // Verificar também nos dados do usuário
-      try {
-        const userData = await OfflineStorage.loadUserData(userId);
-        if (userData && userData.onboardingCompleted !== undefined) {
-          console.log("OfflineStorage: Status de onboarding carregado dos dados do usuário:", userData.onboardingCompleted);
-          return userData.onboardingCompleted === true;
-        }
-      } catch (userDataError) {
-        // Ignorar erro ao carregar dos dados do usuário
-      }
-      
-      console.log("OfflineStorage: Status de onboarding não encontrado");
-      return false;
+      const key = `${KEYS.ONBOARDING_COMPLETED}_${userId}`;
+      const data = await AsyncStorage.getItem(key);
+      return data ? JSON.parse(data) : false;
     } catch (error) {
-      console.error("OfflineStorage: Erro ao carregar status de onboarding:", error);
+      // Erro ao carregar status de onboarding
       return false;
     }
   },
@@ -374,108 +317,55 @@ export const OfflineStorage = {
   // Salvar dados do usuário
   saveUserData: async (userId: string, userData: any): Promise<void> => {
     try {
-      console.log("OfflineStorage: Salvando dados do usuário", userId);
-      if (!userId || !userData) {
-        console.error("OfflineStorage: Dados inválidos para salvar");
-        return;
-      }
-      
-      // Salvar em múltiplos locais para redundância
       const key = `${KEYS.USER_DATA}_${userId}`;
-      const dataString = JSON.stringify(userData);
-      
-      // Salvar em múltiplos locais para garantir recuperação
-      const locations = [
-        key,
-        `pumpgym_user_${userId}`,
-        "pumpgym_user_data_mirror"
-      ];
-      
-      // Salvar em todos os locais
-      for (const location of locations) {
-        try {
-          await AsyncStorage.setItem(location, dataString);
-        } catch (locationError) {
-          console.error(`OfflineStorage: Erro ao salvar em ${location}:`, locationError);
-        }
-      }
-      
-      // Garantir que o ID do último usuário logado esteja salvo
-      await AsyncStorage.setItem(KEYS.LAST_LOGGED_USER, userId);
-      
-      console.log("OfflineStorage: Dados do usuário salvos com sucesso");
+      await AsyncStorage.setItem(key, JSON.stringify(userData));
     } catch (error) {
-      console.error("OfflineStorage: Erro ao salvar dados do usuário:", error);
+      // Erro ao salvar dados do usuário
     }
   },
 
   // Carregar dados do usuário
   loadUserData: async (userId: string): Promise<any | null> => {
     try {
-      console.log("OfflineStorage: Carregando dados do usuário", userId);
-      
       // Se userId não for fornecido, tentar obter o último usuário logado
       if (!userId) {
         const lastUserId = await AsyncStorage.getItem(KEYS.LAST_LOGGED_USER);
         if (lastUserId) {
           userId = lastUserId;
-          console.log("OfflineStorage: Usando último usuário logado:", lastUserId);
         } else {
           // Se não houver último usuário, retornar null
-          console.log("OfflineStorage: Nenhum último usuário encontrado");
           return null;
         }
       }
 
-      // Locais onde podemos encontrar os dados do usuário
-      const locations = [
-        `${KEYS.USER_DATA}_${userId}`,
-        `pumpgym_user_${userId}`,
-        "pumpgym_user_data_mirror",
-        `${KEYS.USER_DATA}_${userId}_backup`
-      ];
-      
-      // Tentar carregar dos locais em ordem
-      for (const location of locations) {
-        try {
-          const data = await AsyncStorage.getItem(location);
-          if (data) {
-            try {
-              const parsedData = JSON.parse(data);
-              if (parsedData && parsedData.uid) {
-                console.log(`OfflineStorage: Dados carregados com sucesso de ${location}`);
-                
-                // Restaurar nos outros locais para garantir consistência
-                try {
-                  const dataToSave = parsedData._isBackup 
-                    ? JSON.stringify({...parsedData, _isBackup: false})
-                    : data;
-                    
-                  // Atualizar em todos os outros locais para sincronização
-                  for (const otherLocation of locations) {
-                    if (otherLocation !== location) {
-                      await AsyncStorage.setItem(otherLocation, dataToSave);
-                    }
-                  }
-                } catch (syncError) {
-                  // Ignorar erros de sincronização
-                }
-                
-                return parsedData;
-              }
-            } catch (parseError) {
-              console.error(`OfflineStorage: Erro ao analisar dados de ${location}:`, parseError);
-            }
-          }
-        } catch (locationError) {
-          console.error(`OfflineStorage: Erro ao carregar de ${location}:`, locationError);
-        }
+      // Tentar obter os dados do local padrão
+      const key = `${KEYS.USER_DATA}_${userId}`;
+      const data = await AsyncStorage.getItem(key);
+      if (data) {
+        return JSON.parse(data);
       }
       
-      console.log("OfflineStorage: Nenhum dado do usuário encontrado após verificar todos os locais");
+      // Se não encontrar, verificar se existe um backup
+      try {
+        const backupKey = `${KEYS.USER_DATA}_${userId}_backup`;
+        const backupData = await AsyncStorage.getItem(backupKey);
+        if (backupData) {
+          console.log("OfflineStorage: Recuperando dados do backup");
+          const parsedData = JSON.parse(backupData);
+          
+          // Restaurar os dados para o local principal
+          await AsyncStorage.setItem(key, backupData);
+          
+          return parsedData;
+        }
+      } catch (backupError) {
+        console.error("Erro ao verificar backup na função loadUserData:", backupError);
+      }
+      
       return null;
     } catch (error) {
-      console.error("OfflineStorage: Erro ao carregar dados do usuário:", error);
+      console.error("Erro ao carregar dados do usuário:", error);
+      // Erro ao carregar dados do usuário
       return null;
     }
   },
@@ -483,30 +373,10 @@ export const OfflineStorage = {
   // Salvar o ID do último usuário logado
   saveLastLoggedUser: async (userId: string): Promise<void> => {
     try {
-      console.log("OfflineStorage: Salvando último usuário logado:", userId);
       if (!userId) return;
-      
       await AsyncStorage.setItem(KEYS.LAST_LOGGED_USER, userId);
-      
-      // Salvar também em um segundo local para redundância
-      await AsyncStorage.setItem("pumpgym_last_user_backup", userId);
     } catch (error) {
-      console.error("OfflineStorage: Erro ao salvar último usuário logado:", error);
-    }
-  },
-  
-  // Obter o ID do último usuário logado
-  getLastLoggedUser: async (): Promise<string | null> => {
-    try {
-      // Tentar o local principal
-      const userId = await AsyncStorage.getItem(KEYS.LAST_LOGGED_USER);
-      if (userId) return userId;
-      
-      // Tentar o backup
-      return await AsyncStorage.getItem("pumpgym_last_user_backup");
-    } catch (error) {
-      console.error("OfflineStorage: Erro ao obter último usuário logado:", error);
-      return null;
+      console.error("Erro ao salvar último usuário logado:", error);
     }
   },
 
@@ -911,82 +781,29 @@ export const OfflineStorage = {
     isSubscribed: boolean
   ): Promise<void> => {
     try {
-      console.log("OfflineStorage: Salvando status de assinatura:", userId, isSubscribed);
       if (!userId) return;
-      
       const key = `${KEYS.SUBSCRIPTION_STATUS}_${userId}`;
       const subscriptionData = {
         isSubscribed,
         lastVerified: new Date().toISOString(),
       };
-      
-      const dataString = JSON.stringify(subscriptionData);
-      
-      // Salvar em locais redundantes
-      await AsyncStorage.setItem(key, dataString);
-      await AsyncStorage.setItem(`subscription_${userId}`, dataString);
-      
-      // Atualizar também nos dados do usuário
-      try {
-        const userData = await OfflineStorage.loadUserData(userId);
-        if (userData) {
-          userData.isSubscribed = isSubscribed;
-          userData.subscriptionLastVerified = new Date().toISOString();
-          await OfflineStorage.saveUserData(userId, userData);
-        }
-      } catch (userDataError) {
-        // Ignorar erro ao atualizar dados do usuário
-      }
+      await AsyncStorage.setItem(key, JSON.stringify(subscriptionData));
     } catch (error) {
-      console.error("OfflineStorage: Erro ao salvar status de assinatura:", error);
+      console.error("Erro ao salvar status de assinatura:", error);
     }
   },
 
   getSubscriptionStatus: async (userId: string): Promise<boolean> => {
     try {
-      console.log("OfflineStorage: Verificando status de assinatura:", userId);
       if (!userId) return false;
-      
-      // Verificar em múltiplos locais
-      const locations = [
-        `${KEYS.SUBSCRIPTION_STATUS}_${userId}`,
-        `subscription_${userId}`
-      ];
-      
-      for (const location of locations) {
-        try {
-          const data = await AsyncStorage.getItem(location);
-          if (data) {
-            const subscriptionData = JSON.parse(data);
-            console.log(`OfflineStorage: Status de assinatura carregado de ${location}:`, subscriptionData.isSubscribed);
-            return subscriptionData.isSubscribed === true;
-          }
-        } catch (locationError) {
-          // Continuar para o próximo local
-        }
-      }
-      
-      // Verificar também nos dados do usuário
-      try {
-        const userData = await OfflineStorage.loadUserData(userId);
-        if (userData && userData.isSubscribed !== undefined) {
-          console.log("OfflineStorage: Status de assinatura carregado dos dados do usuário:", userData.isSubscribed);
-          return userData.isSubscribed === true;
-        }
-      } catch (userDataError) {
-        // Ignorar erro ao carregar dos dados do usuário
-      }
-      
-      // SIMULAÇÃO PARA TESTE: Forçar assinatura para usuário específico
-      if (userId === "4N7KtLUsNNV9mF3EGo5OyoctHr72") {
-        console.log("OfflineStorage: Usuário de teste com assinatura forçada");
-        return true;
-      }
-      
-      console.log("OfflineStorage: Status de assinatura não encontrado");
-      return false;
+      const key = `${KEYS.SUBSCRIPTION_STATUS}_${userId}`;
+      const data = await AsyncStorage.getItem(key);
+      if (!data) return false;
+
+      const subscriptionData = JSON.parse(data);
+      return subscriptionData.isSubscribed === true;
     } catch (error) {
-      console.error("OfflineStorage: Erro ao obter status de assinatura:", error);
+      console.error("Erro ao obter status de assinatura:", error);
       return false;
     }
   },

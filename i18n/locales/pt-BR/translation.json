@@ -9,9 +9,9 @@
     "alreadyHaveAccount": "Já tem conta?",
     "signIn": "Entrar",
     "termsAndPolicy": "Ao continuar, você concorda com nossos",
-    "termsOfUse": "termos de uso",
+    "termsOfUse": "Termos de Uso",
     "and": "e",
-    "privacyPolicy": "política de privacidade",
+    "privacyPolicy": "Política de Privacidade",
     "bottomSheet": {
       "welcomeBack": "Bem-vindo de volta",
       "email": "Email",
@@ -561,6 +561,7 @@
     },
     "dailyNeeds": {
       "title": "Nutrição",
+      "subtitle": "Baseado nas suas informações",
       "calories": {
         "title": "Calorias Diárias",
         "deficit": "Déficit calórico para perda de peso",
@@ -1239,6 +1240,8 @@
       "notifications": "Notificações",
       "privacyAndSecurity": "Privacidade e Segurança",
       "aboutUs": "Sobre Nós",
+      "termsOfUse": "Termos de Uso",
+      "privacyPolicy": "Política de Privacidade",
       "helpAndSupport": "Ajuda e Suporte",
       "lightMode": "Modo Claro",
       "darkMode": "Modo Escuro",

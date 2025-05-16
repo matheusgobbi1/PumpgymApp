@@ -8,6 +8,7 @@ import {
   TouchableWithoutFeedback,
   Dimensions,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
@@ -28,6 +29,7 @@ interface ConfirmationModalProps {
   onConfirm: () => void;
   onCancel: () => void;
   customContent?: React.ReactNode;
+  isLoading?: boolean;
 }
 
 const ConfirmationModalComponent = ({
@@ -41,6 +43,7 @@ const ConfirmationModalComponent = ({
   onConfirm,
   onCancel,
   customContent,
+  isLoading = false,
 }: ConfirmationModalProps) => {
   const { theme } = useTheme();
   const colors = Colors[theme];
@@ -62,27 +65,29 @@ const ConfirmationModalComponent = ({
 
   // Função para lidar com a confirmação
   const handleConfirm = useCallback(() => {
+    if (isLoading) return; // Não permitir cliques enquanto carregando
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onConfirm();
-  }, [onConfirm]);
+  }, [onConfirm, isLoading]);
 
   // Função para lidar com o cancelamento
   const handleCancel = useCallback(() => {
+    if (isLoading) return; // Não permitir cancelar enquanto carregando
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onCancel();
-  }, [onCancel]);
+  }, [onCancel, isLoading]);
 
   return (
     <Modal
       visible={visible}
       transparent={true}
       animationType="fade"
-      onRequestClose={onCancel}
+      onRequestClose={isLoading ? undefined : onCancel}
       statusBarTranslucent={true}
       hardwareAccelerated={true}
     >
       <View style={[styles.overlay, { backgroundColor: "rgba(0,0,0,0.5)" }]}>
-        <TouchableWithoutFeedback onPress={handleCancel}>
+        <TouchableWithoutFeedback onPress={isLoading ? undefined : handleCancel}>
           <View style={styles.modalWrapper}>
             <TouchableWithoutFeedback>
               <MotiView
@@ -130,11 +135,19 @@ const ConfirmationModalComponent = ({
                       styles.button,
                       styles.cancelButton,
                       { borderColor: colors.border },
+                      isLoading && styles.disabledButton,
                     ]}
                     onPress={handleCancel}
                     activeOpacity={0.7}
+                    disabled={isLoading}
                   >
-                    <Text style={[styles.buttonText, { color: colors.text }]}>
+                    <Text 
+                      style={[
+                        styles.buttonText, 
+                        { color: colors.text },
+                        isLoading && styles.disabledText
+                      ]}
+                    >
                       {cancelText}
                     </Text>
                   </TouchableOpacity>
@@ -144,18 +157,27 @@ const ConfirmationModalComponent = ({
                       styles.button,
                       styles.confirmButton,
                       { backgroundColor: typeColor },
+                      isLoading && { opacity: 0.7 },
                     ]}
                     onPress={handleConfirm}
                     activeOpacity={0.7}
+                    disabled={isLoading}
                   >
-                    <Text
-                      style={[
-                        styles.buttonText,
-                        { color: theme === "dark" ? "#000000" : "#FFFFFF" },
-                      ]}
-                    >
-                      {confirmText}
-                    </Text>
+                    {isLoading ? (
+                      <ActivityIndicator 
+                        size="small" 
+                        color={theme === "dark" ? "#000000" : "#FFFFFF"} 
+                      />
+                    ) : (
+                      <Text
+                        style={[
+                          styles.buttonText,
+                          { color: theme === "dark" ? "#000000" : "#FFFFFF" },
+                        ]}
+                      >
+                        {confirmText}
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               </MotiView>
@@ -245,6 +267,12 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 15,
     fontWeight: "600",
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  disabledText: {
+    opacity: 0.5,
   },
 });
 

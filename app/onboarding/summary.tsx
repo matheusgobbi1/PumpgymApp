@@ -768,12 +768,12 @@ export default function SummaryScreen() {
                 </View>
                 <View>
                   <Text style={[styles.title, { color: colors.text }]}>
-                    Plano Nutricional
+                    {t("summary.dailyNeeds.title")}
                   </Text>
                   <Text
                     style={[styles.subtitle, { color: colors.text + "80" }]}
                   >
-                    Baseado nas suas informações
+                    {t("summary.dailyNeeds.subtitle")}
                   </Text>
                 </View>
               </View>
