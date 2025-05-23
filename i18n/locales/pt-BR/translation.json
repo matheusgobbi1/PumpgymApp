@@ -175,7 +175,7 @@
     }
   },
   "training": {
-    "title": "Seus treinos",
+    "title": "Treinos",
     "subtitle": "Registre seus treinos",
     "noTraining": "Nenhum treino registrado",
     "workoutsToday": "Treinos de hoje",
@@ -763,7 +763,7 @@
     }
   },
   "nutrition": {
-    "title": "Suas refeições",
+    "title": "refeições",
     "menu": {
       "editMeals": "Editar Refeições",
       "resetMeals": "Redefinir Refeições",
@@ -1230,7 +1230,7 @@
   "profile": {
     "title": "Perfil",
     "header": {
-      "title": "SUAS INFORMAÇÕES PESSOAIS",
+      "title": "PERFIL",
       "planNotConfigured": "Plano não configurado",
       "planActive": "Plano ativo",
       "planIncomplete": "Plano incompleto",

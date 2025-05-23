@@ -174,7 +174,7 @@
     }
   },
   "training": {
-    "title": "Your workouts",
+    "title": "workouts",
     "subtitle": "Record your training",
     "noTraining": "No training recorded",
     "workoutsToday": "Today's workouts",
@@ -675,7 +675,7 @@
   "yesterday": "Yesterday",
   "minutes": "minutes",
   "nutrition": {
-    "title": "Your meals",
+    "title": "meals",
     "menu": {
       "editMeals": "Edit Meals",
       "resetMeals": "Reset Meals",
@@ -926,7 +926,7 @@
     "addFirstFood": "Add your first food item"
   },
   "home": {
-    "title": "Home",
+    "title": "Dashboard",
     "greeting": {
       "morning": "Good morning",
       "afternoon": "Good afternoon",
@@ -1134,7 +1134,7 @@
   "profile": {
     "title": "Profile",
     "header": {
-      "title": "Your Profile Information",
+      "title": "Profile",
       "planNotConfigured": "Plan not configured",
       "planActive": "Active plan",
       "planIncomplete": "Incomplete plan",

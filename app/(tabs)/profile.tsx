@@ -1,4 +1,10 @@
-import React, { useCallback, useState, useEffect, useRef, useMemo } from "react";
+import React, {
+  useCallback,
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+} from "react";
 import {
   View,
   StyleSheet,
@@ -45,7 +51,8 @@ export default function Profile() {
     }
   };
 
-  const scrollViewPaddingTop = headerHeight > 0 ? headerHeight + 5 : insets.top + 100;
+  const scrollViewPaddingTop =
+    headerHeight > 0 ? headerHeight : insets.top + 100;
 
   useEffect(() => {
     if (isUIReady) return;
@@ -78,9 +85,7 @@ export default function Profile() {
   const renderScreenContent = () => {
     if (!isUIReady) {
       return (
-        <View style={styles.loadingContainer}>
-          {/* Loading indicator */}
-        </View>
+        <View style={styles.loadingContainer}>{/* Loading indicator */}</View>
       );
     }
 
