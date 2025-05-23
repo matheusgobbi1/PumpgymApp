@@ -96,7 +96,7 @@ export default function SplashScreen() {
 
       <View style={styles.contentContainer}>
         {/* Logo animado */}
-        <Animated.View 
+        <Animated.View
           style={[styles.logoContainer, logoAnimatedStyle]}
           entering={FadeIn.duration(800)}
         >
@@ -128,7 +128,10 @@ export default function SplashScreen() {
         {/* Barra de progresso */}
         <View style={styles.progressSection}>
           <View
-            style={[styles.progressContainer, { backgroundColor: colors.light }]}
+            style={[
+              styles.progressContainer,
+              { backgroundColor: colors.light },
+            ]}
           >
             <Animated.View
               style={[
@@ -143,8 +146,12 @@ export default function SplashScreen() {
             <Text style={[styles.loadingText, { color: colors.text + "99" }]}>
               Carregando
             </Text>
-            <Animated.Text 
-              style={[styles.loadingDots, { color: colors.primary }, loadingDotsStyle]}
+            <Animated.Text
+              style={[
+                styles.loadingDots,
+                { color: colors.primary },
+                loadingDotsStyle,
+              ]}
             >
               ...
             </Animated.Text>
@@ -153,30 +160,48 @@ export default function SplashScreen() {
 
         {/* Ícones de funcionalidades */}
         <View style={styles.featuresContainer}>
-          <Animated.View 
+          <Animated.View
             entering={FadeIn.duration(600).delay(800)}
             style={styles.featureIconWrapper}
           >
-            <View style={[styles.featureIcon, { backgroundColor: colors.light }]}>
-              <Ionicons name="barbell-outline" size={20} color={colors.primary} />
+            <View
+              style={[styles.featureIcon, { backgroundColor: colors.light }]}
+            >
+              <Ionicons
+                name="barbell-outline"
+                size={20}
+                color={colors.primary}
+              />
             </View>
           </Animated.View>
-          
-          <Animated.View 
+
+          <Animated.View
             entering={FadeIn.duration(600).delay(1000)}
             style={styles.featureIconWrapper}
           >
-            <View style={[styles.featureIcon, { backgroundColor: colors.light }]}>
-              <Ionicons name="nutrition-outline" size={20} color={colors.primary} />
+            <View
+              style={[styles.featureIcon, { backgroundColor: colors.light }]}
+            >
+              <Ionicons
+                name="nutrition-outline"
+                size={20}
+                color={colors.primary}
+              />
             </View>
           </Animated.View>
-          
-          <Animated.View 
+
+          <Animated.View
             entering={FadeIn.duration(600).delay(1200)}
             style={styles.featureIconWrapper}
           >
-            <View style={[styles.featureIcon, { backgroundColor: colors.light }]}>
-              <Ionicons name="stats-chart-outline" size={20} color={colors.primary} />
+            <View
+              style={[styles.featureIcon, { backgroundColor: colors.light }]}
+            >
+              <Ionicons
+                name="stats-chart-outline"
+                size={20}
+                color={colors.primary}
+              />
             </View>
           </Animated.View>
         </View>
@@ -217,6 +242,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#FFFFFF",
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -283,6 +309,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#FFFFFF",
     ...Platform.select({
       ios: {
         shadowColor: "#000",

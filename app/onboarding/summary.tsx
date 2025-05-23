@@ -53,30 +53,14 @@ export default function SummaryScreen() {
 
   useEffect(() => {
     // Log para debug do estado atual
-    console.log(
-      "Estado nutritionInfo na tela summary:",
-      JSON.stringify(
-        {
-          goal: nutritionInfo.goal,
-          weight: nutritionInfo.weight,
-          targetWeight: nutritionInfo.targetWeight,
-          weightChangeRate: nutritionInfo.weightChangeRate,
-        },
-        null,
-        2
-      )
-    );
+   
 
     // Se a taxa de mudança for 0, o objetivo deve ser "maintain"
     if (
       nutritionInfo.weightChangeRate === 0 &&
       nutritionInfo.goal !== "maintain"
     ) {
-      console.log("Corrigindo goal para maintain baseado na taxa de mudança 0");
-      updateNutritionInfo({
-        goal: "maintain",
-        targetWeight: nutritionInfo.weight || nutritionInfo.targetWeight,
-      });
+   
       return; // Evitar cálculos adicionais, pois o efeito será acionado novamente
     }
 
@@ -85,11 +69,7 @@ export default function SummaryScreen() {
       nutritionInfo.goal === "maintain" &&
       nutritionInfo.weightChangeRate !== 0
     ) {
-      console.log("Corrigindo taxa de mudança para 0 em objetivo maintain");
-      updateNutritionInfo({
-        weightChangeRate: 0,
-        targetWeight: nutritionInfo.weight || nutritionInfo.targetWeight,
-      });
+    
       return; // Evitar cálculos adicionais, pois o efeito será acionado novamente
     }
 

@@ -39,7 +39,6 @@ export async function registerForPushNotificationsAsync() {
 
     // Se o usuário não concedeu permissão, retornar null
     if (finalStatus !== "granted") {
-      console.log("Permissão para notificações não concedida!");
       return null;
     }
 
@@ -50,18 +49,12 @@ export async function registerForPushNotificationsAsync() {
       process.env.EXPO_PUBLIC_EXPO_PROJECT_ID;
 
     if (!projectId) {
-      console.warn(
-        "Nenhum projectId encontrado para notificações push. Verifique suas configurações."
-      );
+      return null;
     }
 
     // Tenta obter o token com retry
     while (retryCount < maxRetries) {
       try {
-        console.log(
-          `Tentativa ${retryCount + 1} de obter token de notificações push...`
-        );
-
         // Timeout mais longo para a solicitação
         const tokenResponse = await Promise.race([
           Notifications.getExpoPushTokenAsync({
@@ -78,27 +71,16 @@ export async function registerForPushNotificationsAsync() {
 
         // Se chegou aqui, obteve o token com sucesso
         token = (tokenResponse as any).data;
-        console.log("Token de notificação obtido com sucesso:", token);
         break;
       } catch (error) {
         retryCount++;
-        console.warn(
-          `Erro ao obter token (tentativa ${retryCount}/${maxRetries}):`,
-          error
-        );
-
         if (retryCount < maxRetries) {
           // Espera um tempo antes de tentar novamente (com backoff exponencial)
           const delay = initialDelay * Math.pow(2, retryCount - 1);
-          console.log(`Tentando novamente em ${delay / 1000} segundos...`);
           await sleep(delay);
-        } else {
-          console.error("Todas as tentativas de obter token falharam");
         }
       }
     }
-  } else {
-    console.log("É necessário um dispositivo físico para notificações push");
   }
 
   // Configurações específicas para Android
@@ -140,14 +122,10 @@ export async function saveTokenToDatabase(
         });
       }
 
-      console.log("Token de notificação salvo com sucesso!");
       return true;
-    } else {
-      console.log("Usuário não está autenticado");
-      return false;
     }
+    return false;
   } catch (error) {
-    console.error("Erro ao salvar token:", error);
     return false;
   }
 }
@@ -161,19 +139,13 @@ export function setupNotificationListeners(
 ) {
   // Ouvinte para notificações recebidas com o app em primeiro plano
   const receivedSubscription = Notifications.addNotificationReceivedListener(
-    onNotificationReceived ||
-      ((notification) => {
-        console.log("Notificação recebida:", notification);
-      })
+    onNotificationReceived || (() => {})
   );
 
   // Ouvinte para resposta à notificação (quando o usuário toca na notificação)
   const responseSubscription =
     Notifications.addNotificationResponseReceivedListener(
-      onNotificationResponse ||
-        ((response) => {
-          console.log("Resposta à notificação:", response);
-        })
+      onNotificationResponse || (() => {})
     );
 
   // Retorna as funções de cancelamento da inscrição para limpeza

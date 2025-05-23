@@ -115,22 +115,14 @@ export default function DietExportModal() {
   const checkFilePermissions = async (path: string) => {
     try {
       const info = await FileSystem.getInfoAsync(path);
-      console.log(`Verificação de arquivo: ${path}`);
-      console.log(`- Existe: ${info.exists}`);
-      if (info.exists) {
-        console.log(`- Tamanho: ${info.size} bytes`);
-        console.log(`- URI: ${info.uri}`);
-      }
       return info.exists;
     } catch (error: any) {
-      console.error(`Erro ao verificar arquivo ${path}:`, error.message);
       return false;
     }
   };
 
   // Função para mostrar o modal de opções de exportação
   const showExportOptions = () => {
-    console.log("Abrindo modal de opções de exportação");
     Alert.alert(
       t("nutrition.export.chooseFormat") || "Escolher formato",
       t("nutrition.export.formatDescription") ||
@@ -140,7 +132,6 @@ export default function DietExportModal() {
           text: t("nutrition.export.imageFormat") || "Imagem (PNG)",
           onPress: () => {
             setExportOption("image");
-            console.log("Selecionou opção: Imagem/PNG");
             handleShare();
           },
         },
@@ -148,7 +139,6 @@ export default function DietExportModal() {
           text: t("nutrition.export.pdfFormat") || "Documento (PDF)",
           onPress: () => {
             setExportOption("pdf");
-            console.log("Selecionou opção: PDF");
             handleShare();
           },
         },
@@ -163,13 +153,11 @@ export default function DietExportModal() {
   // Função para compartilhar a captura de tela
   const handleShare = async () => {
     try {
-      console.log("Iniciando processo de compartilhamento...");
       setIsSharing(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       // Verificar se o compartilhamento está disponível
       const isAvailable = await Sharing.isAvailableAsync();
-      console.log(`Compartilhamento disponível: ${isAvailable}`);
 
       if (!isAvailable) {
         Alert.alert(
@@ -183,30 +171,20 @@ export default function DietExportModal() {
       // Verificar permissão de escrita no sistema de arquivos (diagnóstico)
       try {
         const documentDir = FileSystem.documentDirectory;
-        console.log(`Diretório de documentos: ${documentDir}`);
         if (documentDir) {
           await checkFilePermissions(documentDir);
         }
       } catch (error) {
-        console.warn("Erro ao verificar permissões de diretório:", error);
         // Continuamos mesmo com erro na verificação
       }
 
       // Gerar HTML que representa o plano alimentar visualmente
-      console.log("Gerando conteúdo HTML...");
       const htmlContent = generateHtmlContent();
-      console.log(`HTML gerado com ${htmlContent.length} caracteres`);
 
       try {
         // Gerar PDF independentemente do tipo de exportação
-        console.log("Iniciando geração de PDF...");
-
-        // Se a opção for PDF, usar configurações avançadas
         if (exportOption === "pdf") {
           // As opções avançadas não são suportadas, usando as básicas
-          console.log(
-            "Usando configurações PDF padrão para melhor compatibilidade"
-          );
         }
 
         const pdfUri = await Print.printToFileAsync({
@@ -214,16 +192,12 @@ export default function DietExportModal() {
           width: 612,
           height: 792,
         });
-        console.log(`PDF gerado: ${pdfUri.uri}`);
 
         // Verificando se o arquivo foi gerado corretamente
         const fileInfo = await FileSystem.getInfoAsync(pdfUri.uri);
         if (!fileInfo.exists || fileInfo.size === 0) {
-          console.error("Arquivo PDF não existe ou está vazio");
           throw new Error("Arquivo PDF não foi gerado corretamente");
         }
-
-        console.log(`Arquivo gerado: ${pdfUri.uri} (${fileInfo.size} bytes)`);
 
         // Definir o tipo MIME e UTI corretos baseados na opção selecionada
         let mimeType = "application/pdf";
@@ -233,16 +207,11 @@ export default function DietExportModal() {
         // Se a opção for imagem, tentamos capturar como PNG
         if (exportOption === "image") {
           try {
-            console.log("Tentando capturar como imagem PNG...");
-            console.log(`Plataforma: ${Platform.OS}`);
-
             // Tentar capturar como imagem usando o ViewShot
             if (
               viewShotRef.current &&
               typeof viewShotRef.current.capture === "function"
             ) {
-              console.log("ViewShot está disponível, tentando capturar...");
-
               // Configurações específicas para determinadas plataformas
               let captureOptions = {};
 
@@ -262,64 +231,23 @@ export default function DietExportModal() {
                 };
               }
 
-              console.log(
-                `Usando opções de captura: ${JSON.stringify(captureOptions)}`
-              );
               const imageUri = await viewShotRef.current.capture(
                 captureOptions
               );
 
               if (imageUri) {
-                console.log(
-                  `Imagem capturada com sucesso: ${imageUri.substring(
-                    0,
-                    30
-                  )}...`
-                );
-
                 // Atualizar o tipo MIME e UTI para PNG
                 mimeType = "image/png";
                 uti = "public.png";
                 fileUri = imageUri;
-                console.log(
-                  `Configurado para compartilhar como PNG: ${fileUri.substring(
-                    0,
-                    30
-                  )}...`
-                );
-              } else {
-                console.log("Captura de imagem falhou: imageUri está vazio");
               }
-            } else {
-              console.log(
-                "ViewShot não está disponível ou não tem método capture"
-              );
-            }
-
-            if (mimeType === "application/pdf") {
-              // Se chegou aqui com mimeType ainda PDF, a captura de imagem falhou
-              console.log(
-                "Não foi possível capturar como imagem, usando PDF como fallback"
-              );
             }
           } catch (error) {
-            console.warn("Erro ao capturar imagem:", error);
-            console.log(
-              "Usando PDF como fallback devido a erro na captura de imagem"
-            );
+            // Usando PDF como fallback devido a erro na captura de imagem
           }
-        } else {
-          console.log(
-            "Opção PDF selecionada, gerando documento PDF de alta qualidade..."
-          );
         }
 
         // Compartilhar o arquivo (seja PDF ou PNG)
-        console.log(`Compartilhando arquivo: ${fileUri}`);
-        console.log(`MIME: ${mimeType}, UTI: ${uti}`);
-
-        // Usar Promise.race para adicionar um timeout ao compartilhamento
-        // para evitar que fique travado no Expo Go
         try {
           // Definir um tempo maior para permitir ao usuário selecionar opções
           // Um minuto deve ser suficiente para escolher entre as opções
@@ -353,11 +281,6 @@ export default function DietExportModal() {
             "change",
             (nextAppState) => {
               if (nextAppState === "active") {
-                // Se o aplicativo voltou a ficar ativo (o que acontece ao fechar o compartilhamento),
-                // consideramos que o usuário cancelou ou completou a operação
-                console.log(
-                  "App voltou a ficar ativo, provável que o compartilhamento foi cancelado ou concluído"
-                );
                 isSharingCanceledRef.current = true;
               }
             }
@@ -365,14 +288,11 @@ export default function DietExportModal() {
 
           try {
             await Promise.race([sharePromise, timeoutPromise]);
-            console.log("Arquivo compartilhado com sucesso!");
 
             // Se chegou até aqui, foi compartilhado com sucesso
             setSharedMessage(t("nutrition.export.shareSuccess"));
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           } catch (innerError: any) {
-            console.log("Resultado do compartilhamento:", innerError?.message);
-
             // Não mostrar erro se foi um cancelamento do usuário
             if (
               innerError?.message !== "user_cancelled" &&
@@ -380,16 +300,11 @@ export default function DietExportModal() {
               !innerError?.message?.toLowerCase().includes("cancel")
             ) {
               // Se não foi cancelado pelo usuário, mostramos o erro
-              console.error("Erro no compartilhamento:", innerError);
               Alert.alert(
                 t("common.error"),
                 "Problema ao compartilhar o arquivo. Tente usar o botão de visualização direta."
               );
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            } else {
-              console.log(
-                "Compartilhamento cancelado pelo usuário, não mostrando erro"
-              );
             }
           } finally {
             // Remover o listener
@@ -405,7 +320,6 @@ export default function DietExportModal() {
             }, 3000);
           }
         } catch (error: any) {
-          console.error("Erro ao compartilhar:", error);
           Alert.alert(
             t("common.error"),
             `${t("nutrition.export.shareError")}: ${error.message || ""}`
@@ -413,7 +327,6 @@ export default function DietExportModal() {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         }
       } catch (captureError: any) {
-        console.error("Erro na exportação:", captureError);
         Alert.alert(
           t("common.error"),
           `Erro ao gerar o documento: ${
@@ -423,14 +336,12 @@ export default function DietExportModal() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } catch (error: any) {
-      console.error("Erro geral ao compartilhar:", error);
       Alert.alert(
         t("common.error"),
         `${t("nutrition.export.shareError")}: ${error.message || ""}`
       );
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
-      console.log("Finalizando processo de compartilhamento");
       setIsSharing(false);
     }
   };
@@ -863,13 +774,9 @@ export default function DietExportModal() {
                       });
 
                       // Abrir o PDF para visualização direta
-                      console.log("Abrindo visualização de PDF");
                       await Print.printAsync({ uri });
 
                       // Se chegou aqui sem erro, a visualização foi concluída com sucesso
-                      console.log("Visualização concluída sem erros");
-
-                      // Exibir mensagem de sucesso
                       setSharedMessage(
                         t("nutrition.export.viewSuccess") ||
                           "Visualização concluída"
@@ -879,8 +786,6 @@ export default function DietExportModal() {
                         Haptics.NotificationFeedbackType.Success
                       );
                     } catch (error: any) {
-                      console.error("Erro ao visualizar PDF:", error);
-
                       // Verificar se o erro é um cancelamento do usuário de forma mais abrangente
                       const errorMsg = String(
                         error?.message || ""
@@ -905,7 +810,6 @@ export default function DietExportModal() {
                           Haptics.NotificationFeedbackType.Error
                         );
                       } else {
-                        console.log("Visualização cancelada pelo usuário");
                       }
                     } finally {
                       setIsSharing(false);

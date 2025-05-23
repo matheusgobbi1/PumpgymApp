@@ -16,7 +16,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
 import Colors from "../../constants/Colors";
 import { useWorkoutContext, Exercise } from "../../context/WorkoutContext";
-import { exerciseDatabase, ExerciseData, muscleGroups } from "../../data/exerciseDatabase";
+import {
+  exerciseDatabase,
+  ExerciseData,
+  muscleGroups,
+} from "../../data/exerciseDatabase";
 import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -41,7 +45,15 @@ interface WorkoutBuilderState {
 
 // Ações para o reducer
 type WorkoutBuilderAction =
-  | { type: "OPEN_MODAL"; payload: { workoutId: string; workoutName: string; workoutColor: string; existingExercises: Exercise[] | null } }
+  | {
+      type: "OPEN_MODAL";
+      payload: {
+        workoutId: string;
+        workoutName: string;
+        workoutColor: string;
+        existingExercises: Exercise[] | null;
+      };
+    }
   | { type: "CLOSE_MODAL" }
   | { type: "SET_STEP"; payload: ModalStep }
   | { type: "SET_EXPERIENCE"; payload: ExperienceLevel }
@@ -65,7 +77,11 @@ const workoutBuilderReducer = (
         workoutName: action.payload.workoutName,
         workoutColor: action.payload.workoutColor,
         existingExercises: action.payload.existingExercises,
-        currentStep: action.payload.existingExercises && action.payload.existingExercises.length > 0 ? "review" : "experience",
+        currentStep:
+          action.payload.existingExercises &&
+          action.payload.existingExercises.length > 0
+            ? "review"
+            : "experience",
         generatedExercises: action.payload.existingExercises || [],
       };
     case "CLOSE_MODAL":
@@ -140,10 +156,16 @@ const initialState: WorkoutBuilderState = {
 };
 
 interface WorkoutBuilderModalProps {
-  onSaveWorkout: (workoutId: string, date: string, exercises: Exercise[]) => Promise<boolean>;
+  onSaveWorkout: (
+    workoutId: string,
+    date: string,
+    exercises: Exercise[]
+  ) => Promise<boolean>;
 }
 
-export default function WorkoutBuilderModal({ onSaveWorkout }: WorkoutBuilderModalProps) {
+export default function WorkoutBuilderModal({
+  onSaveWorkout,
+}: WorkoutBuilderModalProps) {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { t } = useTranslation();
@@ -153,13 +175,21 @@ export default function WorkoutBuilderModal({ onSaveWorkout }: WorkoutBuilderMod
   const [state, dispatch] = useReducer(workoutBuilderReducer, initialState);
 
   // Função para abrir o modal
-  const openModal = useCallback((workoutId: string, workoutName: string, workoutColor: string, existingExercises: Exercise[] | null) => {
-    dispatch({
-      type: "OPEN_MODAL",
-      payload: { workoutId, workoutName, workoutColor, existingExercises },
-    });
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  }, []);
+  const openModal = useCallback(
+    (
+      workoutId: string,
+      workoutName: string,
+      workoutColor: string,
+      existingExercises: Exercise[] | null
+    ) => {
+      dispatch({
+        type: "OPEN_MODAL",
+        payload: { workoutId, workoutName, workoutColor, existingExercises },
+      });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    },
+    []
+  );
 
   // Função para fechar o modal
   const closeModal = useCallback(() => {
@@ -201,7 +231,7 @@ export default function WorkoutBuilderModal({ onSaveWorkout }: WorkoutBuilderMod
     // Determinar número de exercícios com base no nível
     let exercisesPerMuscle = 1;
     let setsPerExercise = 3;
-    
+
     switch (state.experienceLevel) {
       case "beginner":
         exercisesPerMuscle = 1;
@@ -231,21 +261,33 @@ export default function WorkoutBuilderModal({ onSaveWorkout }: WorkoutBuilderMod
 
       // Embaralhar os exercícios para randomizar a seleção
       const shuffled = [...muscleExercises].sort(() => 0.5 - Math.random());
-      
+
       // Selecionar a quantidade de exercícios conforme o nível
       const selected = shuffled.slice(0, exercisesPerMuscle);
 
       // Adicionar os exercícios ao treino com suas séries
       selected.forEach((ex) => {
         // Gerar um ID único para o exercício
-        const exerciseId = `exercise-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-        
+        const exerciseId = `exercise-${Date.now()}-${Math.floor(
+          Math.random() * 1000
+        )}`;
+
         // Criar séries conforme o nível de experiência
         const sets = Array.from({ length: setsPerExercise }, (_, index) => ({
           id: `set-${Date.now()}-${index}`,
-          reps: state.experienceLevel === "beginner" ? 12 : state.experienceLevel === "intermediate" ? 10 : 8,
+          reps:
+            state.experienceLevel === "beginner"
+              ? 12
+              : state.experienceLevel === "intermediate"
+              ? 10
+              : 8,
           weight: ex.isBodyweightExercise ? 0 : 10, // Peso inicial simbólico
-          restTime: state.experienceLevel === "beginner" ? 60 : state.experienceLevel === "intermediate" ? 90 : 120,
+          restTime:
+            state.experienceLevel === "beginner"
+              ? 60
+              : state.experienceLevel === "intermediate"
+              ? 90
+              : 120,
           isBodyweightExercise: ex.isBodyweightExercise || false,
         }));
 
@@ -263,7 +305,7 @@ export default function WorkoutBuilderModal({ onSaveWorkout }: WorkoutBuilderMod
     // Atualizar o estado com os exercícios gerados
     dispatch({ type: "GENERATE_EXERCISES" });
     state.generatedExercises = generatedExercises;
-    
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }, [state.experienceLevel, state.selectedMuscles]);
 
@@ -365,12 +407,7 @@ export default function WorkoutBuilderModal({ onSaveWorkout }: WorkoutBuilderMod
           >
             {t("workoutBuilder.beginner")}
           </Text>
-          <Text
-            style={[
-              styles.optionDescription,
-              { color: colors.secondary },
-            ]}
-          >
+          <Text style={[styles.optionDescription, { color: colors.secondary }]}>
             {t("workoutBuilder.beginnerDescription")}
           </Text>
         </TouchableOpacity>
@@ -407,12 +444,7 @@ export default function WorkoutBuilderModal({ onSaveWorkout }: WorkoutBuilderMod
           >
             {t("workoutBuilder.intermediate")}
           </Text>
-          <Text
-            style={[
-              styles.optionDescription,
-              { color: colors.secondary },
-            ]}
-          >
+          <Text style={[styles.optionDescription, { color: colors.secondary }]}>
             {t("workoutBuilder.intermediateDescription")}
           </Text>
         </TouchableOpacity>
@@ -449,12 +481,7 @@ export default function WorkoutBuilderModal({ onSaveWorkout }: WorkoutBuilderMod
           >
             {t("workoutBuilder.advanced")}
           </Text>
-          <Text
-            style={[
-              styles.optionDescription,
-              { color: colors.secondary },
-            ]}
-          >
+          <Text style={[styles.optionDescription, { color: colors.secondary }]}>
             {t("workoutBuilder.advancedDescription")}
           </Text>
         </TouchableOpacity>
@@ -499,7 +526,7 @@ export default function WorkoutBuilderModal({ onSaveWorkout }: WorkoutBuilderMod
         {muscleGroups.map((muscle) => {
           // Não incluir Cardio na seleção de músculos
           if (muscle === "Cardio") return null;
-          
+
           const isSelected = state.selectedMuscles.includes(muscle);
           return (
             <TouchableOpacity
@@ -543,7 +570,12 @@ export default function WorkoutBuilderModal({ onSaveWorkout }: WorkoutBuilderMod
         <Text style={styles.generateButtonText}>
           {t("workoutBuilder.generateWorkout")}
         </Text>
-        <Ionicons name="flash" size={20} color="#FFFFFF" style={styles.generateButtonIcon} />
+        <Ionicons
+          name="flash"
+          size={20}
+          color="#FFFFFF"
+          style={styles.generateButtonIcon}
+        />
       </TouchableOpacity>
     </View>
   );
@@ -565,7 +597,12 @@ export default function WorkoutBuilderModal({ onSaveWorkout }: WorkoutBuilderMod
           style={styles.regenerateButton}
           onPress={() => dispatch({ type: "RESET_BUILDER" })}
         >
-          <Ionicons name="refresh-outline" size={20} color={state.workoutColor} style={styles.regenerateIcon} />
+          <Ionicons
+            name="refresh-outline"
+            size={20}
+            color={state.workoutColor}
+            style={styles.regenerateIcon}
+          />
           <Text style={[styles.regenerateText, { color: state.workoutColor }]}>
             {t("workoutBuilder.regenerateWorkout")}
           </Text>
@@ -591,10 +628,15 @@ export default function WorkoutBuilderModal({ onSaveWorkout }: WorkoutBuilderMod
               </Text>
             </View>
             <View style={styles.exerciseDetails}>
-              <Text style={[styles.exerciseDetail, { color: colors.secondary }]}>
-                {exercise.sets?.length || 0} {t("exercise.sets")} • {exercise.sets?.[0]?.reps || 0} {t("exercise.reps")}
+              <Text
+                style={[styles.exerciseDetail, { color: colors.secondary }]}
+              >
+                {exercise.sets?.length || 0} {t("exercise.sets")} •{" "}
+                {exercise.sets?.[0]?.reps || 0} {t("exercise.reps")}
               </Text>
-              <Text style={[styles.exerciseDetail, { color: colors.secondary }]}>
+              <Text
+                style={[styles.exerciseDetail, { color: colors.secondary }]}
+              >
                 {exercise.isBodyweightExercise
                   ? t("exercise.bodyweight.short", { defaultValue: "PC" })
                   : `${exercise.sets?.[0]?.weight || 0} kg`}
@@ -611,7 +653,12 @@ export default function WorkoutBuilderModal({ onSaveWorkout }: WorkoutBuilderMod
         <Text style={styles.addButtonText}>
           {t("workoutBuilder.saveWorkout")}
         </Text>
-        <Ionicons name="save-outline" size={20} color="#FFFFFF" style={styles.addButtonIcon} />
+        <Ionicons
+          name="save-outline"
+          size={20}
+          color="#FFFFFF"
+          style={styles.addButtonIcon}
+        />
       </TouchableOpacity>
     </View>
   );
@@ -905,6 +952,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -919,4 +967,4 @@ const styles = StyleSheet.create({
   addButtonIcon: {
     marginLeft: 8,
   },
-}); 
+});

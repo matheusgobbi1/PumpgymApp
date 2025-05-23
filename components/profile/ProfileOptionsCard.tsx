@@ -46,7 +46,8 @@ export default function ProfileOptionsCard({
   // Estado para controlar a visibilidade dos modais
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
-  const [deleteAccountModalVisible, setDeleteAccountModalVisible] = useState(false);
+  const [deleteAccountModalVisible, setDeleteAccountModalVisible] =
+    useState(false);
   const [password, setPassword] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -181,7 +182,9 @@ export default function ProfileOptionsCard({
           style={styles.optionItem}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            Linking.openURL("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/");
+            Linking.openURL(
+              "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+            );
           }}
         >
           <View
@@ -190,12 +193,20 @@ export default function ProfileOptionsCard({
               { backgroundColor: colors.accentGray + "15" },
             ]}
           >
-            <Ionicons name="document-text-outline" size={20} color={colors.accentGray} />
+            <Ionicons
+              name="document-text-outline"
+              size={20}
+              color={colors.accentGray}
+            />
           </View>
-          <Text style={[styles.optionText, { color: colors.text }]}> 
+          <Text style={[styles.optionText, { color: colors.text }]}>
             {t("profile.options.termsOfUse")}
           </Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.text + "50"} />
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color={colors.text + "50"}
+          />
         </TouchableOpacity>
 
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
@@ -214,12 +225,20 @@ export default function ProfileOptionsCard({
               { backgroundColor: colors.accentGray + "15" },
             ]}
           >
-            <Ionicons name="shield-checkmark-outline" size={20} color={colors.accentGray} />
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={20}
+              color={colors.accentGray}
+            />
           </View>
-          <Text style={[styles.optionText, { color: colors.text }]}> 
+          <Text style={[styles.optionText, { color: colors.text }]}>
             {t("profile.options.privacyPolicy")}
           </Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.text + "50"} />
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color={colors.text + "50"}
+          />
         </TouchableOpacity>
 
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
@@ -235,10 +254,16 @@ export default function ProfileOptionsCard({
               { backgroundColor: colors.accentGray + "15" },
             ]}
           >
-            <Ionicons name="settings-outline" size={20} color={colors.accentGray} />
+            <Ionicons
+              name="settings-outline"
+              size={20}
+              color={colors.accentGray}
+            />
           </View>
           <Text style={[styles.optionText, { color: colors.text }]}>
-            {currentLanguage === "pt-BR" ? "Opções avançadas" : "Advanced options"}
+            {currentLanguage === "pt-BR"
+              ? "Opções avançadas"
+              : "Advanced options"}
           </Text>
           <Ionicons
             name={showAdvancedOptions ? "chevron-up" : "chevron-down"}
@@ -250,10 +275,15 @@ export default function ProfileOptionsCard({
         {/* Opções expansíveis */}
         {showAdvancedOptions && (
           <>
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <View
+              style={[styles.divider, { backgroundColor: colors.border }]}
+            />
 
             {/* Alternar Idioma */}
-            <TouchableOpacity style={[styles.optionItem, styles.nestedOption]} onPress={toggleLanguage}>
+            <TouchableOpacity
+              style={[styles.optionItem, styles.nestedOption]}
+              onPress={toggleLanguage}
+            >
               <View
                 style={[
                   styles.optionIconContainer,
@@ -281,7 +311,9 @@ export default function ProfileOptionsCard({
               </View>
             </TouchableOpacity>
 
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <View
+              style={[styles.divider, { backgroundColor: colors.border }]}
+            />
 
             {/* Alternar Tema */}
             <TouchableOpacity
@@ -294,7 +326,10 @@ export default function ProfileOptionsCard({
               <View
                 style={[
                   styles.optionIconContainer,
-                  { backgroundColor: theme === "dark" ? "#FFD16615" : "#6C757D15" },
+                  {
+                    backgroundColor:
+                      theme === "dark" ? "#FFD16615" : "#6C757D15",
+                  },
                 ]}
               >
                 <Ionicons
@@ -326,7 +361,9 @@ export default function ProfileOptionsCard({
               </View>
             </TouchableOpacity>
 
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <View
+              style={[styles.divider, { backgroundColor: colors.border }]}
+            />
 
             {/* Sair */}
             <TouchableOpacity
@@ -351,7 +388,9 @@ export default function ProfileOptionsCard({
               />
             </TouchableOpacity>
 
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <View
+              style={[styles.divider, { backgroundColor: colors.border }]}
+            />
 
             {/* Excluir Conta */}
             <TouchableOpacity
@@ -367,7 +406,9 @@ export default function ProfileOptionsCard({
                 <Ionicons name="trash-outline" size={20} color="#FF0000" />
               </View>
               <Text style={[styles.optionText, { color: "#FF0000" }]}>
-                {currentLanguage === "pt-BR" ? "Excluir conta" : "Delete account"}
+                {currentLanguage === "pt-BR"
+                  ? "Excluir conta"
+                  : "Delete account"}
               </Text>
               <Ionicons
                 name="chevron-forward"
@@ -423,13 +464,15 @@ export default function ProfileOptionsCard({
             <TextInput
               style={[
                 styles.passwordInput,
-                { 
-                  backgroundColor: colors.card + "50", 
+                {
+                  backgroundColor: colors.card + "50",
                   color: colors.text,
-                  borderColor: deleteError ? "#FF0000" : colors.border
-                }
+                  borderColor: deleteError ? "#FF0000" : colors.border,
+                },
               ]}
-              placeholder={currentLanguage === "pt-BR" ? "Sua senha" : "Your password"}
+              placeholder={
+                currentLanguage === "pt-BR" ? "Sua senha" : "Your password"
+              }
               placeholderTextColor={colors.text + "50"}
               secureTextEntry
               value={password}
@@ -458,6 +501,7 @@ const styles = StyleSheet.create({
   optionsContainer: {
     borderRadius: 16,
     overflow: "hidden",
+    backgroundColor: "#FFFFFF",
     ...Platform.select({
       ios: {
         shadowColor: "#000",

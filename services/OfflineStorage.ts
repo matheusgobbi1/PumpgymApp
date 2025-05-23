@@ -350,7 +350,7 @@ export const OfflineStorage = {
         const backupKey = `${KEYS.USER_DATA}_${userId}_backup`;
         const backupData = await AsyncStorage.getItem(backupKey);
         if (backupData) {
-          console.log("OfflineStorage: Recuperando dados do backup");
+         
           const parsedData = JSON.parse(backupData);
           
           // Restaurar os dados para o local principal

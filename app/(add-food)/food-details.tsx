@@ -97,12 +97,7 @@ export default function FoodDetailsScreen() {
     }
 
     if (params.isFromHistory === "true") {
-      console.log("Alimento do histórico:", {
-        foodPortion,
-        foodPortionDescription,
-        foodName,
-        foodCalories,
-      });
+    
 
       setIsFromHistory(true);
 

@@ -229,15 +229,8 @@ export default function WorkoutExportModal() {
   const checkFilePermissions = async (path: string) => {
     try {
       const info = await FileSystem.getInfoAsync(path);
-      console.log(`Verificação de arquivo: ${path}`);
-      console.log(`- Existe: ${info.exists}`);
-      if (info.exists) {
-        console.log(`- Tamanho: ${info.size} bytes`);
-        console.log(`- URI: ${info.uri}`);
-      }
       return info.uri || path;
     } catch (error: any) {
-      console.error(`Erro ao verificar arquivo ${path}:`, error.message);
       return path;
     }
   };
@@ -296,7 +289,7 @@ export default function WorkoutExportModal() {
         );
       }
     } catch (error) {
-      console.error("Erro ao mostrar opções de exportação:", error);
+      // Tratar erro silenciosamente
     }
   };
 
@@ -317,7 +310,6 @@ export default function WorkoutExportModal() {
           height: 792,
         });
 
-        console.log("PDF gerado:", uri);
         let realPath = uri;
 
         // Em algumas plataformas, precisamos verificar a permissão
@@ -326,32 +318,18 @@ export default function WorkoutExportModal() {
         }
 
         // Compartilhar o PDF
-        const result = await ExpoSharing.shareAsync(realPath, {
+        await ExpoSharing.shareAsync(realPath, {
           mimeType: "application/pdf",
           dialogTitle: t("training.export.shareTitle") || "Meu treino FitFolio",
           UTI: "com.adobe.pdf",
         });
 
-        console.log("Resultado do compartilhamento:", result);
-
-        // Verificar se o compartilhamento foi concluído
-        if (result === null && Platform.OS === "ios") {
-          console.log("Compartilhamento concluído (iOS)");
-          setSharedMessage(
-            t("training.export.shareSuccess") ||
-              "Treino compartilhado com sucesso!"
-          );
-          setTimeout(() => setSharedMessage(""), 3000);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } else {
-          console.log("Compartilhamento concluído com sucesso");
-          setSharedMessage(
-            t("training.export.shareSuccess") ||
-              "Treino compartilhado com sucesso!"
-          );
-          setTimeout(() => setSharedMessage(""), 3000);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        }
+        setSharedMessage(
+          t("training.export.shareSuccess") ||
+            "Treino compartilhado com sucesso!"
+        );
+        setTimeout(() => setSharedMessage(""), 3000);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else if (type === "image") {
         // Capturar o conteúdo como imagem
         if (!viewShotRef.current) {
@@ -359,7 +337,6 @@ export default function WorkoutExportModal() {
         }
 
         const uri = await viewShotRef.current.capture();
-        console.log("Imagem capturada:", uri);
 
         let realPath = uri;
 
@@ -369,35 +346,20 @@ export default function WorkoutExportModal() {
         }
 
         // Compartilhar a imagem
-        const result = await ExpoSharing.shareAsync(realPath, {
+        await ExpoSharing.shareAsync(realPath, {
           mimeType: "image/png",
           dialogTitle: t("training.export.shareTitle") || "Meu treino FitFolio",
           UTI: "public.png",
         });
 
-        console.log("Resultado do compartilhamento:", result);
-
-        // Verificar se o compartilhamento foi concluído
-        if (result === null && Platform.OS === "ios") {
-          console.log("Compartilhamento concluído (iOS)");
-          setSharedMessage(
-            t("training.export.shareSuccess") ||
-              "Treino compartilhado com sucesso!"
-          );
-          setTimeout(() => setSharedMessage(""), 3000);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } else {
-          console.log("Compartilhamento concluído com sucesso");
-          setSharedMessage(
-            t("training.export.shareSuccess") ||
-              "Treino compartilhado com sucesso!"
-          );
-          setTimeout(() => setSharedMessage(""), 3000);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        }
+        setSharedMessage(
+          t("training.export.shareSuccess") ||
+            "Treino compartilhado com sucesso!"
+        );
+        setTimeout(() => setSharedMessage(""), 3000);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (error) {
-      console.error("Erro ao compartilhar:", error);
       Alert.alert(
         t("common.error"),
         t("training.export.shareError") ||
@@ -837,6 +799,56 @@ export default function WorkoutExportModal() {
     `;
   };
 
+  // Função para visualizar o PDF
+  const handleViewPDF = async () => {
+    try {
+      setIsSharing(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      // Gerar HTML
+      const htmlContent = generateHtmlContent();
+
+      // Gerar PDF
+      const { uri } = await Print.printToFileAsync({
+        html: htmlContent,
+        width: 612,
+        height: 792,
+      });
+
+      // Abrir o PDF para visualização direta
+      await Print.printAsync({ uri });
+
+      // Exibir mensagem de sucesso
+      setSharedMessage(
+        t("training.export.viewSuccess") || "Visualização concluída"
+      );
+      setTimeout(() => setSharedMessage(""), 3000);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error: any) {
+      // Verificar se o erro é um cancelamento do usuário
+      const errorMsg = String(error?.message || "").toLowerCase();
+      const wasCancelled =
+        errorMsg.includes("cancel") ||
+        errorMsg.includes("dismiss") ||
+        errorMsg.includes("user denied") ||
+        errorMsg.includes("printing did not complete") ||
+        errorMsg.includes("user cancelled") ||
+        errorMsg.includes("was cancelled") ||
+        errorMsg.includes("session completed");
+
+      if (!wasCancelled) {
+        Alert.alert(
+          t("common.error"),
+          t("training.export.viewError") ||
+            "Não foi possível visualizar o documento"
+        );
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   return (
     <>
       <Stack.Screen
@@ -880,71 +892,7 @@ export default function WorkoutExportModal() {
                     styles.actionButton,
                     { backgroundColor: colors.card, marginRight: 8 },
                   ]}
-                  onPress={async () => {
-                    try {
-                      setIsSharing(true);
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-                      // Gerar HTML
-                      const htmlContent = generateHtmlContent();
-
-                      // Gerar PDF diretamente
-                      const { uri } = await Print.printToFileAsync({
-                        html: htmlContent,
-                        width: 612,
-                        height: 792,
-                      });
-
-                      // Abrir o PDF para visualização direta
-                      console.log("Abrindo visualização de PDF");
-                      await Print.printAsync({ uri });
-
-                      // Se chegou aqui sem erro, a visualização foi concluída com sucesso
-                      console.log("Visualização concluída sem erros");
-
-                      // Exibir mensagem de sucesso
-                      setSharedMessage(
-                        t("training.export.viewSuccess") ||
-                          "Visualização concluída"
-                      );
-                      setTimeout(() => setSharedMessage(""), 3000);
-                      Haptics.notificationAsync(
-                        Haptics.NotificationFeedbackType.Success
-                      );
-                    } catch (error: any) {
-                      console.error("Erro ao visualizar PDF:", error);
-
-                      // Verificar se o erro é um cancelamento do usuário de forma mais abrangente
-                      const errorMsg = String(
-                        error?.message || ""
-                      ).toLowerCase();
-                      // Verificações mais abrangentes para diferentes mensagens de cancelamento
-                      const wasCancelled =
-                        errorMsg.includes("cancel") ||
-                        errorMsg.includes("dismiss") ||
-                        errorMsg.includes("user denied") ||
-                        errorMsg.includes("printing did not complete") ||
-                        errorMsg.includes("user cancelled") ||
-                        errorMsg.includes("was cancelled") ||
-                        errorMsg.includes("session completed");
-
-                      if (!wasCancelled) {
-                        // Só mostrar o alerta se não for um cancelamento
-                        Alert.alert(
-                          t("common.error"),
-                          t("training.export.viewError") ||
-                            "Não foi possível visualizar o documento"
-                        );
-                        Haptics.notificationAsync(
-                          Haptics.NotificationFeedbackType.Error
-                        );
-                      } else {
-                        console.log("Visualização cancelada pelo usuário");
-                      }
-                    } finally {
-                      setIsSharing(false);
-                    }
-                  }}
+                  onPress={handleViewPDF}
                 >
                   <Ionicons name="eye-outline" size={20} color={colors.text} />
                 </TouchableOpacity>

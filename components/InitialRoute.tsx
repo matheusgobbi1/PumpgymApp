@@ -43,49 +43,63 @@ export default function InitialRoute() {
   useEffect(() => {
     const performInitialOfflineCheck = async () => {
       // Só executar se não temos usuário e já verificamos o estado de autenticação
-      if (!user && !loading && authStateStable && !isRestoringSession && !isCheckingOfflineUser) {
+      if (
+        !user &&
+        !loading &&
+        authStateStable &&
+        !isRestoringSession &&
+        !isCheckingOfflineUser
+      ) {
         setIsCheckingOfflineUser(true);
         try {
           // Verificar se está offline
           const isOnline = await OfflineStorage.isOnline();
-          
+
           if (!isOnline) {
-            console.log("App inicializado offline, tentando recuperar usuário local");
-            
             // Tentar várias estratégias para encontrar um usuário válido
-            
+
             // 1. Primeiro, tentar obter o último usuário logado através do ID
-            const lastUserId = await AsyncStorage.getItem(KEYS.LAST_LOGGED_USER);
-            
+            const lastUserId = await AsyncStorage.getItem(
+              KEYS.LAST_LOGGED_USER
+            );
+
             if (lastUserId) {
-              console.log("Encontrado último usuário logado:", lastUserId);
-              
               // 2. Tentar múltiplas fontes para os dados do usuário
               let userData = null;
-              
+
               // Primeiro, tentar através do SecureStore
               try {
                 userData = await getUserData();
               } catch (secureError) {
-                console.error("Erro ao obter dados do SecureStore:", secureError);
+                console.error(
+                  "Erro ao obter dados do SecureStore:",
+                  secureError
+                );
               }
-              
+
               // Se não encontrou, tentar diretamente do AsyncStorage
               if (!userData || !userData.uid) {
                 try {
-                  const rawUserData = await AsyncStorage.getItem(`${KEYS.USER_DATA}_${lastUserId}`);
+                  const rawUserData = await AsyncStorage.getItem(
+                    `${KEYS.USER_DATA}_${lastUserId}`
+                  );
                   if (rawUserData) {
                     userData = JSON.parse(rawUserData);
                   }
                 } catch (asyncError) {
-                  console.error("Erro ao obter dados do AsyncStorage:", asyncError);
+                  console.error(
+                    "Erro ao obter dados do AsyncStorage:",
+                    asyncError
+                  );
                 }
               }
-              
+
               // Tentar usar o espelho de dados como última opção
               if (!userData || !userData.uid) {
                 try {
-                  const mirrorData = await AsyncStorage.getItem("pumpgym_user_data_mirror");
+                  const mirrorData = await AsyncStorage.getItem(
+                    "pumpgym_user_data_mirror"
+                  );
                   if (mirrorData) {
                     userData = JSON.parse(mirrorData);
                   }
@@ -93,32 +107,38 @@ export default function InitialRoute() {
                   console.error("Erro ao obter dados do mirror:", mirrorError);
                 }
               }
-              
+
               // Se encontramos dados de usuário, restaurar o estado
               if (userData && userData.uid) {
-                console.log("Encontrados dados válidos do usuário offline");
-                
                 // Verificar status do onboarding
                 let onboardingStatus = userData.onboardingCompleted || false;
-                
+
                 try {
-                  const storedStatus = await OfflineStorage.loadOnboardingStatus(userData.uid);
+                  const storedStatus =
+                    await OfflineStorage.loadOnboardingStatus(userData.uid);
                   if (storedStatus !== null) {
                     onboardingStatus = storedStatus;
                   }
                 } catch (onboardingError) {
-                  console.error("Erro ao verificar status do onboarding:", onboardingError);
+                  console.error(
+                    "Erro ao verificar status do onboarding:",
+                    onboardingError
+                  );
                 }
-                
+
                 // Verificar status da assinatura
                 let subscriptionStatus = false;
-                
+
                 try {
-                  subscriptionStatus = await OfflineStorage.getSubscriptionStatus(userData.uid);
+                  subscriptionStatus =
+                    await OfflineStorage.getSubscriptionStatus(userData.uid);
                 } catch (subscriptionError) {
-                  console.error("Erro ao verificar status da assinatura:", subscriptionError);
+                  console.error(
+                    "Erro ao verificar status da assinatura:",
+                    subscriptionError
+                  );
                 }
-                
+
                 // Definir o usuário no estado e salvar nos locais apropriados
                 setUser({
                   uid: userData.uid,
@@ -126,25 +146,26 @@ export default function InitialRoute() {
                   displayName: userData.displayName,
                   isAnonymous: userData.isAnonymous || false,
                 } as any);
-                
+
                 setIsAnonymous(userData.isAnonymous || false);
                 setIsNewUser(!onboardingStatus);
                 setIsSubscribed(subscriptionStatus);
                 setOnboardingCompleted(onboardingStatus);
-                
+
                 // Salvar novamente nos vários armazenamentos para garantir consistência
                 await OfflineStorage.saveLastLoggedUser(userData.uid);
                 await OfflineStorage.saveUserData(userData.uid, userData);
-                await OfflineStorage.saveOnboardingStatus(userData.uid, onboardingStatus);
-                
+                await OfflineStorage.saveOnboardingStatus(
+                  userData.uid,
+                  onboardingStatus
+                );
+
                 // Salvar o usuário offline para uso na renderização
                 setOfflineUser({
                   ...userData,
                   onboardingCompleted: onboardingStatus,
                   isSubscribed: subscriptionStatus,
                 });
-                
-                console.log("Usuário offline restaurado com sucesso");
               }
             }
           }
@@ -159,24 +180,31 @@ export default function InitialRoute() {
         setInitialCheckComplete(true);
       }
     };
-    
+
     performInitialOfflineCheck();
   }, [
-    user, 
-    loading, 
-    authStateStable, 
-    isRestoringSession, 
+    user,
+    loading,
+    authStateStable,
+    isRestoringSession,
     isCheckingOfflineUser,
     setUser,
     setIsAnonymous,
     setIsNewUser,
-    setIsSubscribed
+    setIsSubscribed,
   ]);
 
   // Verificar usuário offline quando não há usuário autenticado (comportamento original)
   useEffect(() => {
     const checkOfflineUser = async () => {
-      if (!user && !loading && authStateStable && !isRestoringSession && !isCheckingOfflineUser && initialCheckComplete) {
+      if (
+        !user &&
+        !loading &&
+        authStateStable &&
+        !isRestoringSession &&
+        !isCheckingOfflineUser &&
+        initialCheckComplete
+      ) {
         setIsCheckingOfflineUser(true);
         try {
           // Verificar se está offline
@@ -234,7 +262,7 @@ export default function InitialRoute() {
     setUser,
     setIsSubscribed,
     checkOfflineSubscriptionStatus,
-    initialCheckComplete
+    initialCheckComplete,
   ]);
 
   // Verificar status de assinatura

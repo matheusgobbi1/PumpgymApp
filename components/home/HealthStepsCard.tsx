@@ -166,7 +166,7 @@ export default function HealthStepsCard({
       }
 
       setStepsHistory(stepsData);
-      console.log("Histórico de passos carregado:", stepsData);
+     
       return stepsData;
     } catch (error) {
       console.error("Erro ao carregar histórico de passos:", error);

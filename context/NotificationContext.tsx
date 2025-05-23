@@ -137,13 +137,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
     // Limpeza de funções para remover os ouvintes quando o componente for desmontado
     const cleanupListeners = setupNotificationListeners(
       (notification: Notifications.Notification) => {
-        // Manipulador de notificações recebidas com o app em primeiro plano
-        console.log("Notificação recebida:", notification);
+ 
       },
       (response: Notifications.NotificationResponse) => {
-        // Manipulador de respostas à notificação (toque na notificação)
-        console.log("Resposta à notificação:", response);
-        // Aqui você pode adicionar lógica para lidar com ações quando uma notificação é tocada
+   
       }
     );
 

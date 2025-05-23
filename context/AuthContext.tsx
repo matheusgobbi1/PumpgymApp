@@ -745,10 +745,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         if (reminderKeys.length > 0) {
           await AsyncStorage.multiRemove(reminderKeys);
         }
-      } catch (error) {
-        // Erro ao limpar dados de treino
-        console.log("Erro ao limpar dados antigos:", error);
-      }
+      } catch (error) {}
 
       // Validar inputs
       if (!email || !password) {
@@ -849,11 +846,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         ) {
           throw error;
         }
-        // Se for outro tipo de erro na verificação de email, continue com o cadastro
-        console.log(
-          "Erro ao verificar email, continuando com o cadastro:",
-          error
-        );
       }
 
       // Limpar dados de treino de contas anteriores
@@ -887,7 +879,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       } catch (e) {
         // Erro ao limpar dados de treino
-        console.log("Erro ao limpar dados antigos:", e);
       }
 
       try {

@@ -739,6 +739,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginTop: 12,
     marginBottom: 8,
+    backgroundColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -830,6 +831,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
+    backgroundColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -863,27 +865,26 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   emptyContainer: {
-    flex: 1, // Adicionado para centralizar verticalmente
-    paddingVertical: 20, // Ajustado para combinar
+    flex: 1,
+    paddingVertical: 20,
     alignItems: "center",
     justifyContent: "center",
-    marginHorizontal: 16, // Adicionado para corresponder
+    marginHorizontal: 16,
   },
-  // Adicionado estilo emptyContent para agrupar
   emptyContent: {
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 20, // Adicionado para corresponder
+    paddingHorizontal: 20,
   },
   emptyIconContainer: {
-    width: 60, // Ajustado para 60
-    height: 60, // Ajustado para 60
-    borderRadius: 30, // Ajustado para 30
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
   },
   emptyTitle: {
-    fontSize: 20, // Ajustado para 20
+    fontSize: 20,
     fontFamily: "Anton-Regular",
     textTransform: "uppercase",
     textAlign: "center",
@@ -893,10 +894,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     lineHeight: 22,
-    // Remover paddingHorizontal, pois está no emptyContent
     marginBottom: 0,
     letterSpacing: -0.2,
-    opacity: 0.8, // Adicionado para corresponder
+    opacity: 0.8,
   },
   modalOverlay: {
     flex: 1,

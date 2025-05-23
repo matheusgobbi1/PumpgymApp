@@ -91,13 +91,13 @@ export default function LoadingScreen() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
             }
           } catch (e) {
-            console.log("Haptics not available");
+          
           }
 
           // No penúltimo passo, calcular os macros
           if (step === LOADING_STEPS.length - 2) {
             try {
-              console.log("Calculando macros no penúltimo passo...");
+             
               calculateMacros();
             } catch (error) {
               console.error("Erro ao calcular macros:", error);

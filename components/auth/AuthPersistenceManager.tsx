@@ -88,7 +88,7 @@ export function AuthPersistenceManager() {
         try {
           const backupData = await AsyncStorage.getItem(`${KEYS.USER_DATA}_${lastUserId}_backup`);
           if (backupData) {
-            console.log("Recuperando dados do backup criado durante logout");
+           
             userData = JSON.parse(backupData);
           }
         } catch (backupError) {
@@ -110,7 +110,7 @@ export function AuthPersistenceManager() {
 
       // 3. Se encontramos dados válidos, restaurar o usuário manualmente
       if (userData && userData.uid) {
-        console.log("Recuperando usuário offline com dados armazenados localmente");
+        
         
         // Definir o usuário no estado
         setUser({
@@ -144,7 +144,7 @@ export function AuthPersistenceManager() {
           }
         }
         
-        console.log("Usuário offline recuperado com sucesso");
+        
         return true;
       }
     } catch (error) {

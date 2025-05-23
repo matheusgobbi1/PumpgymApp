@@ -69,9 +69,9 @@ export default function PaywallScreen() {
       try {
         const asset = Asset.fromModule(videoSource);
         await asset.downloadAsync();
-        console.log("Vídeo pré-carregado com sucesso");
+        
       } catch (error) {
-        console.error("Erro ao pré-carregar vídeo:", error);
+    
       }
     };
 

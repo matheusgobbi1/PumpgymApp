@@ -105,8 +105,7 @@ class NotificationService {
       // nós vamos usar uma chave que será verificada pelo ReminderContext
       await AsyncStorage.setItem("@complete_reminder_id", reminderId);
 
-      // Para depuração
-      console.log("Marcando lembrete como completo:", reminderId);
+    
 
       // Vamos tentar também marcar diretamente no armazenamento
       // já que pode haver problemas de sincronização
@@ -203,7 +202,7 @@ class NotificationService {
   // Pedir permissão para enviar notificações
   async requestPermissions(): Promise<boolean> {
     if (!Device.isDevice) {
-      console.log("Notificações não funcionam em emuladores/simuladores");
+     
       return false;
     }
 
@@ -223,7 +222,7 @@ class NotificationService {
     }
 
     if (finalStatus !== "granted") {
-      console.log("Permissão para notificações não concedida");
+     
       return false;
     }
 
