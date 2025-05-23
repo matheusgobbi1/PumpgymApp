@@ -383,7 +383,7 @@ const LoginBottomSheet = ({
       ]}
       backgroundStyle={[
         styles.bottomSheetBackground,
-        { backgroundColor: theme === "dark" ? "#000" : "#ffffff" },
+        { backgroundColor: theme === "dark" ? "#1E1E1E" : "#F5F5F5" },
       ]}
       onChange={handleSheetChanges}
       keyboardBehavior="interactive"
@@ -453,7 +453,7 @@ const LoginBottomSheet = ({
                 style={[
                   styles.inputContainer,
                   {
-                    backgroundColor: theme === "dark" ? "#2c2c2e" : "#f5f5f5",
+                    backgroundColor: theme === "dark" ? "#2A2A2A" : "#FFFFFF",
                     borderColor: email ? colors.primary : "transparent",
                   },
                 ]}
@@ -496,7 +496,7 @@ const LoginBottomSheet = ({
                 style={[
                   styles.inputContainer,
                   {
-                    backgroundColor: theme === "dark" ? "#2c2c2e" : "#f5f5f5",
+                    backgroundColor: theme === "dark" ? "#2A2A2A" : "#FFFFFF",
                     borderColor: password ? colors.primary : "transparent",
                   },
                 ]}
@@ -693,15 +693,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   loginButtonKeyboardVisible: {
     height: 52,
-    backgroundColor: "#FF4500", // Cor mais chamativa quando o teclado está visível
+    backgroundColor: "#2A2A2A",
     borderWidth: 1,
-    borderColor: "#FF6347",
+    borderColor: "#3A3A3A",
   },
   loginButtonText: {
     color: "#FFFFFF",

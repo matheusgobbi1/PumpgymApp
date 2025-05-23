@@ -59,6 +59,7 @@ import { Platform } from "react-native";
 import Constants from "expo-constants";
 import Purchases from "react-native-purchases";
 import * as SecureStore from "expo-secure-store";
+import { isFreeUser } from "../utils/freeusers";
 
 // Verificar se estamos em um build nativo ou Expo Go
 const isExpoGo = Constants.executionEnvironment === "standalone";
@@ -78,7 +79,11 @@ interface AuthContextType {
   user: FirebaseUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<FirebaseUser>;
+  register: (
+    name: string,
+    email: string,
+    password: string
+  ) => Promise<FirebaseUser>;
   signOut: () => Promise<void>;
   isNewUser: boolean;
   isAnonymous: boolean;
@@ -148,10 +153,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       if (!user) return false;
 
-      // SIMULAÇÃO PARA TESTE: Forçar assinatura para usuário específico
-      if (user.uid === "4N7KtLUsNNV9mF3EGo5OyoctHr72") {
+      // Verificar se o usuário está na lista de usuários gratuitos
+      if (isFreeUser(user.uid)) {
         setIsSubscribed(true);
-        await OfflineStorage.saveSubscriptionStatus(user.uid, true);
         return true;
       }
 
@@ -201,10 +205,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!userId) return false;
 
     try {
-      // SIMULAÇÃO PARA TESTE: Forçar assinatura para usuário específico
-      if (userId === "4N7KtLUsNNV9mF3EGo5OyoctHr72") {
+      // Verificar se o usuário está na lista de usuários gratuitos
+      if (isFreeUser(userId)) {
         setIsSubscribed(true);
-        await OfflineStorage.saveSubscriptionStatus(userId, true);
         return true;
       }
 
@@ -1182,7 +1185,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               );
             } catch (firebaseError) {
               // Erro ao salvar treinos no Firebase durante logout
-              console.error("Erro ao salvar treinos no Firebase:", firebaseError);
+              console.error(
+                "Erro ao salvar treinos no Firebase:",
+                firebaseError
+              );
             }
           }
         } catch (e) {
@@ -1206,7 +1212,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             );
           }
         } catch (backupError) {
-          console.error("Erro ao criar backup dos dados do usuário:", backupError);
+          console.error(
+            "Erro ao criar backup dos dados do usuário:",
+            backupError
+          );
         }
       }
 
@@ -1300,19 +1309,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Excluir documentos relacionados no Firestore
       try {
         // Excluir documento principal do usuário
-        await setDoc(doc(db, "users", user.uid), {
-          deleted: true,
-          deletedAt: serverTimestamp(),
-        }, { merge: true });
+        await setDoc(
+          doc(db, "users", user.uid),
+          {
+            deleted: true,
+            deletedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
 
         // Tentar excluir outros documentos relacionados
         const userCollections = ["nutrition", "workouts", "history"];
-        
+
         for (const collection of userCollections) {
           try {
             const docRef = doc(db, collection, user.uid);
             const docSnap = await getDoc(docRef);
-            
+
             if (docSnap.exists()) {
               await updateDoc(docRef, {
                 deleted: true,
@@ -1320,11 +1333,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               });
             }
           } catch (error) {
-            console.error(`Erro ao marcar documentos em ${collection} como excluídos:`, error);
+            console.error(
+              `Erro ao marcar documentos em ${collection} como excluídos:`,
+              error
+            );
           }
         }
       } catch (firestoreError) {
-        console.error("Erro ao marcar documentos como excluídos:", firestoreError);
+        console.error(
+          "Erro ao marcar documentos como excluídos:",
+          firestoreError
+        );
         // Continuar com a exclusão da conta mesmo se houver erro no Firestore
       }
 
@@ -1332,19 +1351,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         // Obter todas as chaves do AsyncStorage
         const keys = await AsyncStorage.getAllKeys();
-        
+
         // Filtrar chaves relacionadas ao usuário
-        const userKeys = keys.filter(key => 
-          key.includes(user.uid) || 
-          key.includes("@pumpgym:") ||
-          key.includes("@fitfolio_")
+        const userKeys = keys.filter(
+          (key) =>
+            key.includes(user.uid) ||
+            key.includes("@pumpgym:") ||
+            key.includes("@fitfolio_")
         );
-        
+
         // Remover todas as chaves do usuário
         if (userKeys.length > 0) {
           await AsyncStorage.multiRemove(userKeys);
         }
-        
+
         // Remover dados do SecureStore
         await removeUserData();
         await removeAuthToken();
@@ -1360,7 +1380,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(null);
       setIsAnonymous(false);
       setSessionRestoreAttempted(false);
-      
+
       // Redirecionar para login
       router.replace("/auth/login");
     } catch (error) {
