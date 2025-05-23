@@ -1588,7 +1588,22 @@
       "ex248": "Tennis",
       "ex249": "Climbing",
       "ex250": "Basketball",
-      "ex251": "Volleyball"
+      "ex251": "Volleyball",
+      "ex252": "Bent Over Dumbbell Row",
+      "ex253": "Cable Row",
+      "ex254": "Straight Bar Cable Curl",
+      "ex255": "Alternating Cable Curl",
+      "ex256": "Dumbbell Skull Crusher",
+      "ex257": "Cable Tricep Pushdown",
+      "ex258": "Dumbbell Squat",
+      "ex259": "Cable Lateral Raise",
+      "ex260": "Machine Lateral Raise",
+      "ex261": "Dumbbell Romanian Deadlift",
+      "ex262": "Dumbbell Calf Raise",
+      "ex263": "Cable Wrist Curl",
+      "ex264": "Weighted Crunch",
+      "ex265": "Cable Crunch",
+      "ex266": "Machine Crunch"
     }
   },
   "dates": {

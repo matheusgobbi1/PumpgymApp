@@ -1631,7 +1631,22 @@
       "ex248": "Tênis",
       "ex249": "Escalada",
       "ex250": "Basquete",
-      "ex251": "Vôlei"
+      "ex251": "Vôlei",
+      "ex252": "Remada Curvada com Halteres",
+      "ex253": "Remada com Cabo",
+      "ex254": "Rosca Direta com Cabo",
+      "ex255": "Rosca Alternada com Cabo",
+      "ex256": "Tríceps Testa com Halteres",
+      "ex257": "Tríceps Pushdown com Cabo",
+      "ex258": "Agachamento com Halteres",
+      "ex259": "Elevação Lateral com Cabo",
+      "ex260": "Elevação Lateral na Máquina",
+      "ex261": "Stiff com Halteres",
+      "ex262": "Calf Raise com Halteres",
+      "ex263": "Rosca de Punho com Cabo",
+      "ex264": "Abdominal com Halteres",
+      "ex265": "Abdominal com Cabo",
+      "ex266": "Abdominal na Máquina"
     }
   },
   "progression": {
