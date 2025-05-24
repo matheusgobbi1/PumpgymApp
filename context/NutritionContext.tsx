@@ -884,9 +884,11 @@ export const NutritionProvider = ({ children }: NutritionProviderProps) => {
       // Ajuste calórico baseado no objetivo
       let targetCalories = maintenanceCalories;
       if (goal === "lose") {
-        // Déficit de 20-25% para cutting
+        // Déficit variável baseado na taxa de perda de peso desejada
+        // Cada 0,5kg por semana corresponde a aproximadamente 10% de déficit
+        const deficitPercentage = Math.min(40, Math.round(weightChangeRate * 20));
         targetCalories = roundNutritionValue(
-          maintenanceCalories * 0.8,
+          maintenanceCalories * (1 - deficitPercentage / 100),
           "calories"
         );
       } else if (goal === "gain") {

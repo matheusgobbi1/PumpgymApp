@@ -26,7 +26,7 @@ export default function WeightChangeRateScreen() {
   const { theme } = useTheme();
   const colors = Colors[theme];
   const { nutritionInfo, updateNutritionInfo } = useNutrition();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const sliderRef = useRef<any>(null);
   const animatedScale = useRef(new Animated.Value(1)).current;
 
@@ -191,18 +191,18 @@ export default function WeightChangeRateScreen() {
     router.back();
   };
 
-  // Formatar a data alvo
+  // Formatar a data alvo usando a localização atual do app
   const formatTargetDate = (date: Date) => {
-    return date.toLocaleDateString("pt-BR", {
+    return date.toLocaleDateString(i18n.language, {
       day: "numeric",
       month: "long",
       year: "numeric",
     });
   };
 
-  // Formatar data curta para o gráfico
+  // Formatar data curta para o gráfico usando a localização atual do app
   const formatShortDate = (date: Date) => {
-    return date.toLocaleDateString("pt-BR", {
+    return date.toLocaleDateString(i18n.language, {
       day: "numeric",
       month: "short",
     });
@@ -314,13 +314,13 @@ export default function WeightChangeRateScreen() {
         transition={{ type: "timing", duration: 500 }}
         style={styles.contentContainer}
       >
-        {/* Card principal com gráfico */}
+        {/* Card unificado com gráfico e controles de velocidade */}
         <MotiView
           from={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: "spring", delay: 200 }}
           style={[
-            styles.chartCard,
+            styles.unifiedCard,
             {
               backgroundColor: theme === "dark" ? colors.dark : colors.light,
               borderColor: safeColorWithOpacity(getSpeedColor(), 0.2),
@@ -380,7 +380,7 @@ export default function WeightChangeRateScreen() {
                     },
                   ],
                 }}
-                width={screenWidth - 80}
+                width={screenWidth - 58}
                 height={180}
                 chartConfig={{
                   backgroundColor: "transparent",
@@ -420,53 +420,6 @@ export default function WeightChangeRateScreen() {
                 segments={4}
                 fromZero={false}
                 yAxisSuffix="kg"
-                renderDotContent={({ x, y, index }) => {
-                  if (
-                    index === 0 ||
-                    index === projectedData.datasets[0].data.length - 1
-                  ) {
-                    return (
-                      <View
-                        key={`dot-label-${index}`}
-                        style={{
-                          position: "absolute",
-                          top: y - 36,
-                          left: x - 30,
-                          width: 60,
-                          alignItems: "center",
-                        }}
-                      >
-                        <View
-                          style={{
-                            backgroundColor: safeColorWithOpacity(
-                              getSpeedColor(),
-                              0.2
-                            ),
-                            paddingHorizontal: 8,
-                            paddingVertical: 4,
-                            borderRadius: 12,
-                            borderWidth: 1,
-                            borderColor: getSpeedColor(),
-                          }}
-                        >
-                          <Text
-                            style={{
-                              color: getSpeedColor(),
-                              fontSize: 10,
-                              fontWeight: "bold",
-                            }}
-                          >
-                            {safeNumberFormat(
-                              projectedData.datasets[0].data[index]
-                            )}
-                            kg
-                          </Text>
-                        </View>
-                      </View>
-                    );
-                  }
-                  return null;
-                }}
               />
             )}
 
@@ -514,112 +467,107 @@ export default function WeightChangeRateScreen() {
               </MotiView>
             </View>
           </Animated.View>
-        </MotiView>
 
-        {/* Card de velocidade */}
-        <MotiView
-          from={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: "spring", delay: 300 }}
-          style={[
-            styles.speedCard,
-            {
-              backgroundColor: theme === "dark" ? colors.dark : colors.light,
-              borderColor: safeColorWithOpacity(getSpeedColor(), 0.2),
-              shadowColor: colors.text,
-              overflow: "hidden",
-            },
-          ]}
-        >
-          <View style={styles.speedHeader}>
-            <View
-              style={[
-                styles.speedIconContainer,
-                { backgroundColor: safeColorWithOpacity(getSpeedColor(), 0.2) },
-              ]}
-            >
-              <Ionicons
-                name={getSpeedIcon()}
-                size={24}
-                color={getSpeedColor()}
-              />
-            </View>
-            <View style={styles.speedTextContainer}>
-              <Text style={[styles.speedTitle, { color: colors.text }]}>
-                {t("onboarding.weightChangeRate.speed.title", {
-                  speedType: getSpeedText(),
-                })}
-              </Text>
-              <Animated.Text
+          {/* Separador */}
+          <View 
+            style={[
+              styles.separator, 
+              { backgroundColor: safeColorWithOpacity(colors.border, 0.15) }
+            ]} 
+          />
+
+          {/* Controles de velocidade integrados */}
+          <View style={styles.speedSection}>
+            <View style={styles.speedHeader}>
+              <View
                 style={[
-                  styles.speedValue,
-                  {
-                    color: getSpeedColor(),
-                    transform: [{ scale: animatedScale }],
-                  },
+                  styles.speedIconContainer,
+                  { backgroundColor: safeColorWithOpacity(getSpeedColor(), 0.2) },
                 ]}
               >
-                {t("onboarding.weightChangeRate.speed.value", {
-                  rate: safeNumberFormat(rate),
-                })}
-              </Animated.Text>
-            </View>
-          </View>
-
-          <View style={styles.sliderContainer}>
-            <Slider
-              ref={sliderRef}
-              style={styles.slider}
-              minimumValue={0.2}
-              maximumValue={1.2}
-              step={0.1}
-              value={rate}
-              onValueChange={handleRateChange}
-              minimumTrackTintColor={getSpeedColor()}
-              maximumTrackTintColor={colors.border}
-              thumbTintColor={getSpeedColor()}
-            />
-
-            <View style={styles.presetButtons}>
-              {speedPresets.map((preset, index) => (
-                <TouchableOpacity
-                  key={`preset-${index}`}
+                <Ionicons
+                  name={getSpeedIcon()}
+                  size={24}
+                  color={getSpeedColor()}
+                />
+              </View>
+              <View style={styles.speedTextContainer}>
+                <Text style={[styles.speedTitle, { color: colors.text }]}>
+                  {t("onboarding.weightChangeRate.speed.title", {
+                    speedType: getSpeedText(),
+                  })}
+                </Text>
+                <Animated.Text
                   style={[
-                    styles.presetButton,
+                    styles.speedValue,
                     {
-                      backgroundColor:
-                        Math.abs(rate - preset.value) < 0.05
-                          ? safeColorWithOpacity(getSpeedColor(), 0.2)
-                          : theme === "dark"
-                          ? safeColorWithOpacity(colors.dark, 0.8)
-                          : safeColorWithOpacity(colors.light, 0.8),
-                      borderColor:
-                        Math.abs(rate - preset.value) < 0.05
-                          ? getSpeedColor()
-                          : colors.border,
+                      color: getSpeedColor(),
+                      transform: [{ scale: animatedScale }],
                     },
                   ]}
-                  onPress={() => {
-                    setRate(preset.value);
-                    animateChart();
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  }}
                 >
-                  <Text
+                  {t("onboarding.weightChangeRate.speed.value", {
+                    rate: safeNumberFormat(rate),
+                  })}
+                </Animated.Text>
+              </View>
+            </View>
+
+            <View style={styles.sliderContainer}>
+              <Slider
+                ref={sliderRef}
+                style={styles.slider}
+                minimumValue={0.2}
+                maximumValue={1.2}
+                step={0.1}
+                value={rate}
+                onValueChange={handleRateChange}
+                minimumTrackTintColor={getSpeedColor()}
+                maximumTrackTintColor={colors.border}
+                thumbTintColor={getSpeedColor()}
+              />
+
+              <View style={styles.presetButtons}>
+                {speedPresets.map((preset, index) => (
+                  <TouchableOpacity
+                    key={`preset-${index}`}
                     style={[
-                      styles.presetButtonText,
+                      styles.presetButton,
                       {
-                        color:
+                        backgroundColor:
+                          Math.abs(rate - preset.value) < 0.05
+                            ? safeColorWithOpacity(getSpeedColor(), 0.2)
+                            : theme === "dark"
+                            ? safeColorWithOpacity(colors.dark, 0.8)
+                            : safeColorWithOpacity(colors.light, 0.8),
+                        borderColor:
                           Math.abs(rate - preset.value) < 0.05
                             ? getSpeedColor()
-                            : colors.text,
+                            : colors.border,
                       },
                     ]}
+                    onPress={() => {
+                      setRate(preset.value);
+                      animateChart();
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    }}
                   >
-                    {preset.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={[
+                        styles.presetButtonText,
+                        {
+                          color:
+                            Math.abs(rate - preset.value) < 0.05
+                              ? getSpeedColor()
+                              : colors.text,
+                        },
+                      ]}
+                    >
+                      {preset.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           </View>
         </MotiView>
@@ -740,7 +688,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
   },
-  chartCard: {
+  unifiedCard: {
     borderRadius: 20,
     padding: 16,
     marginBottom: 16,
@@ -770,20 +718,18 @@ const styles = StyleSheet.create({
   chart: {
     borderRadius: 16,
   },
-  speedCard: {
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  separator: {
+    height: 0,
+    width: "100%",
+    marginVertical: 10,
+  },
+  speedSection: {
+    marginTop: 2,
   },
   speedHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 8,
   },
   speedIconContainer: {
     width: 48,

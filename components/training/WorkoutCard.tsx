@@ -390,6 +390,17 @@ export default function WorkoutCard({
     [state.expandedExercises, closeOtherSwipeables]
   );
 
+  // Função para encontrar a série com maior peso em um exercício
+  const getSetWithHighestWeight = useCallback((exercise: Exercise) => {
+    if (!exercise.sets || exercise.sets.length === 0 || exercise.category === "cardio") {
+      return null;
+    }
+
+    return exercise.sets.reduce((heaviestSet, currentSet) => {
+      return (currentSet.weight > heaviestSet.weight) ? currentSet : heaviestSet;
+    }, exercise.sets[0]);
+  }, []);
+
   // Função para renderizar um exercício com animação
   const renderExerciseItem = useMemo(
     () => (exercise: Exercise, exerciseIndex: number) =>
@@ -486,17 +497,23 @@ export default function WorkoutCard({
                       <Text
                         style={[styles.macroNumber, { color: colors.text }]}
                       >
-                        {exercise.isBodyweightExercise
-                          ? t("exercise.bodyweight.short", {
-                              defaultValue: "PC",
-                            })
-                          : exercise.sets[0].weight}
+                        {(() => {
+                          const heaviestSet = getSetWithHighestWeight(exercise);
+                          return exercise.isBodyweightExercise
+                            ? t("exercise.bodyweight.short", {
+                                defaultValue: "PC",
+                              })
+                            : heaviestSet?.weight || 0;
+                        })()}
                       </Text>
                       {"   "}R{" "}
                       <Text
                         style={[styles.macroNumber, { color: colors.text }]}
                       >
-                        {exercise.sets[0].reps}
+                        {(() => {
+                          const heaviestSet = getSetWithHighestWeight(exercise);
+                          return heaviestSet?.reps || 0;
+                        })()}
                       </Text>
                       {"   "}
                       <Text
@@ -510,7 +527,10 @@ export default function WorkoutCard({
                       <Text
                         style={[styles.macroNumber, { color: colors.text }]}
                       >
-                        {exercise.sets[0].restTime || 60}s
+                        {(() => {
+                          const heaviestSet = getSetWithHighestWeight(exercise);
+                          return heaviestSet?.restTime || 60;
+                        })()}s
                       </Text>
                     </Text>
                   </View>
@@ -1267,3 +1287,4 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 16,
   },
 });
+
