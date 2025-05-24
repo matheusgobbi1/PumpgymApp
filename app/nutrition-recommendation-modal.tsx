@@ -39,6 +39,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MotiView } from "moti";
 import { Food } from "../context/MealContext";
 import { BlurView } from "expo-blur";
+import { Print } from "expo-print";
+import { FileSystem } from "expo-file-system";
+import { Sharing } from "expo-sharing";
+import { AppState } from "react-native";
 
 // Interface para meal food
 interface MealFood {
@@ -383,9 +387,7 @@ export default function NutritionRecommendationModal() {
           setFoodItems(foodItems);
         }
       } catch (error) {
-        console.error("Erro ao carregar template de refeição:", error);
-      } finally {
-        setLoadingMealSuggestions(false);
+        // Continuamos mesmo com erro na verificação
       }
     }
   }, [mealId]);
@@ -424,7 +426,7 @@ export default function NutritionRecommendationModal() {
         setSelectedMealRecommendation(currentMealRec);
       }
     } catch (error) {
-      console.error("Erro ao gerar recomendações:", error);
+      // Tratar erro silenciosamente
     } finally {
       setLoading(false);
     }
@@ -791,7 +793,7 @@ export default function NutritionRecommendationModal() {
       // Voltar para a tela anterior
       router.back();
     } catch (error) {
-      console.error("Erro ao adicionar alimentos:", error);
+      // Tratar erro silenciosamente
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert(
         t("nutrition.recommendation.alert.error"),
@@ -814,228 +816,6 @@ export default function NutritionRecommendationModal() {
 
   // Obter nutrientes restantes
   const remainingNutrients = getRemainingNutrients();
-
-  // Função para otimizar as porções dos alimentos
-  const optimizeFoodPortions = () => {
-    if (!selectedMealRecommendation) return;
-
-    // Feedback tátil
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    // Extrair metas nutricionais da recomendação
-    const {
-      calories: targetCalories,
-      protein: targetProtein,
-      carbs: targetCarbs,
-      fat: targetFat,
-    } = selectedMealRecommendation;
-
-    // Se for café da manhã, ajustar target para priorizar carboidratos
-    let adjustedTargetProtein = targetProtein;
-    let adjustedTargetCarbs = targetCarbs;
-    let adjustedTargetFat = targetFat;
-
-    if (mealId === "breakfast") {
-      // Transferir 15% da proteína para carboidratos para facilitar o atingimento de metas
-      const proteinAdjustment = Math.round(targetProtein * 0.15);
-      adjustedTargetProtein = targetProtein - proteinAdjustment;
-      adjustedTargetCarbs = targetCarbs + proteinAdjustment;
-    }
-
-    // Ajuste especial para o lanche da tarde - balanceamento mais equilibrado
-    if (mealId === "afternoon_snack") {
-      // Distribuição de macros mais balanceada para lanche da tarde
-      // Reduzir ligeiramente a proteína e redistribuir para carbos e gorduras
-      if (targetProtein > 25) {
-        const excessProtein = Math.round((targetProtein - 20) * 0.5);
-        adjustedTargetProtein = targetProtein - excessProtein;
-
-        // Redistribuir para carboidratos e gorduras
-        adjustedTargetCarbs = targetCarbs + Math.round(excessProtein * 0.6);
-        adjustedTargetFat = targetFat + Math.round(excessProtein * 0.4);
-      }
-
-      // Mínimo de 15g de proteína para garantir uma quantidade adequada
-      adjustedTargetProtein = Math.max(15, adjustedTargetProtein);
-    }
-
-    // Criar o array de alimentos existentes no formato esperado pelo algoritmo
-    const existingFoodsForAlgorithm = addedFoods.map((food) => ({
-      id: food.id,
-      name: food.name,
-      calories: food.calories,
-      protein: food.protein,
-      carbs: food.carbs,
-      fat: food.fat,
-      portion: food.portion,
-    }));
-
-    // Calcular nutrientes já consumidos dos alimentos existentes
-    const existingNutrients = addedFoods.reduce(
-      (total, food) => {
-        return {
-          calories: total.calories + food.calories,
-          protein: total.protein + food.protein,
-          carbs: total.carbs + food.carbs,
-          fat: total.fat + food.fat,
-        };
-      },
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    );
-
-    // Calcular nutrientes restantes a serem adicionados
-    const remainingCalories = Math.max(
-      0,
-      targetCalories - existingNutrients.calories
-    );
-    const remainingProtein = Math.max(
-      0,
-      adjustedTargetProtein - existingNutrients.protein
-    );
-    const remainingCarbs = Math.max(
-      0,
-      adjustedTargetCarbs - existingNutrients.carbs
-    );
-    const remainingFat = Math.max(0, adjustedTargetFat - existingNutrients.fat);
-
-    // Se todos os nutrientes já foram preenchidos, usar porções mínimas
-    if (
-      remainingCalories <= 0 &&
-      remainingProtein <= 0 &&
-      remainingCarbs <= 0 &&
-      remainingFat <= 0
-    ) {
-      const adjustedFoodItems = foodItems.map((item) => ({
-        ...item,
-        portion: 0, // Porção mínima quando já atingimos todos os nutrientes
-      }));
-
-      setFoodItems(adjustedFoodItems);
-      setSelectedFoods({});
-      setFoodPortions({});
-      return true;
-    }
-
-    // Usar o algoritmo de ajuste de porções com os nutrientes restantes
-    const optimizedFoods = adjustPortionsForNutrientNeeds(
-      foodItems.map((item) => item.food),
-      remainingCalories,
-      remainingProtein,
-      remainingCarbs,
-      remainingFat,
-      nutritionInfo.dietType,
-      existingFoodsForAlgorithm // Passar os alimentos existentes para o algoritmo
-    );
-
-    // Calcular nutrientes totais das porções otimizadas
-    const totalNutrients = {
-      calories: existingNutrients.calories,
-      protein: existingNutrients.protein,
-      carbs: existingNutrients.carbs,
-      fat: existingNutrients.fat,
-    };
-
-    // Log detalhado para debug (não visível ao usuário)
-    console.log(`\n---- Porções Otimizadas para ${getMealName()} ----`);
-    console.log(`Alimentos já adicionados: ${addedFoods.length}`);
-
-    // Primeiro, mostrar alimentos já adicionados
-    if (addedFoods.length > 0) {
-      console.log("\nAlimentos já adicionados:");
-      addedFoods.forEach((food) => {
-        console.log(
-          `${food.name}: ${food.portion}g (${food.calories}kcal, ${food.protein}g P, ${food.carbs}g C, ${food.fat}g G)`
-        );
-      });
-    }
-
-    console.log("\nAlimentos sugeridos com porções ajustadas:");
-    optimizedFoods.forEach((item) => {
-      const portion = item.recommendedPortion;
-      const ratio = portion / 100;
-      const nutrients = {
-        calories: Math.round(item.food.nutrients.calories * ratio),
-        protein: Math.round(item.food.nutrients.protein * ratio * 10) / 10,
-        carbs: Math.round(item.food.nutrients.carbs * ratio * 10) / 10,
-        fat: Math.round(item.food.nutrients.fat * ratio * 10) / 10,
-      };
-
-      // Adicionar ao total
-      totalNutrients.calories += nutrients.calories;
-      totalNutrients.protein += nutrients.protein;
-      totalNutrients.carbs += nutrients.carbs;
-      totalNutrients.fat += nutrients.fat;
-
-      console.log(
-        `${item.food.name}: ${item.recommendedPortion}g (${nutrients.calories}kcal, ${nutrients.protein}g P, ${nutrients.carbs}g C, ${nutrients.fat}g G)`
-      );
-    });
-
-    console.log(
-      `\nTotal: ${totalNutrients.calories}kcal, ${totalNutrients.protein}g P, ${totalNutrients.carbs}g C, ${totalNutrients.fat}g G`
-    );
-    console.log(
-      `Alvo: ${targetCalories}kcal, ${adjustedTargetProtein}g P, ${adjustedTargetCarbs}g C, ${adjustedTargetFat}g G (ajustado)`
-    );
-    console.log(
-      `Original: ${targetCalories}kcal, ${targetProtein}g P, ${targetCarbs}g C, ${targetFat}g G`
-    );
-    console.log("------------------------------------\n");
-
-    // Atualizar o estado foodItems com as porções otimizadas
-    if (optimizedFoods.length > 0) {
-      const adjustedFoodItems = foodItems.map((item) => {
-        const optimized = optimizedFoods.find(
-          (opt: { food: FoodSuggestion; recommendedPortion: number }) =>
-            opt.food.id === item.food.id
-        );
-
-        if (optimized) {
-          return {
-            ...item,
-            portion: optimized.recommendedPortion,
-          };
-        }
-
-        return item;
-      });
-
-      setFoodItems(adjustedFoodItems);
-
-      // Selecionar todos os alimentos e definir suas porções otimizadas
-      const newSelectedFoods: Record<string, SelectedFoodInfo> = {};
-      const newFoodPortions: Record<string, number> = {};
-
-      adjustedFoodItems.forEach((item) => {
-        if (item.portion > 0) {
-          // Só adicionar se a porção for maior que zero
-          newSelectedFoods[item.food.id] = {
-            portion: item.portion,
-          };
-
-          newFoodPortions[item.food.id] = item.portion;
-        }
-      });
-
-      setSelectedFoods(newSelectedFoods);
-      setFoodPortions(newFoodPortions);
-
-      // Apenas feedback tátil
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-      return true;
-    }
-
-    return false;
-  };
-
-  // Carregar alimentos já adicionados quando o componente montar
-  useEffect(() => {
-    if (mealId && meals && selectedDate) {
-      const currentMealFoods = meals[selectedDate]?.[mealId as string] || [];
-      setAddedFoods(currentMealFoods);
-    }
-  }, [mealId, meals, selectedDate]);
 
   // Função para atualizar um alimento já adicionado
   const handleUpdateAddedFood = (foodId: string, updatedPortion: number) => {
@@ -1074,7 +854,7 @@ export default function NutritionRecommendationModal() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (error) {
-      console.error("Erro ao remover alimento:", error);
+      // Tratar erro silenciosamente
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };

@@ -66,7 +66,7 @@ const DEFAULT_WORKOUT_TYPES: WorkoutType[] = [
       type: "material" as const,
       name: "arm-flex" as MaterialIconNames,
     },
-    color: "#FF6B6B",
+    color: "#E53935",
     selected: false,
     isDefault: true,
   },

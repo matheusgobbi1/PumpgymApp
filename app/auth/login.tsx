@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -29,6 +29,8 @@ import { LinearGradient } from "expo-linear-gradient";
 
 const AnimatedTouchableOpacity =
   Animated.createAnimatedComponent(TouchableOpacity);
+
+const backgroundImage = require("../../assets/images/background-image.png");
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -65,11 +67,10 @@ export default function LoginScreen() {
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setLoading(true);
-      setError("");
       await signInAnonymously();
       router.replace("/onboarding/gender");
     } catch (err) {
-      setError("Ocorreu um erro ao iniciar. Tente novamente.");
+      console.error("Erro ao iniciar:", err);
     } finally {
       setLoading(false);
     }
@@ -85,7 +86,15 @@ export default function LoginScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
-      <LinearGradient colors={["#000000", "#333333"]} style={styles.container}>
+      <ImageBackground
+        source={backgroundImage}
+        style={styles.container}
+        resizeMode="cover"
+      >
+        <LinearGradient
+          colors={["rgba(0,0,0,0.2)", "rgba(0,0,0,0.6)"]}
+          style={styles.gradient}
+        />
         <StatusBar
           barStyle="light-content"
           translucent
@@ -134,24 +143,7 @@ export default function LoginScreen() {
             <Animated.View
               entering={FadeInDown.delay(200).duration(1000)}
               style={styles.centralTextContainer}
-            >
-              {/* Título dividido em duas linhas com estilo condicional */}
-              <Text
-                style={[
-                  styles.titleText,
-                ]}
-              >
-                {t("login.titleLine1")}
-              </Text>
-              <Text
-                style={[
-                  styles.titleTextLarge,
-                ]}
-              >
-                {t("login.titleLine2")}
-              </Text>
-              <Text style={styles.subtitleText}>{t("login.subtitle")}</Text>
-            </Animated.View>
+            ></Animated.View>
 
             {/* Botões */}
             <View style={styles.buttonsContainer}>
@@ -192,7 +184,7 @@ export default function LoginScreen() {
           bottomSheetIndex={bottomSheetIndex}
           setBottomSheetIndex={setBottomSheetIndex}
         />
-      </LinearGradient>
+      </ImageBackground>
     </TouchableWithoutFeedback>
   );
 }
@@ -216,42 +208,6 @@ const styles = StyleSheet.create({
   centralTextContainer: {
     marginBottom: 48,
     alignItems: "center",
-  },
-  titleText: {
-    color: "#FFFFFF",
-    fontSize: 58,
-    fontFamily: "Anton",
-    textTransform: "uppercase",
-    letterSpacing: 0,
-    textAlign: "center",
-    marginBottom: -10,
-    textShadowColor: "rgba(0, 0, 0, 0.6)",
-  },
-  titleTextLarge: {
-    color: "#FFFFFF",
-    fontSize: 68,
-    fontFamily: "Anton",
-    textTransform: "uppercase",
-    letterSpacing: 0,
-    textAlign: "center",
-    lineHeight: 75,
-    marginTop: 0,
-    marginBottom: 0,
-    textShadowColor: "rgba(0, 0, 0, 0.8)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 5,
-  },
-  subtitleText: {
-    color: "rgba(255, 255, 255, 0.9)",
-    fontSize: 20,
-    fontFamily: "PlayfairDisplay-Italic",
-    textAlign: "center",
-    maxWidth: "100%",
-    lineHeight: 28,
-    textShadowColor: "rgba(0, 0, 0, 0.7)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-    alignSelf: "center",
   },
   buttonsContainer: {
     width: "100%",
@@ -338,5 +294,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.3)",
+  },
+  gradient: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
   },
 });

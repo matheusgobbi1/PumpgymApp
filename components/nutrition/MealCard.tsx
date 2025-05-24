@@ -514,12 +514,7 @@ const MealCardComponent = ({
     } catch (error) {}
   }, [selectedSourceDate, meal.id, copyMealFromDate]);
 
-  console.log("Current Language:", i18n.language);
-  console.log(
-    "Translation for nutrition.addFirstFood:",
-    t("nutrition.addFirstFood")
-  );
-  console.log("Translation for common.cancel:", t("common.cancel"));
+
 
   return (
     <>

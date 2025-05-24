@@ -1,5 +1,11 @@
 import React, { useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
@@ -44,7 +50,6 @@ const AchievementNotification: React.FC<AchievementNotificationProps> = ({
       }, 5000); // 5 segundos
 
       return () => clearTimeout(timer);
-
     } else {
       // Esconde a notificação se visible se tornar false externamente
       Animated.timing(translateY, {
@@ -69,23 +74,23 @@ const AchievementNotification: React.FC<AchievementNotificationProps> = ({
   const styles = StyleSheet.create({
     container: {
       position: "absolute",
-      left: 0, 
+      left: 0,
       right: 0,
-      backgroundColor: colors.background, 
-      paddingVertical: 15, 
-      paddingHorizontal: 20, 
-      paddingTop: insets.top + 8, // Reduzido para 8
-      paddingBottom: 15, 
+      backgroundColor: colors.background,
+      paddingVertical: 15,
+      paddingHorizontal: 20,
+      paddingTop: insets.top + 8,
+      paddingBottom: 15,
       flexDirection: "row",
       alignItems: "center",
       shadowColor: "#000",
       shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: theme === "dark" ? 0.3 : 0.1, 
+      shadowOpacity: theme === "dark" ? 0.3 : 0.1,
       shadowRadius: 5,
       elevation: 5,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border, 
-      zIndex: 1000, 
+      borderBottomColor: colors.border,
+      zIndex: 1000,
       borderBottomLeftRadius: 16,
       borderBottomRightRadius: 16,
     },
@@ -96,7 +101,7 @@ const AchievementNotification: React.FC<AchievementNotificationProps> = ({
       borderRadius: 20,
       justifyContent: "center",
       alignItems: "center",
-      backgroundColor: iconColor + '20', 
+      backgroundColor: iconColor + "20",
     },
     textContainer: {
       flex: 1,
@@ -118,22 +123,26 @@ const AchievementNotification: React.FC<AchievementNotificationProps> = ({
     },
   });
 
-  return (
-    visible ? (
-      <Animated.View style={[styles.container, { transform: [{ translateY }] }]}>
-        <View style={[styles.iconContainer, { backgroundColor: iconColor + '20' }]}>
-          <Ionicons name={iconName} size={22} color={iconColor} />
-        </View>
-        <View style={styles.textContainer}>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
-          <Text style={styles.message} numberOfLines={2}>{message}</Text>
-        </View>
-        <TouchableOpacity onPress={handleDismiss} style={styles.closeButton}>
-          <Ionicons name="close" size={24} color={colors.secondary} />
-        </TouchableOpacity>
-      </Animated.View>
-    ) : null
-  );
+  return visible ? (
+    <Animated.View style={[styles.container, { transform: [{ translateY }] }]}>
+      <View
+        style={[styles.iconContainer, { backgroundColor: iconColor + "20" }]}
+      >
+        <Ionicons name={iconName} size={22} color={iconColor} />
+      </View>
+      <View style={styles.textContainer}>
+        <Text style={styles.title} numberOfLines={1}>
+          {title}
+        </Text>
+        <Text style={styles.message} numberOfLines={2}>
+          {message}
+        </Text>
+      </View>
+      <TouchableOpacity onPress={handleDismiss} style={styles.closeButton}>
+        <Ionicons name="close" size={24} color={colors.secondary} />
+      </TouchableOpacity>
+    </Animated.View>
+  ) : null;
 };
 
-export default AchievementNotification; 
+export default AchievementNotification;

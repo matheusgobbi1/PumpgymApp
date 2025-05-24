@@ -60,7 +60,7 @@ export default function PaywallScreen() {
   const { t } = useTranslation();
   const videoRef = useRef(null);
   const [videoLoaded, setVideoLoaded] = useState(false);
-  const insets = useSafeAreaInsets(); // Obter insets
+  const insets = useSafeAreaInsets();
 
   // Pré-carregamento do vídeo
   useEffect(() => {
@@ -69,9 +69,9 @@ export default function PaywallScreen() {
       try {
         const asset = Asset.fromModule(videoSource);
         await asset.downloadAsync();
-        console.log("Vídeo pré-carregado com sucesso");
+        
       } catch (error) {
-        console.error("Erro ao pré-carregar vídeo:", error);
+    
       }
     };
 
@@ -133,7 +133,9 @@ export default function PaywallScreen() {
   const [shouldRenderVideo, setShouldRenderVideo] = useState(true);
 
   // Estado para controlar o plano selecionado
-  const [selectedPlan, setSelectedPlan] = useState<PurchasesPackage | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<PurchasesPackage | null>(
+    null
+  );
 
   // Use este efeito para monitorar o scroll e determinar se o vídeo deve ser renderizado
   useEffect(() => {
@@ -163,69 +165,7 @@ export default function PaywallScreen() {
     const getOfferings = async () => {
       setIsLoading(true);
       try {
-        const offeringsResult = await Purchases.getOfferings(); // Chamada original restaurada
-
-        // MOCK DATA - Início
-        /*
-        const mockAnnualPackage = {
-          identifier: "annual_mock_pro",
-          packageType: "ANNUAL",
-          product: {
-            identifier: "com.fitfolio.annual.pro.mock",
-            description: "Acesso total por um ano com desconto.",
-            title: "Plano Anual",
-            price: 119.9,
-            priceString: "R$119,90",
-            currencyCode: "BRL",
-            introPrice: {
-              price: 0,
-              priceString: "Grátis",
-              period: "P7D",
-              periodUnit: "DAY",
-              periodNumberOfUnits: 7,
-              cycles: 1,
-            },
-            discounts: null,
-          },
-          offeringIdentifier: "default_offering_mock",
-        };
-
-        const mockMonthlyPackage = {
-          identifier: "monthly_mock_pro",
-          packageType: "MONTHLY",
-          product: {
-            identifier: "com.fitfolio.monthly.pro.mock",
-            description: "Acesso total por um mês.",
-            title: "Plano Mensal",
-            price: 19.9,
-            priceString: "R$19,90",
-            currencyCode: "BRL",
-            introPrice: {
-              price: 0,
-              priceString: "Grátis",
-              period: "P7D",
-              periodUnit: "DAY",
-              periodNumberOfUnits: 7,
-              cycles: 1,
-            },
-            discounts: null,
-          },
-          offeringIdentifier: "default_offering_mock",
-        };
-
-        const mockOfferingData = {
-          identifier: "default_offering_mock",
-          serverDescription: "Oferta padrão com dados mockados",
-          availablePackages: [mockMonthlyPackage, mockAnnualPackage],
-          lifetime: null,
-          annual: mockAnnualPackage,
-          sixMonth: null,
-          threeMonth: null,
-          twoMonth: null,
-          monthly: mockMonthlyPackage,
-        };
-        */
-        // MOCK DATA - Fim
+        const offeringsResult = await Purchases.getOfferings();
 
         // Usar dados reais
         if (
@@ -237,8 +177,8 @@ export default function PaywallScreen() {
           setOffering(null);
         }
       } catch (e) {
-        console.error("Erro ao buscar ofertas (ou ao mockar): ", e);
-        setOffering(null); // Garante que offering seja null em caso de erro
+        console.error("Erro ao buscar ofertas: ", e);
+        setOffering(null);
       } finally {
         setIsLoading(false);
       }
@@ -332,11 +272,7 @@ export default function PaywallScreen() {
           { backgroundColor: colors.background },
         ]}
       >
-        <Ionicons
-          name="alert-circle-outline"
-          size={60}
-          color={colors.error}
-        />
+        <Ionicons name="alert-circle-outline" size={60} color={colors.error} />
         <Text
           style={[
             styles.title,
@@ -582,24 +518,33 @@ export default function PaywallScreen() {
                     isSelected
                       ? {
                           borderWidth: 2,
-                          borderColor: '#fff',
+                          borderColor: "#fff",
                           backgroundColor: colors.card,
                           transform: [{ scale: 1.06 }],
                           zIndex: 2,
-                          shadowColor: '#fff',
+                          shadowColor: "#fff",
                           shadowOpacity: 0.2,
                           shadowRadius: 8,
                           elevation: 8,
                         }
                       : {
                           borderWidth: 1,
-                          borderColor: isPopular ? colors.accent : colors.border,
-                          backgroundColor: theme === 'dark' ? '#222' : '#e0e0e0',
+                          borderColor: isPopular
+                            ? colors.accent
+                            : colors.border,
+                          backgroundColor:
+                            theme === "dark" ? "#222" : "#e0e0e0",
                           opacity: 0.7,
                           transform: [{ scale: 0.97 }],
                           zIndex: 1,
                         },
-                    { maxWidth: 180, minWidth: 150, marginHorizontal: 6, paddingHorizontal: 18, paddingVertical: 18 },
+                    {
+                      maxWidth: 180,
+                      minWidth: 150,
+                      marginHorizontal: 6,
+                      paddingHorizontal: 18,
+                      paddingVertical: 18,
+                    },
                   ]}
                   onPress={() => setSelectedPlan(pkg)}
                   activeOpacity={0.9}
@@ -617,7 +562,9 @@ export default function PaywallScreen() {
                           styles.bestValueText,
                           {
                             color:
-                              theme === "dark" ? colors.black : colors.background,
+                              theme === "dark"
+                                ? colors.black
+                                : colors.background,
                           },
                         ]}
                       >
@@ -643,46 +590,54 @@ export default function PaywallScreen() {
                     >
                       {pkg.product.priceString}
                     </Text>
-                    <Text style={[styles.planFrequency, { color: colors.accentGray }]}> 
+                    <Text
+                      style={[
+                        styles.planFrequency,
+                        { color: colors.accentGray },
+                      ]}
+                    >
                       {frequencyText}
                     </Text>
-                    {pkg.product.introPrice && (() => {
-                      const introPriceObj = pkg.product.introPrice;
-                      let displayPeriod = "";
-                      if (
-                        introPriceObj.periodUnit &&
-                        introPriceObj.periodNumberOfUnits
-                      ) {
-                        let numUnits = introPriceObj.periodNumberOfUnits;
-                        let unit = introPriceObj.periodUnit.toLowerCase();
-                        if (unit === "week") {
-                          numUnits = numUnits * 7;
-                          unit = "day";
+                    {pkg.product.introPrice &&
+                      (() => {
+                        const introPriceObj = pkg.product.introPrice;
+                        let displayPeriod = "";
+                        if (
+                          introPriceObj.periodUnit &&
+                          introPriceObj.periodNumberOfUnits
+                        ) {
+                          let numUnits = introPriceObj.periodNumberOfUnits;
+                          let unit = introPriceObj.periodUnit.toLowerCase();
+                          if (unit === "week") {
+                            numUnits = numUnits * 7;
+                            unit = "day";
+                          }
+                          displayPeriod = `${numUnits} ${unit}${
+                            numUnits > 1 ? "s" : ""
+                          }`;
                         }
-                        displayPeriod = `${numUnits} ${unit}${numUnits > 1 ? "s" : ""}`;
-                      }
-                      let introText;
-                      if (introPriceObj.price === 0) {
-                        introText = t("paywall.introOfferFree", {
-                          period: displayPeriod,
-                        });
-                      } else {
-                        introText = t("paywall.introOfferPaid", {
-                          price: introPriceObj.priceString,
-                          period: displayPeriod,
-                        });
-                      }
-                      return (
-                        <Text
-                          style={[
-                            styles.introOfferText,
-                            { color: colors.success },
-                          ]}
-                        >
-                          {introText}
-                        </Text>
-                      );
-                    })()}
+                        let introText;
+                        if (introPriceObj.price === 0) {
+                          introText = t("paywall.introOfferFree", {
+                            period: displayPeriod,
+                          });
+                        } else {
+                          introText = t("paywall.introOfferPaid", {
+                            price: introPriceObj.priceString,
+                            period: displayPeriod,
+                          });
+                        }
+                        return (
+                          <Text
+                            style={[
+                              styles.introOfferText,
+                              { color: colors.success },
+                            ]}
+                          >
+                            {introText}
+                          </Text>
+                        );
+                      })()}
                   </View>
                 </TouchableOpacity>
               );
@@ -722,21 +677,36 @@ export default function PaywallScreen() {
 
         {/* Adicionar links pequenos para EULA e Privacy Policy na parte inferior */}
         <View style={{ alignItems: "center", marginBottom: 16 }}>
-          <Text style={{ fontSize: 12, color: colors.accentGray, textAlign: "center" }}>
+          <Text
+            style={{
+              fontSize: 12,
+              color: colors.accentGray,
+              textAlign: "center",
+            }}
+          >
             By continuing, you agree to our
             <Text
               style={{ color: colors.primary, textDecorationLine: "underline" }}
               onPress={() => {
                 // Open Apple EULA
-                Linking.openURL("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/");
+                Linking.openURL(
+                  "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+                );
               }}
-            > Terms of Use (EULA)</Text> and
+            >
+              {" "}
+              Terms of Use (EULA)
+            </Text>{" "}
+            and
             <Text
               style={{ color: colors.primary, textDecorationLine: "underline" }}
               onPress={() => {
                 router.push("/privacy-policy");
               }}
-            > Privacy Policy</Text>
+            >
+              {" "}
+              Privacy Policy
+            </Text>
           </Text>
         </View>
       </Animated.ScrollView>

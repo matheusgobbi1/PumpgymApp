@@ -39,13 +39,17 @@ export default function GenderScreen() {
     if (loading) return;
 
     // Se usuário está autenticado, não é anônimo e já completou o onboarding
-    if (user && !isAnonymous && !isNewUser) {
+    if (user && !isAnonymous && !isNewUser && nutritionInfo.gender) {
       router.replace("/(tabs)");
       return;
     }
 
     // Somente renderize se o usuário deve estar nesta tela
-    if ((user && isAnonymous) || (user && !isAnonymous && isNewUser)) {
+    if (
+      (user && isAnonymous) ||
+      (user && !isAnonymous && isNewUser) ||
+      !nutritionInfo.gender
+    ) {
       setShouldRender(true);
     }
   }, [user, isAnonymous, isNewUser, nutritionInfo.gender, router, loading]);
@@ -72,8 +76,7 @@ export default function GenderScreen() {
           onPress: async () => {
             try {
               await signOut();
-            } catch (error) {
-            }
+            } catch (error) {}
           },
         },
       ]
@@ -171,4 +174,3 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
-

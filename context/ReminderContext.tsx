@@ -190,19 +190,13 @@ export function ReminderProvider({ children }: { children: React.ReactNode }) {
         const reminderId = await AsyncStorage.getItem("@complete_reminder_id");
 
         if (reminderId) {
-          console.log(
-            "Processando lembrete para marcar como completo:",
-            reminderId
-          );
+         
 
           // Verificar se o lembrete existe
           const reminderToComplete = reminders.find((r) => r.id === reminderId);
 
           if (reminderToComplete) {
-            console.log(
-              "Lembrete encontrado, marcando como concluído:",
-              reminderToComplete.title
-            );
+       
 
             // Marcar como concluído
             await toggleCompleted(reminderId);
@@ -210,9 +204,8 @@ export function ReminderProvider({ children }: { children: React.ReactNode }) {
             // Limpar a flag para não processar novamente
             await AsyncStorage.removeItem("@complete_reminder_id");
 
-            console.log("Lembrete marcado como concluído com sucesso");
           } else {
-            console.log("Lembrete não encontrado na lista atual");
+      
 
             // Se o lembrete não estiver na memória, tente buscar direto do armazenamento
             await loadReminders();
@@ -270,10 +263,7 @@ export function ReminderProvider({ children }: { children: React.ReactNode }) {
 
             // Apenas processar ações específicas
             if (actionIdentifier === "COMPLETE") {
-              console.log(
-                "Ação de completar recebida diretamente pelo context:",
-                data.reminderId
-              );
+           
               await toggleCompleted(data.reminderId);
             }
           } catch (error) {
@@ -475,9 +465,9 @@ export function ReminderProvider({ children }: { children: React.ReactNode }) {
       setReminders(updatedReminders);
       await saveReminders(updatedReminders);
 
-      console.log("Lembrete atualizado com sucesso:", id);
+    
     } catch (error) {
-      console.error("Erro ao alternar estado do lembrete:", error);
+     
     }
   };
 

@@ -731,7 +731,7 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 20,
     marginHorizontal: 16,
-    marginVertical: 12,
+    marginVertical: 6,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,

@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
 import {
   View,
   StyleSheet,
@@ -333,11 +339,12 @@ export default function HomeScreen() {
   const handleHeaderTabsLayout = (event: any) => {
     const { height } = event.nativeEvent.layout;
     if (height > 0 && height !== headerTabsHeight) {
-       setHeaderTabsHeight(height);
+      setHeaderTabsHeight(height);
     }
   };
 
-  const scrollViewPaddingTop = headerTabsHeight > 0 ? headerTabsHeight + 5 : insets.top + 100; // Fallback inicial
+  const scrollViewPaddingTop =
+    headerTabsHeight > 0 ? headerTabsHeight + 5 : insets.top + 100; // Fallback inicial
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -348,7 +355,7 @@ export default function HomeScreen() {
         onLayout={handleHeaderTabsLayout}
       >
         <View style={styles.headerWrapper}>
-          <HomeHeader showDate={true} />
+          <HomeHeader title={t("home.title")} />
         </View>
         <View
           style={[
@@ -452,6 +459,7 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: "row",
+    marginTop: -10,
     paddingHorizontal: 16,
   },
   scrollView: {
@@ -489,6 +497,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   bottomPadding: {
-      height: 80, // Altura igual à das outras telas
+    height: 80, // Altura igual à das outras telas
   },
 });

@@ -257,7 +257,7 @@ export default function NutritionSummaryCard({
   // Função para definir o plano nutricional
   const handleSetupPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push("/nutrition-setup");
+    router.replace("/onboarding/gender");
   };
 
   // Função para abrir o customizador
