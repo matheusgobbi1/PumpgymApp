@@ -38,6 +38,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KEYS } from "../constants/keys";
 import ProgressionSummaryCard from "../components/training/ProgressionSummaryCard";
 import { BlurView } from "expo-blur";
+import WorkoutBuilder from "../components/training/WorkoutBuilder";
 
 // Constantes para animação do header e card
 const { width } = Dimensions.get("window");
@@ -45,6 +46,40 @@ const HEADER_MAX_HEIGHT = 180;
 const HEADER_MIN_HEIGHT = 55;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 const CARD_HEIGHT = 60; // Altura aproximada do card de resumo
+
+// Enum para as abas
+enum Tab {
+  MAIN = "main",
+  PROGRESS = "progress",
+  BUILDER = "builder",
+  SAVED = "saved",
+}
+
+// Adicionar após as constantes de animação
+const getBuilderStepInfo = (step: string) => {
+  switch (step) {
+    case "experience":
+      return {
+        title: "Qual é o seu nível de experiência?",
+        subtitle: "Isso nos ajudará a criar um treino adequado para você",
+      };
+    case "muscles":
+      return {
+        title: "Quais músculos você quer treinar?",
+        subtitle: "Selecione os grupos musculares para o seu treino",
+      };
+    case "goal":
+      return {
+        title: "Qual é o seu objetivo com este treino?",
+        subtitle: "Isso ajudará a definir a intensidade e as repetições",
+      };
+    default:
+      return {
+        title: "Personal Trainer",
+        subtitle: "",
+      };
+  }
+};
 
 export default function ProgressionModal() {
   const router = useRouter();
@@ -78,6 +113,8 @@ export default function ProgressionModal() {
     totals: WorkoutTotals | null;
     date: string | null;
   }>({ totals: null, date: null });
+  const [activeTab, setActiveTab] = useState<Tab>(Tab.MAIN);
+  const [currentStep, setCurrentStep] = useState<string>("experience");
 
   // Calculando os valores de animação
   const headerHeight = scrollY.interpolate({
@@ -296,6 +333,184 @@ export default function ProgressionModal() {
     }
   };
 
+  // Função para renderizar o conteúdo da tela principal com os dois cards
+  const renderMainContent = () => {
+    return (
+      <View style={styles.mainCardsContainer}>
+        {/* Card de Progresso */}
+        <TouchableOpacity
+          style={[styles.mainCard, { backgroundColor: colors.light }]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setActiveTab(Tab.PROGRESS);
+          }}
+        >
+          <LinearGradient
+            colors={[workoutColor as string, `${workoutColor}80`]}
+            style={styles.mainCardGradient}
+          >
+            <View style={styles.mainCardContent}>
+              <View style={styles.mainCardIconContainer}>
+                <Ionicons name="trending-up" size={32} color="#FFF" />
+              </View>
+              <View style={styles.mainCardTextContainer}>
+                <Text style={styles.mainCardTitle}>Progresso</Text>
+                <Text style={styles.mainCardDescription}>
+                  Acompanhe seu progresso e receba sugestões inteligentes para
+                  evoluir
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color="#FFF" />
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        {/* Card de Construtor */}
+        <TouchableOpacity
+          style={[styles.mainCard, { backgroundColor: colors.light }]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setActiveTab(Tab.BUILDER);
+          }}
+        >
+          <LinearGradient
+            colors={[workoutColor as string, `${workoutColor}80`]}
+            style={styles.mainCardGradient}
+          >
+            <View style={styles.mainCardContent}>
+              <View style={styles.mainCardIconContainer}>
+                <Ionicons name="construct" size={32} color="#FFF" />
+              </View>
+              <View style={styles.mainCardTextContainer}>
+                <Text style={styles.mainCardTitle}>Construtor</Text>
+                <Text style={styles.mainCardDescription}>
+                  Crie treinos personalizados com exercícios específicos para
+                  seus objetivos
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color="#FFF" />
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        {/* Card de Treinos Salvos */}
+        <TouchableOpacity
+          style={[styles.mainCard, { backgroundColor: colors.light }]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setActiveTab(Tab.SAVED);
+          }}
+        >
+          <LinearGradient
+            colors={[workoutColor as string, `${workoutColor}80`]}
+            style={styles.mainCardGradient}
+          >
+            <View style={styles.mainCardContent}>
+              <View style={styles.mainCardIconContainer}>
+                <Ionicons name="bookmark" size={32} color="#FFF" />
+              </View>
+              <View style={styles.mainCardTextContainer}>
+                <Text style={styles.mainCardTitle}>Treinos Salvos</Text>
+                <Text style={styles.mainCardDescription}>
+                  Acesse seus treinos favoritos e personalizados salvos
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color="#FFF" />
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  // Função para renderizar o conteúdo da aba de progresso
+  const renderProgressTab = () => {
+    if (loading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={workoutColor as string} />
+          <Text style={[styles.loadingText, { color: colors.text }]}>
+            {t("progression.modal.calculating")}
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <>
+        {suggestions.length === 0 && !previousWorkoutData.totals ? (
+          <View style={styles.emptyContainer}>
+            <FontAwesome5 name="dumbbell" size={80} color={colors.primary} />
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>
+              {t("progression.modal.noWorkoutsFound")}
+            </Text>
+            <Text style={[styles.emptyText, { color: colors.secondary }]}>
+              {t("progression.modal.noWorkoutsDescription")}
+            </Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.sectionTitleContainer}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                {t("progression.modal.suggestionsTitle")}
+              </Text>
+            </View>
+
+            <Text
+              style={[styles.sectionDescription, { color: colors.secondary }]}
+            >
+              {t("progression.modal.selectExercisesDescription")}
+            </Text>
+
+            <View style={styles.suggestionsContainer}>
+              {suggestions.map((suggestion, index) => (
+                <ProgressionCard
+                  key={suggestion.exerciseId}
+                  suggestion={suggestion}
+                  index={index}
+                  isSelected={selectedExercises.includes(suggestion.exerciseId)}
+                  workoutColor={workoutColor as string}
+                  theme={theme}
+                  onToggleSelection={toggleSuggestionSelection}
+                />
+              ))}
+            </View>
+          </>
+        )}
+      </>
+    );
+  };
+
+  // Função para renderizar o conteúdo da aba de construtor
+  const renderBuilderTab = () => {
+    return (
+      <WorkoutBuilder
+        theme={theme}
+        workoutColor={workoutColor as string}
+        workoutId={workoutId as string}
+        onClose={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          router.back();
+        }}
+        onStepChange={(step) => setCurrentStep(step)}
+      />
+    );
+  };
+
+  // Função para renderizar o conteúdo da aba de treinos salvos
+  const renderSavedTab = () => {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={[styles.emptyTitle, { color: colors.text }]}>
+          Em breve
+        </Text>
+        <Text style={[styles.emptyText, { color: colors.secondary }]}>
+          A funcionalidade de treinos salvos estará disponível em breve
+        </Text>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -331,13 +546,26 @@ export default function ProgressionModal() {
 
               {/* Cabeçalho de navegação */}
               <View style={styles.header}>
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={handleClose}
-                  disabled={loading || applying}
-                >
-                  <Ionicons name="chevron-down" size={28} color="#FFF" />
-                </TouchableOpacity>
+                {activeTab === Tab.MAIN ? (
+                  <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={handleClose}
+                    disabled={loading || applying}
+                  >
+                    <Ionicons name="chevron-down" size={28} color="#FFF" />
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setActiveTab(Tab.MAIN);
+                    }}
+                    disabled={loading || applying}
+                  >
+                    <Ionicons name="chevron-back" size={28} color="#FFF" />
+                  </TouchableOpacity>
+                )}
 
                 <Animated.Text
                   style={[
@@ -351,7 +579,13 @@ export default function ProgressionModal() {
                     },
                   ]}
                 >
-                  {workoutName as string}
+                  {activeTab === Tab.MAIN
+                    ? "Personal Trainer"
+                    : activeTab === Tab.PROGRESS
+                    ? "Progresso"
+                    : activeTab === Tab.BUILDER
+                    ? "Construtor"
+                    : "Treinos Salvos"}
                 </Animated.Text>
 
                 <TouchableOpacity
@@ -377,46 +611,61 @@ export default function ProgressionModal() {
                   },
                 ]}
               >
-                <Ionicons
-                  name="barbell"
-                  size={32}
-                  color="#fff"
-                  style={styles.headerIcon}
-                />
-                <Text style={styles.headerGradientTitle}>
-                  {workoutName as string}
-                </Text>
-                {previousWorkoutData.date && (
-                  <Text style={styles.headerGradientSubtitle}>
-                    {historyCount > 1
-                      ? t("progression.modal.basedOnCount", {
-                          count: historyCount,
-                          defaultValue: `Baseado nos últimos ${historyCount} treinos`,
-                        })
-                      : t("progression.modal.basedOnLast", {
-                          defaultValue: "Baseado no último treino",
-                        })}
-                  </Text>
+                {activeTab === Tab.BUILDER ? (
+                  <>
+                    <Text style={styles.headerGradientTitle}>
+                      {getBuilderStepInfo(currentStep).title}
+                    </Text>
+                    <Text style={styles.headerGradientSubtitle}>
+                      {getBuilderStepInfo(currentStep).subtitle}
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Ionicons
+                      name="barbell"
+                      size={32}
+                      color="#fff"
+                      style={styles.headerIcon}
+                    />
+                    <Text style={styles.headerGradientTitle}>
+                      Personal Trainer
+                    </Text>
+                    {previousWorkoutData.date && (
+                      <Text style={styles.headerGradientSubtitle}>
+                        {historyCount > 1
+                          ? t("progression.modal.basedOnCount", {
+                              count: historyCount,
+                              defaultValue: `Baseado nos últimos ${historyCount} treinos`,
+                            })
+                          : t("progression.modal.basedOnLast", {
+                              defaultValue: "Baseado no último treino",
+                            })}
+                      </Text>
+                    )}
+                  </>
                 )}
               </Animated.View>
             </LinearGradient>
           </Animated.View>
 
-          {/* Card de resumo fixo abaixo do header */}
-          {!loading && previousWorkoutData.totals && (
-            <View
-              style={[
-                styles.fixedCardContainer,
-                { backgroundColor: colors.background },
-              ]}
-            >
-              <ProgressionSummaryCard
-                previousWorkoutData={previousWorkoutData}
-                workoutColor={workoutColor as string}
-                theme={theme}
-              />
-            </View>
-          )}
+          {/* Card de resumo fixo abaixo do header - apenas na aba de progresso */}
+          {activeTab === Tab.PROGRESS &&
+            !loading &&
+            previousWorkoutData.totals && (
+              <View
+                style={[
+                  styles.fixedCardContainer,
+                  { backgroundColor: colors.background },
+                ]}
+              >
+                <ProgressionSummaryCard
+                  previousWorkoutData={previousWorkoutData}
+                  workoutColor={workoutColor as string}
+                  theme={theme}
+                />
+              </View>
+            )}
         </View>
 
         <Animated.ScrollView
@@ -424,7 +673,9 @@ export default function ProgressionModal() {
           contentContainerStyle={[
             styles.contentContainer,
             {
-              paddingTop: HEADER_MAX_HEIGHT + CARD_HEIGHT,
+              paddingTop:
+                HEADER_MAX_HEIGHT +
+                (activeTab === Tab.PROGRESS ? CARD_HEIGHT : 0),
               minHeight: Dimensions.get("window").height * 1.2,
             },
           ]}
@@ -437,86 +688,14 @@ export default function ProgressionModal() {
           bounces={true}
           overScrollMode="always"
         >
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={workoutColor as string} />
-              <Text style={[styles.loadingText, { color: colors.text }]}>
-                {t("progression.modal.calculating")}
-              </Text>
-            </View>
-          ) : (
-            <>
-              {suggestions.length === 0 && !previousWorkoutData.totals ? (
-                <View style={styles.emptyContainer}>
-                  <FontAwesome5
-                    name="dumbbell"
-                    size={80}
-                    color={colors.primary}
-                  />
-                  <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                    {t("progression.modal.noWorkoutsFound")}
-                  </Text>
-                  <Text style={[styles.emptyText, { color: colors.secondary }]}>
-                    {t("progression.modal.noWorkoutsDescription")}
-                  </Text>
-                </View>
-              ) : (
-                <>
-                  <View style={styles.sectionTitleContainer}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                      {t("progression.modal.suggestionsTitle")}
-                    </Text>
-                  </View>
-
-                  <Text
-                    style={[
-                      styles.sectionDescription,
-                      { color: colors.secondary },
-                    ]}
-                  >
-                    {t("progression.modal.selectExercisesDescription")}
-                  </Text>
-
-                  <View style={styles.suggestionsContainer}>
-                    {suggestions.map((suggestion, index) => (
-                      <ProgressionCard
-                        key={suggestion.exerciseId}
-                        suggestion={suggestion}
-                        index={index}
-                        isSelected={selectedExercises.includes(
-                          suggestion.exerciseId
-                        )}
-                        workoutColor={workoutColor as string}
-                        theme={theme}
-                        onToggleSelection={toggleSuggestionSelection}
-                      />
-                    ))}
-                  </View>
-                  {suggestions.length === 0 && previousWorkoutData.totals && (
-                    <View style={styles.emptyContainer}>
-                      <Ionicons
-                        name="checkmark-circle-outline"
-                        size={40}
-                        color={colors.secondary}
-                      />
-                      <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                        {t("progression.modal.noSuggestions")}
-                      </Text>
-                      <Text
-                        style={[styles.emptyText, { color: colors.secondary }]}
-                      >
-                        {t("progression.modal.noSuggestionsDescription")}
-                      </Text>
-                    </View>
-                  )}
-                </>
-              )}
-            </>
-          )}
+          {activeTab === Tab.MAIN && renderMainContent()}
+          {activeTab === Tab.PROGRESS && renderProgressTab()}
+          {activeTab === Tab.BUILDER && renderBuilderTab()}
+          {activeTab === Tab.SAVED && renderSavedTab()}
         </Animated.ScrollView>
 
-        {/* Botão de aplicar */}
-        {suggestions.length > 0 && (
+        {/* Botão de aplicar - apenas na aba de progresso */}
+        {activeTab === Tab.PROGRESS && suggestions.length > 0 && (
           <View
             style={[
               styles.bottomBar,
@@ -677,6 +856,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#FFF",
     marginBottom: 4,
+    textAlign: "center",
+    paddingHorizontal: 20,
   },
   headerGradientSubtitle: {
     fontSize: 16,
@@ -815,5 +996,52 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+  },
+  mainCardsContainer: {
+    padding: 16,
+    gap: 16,
+  },
+  mainCard: {
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  mainCardGradient: {
+    padding: 20,
+  },
+  mainCardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  mainCardIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  mainCardTextContainer: {
+    flex: 1,
+  },
+  mainCardTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#FFF",
+    marginBottom: 4,
+  },
+  mainCardDescription: {
+    fontSize: 14,
+    color: "#FFF",
+    opacity: 0.9,
+    lineHeight: 20,
   },
 });

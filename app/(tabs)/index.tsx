@@ -459,6 +459,7 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: "row",
+    marginTop: -10,
     paddingHorizontal: 16,
   },
   scrollView: {
